@@ -484,7 +484,7 @@ class Job:
             persistent JSON file, use the call operator to get an equivalent
             plain dictionary: ``job.document()``.
             For more information, see
-            :class:`~signac.core.synced_collections.collection_json.BufferedJSONDict`.
+            :class:`~signac.synced_collections.collection_json.BufferedJSONDict`.
 
         See :ref:`signac document <signac-cli-document>` for the command line equivalent.
 
@@ -506,7 +506,7 @@ class Job:
 
         Parameters
         ----------
-        new_doc : :class:`~signac.core.synced_collections.collection_json.BufferedJSONDict`
+        new_doc : :class:`~signac.synced_collections.collection_json.BufferedJSONDict`
             The job document handle.
 
         """

@@ -1,7 +1,7 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"""Implements a Zarr SyncedCollection backend."""
+"""Implements a Zarr :class:`~.SyncedCollection` backend."""
 from copy import deepcopy
 
 from .. import SyncedAttrDict, SyncedCollection, SyncedList
@@ -15,7 +15,7 @@ except ImportError:
 
 
 class ZarrCollection(SyncedCollection):
-    """A :class:`SyncedCollection` that synchronizes with a Zarr group.
+    """A :class:`~.SyncedCollection` that synchronizes with a Zarr group.
 
     Since Zarr is designed for storage of array-like data, this backend implements
     synchronization by storing the collection in a 1-element object array. The user
@@ -24,7 +24,7 @@ class ZarrCollection(SyncedCollection):
 
     **Thread safety**
 
-    The ZarrCollection is not thread-safe.
+    The :class:`ZarrCollection` is not thread-safe.
 
     Parameters
     ----------
@@ -57,7 +57,7 @@ class ZarrCollection(SyncedCollection):
         Returns
         -------
         Collection or None
-            An equivalent unsynced collection satisfying :meth:`is_base_type` that
+            An equivalent unsynced collection satisfying :meth:`~.is_base_type` that
             contains the data in the Zarr group. Will return None if associated
             data is not found in the Zarr group.
 
@@ -141,19 +141,19 @@ class ZarrDict(ZarrCollection, SyncedAttrDict):
     name: str, optional
         The name of the collection (Default value = None).
     data: :py:class:`collections.abc.Mapping`, optional
-        The intial data pass to ZarrDict. Defaults to `dict()`.
+        The intial data pass to :class:`ZarrDict`. Defaults to `dict()`.
     parent: ZarrCollection, optional
-        A parent instance of ZarrCollection or None (Default value = None).
+        A parent instance of :class:`ZarrCollection` or :code:`None` (Default value = None).
 
     Warnings
     --------
 
-    While the ZarrDict object behaves like a dictionary, there are important
+    While the :class:`ZarrDict` object behaves like a dictionary, there are important
     distinctions to remember. In particular, because operations are reflected
     as changes to an underlying database, copying (even deep copying) a
-    ZarrDict instance may exhibit unexpected behavior. If a true copy is
+    :class:`ZarrDict` instance may exhibit unexpected behavior. If a true copy is
     required, you should use the call operator to get a dictionary
-    representation, and if necessary construct a new ZarrDict instance:
+    representation, and if necessary construct a new :class:`ZarrDict` instance:
     ``new_dict = ZarrDict(old_dict())``.
 
     """
@@ -182,18 +182,18 @@ class ZarrList(ZarrCollection, SyncedList):
     name: str, optional
         The name of the collection (Default value = None).
     data: non-str :py:class:`collections.abc.Sequence`, optional
-        The intial data pass to ZarrList. Defaults to `list()`.
+        The intial data pass to :class:`ZarrList`. Defaults to `list()`.
     parent: ZarrCollection, optional
-        A parent instance of ZarrCollection or None (Default value = None).
+        A parent instance of :class:`ZarrCollection` or None (Default value = None).
 
     Warnings
     --------
-    While the ZarrList object behaves like a list, there are important
+    While the :class:`ZarrList` object behaves like a list, there are important
     distinctions to remember. In particular, because operations are reflected
     as changes to an underlying database, copying (even deep copying) a
-    ZarrList instance may exhibit unexpected behavior. If a true copy is
+    :class:`ZarrList` instance may exhibit unexpected behavior. If a true copy is
     required, you should use the call operator to get a dictionary
-    representation, and if necessary construct a new ZarrList instance:
+    representation, and if necessary construct a new :class:`ZarrList` instance:
     ``new_list = ZarrList(old_list())``.
 
     """

@@ -1,7 +1,7 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"""Defines a buffering protocol for SyncedCollection objects.
+"""Defines a buffering protocol for :class:`~.SyncedCollection` objects.
 
 Depending on the choice of backend, synchronization may be an expensive process.
 In that case, it can be helpful to allow many in-memory modifications to occur
@@ -15,16 +15,17 @@ dramatically speed up code paths that might otherwise involve, for instance,
 heavy I/O. The specific buffering mechanism must be implemented by each backend
 since it depends on the nature of the underlying data format.
 
-All buffered collections expose a local context manager for buffering. In addition,
-this module exposes a global context manager :func:`buffer_all` that
-indicates to all buffered collections irrespective of data type or backend that
-they should enter buffered mode. These context managers may be nested freely, and
-buffer flushes will occur when all such managers have been exited.
+All buffered collections expose a local context manager for buffering. In
+addition, each backend exposes a context manager
+:meth:`BufferedCollection.buffer_backend` that indicates to all buffered
+collections of that backend that they should enter buffered mode. These context
+managers may be nested freely, and buffer flushes will occur when all such
+managers have been exited.
 
 .. code-block::
 
     with collection1.buffered:
-        with buffer_all:
+        with type(collection1).buffer_backend:
             collection2['foo'] = 1
             collection1['bar'] = 1
             # collection2 will flush when this context exits.
@@ -45,12 +46,12 @@ logger = logging.getLogger(__name__)
 
 
 class BufferedCollection(SyncedCollection):
-    """A :class:`SyncedCollection` defining an interface for buffering.
+    """A :class:`~.SyncedCollection` defining an interface for buffering.
 
     **The default behavior of this class is not to buffer.** This class simply
     defines an appropriate interface for buffering behavior so that client code
-    can rely on these methods existing, e.g. to be able to do things like `with
-    collection.buffered...`. This feature allows client code to indicate to the
+    can rely on these methods existing, e.g. to be able to do things like ``with
+    collection.buffered...``. This feature allows client code to indicate to the
     collection when it is safe to buffer reads and writes, which usually means
     guaranteeing that the synchronization destination (e.g. an underlying file
     or database entry) will not be modified by other processes concurrently
@@ -58,24 +59,26 @@ class BufferedCollection(SyncedCollection):
     default case the result of this will be a no-op and all data will be
     immediately synchronized with the backend.
 
-    The BufferedCollection overrides the :meth:`SyncedCollection._load` and
-    :meth:`SyncedCollection._save` methods to check whether buffering is enabled
+    The BufferedCollection overrides the :meth:`~._load` and
+    :meth:`~._save` methods to check whether buffering is enabled
     or not. If not, the behavior is identical to the parent class. When in buffered
     mode, however, the BufferedCollection introduces two additional hooks that
     can be overridden by subclasses to control how the collection behaves while buffered:
 
         - :meth:`~._load_from_buffer`: Loads data while in buffered mode and returns
-          it in an object satisfying :meth:`~.is_base_type`. The default behavior
-          is to simply call :meth:`~SyncedCollection._load_from_resource`
+          it in an object satisfying
+          :meth:`~signac.synced_collections.data_types.synced_collection.SyncedCollection.is_base_type`.
+          The default behavior is to simply call
+          :meth:`~._load_from_resource`.
         - :meth:`~._save_to_buffer`: Stores data while in buffered mode. The default behavior
-          is to simply call :meth:`~SyncedCollection._save_to_resource`
+          is to simply call
+          :meth:`~._save_to_resource`.
 
     **Thread safety**
 
     Whether or not buffering is thread safe depends on the buffering method used. In
-    general, both the buffering logic and the standard data read/write logic (i.e.
-    operations like `__setitem__`) must be thread safe for the resulting collection
-    type to be thread safe.
+    general, both the buffering logic and the data type operations must be
+    thread safe for the resulting collection type to be thread safe.
 
     """
 
@@ -128,9 +131,10 @@ class BufferedCollection(SyncedCollection):
     def _load(self):
         """Load data from the backend but buffer if needed.
 
-        This method is identical to the SyncedCollection implementation for
-        `load` except that it determines whether data is actually synchronized
-        or instead read from a temporary buffer based on the buffering mode.
+        This method is identical to the :class:`~.SyncedCollection`
+        implementation except that it determines whether data is actually
+        synchronized or instead read from a temporary buffer based on the
+        buffering mode.
         """
         if not self._suspend_sync:
             if self._root is None:
@@ -160,11 +164,12 @@ class BufferedCollection(SyncedCollection):
         Returns
         -------
         Collection
-            An equivalent unsynced collection satisfying :meth:`is_base_type` that
+            An equivalent unsynced collection satisfying
+            :meth:`~signac.synced_collections.data_types.synced_collection.SyncedCollection.is_base_type` that
             contains the buffered data. By default, the buffered data is just the
             data in the resource.
 
-        """
+        """  # noqa: E501
         self._load_from_resource()
 
     @property

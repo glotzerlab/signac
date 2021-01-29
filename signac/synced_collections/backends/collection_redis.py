@@ -1,20 +1,20 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"""Implements a Redis SyncedCollection backend."""
+"""Implements a Redis :class:`~.SyncedCollection` backend."""
 import json
 
 from .. import SyncedAttrDict, SyncedCollection, SyncedList
 
 
 class RedisCollection(SyncedCollection):
-    """A :class:`SyncedCollection` that synchronizes with a Redis database.
+    """A :class:`~.SyncedCollection` that synchronizes with a Redis database.
 
     This backend stores data in Redis by associating it with the provided key.
 
     **Thread safety**
 
-    The RedisCollection is not thread-safe.
+    The :class:`RedisCollection` is not thread-safe.
 
     Parameters
     ----------
@@ -38,7 +38,7 @@ class RedisCollection(SyncedCollection):
         Returns
         -------
         Collection or None
-            An equivalent unsynced collection satisfying :meth:`is_base_type` that
+            An equivalent unsynced collection satisfying :meth:`~.is_base_type` that
             contains the data in the Redis database. Will return None if no data
             was found in the Redis database.
 
@@ -66,7 +66,7 @@ class RedisCollection(SyncedCollection):
 
 
 class RedisDict(RedisCollection, SyncedAttrDict):
-    """A dict-like mapping interface to a persistent Redis-database.
+    """A dict-like mapping interface to a persistent Redis database.
 
     .. code-block:: python
 
@@ -91,19 +91,19 @@ class RedisDict(RedisCollection, SyncedAttrDict):
     key: str, optional
         The key of the  collection (Default value = None).
     data: :py:class:`collections.abc.Mapping`, optional
-        The intial data pass to RedisDict. Defaults to `dict()`
+        The intial data pass to :class:`RedisDict`. Defaults to `dict()`
     parent: RedisCollection, optional
-        A parent instance of RedisCollection (Default value = None).
+        A parent instance of :class:`RedisCollection` (Default value = None).
 
     Warnings
     --------
 
-    While the RedisDict object behaves like a dictionary, there are important
+    While the :class:`RedisDict` object behaves like a dictionary, there are important
     distinctions to remember. In particular, because operations are reflected
-    as changes to an underlying database, copying a RedisDict instance may
+    as changes to an underlying database, copying a :class:`RedisDict` instance may
     exhibit unexpected behavior. If a true copy is required, you should use the
     call operator to get a dictionary representation, and if necessary
-    construct a new RedisDict instance: ``new_dict = RedisDict(old_dict())``.
+    construct a new :class:`RedisDict` instance: ``new_dict = RedisDict(old_dict())``.
 
     """
 
@@ -114,7 +114,7 @@ class RedisDict(RedisCollection, SyncedAttrDict):
 
 
 class RedisList(RedisCollection, SyncedList):
-    """A non-string sequence interface to a persistent Redis file.
+    """A non-string sequence interface to a persistent Redis database.
 
     .. code-block:: python
 
@@ -126,12 +126,12 @@ class RedisList(RedisCollection, SyncedList):
 
     .. warning::
 
-        While the RedisList object behaves like a list, there are
+        While the :class:`RedisList` object behaves like a list, there are
         important distinctions to remember. In particular, because operations
-        are reflected as changes to an underlying database, copying a RedisList
+        are reflected as changes to an underlying database, copying a :class:`RedisList`
         instance may exhibit unexpected behavior. If a true copy is required,
         you should use the call operator to get a dictionary representation,
-        and if necessary construct a new RedisList instance:
+        and if necessary construct a new :class:`RedisList` instance:
         ``new_list = RedisList(old_list())``.
 
     Parameters
@@ -141,9 +141,9 @@ class RedisList(RedisCollection, SyncedList):
     key: str, optional
         The key of the  collection (Default value = None).
     data: non-str :py:class:`collections.abc.Sequence`, optional
-        The intial data pass to RedisList. Defaults to `list()`
+        The intial data pass to :class:`RedisList`. Defaults to `list()`
     parent: RedisCollection, optional
-        A parent instance of RedisCollection (Default value = None).
+        A parent instance of :class:`RedisCollection` (Default value = None).
 
     """
 

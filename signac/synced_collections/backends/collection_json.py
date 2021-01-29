@@ -1,7 +1,7 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"""Implements a JSON SyncedCollection backend."""
+"""Implements a JSON :class:`~.SyncedCollection` backend."""
 
 import errno
 import json
@@ -23,9 +23,9 @@ from ..validators import json_format_validator
 def _convert_key_to_str(data):
     """Recursively convert non-string keys to strings in dicts.
 
-    This method supports :py:class:`collections.abc.Sequence` or
-    :py:class:`collections.abc.Mapping` types as inputs, and recursively
-    searches for any entries in :py:class:`collections.abc.Mapping` types where
+    This method supports :class:`collections.abc.Sequence` or
+    :class:`collections.abc.Mapping` types as inputs, and recursively
+    searches for any entries in :class:`collections.abc.Mapping` types where
     the key is not a string. This functionality is added for backwards
     compatibility with legacy behavior in signac, which allowed integer keys
     for dicts. These inputs were silently converted to string keys and stored
@@ -59,7 +59,7 @@ def _convert_key_to_str(data):
 
 
 class JSONCollection(SyncedCollection):
-    """A :class:`SyncedCollection` that synchronizes with a JSON file.
+    """A :class:`~.SyncedCollection` that synchronizes with a JSON file.
 
     This collection implements synchronization by reading and writing the associated
     JSON file in its entirety for every read/write operation. This backend is a good
@@ -69,11 +69,11 @@ class JSONCollection(SyncedCollection):
 
     **Thread safety**
 
-    The JSONCollection is thread-safe. To make these collections safe, the
+    The :class:`JSONCollection` is thread-safe. To make these collections safe, the
     ``write_concern`` flag is ignored in multithreaded execution, and the
     write is **always** performed via a write to temporary file followed by a
     replacement of the original file. The file replacement operation uses
-    :py:func:`os.replace`, which is guaranteed to be atomic by the Python standard.
+    :func:`os.replace`, which is guaranteed to be atomic by the Python standard.
 
     Parameters
     ----------
@@ -150,9 +150,9 @@ JSONCollection.add_validator(json_format_validator, _convert_key_to_str)
 class BufferedJSONCollection(SerializedFileBufferedCollection, JSONCollection):
     """A :class:`JSONCollection` that supports I/O buffering.
 
-    This class implements the buffer protocol defined by :class:`BufferedCollection`.
-    The concrete implementation of buffering behavior is defined by the
-    :class:`SerializedFileBufferedCollection`.
+    This class implements the buffer protocol defined by
+    :class:`~.BufferedCollection`.  The concrete implementation of buffering
+    behavior is defined by the :class:`~.SerializedFileBufferedCollection`.
     """
 
     _backend = __name__ + ".buffered"  # type: ignore
@@ -164,9 +164,9 @@ class BufferedJSONCollection(SerializedFileBufferedCollection, JSONCollection):
 class MemoryBufferedJSONCollection(SharedMemoryFileBufferedCollection, JSONCollection):
     """A :class:`JSONCollection` that supports I/O buffering.
 
-    This class implements the buffer protocol defined by :class:`BufferedCollection`.
+    This class implements the buffer protocol defined by :class:`~.BufferedCollection`.
     The concrete implementation of buffering behavior is defined by the
-    :class:`SharedMemoryFileBufferedCollection`.
+    :class:`~.SharedMemoryFileBufferedCollection`.
     """
 
     _backend = __name__ + ".memory_buffered"  # type: ignore
@@ -201,7 +201,7 @@ class JSONDict(JSONCollection, SyncedAttrDict):
     write_concern: bool, optional
         Ensure file consistency by writing changes back to a temporary file
         first, before replacing the original file (Default value = False).
-    data: :py:class:`collections.abc.Mapping`, optional
+    data: :class:`collections.abc.Mapping`, optional
         The intial data pass to JSONDict (Default value = {}).
     parent: JSONCollection, optional
         A parent instance of JSONCollection or None (Default value = None).
@@ -209,12 +209,12 @@ class JSONDict(JSONCollection, SyncedAttrDict):
     Warnings
     --------
 
-    While the JSONDict object behaves like a dictionary, there are important
+    While the :class:`JSONDict` object behaves like a dictionary, there are important
     distinctions to remember. In particular, because operations are reflected
-    as changes to an underlying file, copying (even deep copying) a JSONDict
+    as changes to an underlying file, copying (even deep copying) a :class:`JSONDict`
     instance may exhibit unexpected behavior. If a true copy is required, you
     should use the call operator to get a dictionary representation, and if
-    necessary construct a new JSONDict instance: ``new_dict =
+    necessary construct a new :class:`JSONDict` instance: ``new_dict =
     JSONDict(old_dict())``.
 
     """
@@ -258,7 +258,7 @@ class JSONList(JSONCollection, SyncedList):
     write_concern: bool, optional
         Ensure file consistency by writing changes back to a temporary file
         first, before replacing the original file (Default value = None).
-    data: non-str :py:class:`collections.abc.Sequence`, optional
+    data: non-str :class:`collections.abc.Sequence`, optional
         The intial data pass to JSONList (Default value = []).
     parent: JSONCollection, optional
         A parent instance of JSONCollection or None (Default value = None).
@@ -266,12 +266,12 @@ class JSONList(JSONCollection, SyncedList):
     Warnings
     --------
 
-    While the JSONList object behaves like a list, there are important
+    While the :class:`JSONList` object behaves like a list, there are important
     distinctions to remember. In particular, because operations are reflected
-    as changes to an underlying file, copying (even deep copying) a JSONList
+    as changes to an underlying file, copying (even deep copying) a :class:`JSONList`
     instance may exhibit unexpected behavior. If a true copy is required, you
     should use the call operator to get a dictionary representation, and if
-    necessary construct a new JSONList instance:
+    necessary construct a new :class:`JSONList` instance:
     ``new_list = JSONList(old_list())``.
 
     """

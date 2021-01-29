@@ -72,7 +72,7 @@ class _BufferedLoadAndSave(_LoadAndSave):
 
 
 class FileBufferedCollection(BufferedCollection):
-    """A :class:`SyncedCollection` that can buffer file I/O.
+    """A :class:`~.SyncedCollection` that can buffer file I/O.
 
     This class provides a standardized buffering protocol for all file-based
     backends. All file-based backends can use the same set of integrity checks
@@ -87,11 +87,11 @@ class FileBufferedCollection(BufferedCollection):
             - This class should be inherited before any other collections. This
               requirement is due to the extensive use of multiple inheritance.
               Since this class is designed to be combined with other
-              :class:`SyncedCollection` types without making those types aware
+              :class:`~.SyncedCollection` types without making those types aware
               of buffering behavior, it transparently hooks into the
               initialization process, but this is dependent on its constructor
               being called before those of other classes.
-            - All subclasses must define a class level _BUFFER_CAPACITY
+            - All subclasses must define a class level ``_BUFFER_CAPACITY``
               variable that is used to determine the maximum allowable buffer
               size.
 
@@ -141,10 +141,10 @@ class FileBufferedCollection(BufferedCollection):
 
     @classmethod
     def enable_multithreading(cls):
-        """Allow multithreaded access to and modification of :class:`SyncedCollection`s.
+        """Enable safety checks and thread locks required for thread safety.
 
-        Support for multithreaded execution can be disabled by calling
-        :meth:`~.disable_multithreading`; calling this method reverses that.
+        This method adds managed buffer-related thread safety in addition to
+        what the parent method does.
 
         """
         super().enable_multithreading()
@@ -152,10 +152,10 @@ class FileBufferedCollection(BufferedCollection):
 
     @classmethod
     def disable_multithreading(cls):
-        """Prevent multithreaded access to and modification of :class:`SyncedCollection`s.
+        """Disable all safety checks and thread locks required for thread safety.
 
-        The mutex locks required to enable multithreading introduce nontrivial performance
-        costs, so they can be disabled for classes that support it.
+        This method adds managed buffer-related thread safety in addition to
+        what the parent method does.
 
         """
         super().disable_multithreading()
@@ -239,8 +239,8 @@ class FileBufferedCollection(BufferedCollection):
 
         Returns
         -------
-        Collection
-            A collection of the same base type as the SyncedCollection this
+        collections.abc.Collection
+            A collection of the same base type as the :class:`~.SyncedCollection` this
             method is called for, corresponding to data loaded from the
             underlying file.
 

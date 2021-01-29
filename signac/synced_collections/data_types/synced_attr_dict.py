@@ -1,12 +1,13 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"""Implements the SyncedAttrDict class.
+"""Implements the :class:`SyncedAttrDict`.
 
-This implements the dict data-structure for SyncedCollection API by
-implementing the convert method `_to_base` for dictionaries.
-This class also allows access to values through key indexing or attributes
-named by keys, including nested keys.
+This implements a dict-like data structure that also conforms to the
+:class:`~.SyncedCollection` API and can be combined with any backend type to
+give a dict-like API to a synchronized data structure. This class also allows
+access to values through key indexing or attributes named by keys, including
+nested keys.
 """
 
 from collections.abc import Mapping, MutableMapping
@@ -27,7 +28,7 @@ _mapping_resolver = AbstractTypeResolver(
 class SyncedAttrDict(SyncedCollection, MutableMapping):
     """Implement the dict data structure along with values access through attributes named as keys.
 
-    The SyncedAttrDict inherits from :class:`~core.synced_collection.SyncedCollection`
+    The SyncedAttrDict inherits from :class:`~.SyncedCollection`
     and :class:`~collections.abc.MutableMapping`. Therefore, it behaves similar to
     a :class:`dict`. This class also allows access to values through key indexing or
     attributes named by keys, including nested keys.

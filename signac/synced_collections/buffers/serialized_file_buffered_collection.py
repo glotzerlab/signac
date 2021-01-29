@@ -17,7 +17,7 @@ from .file_buffered_collection import FileBufferedCollection
 
 
 class SerializedFileBufferedCollection(FileBufferedCollection):
-    """A :class:`FileBufferedCollection` based on a serialized data store.
+    """A :class:`~.FileBufferedCollection` based on a serialized data store.
 
     This class extends the :class:`~.FileBufferedCollection` and implements a
     concrete storage mechanism in which data is encoded (by default, into JSON)
@@ -36,7 +36,7 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
         Important note for subclasses: This class should be inherited before
         any other collections. This requirement is due to the extensive use of
         multiple inheritance: since this class is designed to be combined with
-        other :class:`SyncedCollection` types without making those types aware
+        other :class:`~.SyncedCollection` types without making those types aware
         of buffering behavior, it transparently hooks into the initialization
         process, but this is dependent on its constructor being called before
         those of other classes.

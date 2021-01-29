@@ -496,7 +496,7 @@ class Project:
 
         Returns
         -------
-        :class:`~signac.core.synced_collections.collection_json.BufferedJSONDict`
+        :class:`~signac.synced_collections.collection_json.BufferedJSONDict`
             The project document.
 
         """
@@ -525,7 +525,7 @@ class Project:
 
         Returns
         -------
-        :class:`~signac.core.synced_collections.collection_json.BufferedJSONDict`
+        :class:`~signac.synced_collections.collection_json.BufferedJSONDict`
             The project document.
 
         """

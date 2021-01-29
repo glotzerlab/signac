@@ -34,7 +34,7 @@ class AbstractTypeResolver:
     Parameters
     ----------
     abstract_type_identifiers : collections.abc.Mapping
-        A mapping from a string identifier for a group of types (e.g. ``MAPPING``)
+        A mapping from a string identifier for a group of types (e.g. ``"MAPPING"``)
         to a callable that can be used to identify that type. Due to insertion order
         guarantees of dictionaries in Python>=3.6 (officially 3.7), it is beneficial
         to order this dictionary with the most frequently occuring types first.
@@ -47,7 +47,7 @@ class AbstractTypeResolver:
         False if not.
     type_map : Dict[Type, str]
         A mapping from concrete types to the corresponding named abstract type
-        from :attr:`type_enum`.
+        from :attr:`~.abstract_type_identifiers`.
 
     """
 
@@ -93,8 +93,11 @@ class AbstractTypeResolver:
 def default(o: Any) -> Dict[str, Any]:  # noqa: D102
     """Get a JSON-serializable version of compatible types.
 
-    This function is suitable for use with JSON-serialization tools as a way
-    to serialize :class:`SyncedCollection` objects and NumPy arrays.
+    This function is suitable for use with JSON-serialization tools as a way to
+    serialize :class:`~.SyncedCollection` objects and NumPy arrays.  It will
+    attempt to obtain a JSON-serializable representation of an object that is
+    otherwise not serializable by attempting to access its ``_data`` attribute.
+
 
     Warnings
     --------
@@ -123,11 +126,7 @@ def default(o: Any) -> Dict[str, Any]:  # noqa: D102
 
 
 class SyncedCollectionJSONEncoder(JSONEncoder):
-    """A JSONEncoder capable of encoding SyncedCollections and other supported types.
-
-    This encoder will attempt to obtain a JSON-serializable representation of
-    an object that is otherwise not serializable by attempting to access its
-    _data attribute. In addition, it supports direct writing of numpy arrays.
+    """A :class:`json.JSONEncoder` that handles objects encodeable using :func:`~.default`.
 
     Warnings
     --------
@@ -157,7 +156,7 @@ class _NullContext:
     There are various cases where we sometimes want to perform a task within a
     particular context, but at other times we wish to ignore that context. The
     most obvious example is a lock for threading: since
-    :class:`SyncedCollection` allows multithreading support to be enabled or
+    :class:`~.SyncedCollection` allows multithreading support to be enabled or
     disabled, it is important to be able to write code that is agnostic to
     whether or not a mutex must be acquired prior to executing a task. Locks
     support the context manager protocol and are used in that manner throughout

@@ -1,10 +1,11 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"""Implements the SyncedList class.
+"""Implements the :class:`SyncedList`.
 
-This implements the list data structure for SyncedCollection API by
-implementing the convert method `_to_base` for lists.
+This implements a list-like data structure that also conforms to the
+:class:`~.SyncedCollection` API and can be combined with any backend type to
+give a list-like API to a synchronized data structure.
 """
 
 from collections.abc import MutableSequence, Sequence
@@ -30,7 +31,7 @@ _sequence_resolver = AbstractTypeResolver(
 class SyncedList(SyncedCollection, MutableSequence):
     """Implementation of list data structure.
 
-    The SyncedList inherits from :class:`~core.synced_collection.SyncedCollection`
+    The SyncedList inherits from :class:`~synced_collection.SyncedCollection`
     and :class:`~collections.abc.MutableSequence`. Therefore, it behaves similar
     to a :class:`list`.
 

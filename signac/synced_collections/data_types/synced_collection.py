@@ -50,7 +50,7 @@ class _LoadAndSave:
 
 
 class SyncedCollection(Collection):
-    """An abstract :class:`Collection` type that is synced with a backend.
+    """An abstract :class:`~collections.abc.Collection` type that is synced with a backend.
 
     This class extends :py:class:`collections.abc.Collection` and adds a number of abstract
     internal methods that must be implemented by its subclasses. These methods can be
@@ -186,7 +186,7 @@ class SyncedCollection(Collection):
 
     @classmethod
     def enable_multithreading(cls):
-        """Allow multithreaded access to and modification of :class:`SyncedCollection`s.
+        """Enable safety checks and thread locks required for thread safety.
 
         Support for multithreaded execution can be disabled by calling
         :meth:`~.disable_multithreading`; calling this method reverses that.
@@ -210,7 +210,7 @@ class SyncedCollection(Collection):
 
     @classmethod
     def disable_multithreading(cls):
-        """Prevent multithreaded access to and modification of :class:`SyncedCollection`s.
+        """Disable all safety checks and thread locks required for thread safety.
 
         The mutex locks required to enable multithreading introduce nontrivial performance
         costs, so they can be disabled for classes that support it.

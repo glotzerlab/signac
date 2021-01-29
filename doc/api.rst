@@ -210,94 +210,107 @@ signac.errors module
 synced\_collections package
 ===========================
 
-Submodules
+Data Types
 ----------
 
 synced\_collections.synced\_collection module
------------------------------------------------
++++++++++++++++++++++++++++++++++++++++++++++
 
-.. automodule:: signac.core.synced_collections.synced_collection
+.. automodule:: signac.synced_collections.data_types.synced_collection
    :members:
-   :undoc-members:
    :private-members:
    :show-inheritance:
 
-synced\_collections.buffered\_collection module
------------------------------------------------
+synced\_collections.synced\_attr\_dict module
++++++++++++++++++++++++++++++++++++++++++++++
 
-.. automodule:: signac.core.synced_collections.buffered_collection
+.. automodule:: signac.synced_collections.data_types.synced_attr_dict
    :members:
-   :undoc-members:
    :show-inheritance:
 
-synced\_collections.file\_buffered\_collection module
------------------------------------------------
+synced\_collections.synced\_list module
++++++++++++++++++++++++++++++++++++++++++++++
 
-.. automodule:: signac.core.synced_collections.file_buffered_collection
+.. automodule:: signac.synced_collections.data_types.synced_list
    :members:
-   :undoc-members:
    :show-inheritance:
 
-synced\_collections.serialized\_file\_buffered\_collection module
------------------------------------------------
-
-.. automodule:: signac.core.synced_collections.serialized_file_buffered_collection
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-synced\_collections.memory\_buffered\_collection module
------------------------------------------------
-
-.. automodule:: signac.core.synced_collections.memory_buffered_collection
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-synced\_collections.caching module
-----------------------------------
-
-.. automodule:: signac.core.synced_collections.caching
-   :members:
-   :undoc-members:
-   :show-inheritance:
+Backends
+--------
 
 synced\_collections.collection\_json module
--------------------------------------------
++++++++++++++++++++++++++++++++++++++++++++
 
-.. automodule:: signac.core.synced_collections.collection_json
+.. automodule:: signac.synced_collections.backends.collection_json
    :members:
-   :undoc-members:
    :show-inheritance:
 
 synced\_collections.collection\_mongodb module
-----------------------------------------------
+++++++++++++++++++++++++++++++++++++++++++++++
 
-.. automodule:: signac.core.synced_collections.collection_mongodb
+.. automodule:: signac.synced_collections.backends.collection_mongodb
    :members:
-   :undoc-members:
    :show-inheritance:
 
 synced\_collections.collection\_redis module
---------------------------------------------
+++++++++++++++++++++++++++++++++++++++++++++
 
-.. automodule:: signac.core.synced_collections.collection_redis
+.. automodule:: signac.synced_collections.backends.collection_redis
    :members:
-   :undoc-members:
    :show-inheritance:
 
 synced\_collections.collection\_zarr module
--------------------------------------------
++++++++++++++++++++++++++++++++++++++++++++
 
-.. automodule:: signac.core.synced_collections.collection_zarr
+.. automodule:: signac.synced_collections.backends.collection_zarr
    :members:
-   :undoc-members:
    :show-inheritance:
 
-synced\_collections.utils module
--------------------------------------------
+Buffers
+-------
 
-.. automodule:: signac.core.synced_collections.utils
+synced\_collections.buffered\_collection module
++++++++++++++++++++++++++++++++++++++++++++++++
+
+.. automodule:: signac.synced_collections.buffers.buffered_collection
    :members:
-   :undoc-members:
+   :private-members:
+   :show-inheritance:
+
+synced\_collections.file\_buffered\_collection module
++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+.. automodule:: signac.synced_collections.buffers.file_buffered_collection
+   :members:
+   :show-inheritance:
+
+synced\_collections.serialized\_file\_buffered\_collection module
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+.. automodule:: signac.synced_collections.buffers.serialized_file_buffered_collection
+   :members:
+   :show-inheritance:
+
+synced\_collections.memory\_buffered\_collection module
++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+.. automodule:: signac.synced_collections.buffers.memory_buffered_collection
+   :members:
+   :show-inheritance:
+
+Miscellaneous Modules
+---------------------
+
+synced\_collections.utils module
+++++++++++++++++++++++++++++++++
+
+.. automodule:: signac.synced_collections.utils
+   :members:
+   :show-inheritance:
+
+synced\_collections.validators module
++++++++++++++++++++++++++++++++++++++
+
+.. automodule:: signac.synced_collections.validators
+   :members:
    :show-inheritance:

@@ -5,11 +5,11 @@
 
 The buffering method implemented here involves a single buffer of references to
 in-memory objects containing data. These objects are the base types of a given
-SyncedCollection type, e.g. a dict for all dict-like collections, and are the
-underlying data stores for those types. This buffering method exploits the fact
-that all mutable collection types in Python are references, so modifying one
-such collection results in modifying all of them, thereby removing any need for
-more complicated synchronization protocols.
+:class:`~.SyncedCollection` type, e.g. a dict for all dict-like collections,
+and are the underlying data stores for those types. This buffering method
+exploits the fact that all mutable collection types in Python are references,
+so modifying one such collection results in modifying all of them, thereby
+removing any need for more complicated synchronization protocols.
 """
 
 from ..errors import MetadataError
@@ -17,7 +17,7 @@ from .file_buffered_collection import FileBufferedCollection
 
 
 class SharedMemoryFileBufferedCollection(FileBufferedCollection):
-    """A :class:`SyncedCollection` that defers all I/O when buffered.
+    """A :class:`~.SyncedCollection` that defers all I/O when buffered.
 
     This class extends the :class:`~.FileBufferedCollection` and implements a
     concrete storage mechanism in which collections store a reference to their
@@ -41,7 +41,7 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
         Important note for subclasses: This class should be inherited before
         any other collections. This requirement is due to the extensive use of
         multiple inheritance: since this class is designed to be combined with
-        other :class:`SyncedCollection` types without making those types aware
+        other :class:`~.SyncedCollection` types without making those types aware
         of buffering behavior, it transparently hooks into the initialization
         process, but this is dependent on its constructor being called before
         those of other classes.
@@ -78,7 +78,7 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
     - This buffering method has no upper bound on the buffer size if all
       operations on buffered objects are read-only operations. If a strict upper bound
       is required, for instance due to strict virtual memory limits on a given system,
-      use of the :class:~.SerializedFileBufferedCollection` will allow limiting
+      use of the :class:`~.SerializedFileBufferedCollection` will allow limiting
       the total memory usage of the process.
 
     """
@@ -116,7 +116,7 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
                 # object's data so that it will stop sharing data with the
                 # other instance.
                 if not force:
-                    self._data = self._load_from_resource()
+                    self._data._update(self._load_from_resource())
             else:
                 # If the contents have not been changed since the initial read,
                 # we don't need to rewrite it.
