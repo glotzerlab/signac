@@ -68,42 +68,41 @@ class RedisCollection(SyncedCollection):
 class RedisDict(RedisCollection, SyncedAttrDict):
     """A dict-like mapping interface to a persistent Redis database.
 
-    .. code-block:: python
+    Examples
+    --------
+    >>> doc = RedisDict('data')
+    >>> doc['foo'] = "bar"
+    >>> assert doc.foo == doc['foo'] == "bar"
+    >>> assert 'foo' in doc
+    >>> del doc['foo']
 
-        doc = RedisDict('data')
-        doc['foo'] = "bar"
-        assert doc.foo == doc['foo'] == "bar"
-        assert 'foo' in doc
-        del doc['foo']
-
-    .. code-block:: python
-
-        >>> doc['foo'] = dict(bar=True)
-        >>> doc
-        {'foo': {'bar': True}}
-        >>> doc.foo.bar = False
-        {'foo': {'bar': False}}
+    >>> doc['foo'] = dict(bar=True)
+    >>> doc
+    {'foo': {'bar': True}}
+    >>> doc.foo.bar = False
+    >>> doc
+    {'foo': {'bar': False}}
 
     Parameters
     ----------
-    client: redis.Redis, optional
+    client : redis.Redis, optional
         A redis client (Default value = None).
-    key: str, optional
+    key : str, optional
         The key of the  collection (Default value = None).
-    data: :py:class:`collections.abc.Mapping`, optional
-        The intial data pass to :class:`RedisDict`. Defaults to `dict()`
-    parent: RedisCollection, optional
+    data : :class:`collections.abc.Mapping`, optional
+        The initial data pass to :class:`RedisDict`. If ``None``, defaults to
+        ``{}`` (Default value = None).
+    parent : RedisCollection, optional
         A parent instance of :class:`RedisCollection` (Default value = None).
 
     Warnings
     --------
-
     While the :class:`RedisDict` object behaves like a dictionary, there are important
     distinctions to remember. In particular, because operations are reflected
     as changes to an underlying database, copying a :class:`RedisDict` instance may
     exhibit unexpected behavior. If a true copy is required, you should use the
     call operator to get a dictionary representation, and if necessary
-    construct a new :class:`RedisDict` instance: ``new_dict = RedisDict(old_dict())``.
+    construct a new :class:`RedisDict` instance.
 
     """
 
@@ -124,27 +123,28 @@ class RedisList(RedisCollection, SyncedList):
         assert len(synced_list) == 1
         del synced_list[0]
 
-    .. warning::
-
-        While the :class:`RedisList` object behaves like a list, there are
-        important distinctions to remember. In particular, because operations
-        are reflected as changes to an underlying database, copying a :class:`RedisList`
-        instance may exhibit unexpected behavior. If a true copy is required,
-        you should use the call operator to get a dictionary representation,
-        and if necessary construct a new :class:`RedisList` instance:
-        ``new_list = RedisList(old_list())``.
 
     Parameters
     ----------
-    client: redis.Redis, optional
+    client : redis.Redis, optional
         A Redis client (Default value = None).
-    key: str, optional
+    key : str, optional
         The key of the  collection (Default value = None).
-    data: non-str :py:class:`collections.abc.Sequence`, optional
-        The intial data pass to :class:`RedisList`. Defaults to `list()`
-    parent: RedisCollection, optional
+    data : non-str :class:`collections.abc.Sequence`, optional
+        The initial data pass to :class:`RedisList`. If ``None``, defaults to
+        ``[]`` (Default value = None).
+    parent : RedisCollection, optional
         A parent instance of :class:`RedisCollection` (Default value = None).
 
+    Warnings
+    --------
+    While the :class:`RedisList` object behaves like a list, there are
+    important distinctions to remember. In particular, because operations are
+    reflected as changes to an underlying database, copying a
+    :class:`RedisList` instance may exhibit unexpected behavior. If a true copy
+    is required, you should use the call operator to get a dictionary
+    representation, and if necessary construct a new :class:`RedisList`
+    instance.
     """
 
     def __init__(self, client=None, key=None, data=None, parent=None, *args, **kwargs):

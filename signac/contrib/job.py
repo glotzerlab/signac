@@ -31,7 +31,7 @@ class _StatePointDict(JSONDict):
         1. Saving needs to trigger a job directory migration, and
         2. State points are assumed to not support external modification, so
            they never need to load from disk _except_ the very first time a job
-           is opened by id and they're not present in the cache.
+           is opened by id and the state point is not present in the cache.
         3. It must be possible to load and/or save on demand during tasks like
            job directory migrations.
     """
@@ -502,11 +502,11 @@ class Job:
 
     @document.setter
     def document(self, new_doc):
-        """Assign new document to the this job.
+        """Assign new document data to this job.
 
         Parameters
         ----------
-        new_doc : :class:`~signac.synced_collections.collection_json.BufferedJSONDict`
+        new_doc : dict
             The job document handle.
 
         """
@@ -528,7 +528,7 @@ class Job:
 
         Returns
         -------
-        :class:`~signac.JSONDict`
+        :class:`~signac.synced_collections.backends.collection_json.BufferedJSONDict`
             The job document handle.
 
         """
@@ -615,7 +615,7 @@ class Job:
         """Initialize the job's workspace directory.
 
         This function will do nothing if the directory and the job state point
-        already exist.
+        already exist and the state point is valid.
 
         Returns the calling job.
 
@@ -632,6 +632,13 @@ class Job:
         Job
             The job handle.
 
+        Raises
+        ------
+        OSError
+            If the workspace directory cannot be created or any other I/O error
+            occurs when attempting to save the state point file.
+        JobsCorruptedError
+            If the job state point on disk is corrupted.
         """
         try:
             # Attempt early exit if the state point file exists and is valid.
@@ -892,18 +899,3 @@ class Job:
         for key, value in self.__dict__.items():
             setattr(result, key, deepcopy(value, memo))
         return result
-
-
-def get_buffer_load():
-    """Get the actual size of the buffer."""
-    return BufferedJSONDict.get_current_buffer_size()
-
-
-def get_buffer_size():
-    """Get the maximum available capacity of the buffer."""
-    return BufferedJSONDict.get_buffer_capacity()
-
-
-def set_buffer_size(new_size):
-    """Set the maximum available capacity of the buffer."""
-    return BufferedJSONDict.set_buffer_capacity(new_size)

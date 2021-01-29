@@ -15,11 +15,17 @@ except ImportError:
 class MongoDBCollection(SyncedCollection):
     """A :class:`~.SyncedCollection` that synchronizes with a MongoDB document.
 
-    MongoDB stores documents in collections, where each document is a single
-    record encoded in a JSON-like format (BSON). Each :class:`~.SyncedCollection` can be
-    represented as a MongoDB document, so this backend stores the :class:`~.SyncedCollection`
-    as a single document within the collection provided by the user. The document
-    is identified by a unique key provided by the user.
+    In MongoDB, a database is composed of multiple MongoDB **collections**, which
+    are analogous to tables in SQL databases but do not enforce a schema like
+    in relational databases. In turn, collections are composed of **documents**,
+    which are analogous to rows in a table but are much more flexible, storing
+    any valid JSON object in a JSON-like encoded format known as BSON
+    ("binary JSON").
+
+    Each :class:`~.MongoDBCollection` can be represented as a MongoDB document,
+    so this backend stores the :class:`~.MongoDBCollection` as a single
+    document within the collection provided by the user. The document is
+    identified by a unique key provided by the user.
 
     **Thread safety**
 
@@ -27,19 +33,20 @@ class MongoDBCollection(SyncedCollection):
 
     Parameters
     ----------
-    collection : :py:class:`pymongo.collection.Collection`
+    collection : :class:`pymongo.collection.Collection`
         The MongoDB client in which to store data.
     uid : dict
         The unique key-value mapping added to the data and stored in the document
-        so that it is uniquely identifiable in the MongoDB collection.
+        so that it is uniquely identifiable in the MongoDB collection. The key
+        "data" is reserved and may not be part of this uid.
 
     Warnings
     --------
     The user is responsible for providing a unique id such that there are no
-    possible collisions between different :class:`~.SyncedCollection` instances
-    stored in the same MongoDB collection. Failure to do so may result data
+    possible collisions between different :class:`~.MongoDBCollection` instances
+    stored in the same MongoDB collection. Failure to do so may result in data
     corruption if multiple documents are found to be apparently associated with
-    a given :class:`~.SyncedCollection`.
+    a given ``uid``.
 
     """
 
@@ -52,6 +59,8 @@ class MongoDBCollection(SyncedCollection):
             )
 
         self._collection = collection
+        if "data" in uid:
+            raise ValueError("The key 'data' may not be part of the uid.")
         self._uid = uid
         super().__init__(parent=parent, **kwargs)
 
@@ -96,43 +105,42 @@ class MongoDBCollection(SyncedCollection):
 class MongoDBDict(MongoDBCollection, SyncedAttrDict):
     """A dict-like mapping interface to a persistent document in a MongoDB collection.
 
-    .. code-block:: python
-
-        doc = MongoDBDict('data')
-        doc['foo'] = "bar"
-        assert doc.foo == doc['foo'] == "bar"
-        assert 'foo' in doc
-        del doc['foo']
-
-    .. code-block:: python
-
-        >>> doc['foo'] = dict(bar=True)
-        >>> doc
-        {'foo': {'bar': True}}
-        >>> doc.foo.bar = False
-        {'foo': {'bar': False}}
-
-    Warnings
+    Examples
     --------
+    >>> doc = MongoDBDict('data')
+    >>> doc['foo'] = "bar"
+    >>> assert doc.foo == doc['foo'] == "bar"
+    >>> assert 'foo' in doc
+    >>> del doc['foo']
 
-    While the :class:`MongoDBDict` object behaves like a dictionary, there are important
-    distinctions to remember. In particular, because operations are reflected
-    as changes to an underlying database, copying a :class:`MongoDBDict` instance may
-    exhibit unexpected behavior. If a true copy is required, you should use the
-    call operator to get a dictionary representation, and if necessary
-    construct a new :class:`MongoDBDict` instance:
-    ``new_dict = MongoDBDict(old_dict())``.
+    >>> doc['foo'] = dict(bar=True)
+    >>> doc
+    {'foo': {'bar': True}}
+    >>> doc.foo.bar = False
+    >>> doc
+    {'foo': {'bar': False}}
 
     Parameters
     ----------
     collection : pymongo.collection.Collection, optional
         A :class:`pymongo.collection.Collection` instance (Default value = None).
-    uid: dict, optional
+    uid : dict, optional
         The unique key-value mapping identifying the collection (Default value = None).
-    data: non-str :py:class:`collections.abc.Mapping`, optional
-        The intial data pass to :class:`MongoDBDict`. Defaults to `dict()`.
-    parent: MongoDBCollection, optional
+    data : non-str :class:`collections.abc.Mapping`, optional
+        The initial data pass to :class:`MongoDBDict`. If ``None``, defaults to
+        ``{}`` (Default value = None).
+    parent : MongoDBCollection, optional
         A parent instance of :class:`MongoDBCollection` (Default value = None).
+
+    Warnings
+    --------
+    While the :class:`MongoDBDict` object behaves like a dictionary, there are
+    important distinctions to remember. In particular, because operations are
+    reflected as changes to an underlying database, copying a
+    :class:`MongoDBDict` instance may exhibit unexpected behavior. If a true
+    copy is required, you should use the call operator to get a dictionary
+    representation, and if necessary construct a new :class:`MongoDBDict`
+    instance.
 
     """
 
@@ -159,23 +167,22 @@ class MongoDBList(MongoDBCollection, SyncedList):
     ----------
     collection : pymongo.collection.Collection, optional
         A :class:`pymongo.collection.Collection` instance (Default value = None).
-    uid: dict, optional
+    uid : dict, optional
         The unique key-value mapping identifying the collection (Default value = None).
-    data: non-str :py:class:`collections.abc.Sequence`, optional
-        The intial data pass to :class:`MongoDBList`. Defaults to `list()`.
-    parent: MongoDBCollection, optional
+    data : non-str :class:`collections.abc.Sequence`, optional
+        The initial data pass to :class:`MongoDBList`. If ``None``, defaults to
+        ``[]`` (Default value = None).
+    parent : MongoDBCollection, optional
         A parent instance of :class:`MongoDBCollection` (Default value = None).
 
     Warnings
     --------
-
     While the :class:`MongoDBList` object behaves like a list, there are important
     distinctions to remember. In particular, because operations are reflected
     as changes to an underlying database, copying a :class:`MongoDBList` instance may
     exhibit unexpected behavior. If a true copy is required, you should use the
     call operator to get a dictionary representation, and if necessary
-    construct a new :class:`MongoDBList` instance:
-    ``new_list = MongoDBList(old_list())``.
+    construct a new :class:`MongoDBList` instance.
 
     """
 

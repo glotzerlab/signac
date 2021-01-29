@@ -26,7 +26,6 @@ from .contrib import (
 )
 from .contrib import filesystems as fs
 from .contrib import get_job, get_project, index, index_files, init_project
-from .contrib.job import get_buffer_load, get_buffer_size, set_buffer_size
 from .core.h5store import H5Store, H5StoreManager
 from .core.jsondict import flush_all as flush
 from .db import get_database
@@ -34,8 +33,12 @@ from .diff import diff_jobs
 from .synced_collections.backends.collection_json import BufferedJSONDict, JSONDict
 from .version import __version__
 
+# Alias some properties related to buffering into the signac namespace.
 buffered = BufferedJSONDict.buffer_backend
 is_buffered = BufferedJSONDict.backend_is_buffered
+get_buffer_load = BufferedJSONDict.get_current_buffer_size
+get_buffer_size = BufferedJSONDict.get_buffer_capacity
+set_buffer_size = BufferedJSONDict.set_buffer_capacity
 
 __all__ = [
     "__version__",

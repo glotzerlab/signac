@@ -116,7 +116,8 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
                 # object's data so that it will stop sharing data with the
                 # other instance.
                 if not force:
-                    self._data._update(self._load_from_resource())
+                    self._data.clear()
+                    self._update(self._load_from_resource())
             else:
                 # If the contents have not been changed since the initial read,
                 # we don't need to rewrite it.

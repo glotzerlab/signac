@@ -118,43 +118,41 @@ class ZarrCollection(SyncedCollection):
 class ZarrDict(ZarrCollection, SyncedAttrDict):
     """A dict-like mapping interface to data stored with Zarr.
 
-    .. code-block:: python
+    Examples
+    --------
+    >>> doc = ZarrDict('data')
+    >>> doc['foo'] = "bar"
+    >>> assert doc.foo == doc['foo'] == "bar"
+    >>> assert 'foo' in doc
+    >>> del doc['foo']
 
-        doc = ZarrDict('data')
-        doc['foo'] = "bar"
-        assert doc.foo == doc['foo'] == "bar"
-        assert 'foo' in doc
-        del doc['foo']
-
-    .. code-block:: python
-
-        >>> doc['foo'] = dict(bar=True)
-        >>> doc
-        {'foo': {'bar': True}}
-        >>> doc.foo.bar = False
-        {'foo': {'bar': False}}
+    >>> doc['foo'] = dict(bar=True)
+    >>> doc
+    {'foo': {'bar': True}}
+    >>> doc.foo.bar = False
+    >>> doc
+    {'foo': {'bar': False}}
 
     Parameters
     ----------
-    group: zarr.hierarchy.Group, optional
+    group : zarr.hierarchy.Group, optional
         The group in which to store data (Default value = None).
-    name: str, optional
+    name : str, optional
         The name of the collection (Default value = None).
-    data: :py:class:`collections.abc.Mapping`, optional
-        The intial data pass to :class:`ZarrDict`. Defaults to `dict()`.
-    parent: ZarrCollection, optional
+    data : :class:`collections.abc.Mapping`, optional
+        The initial data pass to :class:`ZarrDict`. If ``None``, Defaults to
+        ``{}`` (Default value = None).
+    parent : ZarrCollection, optional
         A parent instance of :class:`ZarrCollection` or :code:`None` (Default value = None).
 
     Warnings
     --------
-
     While the :class:`ZarrDict` object behaves like a dictionary, there are important
     distinctions to remember. In particular, because operations are reflected
     as changes to an underlying database, copying (even deep copying) a
     :class:`ZarrDict` instance may exhibit unexpected behavior. If a true copy is
     required, you should use the call operator to get a dictionary
-    representation, and if necessary construct a new :class:`ZarrDict` instance:
-    ``new_dict = ZarrDict(old_dict())``.
+    representation, and if necessary construct a new :class:`ZarrDict` instance.
 
     """
 
@@ -177,13 +175,14 @@ class ZarrList(ZarrCollection, SyncedList):
 
     Parameters
     ----------
-    group: zarr.hierarchy.Group, optional
+    group : zarr.hierarchy.Group, optional
         The group in which to store data (Default value = None).
-    name: str, optional
+    name : str, optional
         The name of the collection (Default value = None).
-    data: non-str :py:class:`collections.abc.Sequence`, optional
-        The intial data pass to :class:`ZarrList`. Defaults to `list()`.
-    parent: ZarrCollection, optional
+    data : non-str :class:`collections.abc.Sequence`, optional
+        The initial data pass to :class:`ZarrList`. If ``None``, Defaults to
+        ``[]`` (Default value = None).
+    parent : ZarrCollection, optional
         A parent instance of :class:`ZarrCollection` or None (Default value = None).
 
     Warnings
@@ -193,8 +192,7 @@ class ZarrList(ZarrCollection, SyncedList):
     as changes to an underlying database, copying (even deep copying) a
     :class:`ZarrList` instance may exhibit unexpected behavior. If a true copy is
     required, you should use the call operator to get a dictionary
-    representation, and if necessary construct a new :class:`ZarrList` instance:
-    ``new_list = ZarrList(old_list())``.
+    representation, and if necessary construct a new :class:`ZarrList` instance.
 
     """
 

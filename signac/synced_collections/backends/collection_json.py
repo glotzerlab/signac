@@ -77,9 +77,9 @@ class JSONCollection(SyncedCollection):
 
     Parameters
     ----------
-    filename: str
+    filename : str
         The filename of the associated JSON file on disk.
-    write_concern: bool, optional
+    write_concern : bool, optional
         Ensure file consistency by writing changes back to a temporary file
         first, before replacing the original file (Default value = False).
 
@@ -136,7 +136,7 @@ class JSONCollection(SyncedCollection):
 
     @property
     def filename(self):
-        """str: The name of the file this collection is synchronized with."""
+        """str: The name of the associated JSON file on disk."""
         return self._filename
 
     @property
@@ -144,6 +144,7 @@ class JSONCollection(SyncedCollection):
         return self._filename
 
 
+# The _convert_key_to_str validator will be removed in signac 2.0.
 JSONCollection.add_validator(json_format_validator, _convert_key_to_str)
 
 
@@ -157,9 +158,6 @@ class BufferedJSONCollection(SerializedFileBufferedCollection, JSONCollection):
 
     _backend = __name__ + ".buffered"  # type: ignore
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
 
 class MemoryBufferedJSONCollection(SharedMemoryFileBufferedCollection, JSONCollection):
     """A :class:`JSONCollection` that supports I/O buffering.
@@ -171,51 +169,46 @@ class MemoryBufferedJSONCollection(SharedMemoryFileBufferedCollection, JSONColle
 
     _backend = __name__ + ".memory_buffered"  # type: ignore
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
 
 class JSONDict(JSONCollection, SyncedAttrDict):
     """A dict-like mapping interface to a persistent JSON file.
 
-    .. code-block:: python
+    Examples
+    --------
+    >>> doc = JSONDict('data.json', write_concern=True)
+    >>> doc['foo'] = "bar"
+    >>> assert doc.foo == doc['foo'] == "bar"
+    >>> assert 'foo' in doc
+    >>> del doc['foo']
 
-        doc = JSONDict('data.json', write_concern=True)
-        doc['foo'] = "bar"
-        assert doc.foo == doc['foo'] == "bar"
-        assert 'foo' in doc
-        del doc['foo']
-
-    .. code-block:: python
-
-        >>> doc['foo'] = dict(bar=True)
-        >>> doc
-        {'foo': {'bar': True}}
-        >>> doc.foo.bar = False
-        {'foo': {'bar': False}}
+    >>> doc['foo'] = dict(bar=True)
+    >>> doc
+    {'foo': {'bar': True}}
+    >>> doc.foo.bar = False
+    >>> doc
+    {'foo': {'bar': False}}
 
     Parameters
     ----------
-    filename: str, optional
+    filename : str, optional
         The filename of the associated JSON file on disk (Default value = None).
-    write_concern: bool, optional
+    write_concern : bool, optional
         Ensure file consistency by writing changes back to a temporary file
         first, before replacing the original file (Default value = False).
-    data: :class:`collections.abc.Mapping`, optional
-        The intial data pass to JSONDict (Default value = {}).
-    parent: JSONCollection, optional
+    data : :class:`collections.abc.Mapping`, optional
+        The initial data pass to :class:`JSONDict`. If ``None``, Defaults to
+        ``{}`` (Default value = None).
+    parent : JSONCollection, optional
         A parent instance of JSONCollection or None (Default value = None).
 
     Warnings
     --------
-
     While the :class:`JSONDict` object behaves like a dictionary, there are important
     distinctions to remember. In particular, because operations are reflected
     as changes to an underlying file, copying (even deep copying) a :class:`JSONDict`
     instance may exhibit unexpected behavior. If a true copy is required, you
     should use the call operator to get a dictionary representation, and if
-    necessary construct a new :class:`JSONDict` instance: ``new_dict =
-    JSONDict(old_dict())``.
+    necessary construct a new :class:`JSONDict` instance.
 
     """
 
@@ -253,26 +246,25 @@ class JSONList(JSONCollection, SyncedList):
 
     Parameters
     ----------
-    filename: str, optional
+    filename : str, optional
         The filename of the associated JSON file on disk (Default value = None).
-    write_concern: bool, optional
+    write_concern : bool, optional
         Ensure file consistency by writing changes back to a temporary file
         first, before replacing the original file (Default value = None).
-    data: non-str :class:`collections.abc.Sequence`, optional
-        The intial data pass to JSONList (Default value = []).
-    parent: JSONCollection, optional
+    data : non-str :class:`collections.abc.Sequence`, optional
+        The initial data pass to :class:`JSONList `. If ``None``, Defaults to
+        ``[]`` (Default value = None).
+    parent : JSONCollection, optional
         A parent instance of JSONCollection or None (Default value = None).
 
     Warnings
     --------
-
     While the :class:`JSONList` object behaves like a list, there are important
     distinctions to remember. In particular, because operations are reflected
     as changes to an underlying file, copying (even deep copying) a :class:`JSONList`
     instance may exhibit unexpected behavior. If a true copy is required, you
     should use the call operator to get a dictionary representation, and if
-    necessary construct a new :class:`JSONList` instance:
-    ``new_list = JSONList(old_list())``.
+    necessary construct a new :class:`JSONList` instance.
 
     """
 
