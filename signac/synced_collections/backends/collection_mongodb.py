@@ -59,7 +59,7 @@ class MongoDBCollection(SyncedCollection):
             )
 
         self._collection = collection
-        if "data" in uid:
+        if uid is not None and "data" in uid:
             raise ValueError("The key 'data' may not be part of the uid.")
         self._uid = uid
         super().__init__(parent=parent, **kwargs)
