@@ -19,14 +19,12 @@ from signac.synced_collections.backends.collection_json import (
     MemoryBufferedJSONDict,
     MemoryBufferedJSONList,
 )
-
-# from signac.synced_collections.buffers.buffered_collection import buffer_all
 from signac.synced_collections.errors import BufferedError, MetadataError
 
 
 class BufferedJSONCollectionTest(JSONCollectionTest):
 
-    _backend_collection = BufferedJSONCollection
+    _backend_collection = BufferedJSONCollection  # type: ignore
 
     def load(self, collection):
         """Load the data corresponding to a SyncedCollection from disk."""
