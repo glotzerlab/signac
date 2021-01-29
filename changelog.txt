@@ -7,36 +7,15 @@ The **signac** package follows `semantic versioning <https://semver.org/>`_.
 Version 1
 =========
 
-[1.6.0] -- 2020-01-24
----------------------
-
-Changed
-+++++++
-
- - Optimized job hash and equality checks (#442).
-
-
-[1.5.1] -- 2020-12-19
----------------------
+next
+----
 
 Added
 +++++
 
- - Support for h5py version 3 (#411).
- - Added pyupgrade to pre-commit hooks (#413).
- - Code is formatted with ``black`` and ``isort`` pre-commit hooks (#415).
- - Added macOS to CircleCI testing pipeline (#281, #414).
- - Official support for Python 3.9 (#417).
+ - New ``SyncedCollection`` class and subclasses to replace JSONDict with more general support for different types of resources (such as MongoDB collections or Redis databases) and more complete support for different data types synchronized with files (#484).
 
-Changed
-+++++++
-
- - Optimized internal function ``_mkdir_p`` (#421).
- - Optimized performance of job initialization (#422).
- - Optimized performance of buffer storage (#428).
- - Optimized performance of creating/loading synced data structures (#429).
-
-[1.5.0] -- 2020-09-20
+[1.6.0] -- 2020-01-24
 ---------------------
 
 Added
