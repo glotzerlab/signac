@@ -316,6 +316,6 @@ texinfo_documents = [
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "pymongo": ("https://pymongo.readthedocs.io/en/stable/", None),
-    "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
-    "h5py": ("http://docs.h5py.org/en/stable/", None),
+    "pandas": ("https://pandas.pydata.org/docs/", None),
+    "h5py": ("https://docs.h5py.org/en/stable/", None),
 }
