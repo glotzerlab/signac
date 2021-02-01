@@ -153,7 +153,7 @@ jobs:
       DEPENDENCIES: "OLDEST"
       PYTHON: python
 
-  linux-pypy-3:
+  linux-pypy-37:
     <<: *linux-template
     docker:
       - image: pypy:3.7
@@ -271,7 +271,7 @@ workflows:
       - linux-python-36-oldest:
           requires:
             - pre-checks
-      - linux-pypy-3:
+      - linux-pypy-37:
           requires:
             - pre-checks
       - windows-python-38:
@@ -294,7 +294,7 @@ workflows:
             - linux-python-38
             - linux-python-37
             - linux-python-36-oldest
-            - linux-pypy-3
+            - linux-pypy-37
             - windows-python-38
   deploy:
     jobs:
