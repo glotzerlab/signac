@@ -156,7 +156,7 @@ jobs:
   linux-pypy-3:
     <<: *linux-template
     docker:
-      - image: pypy:3
+      - image: pypy:3.7
     environment:
       BENCHMARKS: "SKIP"
       DEPENDENCIES: "NEWEST"
