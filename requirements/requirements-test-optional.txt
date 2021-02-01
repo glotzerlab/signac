@@ -1,5 +1,5 @@
 h5py==3.1.0; implementation_name=='cpython'
 numpy==1.19.4
-pandas==1.2.0; implementation_name=='cpython'
+pandas==1.2.1; implementation_name=='cpython'
 pymongo==3.11.2; implementation_name=='cpython'
 tables==3.6.1; implementation_name=='cpython'
