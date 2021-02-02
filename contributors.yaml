@@ -86,11 +86,25 @@ contributors:
     affiliation: "Indian Institute of Technology, Gandhinagar"
   -
     family-names: Henry
-    given-names: "Michael M."
+    given-names: Mike
     affiliation: "Boise State University"
     orcid: "https://orcid.org/0000-0002-3870-9993"
   -
     family-names: Ojha
     given-names: Hardik
     affiliation: "Indian Institute of Technology Roorkee"
+  -
+    family-names: Kerr
+    given-names: Corwin
+    affiliation: "University of Michigan"
+    orcid: "https://orcid.org/0000-0003-0776-2596"
+  -
+    family-names: Zhou
+    given-names: Pengji
+    affiliation: "University of Michigan"
+    orcid: "https://orcid.org/0000-0002-1409-9633"
+  -
+    family-names: Dave
+    given-names: Shantanu
+    affiliation: "Jodhpur Institute of Engineering and Technology"
 ...

@@ -132,36 +132,36 @@
 import re
 import sys
 
-__version__ = '1.0.1'
+__version__ = "1.0.1"
 
 __all__ = (
-    'dottedQuadToNum',
-    'numToDottedQuad',
-    'ValidateError',
-    'VdtUnknownCheckError',
-    'VdtParamError',
-    'VdtTypeError',
-    'VdtValueError',
-    'VdtValueTooSmallError',
-    'VdtValueTooBigError',
-    'VdtValueTooShortError',
-    'VdtValueTooLongError',
-    'VdtMissingValue',
-    'Validator',
-    'is_integer',
-    'is_float',
-    'is_boolean',
-    'is_list',
-    'is_tuple',
-    'is_ip_addr',
-    'is_string',
-    'is_int_list',
-    'is_bool_list',
-    'is_float_list',
-    'is_string_list',
-    'is_ip_addr_list',
-    'is_mixed_list',
-    'is_option',
+    "dottedQuadToNum",
+    "numToDottedQuad",
+    "ValidateError",
+    "VdtUnknownCheckError",
+    "VdtParamError",
+    "VdtTypeError",
+    "VdtValueError",
+    "VdtValueTooSmallError",
+    "VdtValueTooBigError",
+    "VdtValueTooShortError",
+    "VdtValueTooLongError",
+    "VdtMissingValue",
+    "Validator",
+    "is_integer",
+    "is_float",
+    "is_boolean",
+    "is_list",
+    "is_tuple",
+    "is_ip_addr",
+    "is_string",
+    "is_int_list",
+    "is_bool_list",
+    "is_float_list",
+    "is_string_list",
+    "is_ip_addr_list",
+    "is_mixed_list",
+    "is_option",
     # '__docformat__',  -- where is this supposed to come from? [jhe 2015-04-11]
 )
 
@@ -170,7 +170,7 @@ __all__ = (
 # this could be replaced if six is used for compatibility, or there are no
 # more assertions about items being a string
 if sys.version_info < (3,):
-    string_type = basestring     # noqa
+    string_type = basestring  # noqa
 else:
     string_type = str
     # so tests that care about unicode on 2.x can specify unicode, and the same
@@ -178,12 +178,15 @@ else:
     # since all strings are unicode on 3.x we just want to pass it through
     # unchanged
 
-    def unicode(x): return x
+    def unicode(x):
+        return x
+
     # in python 3, all ints are equivalent to python 2 longs, and they'll
     # never show "L" in the repr
     long = int
 
-_list_arg = re.compile(r'''
+_list_arg = re.compile(
+    r"""
     (?:
         ([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*list\(
             (
@@ -204,9 +207,12 @@ _list_arg = re.compile(r'''
             )
         \)
     )
-''', re.VERBOSE | re.DOTALL)    # two groups
+""",
+    re.VERBOSE | re.DOTALL,
+)  # two groups
 
-_list_members = re.compile(r'''
+_list_members = re.compile(
+    r"""
     (
         (?:".*?")|              # double quotes
         (?:'.*?')|              # single quotes
@@ -215,9 +221,11 @@ _list_members = re.compile(r'''
     (?:
     (?:\s*,\s*)|(?:\s*$)            # comma
     )
-''', re.VERBOSE | re.DOTALL)    # one group
+""",
+    re.VERBOSE | re.DOTALL,
+)  # one group
 
-_paramstring = r'''
+_paramstring = r"""
     (?:
         (
             (?:
@@ -256,9 +264,9 @@ _paramstring = r'''
             (?:\s*,\s*)|(?:\s*$)            # comma
         )
     )
-    '''
+    """
 
-_matchstring = '^%s*' % _paramstring
+_matchstring = "^%s*" % _paramstring
 
 
 def dottedQuadToNum(ip):
@@ -276,10 +284,9 @@ def dottedQuadToNum(ip):
     import struct
 
     try:
-        return struct.unpack('!L',
-                             socket.inet_aton(ip.strip()))[0]
+        return struct.unpack("!L", socket.inet_aton(ip.strip()))[0]
     except socket.error:
-        raise ValueError('Not a good dotted-quad IP: %s' % ip)
+        raise ValueError("Not a good dotted-quad IP: %s" % ip)
     return
 
 
@@ -328,12 +335,11 @@ def numToDottedQuad(num):
 
     # no need to intercept here, 4294967295L is fine
     if num > long(4294967295) or num < 0:
-        raise ValueError('Not a good numeric IP: %s' % num)
+        raise ValueError("Not a good numeric IP: %s" % num)
     try:
-        return socket.inet_ntoa(
-            struct.pack('!L', long(num)))
+        return socket.inet_ntoa(struct.pack("!L", long(num)))
     except (socket.error, struct.error, OverflowError):
-        raise ValueError('Not a good numeric IP: %s' % num)
+        raise ValueError("Not a good numeric IP: %s" % num)
 
 
 class ValidateError(Exception):
@@ -384,8 +390,10 @@ class VdtParamError(SyntaxError):
             SyntaxError.__init__(self, name_or_msg)
         else:
             SyntaxError.__init__(
-                self, 'passed an incorrect value "{}" for '
-                      'parameter "{}".'.format(value, name_or_msg))
+                self,
+                'passed an incorrect value "{}" for '
+                'parameter "{}".'.format(value, name_or_msg),
+            )
 
 
 class VdtTypeError(ValidateError):
@@ -397,7 +405,9 @@ class VdtTypeError(ValidateError):
         Traceback (most recent call last):
         VdtTypeError: the value "jedi" is of the wrong type.
         """
-        ValidateError.__init__(self, 'the value "{}" is of the wrong type.'.format(value))
+        ValidateError.__init__(
+            self, 'the value "{}" is of the wrong type.'.format(value)
+        )
 
 
 class VdtValueError(ValidateError):
@@ -445,9 +455,7 @@ class VdtValueTooShortError(VdtValueError):
         Traceback (most recent call last):
         VdtValueTooShortError: the value "jed" is too short.
         """
-        ValidateError.__init__(
-            self,
-            'the value "{}" is too short.'.format(value))
+        ValidateError.__init__(self, 'the value "{}" is too short.'.format(value))
 
 
 class VdtValueTooLongError(VdtValueError):
@@ -535,10 +543,10 @@ class Validator(object):
     """
 
     # this regex does the initial parsing of the checks
-    _func_re = re.compile(r'(.+?)\((.*)\)', re.DOTALL)
+    _func_re = re.compile(r"(.+?)\((.*)\)", re.DOTALL)
 
     # this regex takes apart keyword arguments
-    _key_arg = re.compile(r'^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.*)$',  re.DOTALL)
+    _key_arg = re.compile(r"^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.*)$", re.DOTALL)
 
     # this regex finds keyword=list(....) type values
     _list_arg = _list_arg
@@ -556,23 +564,23 @@ class Validator(object):
         >>> vtri = Validator()
         """
         self.functions = {
-            '': self._pass,
-            'integer': is_integer,
-            'float': is_float,
-            'boolean': is_boolean,
-            'ip_addr': is_ip_addr,
-            'string': is_string,
-            'list': is_list,
-            'tuple': is_tuple,
-            'int_list': is_int_list,
-            'float_list': is_float_list,
-            'bool_list': is_bool_list,
-            'ip_addr_list': is_ip_addr_list,
-            'string_list': is_string_list,
-            'mixed_list': is_mixed_list,
-            'pass': self._pass,
-            'option': is_option,
-            'force_list': force_list,
+            "": self._pass,
+            "integer": is_integer,
+            "float": is_float,
+            "boolean": is_boolean,
+            "ip_addr": is_ip_addr,
+            "string": is_string,
+            "list": is_list,
+            "tuple": is_tuple,
+            "int_list": is_int_list,
+            "float_list": is_float_list,
+            "bool_list": is_bool_list,
+            "ip_addr_list": is_ip_addr_list,
+            "string_list": is_string_list,
+            "mixed_list": is_mixed_list,
+            "pass": self._pass,
+            "option": is_option,
+            "force_list": force_list,
         }
         if functions is not None:
             self.functions.update(functions)
@@ -616,7 +624,7 @@ class Validator(object):
         return self._check_value(value, fun_name, fun_args, fun_kwargs)
 
     def _handle_none(self, value):
-        if value == 'None':
+        if value == "None":
             return None
         elif value in ("'None'", '"None"'):
             # Special case a quoted None
@@ -680,7 +688,7 @@ class Validator(object):
 
         # Default must be deleted if the value is specified too,
         # otherwise the check function will get a spurious "default" keyword arg
-        default = fun_kwargs.pop('default', None)
+        default = fun_kwargs.pop("default", None)
         return fun_name, fun_args, fun_kwargs, default
 
     def _unquote(self, val):
@@ -763,6 +771,7 @@ def _is_num_param(names, values, to_float=False):
 # note: if the params are specified wrongly in your input string,
 #       you will also raise errors.
 
+
 def is_integer(value, min=None, max=None):
     """
     A check that tests that a given value is an integer (int, or long)
@@ -804,7 +813,8 @@ def is_integer(value, min=None, max=None):
     0
     """
     (min_val, max_val) = _is_num_param(  # pylint: disable=unbalanced-tuple-unpacking
-        ('min', 'max'), (min, max))
+        ("min", "max"), (min, max)
+    )
     if not isinstance(value, (int, long, string_type)):
         raise VdtTypeError(value)
     if isinstance(value, string_type):
@@ -856,7 +866,8 @@ def is_float(value, min=None, max=None):
     VdtValueTooBigError: the value "35.0" is too big.
     """
     (min_val, max_val) = _is_num_param(  # pylint: disable=unbalanced-tuple-unpacking
-        ('min', 'max'), (min, max), to_float=True)
+        ("min", "max"), (min, max), to_float=True
+    )
     if not isinstance(value, (int, long, float, string_type)):
         raise VdtTypeError(value)
     if not isinstance(value, float):
@@ -873,8 +884,16 @@ def is_float(value, min=None, max=None):
 
 
 bool_dict = {
-    True: True, 'on': True, '1': True, 'true': True, 'yes': True,
-    False: False, 'off': False, '0': False, 'false': False, 'no': False,
+    True: True,
+    "on": True,
+    "1": True,
+    "true": True,
+    "yes": True,
+    False: False,
+    "off": False,
+    "0": False,
+    "false": False,
+    "no": False,
 }
 
 
@@ -1007,7 +1026,8 @@ def is_list(value, min=None, max=None):
     VdtTypeError: the value "12" is of the wrong type.
     """
     (min_len, max_len) = _is_num_param(  # pylint: disable=unbalanced-tuple-unpacking
-        ('min', 'max'), (min, max))
+        ("min", "max"), (min, max)
+    )
     if isinstance(value, string_type):
         raise VdtTypeError(value)
     try:
@@ -1080,7 +1100,8 @@ def is_string(value, min=None, max=None):
     if not isinstance(value, string_type):
         raise VdtTypeError(value)
     (min_len, max_len) = _is_num_param(  # pylint: disable=unbalanced-tuple-unpacking
-        ('min', 'max'), (min, max))
+        ("min", "max"), (min, max)
+    )
     try:
         num_members = len(value)
     except TypeError:
@@ -1234,17 +1255,17 @@ def force_list(value, min=None, max=None):
 
 fun_dict = {
     int: is_integer,
-    'int': is_integer,
-    'integer': is_integer,
+    "int": is_integer,
+    "integer": is_integer,
     float: is_float,
-    'float': is_float,
-    'ip_addr': is_ip_addr,
+    "float": is_float,
+    "ip_addr": is_ip_addr,
     str: is_string,
-    'str': is_string,
-    'string': is_string,
+    "str": is_string,
+    "string": is_string,
     bool: is_boolean,
-    'bool': is_boolean,
-    'boolean': is_boolean,
+    "bool": is_boolean,
+    "boolean": is_boolean,
 }
 
 
@@ -1302,7 +1323,7 @@ def is_mixed_list(value, *args):
     try:
         return [fun_dict[arg](val) for arg, val in zip(args, value)]
     except KeyError as cause:
-        raise VdtParamError('mixed_list', cause)
+        raise VdtParamError("mixed_list", cause)
 
 
 def is_option(value, *options):
@@ -1449,19 +1470,23 @@ def _test3():
     """
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # run the code tests in doctest format
     import sys
     import doctest
-    m = sys.modules.get('__main__')
+
+    m = sys.modules.get("__main__")
     globs = m.__dict__.copy()
-    globs.update({
-        'vtor': Validator(),
-    })
+    globs.update(
+        {"vtor": Validator(),}
+    )
 
     failures, tests = doctest.testmod(
-        m, globs=globs,
-        optionflags=doctest.IGNORE_EXCEPTION_DETAIL | doctest.ELLIPSIS)
-    print('{} {} failures out of {} tests'
-          .format("FAIL" if failures else "*OK*", failures, tests))
+        m, globs=globs, optionflags=doctest.IGNORE_EXCEPTION_DETAIL | doctest.ELLIPSIS
+    )
+    print(
+        "{} {} failures out of {} tests".format(
+            "FAIL" if failures else "*OK*", failures, tests
+        )
+    )
     sys.exit(bool(failures))

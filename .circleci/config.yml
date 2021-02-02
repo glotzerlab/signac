@@ -7,40 +7,49 @@ version: 2.1
 orbs:
   win: circleci/windows@2.2.0  # Enables Windows executors
 
+references:
+  restore_keys: &restore_keys
+    keys:
+      - python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements/requirements-test.txt" }}-{{ checksum "requirements/requirements-test-optional.txt" }}-{{ checksum "requirements/requirements-precommit.txt" }}-{{ checksum ".circleci/ci-oldest-reqs.txt" }}-{{ checksum ".pre-commit-config.yaml" }}
+
+  save_key: &save_key
+    key: python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements/requirements-test.txt" }}-{{ checksum "requirements/requirements-test-optional.txt" }}-{{ checksum "requirements/requirements-precommit.txt" }}-{{ checksum ".circleci/ci-oldest-reqs.txt" }}-{{ checksum ".pre-commit-config.yaml" }}
+
 jobs:
   pre-checks:
     docker:
-      - image: circleci/python:3.8
+      - image: circleci/python:3.9
 
     working_directory: ~/repo
 
     steps:
       - checkout
-      - run:
-          name: install-dependencies
-          command: |
-            pip install --progress-bar off --user -U flake8==3.7.1 pydocstyle==5.0.2 mypy==0.770
+
+      - restore_cache:
+          <<: *restore_keys
 
       - run:
-          name: check-style
+          name: Install pre-check dependencies
           command: |
-            python -m flake8 --show-source .
+            pip install --progress-bar off --user -U -r requirements/requirements-precommit.txt
 
       - run:
-          name: check-docstyle
+          name: Run pre-checks
           command: |
-            pydocstyle
+            PRE_COMMIT_HOME=.pre-commit-cache pre-commit run --all-files --show-diff-on-failure
 
-      - run:
-          name: check-type-hints
-          command: |
-            mypy .
+      - save_cache:
+          <<: *save_key
+          paths:
+            - ".pre-commit-cache"
 
-  linux-python-38: &linux-template
+  linux-python-39: &linux-template
     docker:
-      - image: circleci/python:3.8
+      - image: circleci/python:3.9
 
     environment:
+      BENCHMARKS: "RUN"
+      DEPENDENCIES: "NEWEST"
       PYTHON: python
 
     working_directory: ~/repo
@@ -50,38 +59,48 @@ jobs:
       - checkout
 
       - restore_cache:
-          keys:
-            - python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
-            - python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
-            - python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
-            - python-env-v7-{{ arch }}
-            - python-env-v7
+          <<: *restore_keys
 
       - run:
-          name: install dependencies
+          name: Install dependencies
           command: |
-            export PATH=$PATH:$HOME/.local/bin
             ${PYTHON} -m pip install --progress-bar off -U virtualenv --user
             mkdir -p ./venv
-            virtualenv ./venv --clear
+            ${PYTHON} -m virtualenv ./venv --clear
             . venv/bin/activate
-            if [[ "$CIRCLE_JOB" != *"pypy"* ]]; then
+            if [[ "${CIRCLE_JOB}" != *"pypy"* ]]; then
               sudo apt update -qq && sudo apt install -y -qq libhdf5-dev
             fi
-            ${PYTHON} -m pip install --progress-bar off -U pip==18
+            ${PYTHON} -m pip install --progress-bar off -U pip>=20.3
             ${PYTHON} -m pip install --progress-bar off -U codecov
-            ${PYTHON} -m pip install --progress-bar off -U -e . -r requirements-dev.txt
+            # DEPENDENCIES can be "OLDEST", "NEWEST", or "MINIMAL"
+            if [ "${DEPENDENCIES}" == "OLDEST" ]; then
+              # Some of the "oldest" requirements are not strictly the lowest
+              # versions, and are only needed for testing. The "oldest"
+              # requirements filename and directory cannot contain
+              # "requirements" or else dependabot will attempt to update, which
+              # we do not want.
+              ${PYTHON} -m pip install --progress-bar off -r .circleci/ci-oldest-reqs.txt
+            elif [ "${DEPENDENCIES}" == "NEWEST" ]; then
+              ${PYTHON} -m pip install --progress-bar off -U -r requirements/requirements-test.txt
+              ${PYTHON} -m pip install --progress-bar off -U -r requirements/requirements-test-optional.txt
+            else
+              # "${DEPENDENCIES}" == "MINIMAL"
+              # Install only testing requirements.
+              ${PYTHON} -m pip install --progress-bar off -U -r requirements/requirements-test.txt
+            fi
+            ${PYTHON} -m pip install --progress-bar off -e .
 
       - save_cache:
-          key: python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
+          <<: *save_key
           paths:
             - "venv"
 
       - run:
-          name: run tests
+          name: Run tests
           command: |
             . venv/bin/activate
-            ${PYTHON} -m pytest --cov=signac --cov-report=xml tests/ -v
+            ${PYTHON} -m pytest --cov signac --cov-config=setup.cfg --cov-report=xml tests/ -v
             codecov
 
       - store_artifacts:
@@ -89,62 +108,113 @@ jobs:
           destination: test-reports
 
       - run:
-          name: benchmark
+          name: Run benchmarks
           command: |
-            . venv/bin/activate
-            ${PYTHON} -m pip install --progress-bar off -r requirements-benchmark.txt
-            ${PYTHON} -m pip freeze
-            ${PYTHON} benchmark.py run -N 100 1000  # this revision
-            ${PYTHON} benchmark.py report
-            git reset --hard origin/master
-            git checkout "${CIRCLE_SHA1}" -- benchmark.py  # ensure that we use the same benchmark script
-            ${PYTHON} benchmark.py run -N 100 1000 --force
-            ${PYTHON} benchmark.py compare origin/master "${CIRCLE_SHA1}"
+            # Benchmarks depend on pandas, which isn't available for pypy or
+            # minimal dependencies
+            # BENCHMARKS can be "RUN" or "SKIP"
+            if [[ "${BENCHMARKS}" == "RUN" ]]; then
+              . venv/bin/activate
+              ${PYTHON} -m pip install --progress-bar off -r requirements/requirements-benchmark.txt
+              ${PYTHON} -m pip freeze
+              ${PYTHON} benchmark.py run -N 100 1000  # this revision
+              ${PYTHON} benchmark.py report
+              git reset --hard origin/master
+              git checkout "${CIRCLE_SHA1}" -- benchmark.py  # ensure that we use the same benchmark script
+              ${PYTHON} benchmark.py run -N 100 1000 --force
+              ${PYTHON} benchmark.py compare origin/master "${CIRCLE_SHA1}"
+            fi
+
+  linux-python-39-minimal:
+    <<: *linux-template
+    docker:
+      - image: circleci/python:3.9
+    environment:
+      BENCHMARKS: "SKIP"
+      DEPENDENCIES: "MINIMAL"
+      PYTHON: python
+
+  linux-python-38:
+    <<: *linux-template
+    docker:
+      - image: circleci/python:3.8
 
   linux-python-37:
     <<: *linux-template
     docker:
       - image: circleci/python:3.7
 
-  linux-python-36:
+  linux-python-36-oldest:
     <<: *linux-template
     docker:
       - image: circleci/python:3.6
-
-  linux-python-35:
-    <<: *linux-template
-    docker:
-      - image: circleci/python:3.5
-
-  linux-pypy-3:
-    <<: *linux-template
-    docker:
-      - image: pypy:3
     environment:
+      BENCHMARKS: "SKIP"
+      DEPENDENCIES: "OLDEST"
+      PYTHON: python
+
+  linux-pypy-37:
+    <<: *linux-template
+    docker:
+      - image: pypy:3.7
+    environment:
+      BENCHMARKS: "SKIP"
+      DEPENDENCIES: "NEWEST"
       PYTHON: pypy3
 
   windows-python-38:
-    executor: win/default
+    executor:
+      name: win/default
+      shell: bash.exe
+    environment:
+      PYTHON: python
     steps:
       - checkout
       - run:
-          name: install python
+          name: Install Python
           command: |
             choco install python --version 3.8.1 --limit-output --no-progress
       - run:
-          name: install dependencies
+          name: Install dependencies
           command: |
-            python --version
-            python -m pip install --progress-bar off certifi
-            python -m pip install --progress-bar off -U -e . -r requirements-dev.txt
+            ${PYTHON} -m pip install --progress-bar off -U pip>=20.3
+            ${PYTHON} -m pip install --progress-bar off -U codecov
+            ${PYTHON} -m pip install --progress-bar off -U -r requirements/requirements-test.txt
+            ${PYTHON} -m pip install --progress-bar off -U -r requirements/requirements-test-optional.txt
+            ${PYTHON} -m pip install --progress-bar off -U -e .
       - run:
-          name: run tests
+          name: Run tests
           command: |
-            python -m pytest tests/ -v
+            ${PYTHON} -m pytest --cov=signac --cov-report=xml tests/ -v
+            codecov
+
+  macos-python-3:
+    macos:  # executor type
+      xcode: 11.3.0
+    steps:
+      - checkout
+      - run:
+          name: Create environment and run tests
+          command: |
+            # The default Python on OS X is still Python2, so we must specify
+            # python3. We create a virtual environment so that the python
+            # command line executable is python3. This change is necessary
+            # because the tests of signac's CLI call `python`, so they'll use
+            # the python2 executable by default.
+            python3 -m venv create test_env
+            . test_env/bin/activate
+            python --version
+            python -m pip install --progress-bar off -U pip>=20.3
+            python -m pip install --progress-bar off -U codecov
+            python -m pip install --progress-bar off -U -r requirements/requirements-test.txt
+            python -m pip install --progress-bar off -U -r requirements/requirements-test-optional.txt
+            python -m pip install --progress-bar off -U -e .
+            python -m pytest --cov=signac --cov-report=xml tests/ -v
+            codecov
 
   check-metadata:
     docker:
-      - image: circleci/python:3.8
+      - image: circleci/python:3.9
     working_directory: ~/repo
     steps:
       - checkout
@@ -160,7 +230,7 @@ jobs:
 
   test-deploy-pypi:
     docker:
-      - image: circleci/python:3.8
+      - image: circleci/python:3.9
     working_directory: ~/repo
     steps:
       - checkout
@@ -171,7 +241,7 @@ jobs:
 
   deploy-pypi:
     docker:
-      - image: circleci/python:3.8
+      - image: circleci/python:3.9
     working_directory: ~/repo
     steps:
       - checkout
@@ -186,22 +256,28 @@ workflows:
   test:
     jobs:
       - pre-checks
+      - linux-python-39:
+          requires:
+            - pre-checks
+      - linux-python-39-minimal:
+          requires:
+            - pre-checks
       - linux-python-38:
           requires:
             - pre-checks
       - linux-python-37:
           requires:
             - pre-checks
-      - linux-python-36:
+      - linux-python-36-oldest:
           requires:
             - pre-checks
-      - linux-python-35:
+      - linux-pypy-37:
           requires:
             - pre-checks
-      - linux-pypy-3:
-          requires:
-            - linux-python-36
       - windows-python-38:
+          requires:
+            - pre-checks
+      - macos-python-3:
           requires:
             - pre-checks
       - check-metadata:
@@ -213,11 +289,12 @@ workflows:
             branches:
               only: /release\/.*/
           requires:
-            - linux-python-35
-            - linux-python-36
-            - linux-python-37
+            - linux-python-39
+            - linux-python-39-minimal
             - linux-python-38
-            - linux-pypy-3
+            - linux-python-37
+            - linux-python-36-oldest
+            - linux-pypy-37
             - windows-python-38
   deploy:
     jobs:

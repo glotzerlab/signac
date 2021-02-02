@@ -4,7 +4,6 @@
 """Functions to support citing this software."""
 import sys
 
-
 ARXIV_BIBTEX = """@online{signac,
     author      = {Carl S. Adorf and Paul M. Dodd and Sharon C. Glotzer},
     title       = {signac - A Simple Data Management Framework},
@@ -16,7 +15,11 @@ ARXIV_BIBTEX = """@online{signac,
 """
 
 
-ARXIV_REFERENCE = "Carl S. Adorf, Paul M. Dodd, and Sharon C. Glotzer. signac - A Simple Data Management Framework. 2016. arXiv:1611.03543 [cs.DB]"
+ARXIV_REFERENCE = (
+    "Carl S. Adorf, Paul M. Dodd, and Sharon C. Glotzer. "
+    "signac - A Simple Data Management Framework. 2016. "
+    "arXiv:1611.03543 [cs.DB]"
+)
 
 
 def bibtex(file=None):
@@ -38,7 +41,7 @@ def bibtex(file=None):
     if file is None:
         file = sys.stdout
     elif isinstance(file, str):
-        file = open(file, 'w')
+        file = open(file, "w")
     file.write(ARXIV_BIBTEX)
 
 
@@ -61,5 +64,5 @@ def reference(file=None):
     if file is None:
         file = sys.stdout
     elif isinstance(file, str):
-        file = open(file, 'w')
-    file.write(ARXIV_REFERENCE + '\n')
+        file = open(file, "w")
+    file.write(ARXIV_REFERENCE + "\n")

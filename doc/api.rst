@@ -6,25 +6,12 @@ API Reference
 
 This is the API for the **signac** (core) application.
 
-Command Line Interface
-======================
-
-Some core **signac** functions are---in addition to the Python interface---accessible
-directly via the ``$ signac`` command.
-
-For more information, please see ``$ signac --help``.
-
-.. literalinclude:: cli-help.txt
-
-
 The Project
 ===========
 
 .. _python-api-project:
 
 .. currentmodule:: signac
-
-.. autoclass:: Project
 
 .. rubric:: Attributes
 
@@ -74,14 +61,34 @@ The Project
     :show-inheritance:
     :exclude-members: Job
 
+
+The JobsCursor class
+====================
+.. _python-api-jobscursor:
+
+.. currentmodule:: signac.contrib.project
+
+.. rubric:: Attributes
+
+.. autosummary::
+    JobsCursor.export_to
+    JobsCursor.groupby
+    JobsCursor.groupbydoc
+    JobsCursor.to_dataframe
+
+
+.. autoclass:: JobsCursor
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 The Job class
 =============
 
 .. _python-api-job:
 
 .. currentmodule:: signac.contrib.job
-
-.. autoclass:: Job
 
 .. rubric:: Attributes
 
@@ -122,7 +129,7 @@ The Collection
 ==============
 
 .. autoclass:: Collection
-   :members:
+    :members:
 
 
 The JSONDict
@@ -131,7 +138,8 @@ The JSONDict
 This class implements the interface for the job's :attr:`~signac.contrib.job.Job.statepoint` and :attr:`~signac.contrib.job.Job.document` attributes, but can also be used stand-alone:
 
 .. autoclass:: JSONDict
-   :members:
+    :members:
+    :inherited-members:
 
 
 The H5Store
@@ -141,6 +149,7 @@ This class implements the interface to the job's :attr:`~signac.contrib.job.Job.
 
 .. autoclass:: H5Store
     :members:
+    :inherited-members:
 
 
 The H5StoreManager
@@ -150,6 +159,7 @@ This class implements the interface to the job's :attr:`~signac.contrib.job.Job.
 
 .. autoclass:: H5StoreManager
     :members:
+    :inherited-members:
     :show-inheritance:
 
 
@@ -159,7 +169,7 @@ Top-level functions
 .. automodule:: signac
     :members:
     :show-inheritance:
-    :exclude-members: Project,Collection,RegexFileCrawler,MasterCrawler,SignacProjectCrawler,JSONDict,H5Store,H5StoreManager
+    :exclude-members: Project,Collection,RegexFileCrawler,MainCrawler,MasterCrawler,SignacProjectCrawler,JSONDict,H5Store,H5StoreManager
 
 
 Submodules

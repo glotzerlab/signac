@@ -1,20 +1,21 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+"""Validate config schema."""
+
 import logging
 
-from .configobj.validate import Validator
-from .configobj.validate import VdtValueError
-
+from .configobj.validate import Validator, VdtValueError
 
 logger = logging.getLogger(__name__)
 
 
 def mongodb_uri(value, *args, **kwargs):
+    """Return a MongoDB URI."""
     if isinstance(value, list):
-        value = ','.join(value)
-    if not value.startswith('mongodb://'):
-        value = 'mongodb://' + value
+        value = ",".join(value)
+    if not value.startswith("mongodb://"):
+        value = "mongodb://" + value
     try:
         import pymongo
     except ImportError:
@@ -27,15 +28,12 @@ def mongodb_uri(value, *args, **kwargs):
     return value
 
 
-def password(value, *args, **kwargs):
+def password(value, *args, **kwargs):  # noqa: D103
     return value
 
 
-def get_validator():
-    return Validator({
-        'mongodb_uri': mongodb_uri,
-        'password': password,
-    })
+def get_validator():  # noqa: D103
+    return Validator({"mongodb_uri": mongodb_uri, "password": password})
 
 
 cfg = """
