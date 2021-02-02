@@ -1138,7 +1138,10 @@ def main_shell(args):
         else:  # interactive
             if READLINE:
                 if "PyPy" not in platform.python_implementation():
-                    fn_hist = project.fn(".signac_shell_history")
+                    # Attempt migration. To be removed in signac 2.0.
+                    old_fn_hist = ".signac_shell_history"
+                    fn_hist = ".signac/signac_shell_history"
+                    project._migrate_internal_file(old_fn_hist, fn_hist)
                     try:
                         readline.read_history_file(fn_hist)
                         readline.set_history_length(1000)

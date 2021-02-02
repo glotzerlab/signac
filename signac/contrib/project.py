@@ -1984,6 +1984,7 @@ class Project:
         else:
             logger.debug("In-memory cache is up to date.")
 
+    # This function should be removed in signac 2.0.
     def _migrate_internal_file(self, old_file, new_file):
         """Migrate files based on the 1.x names to the new 2.x schema.
 
@@ -2055,6 +2056,7 @@ class Project:
     def _read_cache(self):
         """Read the persistent state point cache (if available)."""
         logger.debug("Reading cache...")
+        # To be removed in signac 2.0.
         self._migrate_internal_file(self._OLD_FN_CACHE, self.FN_CACHE)
         start = time.time()
         try:
