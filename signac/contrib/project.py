@@ -221,7 +221,9 @@ class Project:
     FN_STATEPOINTS = "signac_statepoints.json"
     "The default filename to read from and write state points to."
 
-    FN_CACHE = ".signac_sp_cache.json.gz"
+    _OLD_FN_CACHE = ".signac_sp_cache.json.gz"
+
+    FN_CACHE = ".signac/signac_sp_cache.json.gz"
     "The default filename for the state point cache file."
 
     _use_pandas_for_html_repr = True  # toggle use of pandas for html repr
@@ -1982,13 +1984,37 @@ class Project:
         else:
             logger.debug("In-memory cache is up to date.")
 
+    def _migrate_internal_file(self, old_file, new_file):
+        """Migrate files based on the 1.x names to the new 2.x schema.
+
+        Various files used internally by signac are placed at the project root in
+        signac 1.x but will be placed in a .signac directory in 2.x. This function
+        provides a standardized migration protocol.
+
+        Parameters
+        ----------
+        old_file : str
+            The original filename.
+        new_file : str
+            The new filename.
+
+        """
+        old_fn = self.fn(old_file)
+        new_fn = self.fn(new_file)
+
+        if os.path.exists(old_fn):
+            _mkdir_p(os.path.dirname(new_fn))
+            os.rename(old_fn, new_fn)
+            print("Moved {old_fn}->{new_fn}.")
+
     def _remove_persistent_cache_file(self):
         """Remove the persistent cache file (if it exists)."""
-        try:
-            os.remove(self.fn(self.FN_CACHE))
-        except OSError as error:
-            if error.errno != errno.ENOENT:
-                raise error
+        for fn in (self.FN_CACHE, self._OLD_FN_CACHE):
+            try:
+                os.remove(self.fn())
+            except OSError as error:
+                if error.errno != errno.ENOENT:
+                    raise error
 
     def update_cache(self):
         """Update the persistent state point cache.
@@ -2005,6 +2031,7 @@ class Project:
         cache = self._read_cache()
         cached_ids = set(self._sp_cache)
         self._update_in_memory_cache()
+
         if cache is None or set(cache) != cached_ids:
             fn_cache = self.fn(self.FN_CACHE)
             fn_cache_tmp = fn_cache + "~"
@@ -2028,6 +2055,7 @@ class Project:
     def _read_cache(self):
         """Read the persistent state point cache (if available)."""
         logger.debug("Reading cache...")
+        self._migrate_internal_file(self._OLD_FN_CACHE, self.FN_CACHE)
         start = time.time()
         try:
             with gzip.open(self.fn(self.FN_CACHE), "rb") as cachefile:
