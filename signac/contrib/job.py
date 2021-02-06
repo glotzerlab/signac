@@ -275,9 +275,6 @@ class Job:
         else:
             # Only an id was provided. State point will be loaded lazily.
             self._id = _id
-            self._statepoint = _StatePointDict(
-                jobs=[self], filename=self._statepoint_filename
-            )
             self._statepoint_requires_init = True
 
     def _initialize_lazy_properties(self):
@@ -383,7 +380,7 @@ class Job:
             The job's new state point.
 
         """
-        self._statepoint.reset(new_statepoint)
+        self.statepoint.reset(new_statepoint)
 
     def update_statepoint(self, update, overwrite=False):
         """Change the state point of this job while preserving job data.
@@ -429,7 +426,7 @@ class Job:
                 if statepoint.get(key, value) != value:
                     raise KeyError(key)
         statepoint.update(update)
-        self._statepoint.reset(statepoint)
+        self.statepoint.reset(statepoint)
 
     @property
     def statepoint(self):
@@ -456,6 +453,9 @@ class Job:
         """
         if self._statepoint_requires_init:
             # Load state point data lazily (on access).
+            self._statepoint = _StatePointDict(
+                jobs=[self], filename=self._statepoint_filename
+            )
             statepoint = self._statepoint.load(self.id)
 
             # Update the project's state point cache when loaded lazily
@@ -474,7 +474,7 @@ class Job:
             The new state point to be assigned.
 
         """
-        self._statepoint.reset(new_statepoint)
+        self.statepoint.reset(new_statepoint)
 
     @property
     def sp(self):
@@ -657,7 +657,7 @@ class Job:
         try:
             # Attempt early exit if the state point file exists and is valid.
             try:
-                statepoint = self._statepoint.load(self.id)
+                statepoint = self.statepoint.load(self.id)
             except Exception:
                 # Any exception means this method cannot exit early.
 
@@ -674,8 +674,8 @@ class Job:
                 # The state point save will not overwrite an existing file on
                 # disk unless force is True, so the subsequent load will catch
                 # when a preexisting invalid file was present.
-                self._statepoint.save(force=force)
-                statepoint = self._statepoint.load(self.id)
+                self.statepoint.save(force=force)
+                statepoint = self.statepoint.load(self.id)
 
                 # Update the project's state point cache if the saved file is valid.
                 self._project._register(self.id, statepoint)
