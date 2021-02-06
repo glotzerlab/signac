@@ -2006,7 +2006,7 @@ class Project:
         if os.path.exists(old_fn):
             _mkdir_p(os.path.dirname(new_fn))
             os.rename(old_fn, new_fn)
-            print("Moved {old_fn}->{new_fn}.")
+            logger.info("Moved {old_fn}->{new_fn} for signac 2.0 schema migration.")
 
     def _remove_persistent_cache_file(self):
         """Remove the persistent cache file (if it exists)."""
