@@ -38,6 +38,7 @@ FILTERS = [
     {"d": {"$type": "list"}},
     {"a.b": {"$where": "lambda x: x < 10"}},
     {"a.b": {"$where": "lambda x: isinstance(x, int)"}},
+    {"a": {"$regex": "[a][b][c]"}},
 ]
 
 
