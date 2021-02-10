@@ -192,8 +192,8 @@ def _update_password(config, hostname, scheme=None, new_pw=None):
 def _read_index(project, fn_index=None):
     if fn_index is not None:
         _print_err(f"Reading index from file '{fn_index}'...")
-        file_descriptor = open(fn_index)
-        return (json.loads(line) for line in file_descriptor)
+        with open(fn_index) as file_descriptor:
+            return [json.loads(line) for line in file_descriptor]
 
 
 def _open_job_by_id(project, job_id):
