@@ -4,6 +4,7 @@
 """Parse the filter arguments."""
 
 import sys
+from collections.abc import Mapping
 
 from ..core import json
 
@@ -250,6 +251,7 @@ def parse_filter_arg(args, file=sys.stderr):
 
 
 def _add_prefix(prefix, filter):
+    """Add desired prefix (e.g. 'sp.' or 'doc.') to a (possibly nested) filter."""
     if filter:
         for key, value in filter.items():
             if key in ("$and", "$or"):
@@ -257,7 +259,7 @@ def _add_prefix(prefix, filter):
                     yield key, [dict(_add_prefix(prefix, item)) for item in value]
                 else:
                     raise ValueError(
-                        "The argument to a logical operator must be a sequence (e.g. a list)!"
+                        "The argument to a logical operator must be a list or a tuple!"
                     )
             elif "." in key and key.split(".", 1)[0] in ("sp", "doc"):
                 yield key, value
@@ -298,11 +300,16 @@ def parse_filter(filter):
         A key value pair to be used as a filter.
 
     """
-    filter = list(filter)
-
     if isinstance(filter, str):
         yield from parse_simple(filter.split())
-    elif isinstance(filter, dict):
+    elif isinstance(filter, Mapping):
         yield from filter.items()
-    elif filter:
-        yield from filter
+    else:
+        try:
+            yield from filter
+        except TypeError:
+            # This type was not iterable.
+            raise ValueError(
+                f"Invalid filter type {type(filter)}. The filter must "
+                "be a Sequence, Mapping, or str."
+            )

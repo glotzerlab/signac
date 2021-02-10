@@ -2567,77 +2567,63 @@ class JobsCursor:
 
         """
         _filter = self._filter
+
+        if default is not None and not isinstance(key, (str, Iterable)):
+            warnings.warn(
+                "The default parameter is ignored for grouping except "
+                "when grouping by a (list of) string key(s)."
+            )
+
+        def _strip_prefix(key):
+            """Strip the prefix, if it is present.
+
+            Implicit and explicit sp prefixes are equivalent and can be treated
+            identically for this purpose.
+            """
+            return key.split(".", 1)[-1]
+
+        def _is_doc_key(key):
+            """Check if a key is a document key."""
+            return "." in key and key.split(".", 1)[0] == "doc"
+
         if isinstance(key, str):
+            stripped_key = _strip_prefix(key)
+
             if default is None:
                 if _filter is None:
                     _filter = {key: {"$exists": True}}
                 else:
                     _filter = {"$and": [{key: {"$exists": True}}, _filter]}
 
-                if "." in key and key.split(".", 1)[0] == "doc":
+                if _is_doc_key(key):
 
                     def keyfunction(job):
-                        return job.document[key[4:]]
+                        return job.document[stripped_key]
 
                 else:
-                    key = (
-                        key[3:] if "." in key and key.split(".", 1)[0] == "sp" else key
-                    )
 
                     def keyfunction(job):
-                        """Return job's state point value corresponding to the key.
-
-                        Parameters
-                        ----------
-                        job : :class:`~signac.contrib.job.Job`
-                            The job instance.
-
-                        Returns
-                        -------
-                        State point value corresponding to the key.
-
-                        """
-                        return job.sp[key]
+                        return job.sp[stripped_key]
 
             else:
-                if "." in key and key.split(".", 1)[0] == "doc":
+                if _is_doc_key(key):
 
                     def keyfunction(job):
-                        return job.document.get(key, default)
+                        return job.document.get(stripped_key, default)
 
                 else:
-                    key = (
-                        key[3:] if "." in key and key.split(".", 1)[0] == "sp" else key
-                    )
 
                     def keyfunction(job):
-                        """Return job's state point value corresponding to the key.
-
-                        Return default if key is not present.
-
-                        Parameters
-                        ----------
-                        job : :class:`~signac.contrib.job.Job`
-                            The job instance.
-
-                        Returns
-                        -------
-                        State point value corresponding to the key.
-                        Default if key is not present.
-
-                        """
-                        return job.sp.get(key, default)
+                        return job.sp.get(stripped_key, default)
 
         elif isinstance(key, Iterable):
             sp_keys = []
             doc_keys = []
             for k in key:
-                if "." in k and k.split(".", 1)[0] == "doc":
-                    doc_keys.append(k[4:])
+                if _is_doc_key(k):
+                    doc_keys.append(_strip_prefix(k))
                 else:
-                    sp_keys.append(
-                        k[3:] if "." in k and k.split(".", 1)[0] == "sp" else k
-                    )
+                    sp_keys.append(_strip_prefix(k))
 
             if default is None:
                 if _filter is None:
@@ -2646,19 +2632,6 @@ class JobsCursor:
                     _filter = {"$and": [{k: {"$exists": True} for k in key}, _filter]}
 
                 def keyfunction(job):
-                    """Return job's state point value corresponding to the key.
-
-                    Parameters
-                    ----------
-                    job : :class:`~signac.contrib.job.Job`
-                        The job instance.
-
-                    Returns
-                    -------
-                    tuple
-                        State point values.
-
-                    """
                     return tuple(
                         [job.sp[k] for k in sp_keys]
                         + [job.document[k] for k in doc_keys]
@@ -2667,21 +2640,6 @@ class JobsCursor:
             else:
 
                 def keyfunction(job):
-                    """Return job's state point value corresponding to the key.
-
-                    Return default if key is not present.
-
-                    Parameters
-                    ----------
-                    job : :class:`~signac.contrib.job.Job`
-                        The job instance.
-
-                    Returns
-                    -------
-                    tuple
-                        State point values.
-
-                    """
                     return tuple(
                         [job.sp.get(k, default) for k in sp_keys]
                         + [job.document.get(k, default) for k in doc_keys]
@@ -2690,19 +2648,6 @@ class JobsCursor:
         elif key is None:
             # Must return a type that can be ordered with <, >
             def keyfunction(job):
-                """Return the job's id.
-
-                Parameters
-                ----------
-                job : :class:`~signac.contrib.job.Job`
-                    The job instance.
-
-                Returns
-                -------
-                str
-                    The job's id.
-
-                """
                 return str(job)
 
         else:
@@ -2759,112 +2704,32 @@ class JobsCursor:
             if default is None:
 
                 def keyfunction(job):
-                    """Return job's document value corresponding to the key.
-
-                    Parameters
-                    ----------
-                    job : :class:`~signac.contrib.job.Job`
-                        The job instance.
-
-                    Returns
-                    -------
-                    Document value corresponding to the key.
-
-                    """
                     return job.document[key]
 
             else:
 
                 def keyfunction(job):
-                    """Return job's document value corresponding to the key.
-
-                    Return default if key is not present.
-
-                    Parameters
-                    ----------
-                    job : class:`~signac.contrib.job.Job`
-                        The job instance.
-
-                    Returns
-                    -------
-                    Document value corresponding to the key.
-                    Default if key is not present.
-
-                    """
                     return job.document.get(key, default)
 
         elif isinstance(key, Iterable):
             if default is None:
 
                 def keyfunction(job):
-                    """Return job's document value corresponding to the key.
-
-                    Parameters
-                    ----------
-                    job : :class:`~signac.contrib.job.Job`
-                        The job instance.
-
-                    Returns
-                    -------
-                    tuple
-                        Document values.
-
-                    """
                     return tuple(job.document[k] for k in key)
 
             else:
 
                 def keyfunction(job):
-                    """Return job's document value corresponding to the key.
-
-                    Return default if key is not present.
-
-                    Parameters
-                    ----------
-                    job : :class:`~signac.contrib.job.Job`
-                        The job instance.
-
-                    Returns
-                    -------
-                    tuple
-                        Document values.
-
-                    """
                     return tuple(job.document.get(k, default) for k in key)
 
         elif key is None:
             # Must return a type that can be ordered with <, >
             def keyfunction(job):
-                """Return the job's id.
-
-                Parameters
-                ----------
-                job : :class:`~signac.contrib.job.Job`
-                    The job instance.
-
-                Returns
-                -------
-                str
-                    The job's id.
-
-                """
                 return str(job)
 
         else:
             # Pass the job document to a callable
             def keyfunction(job):
-                """Return job's document value corresponding to the key.
-
-                Parameters
-                ----------
-                job : :class:`~signac.contrib.job.Job`
-                    The job instance.
-
-                Returns
-                -------
-                Document values.
-
-                """
                 return key(job.document)
 
         return groupby(sorted(iter(self), key=keyfunction), key=keyfunction)

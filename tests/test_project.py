@@ -399,7 +399,7 @@ class TestProject(TestProjectBase):
         assert_result_len({"$or": [{"$or": [{"b": {"c": 0}}, {"b": {"c": 1}}]}]}, 2)
         assert_result_len({"$or": [{"$and": [{"b": {"c": 0}}, {"b": {"c": 1}}]}]}, 0)
 
-        # # explicit sp.-prefix
+        # explicit sp.-prefix
         assert_result_len({"$and": [{}, {"sp.a": 0}]}, 1)
         assert_result_len({"$or": [{}, {"sp.a": 0}]}, len(self.project))
         assert_result_len({"$and": [{"sp.a": 0}, {"sp.a": 1}]}, 0)
@@ -432,6 +432,9 @@ class TestProject(TestProjectBase):
             {"$or": [{"$and": [{"sp.b": {"c": 0}}, {"sp.b": {"c": 1}}]}]}, 0
         )
         assert_result_len({"$or": [{"$and": [{"sp.b.c": 0}, {"sp.b.c": 1}]}]}, 0)
+
+        # Explicit doc prefix
+        assert_result_len({"doc.d": 1}, 1)
 
         # Mixed filters
 
@@ -999,6 +1002,11 @@ class TestProject(TestProjectBase):
                 assert job.sp["c"] == k[1]
 
         for k, g in self.project.groupby("doc.a"):
+            assert len(list(g)) == 1
+            for job in list(g):
+                assert job.document["a"] == k
+
+        for k, g in self.project.groupby("doc.a", default=-1):
             assert len(list(g)) == 1
             for job in list(g):
                 assert job.document["a"] == k
