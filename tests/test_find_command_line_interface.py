@@ -10,7 +10,7 @@ from itertools import chain
 
 import pytest
 
-from signac.contrib.filterparse import parse_filter_arg
+from signac.contrib.filterparse import parse_filter_arg, parse_simple
 from signac.core.json import JSONDecodeError
 
 FILTERS = [
@@ -91,6 +91,9 @@ class TestFindCommandLineInterface:
             _assert_equal(f)
 
     def test_interpret_simple(self):
+        assert self._parse(["a"]) == {"a": {"$exists": True}}
+        assert next(parse_simple(["a"])) == ("a", {"$exists": True})
+
         for s, v in VALUES.items():
             assert self._parse(["a", s]) == {"a": v}
         for f in FILTERS:
