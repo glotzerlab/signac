@@ -67,13 +67,13 @@ def _build_job_statepoint_index(exclude_const, index):
     collection = Collection(index, _trust=True)
     for doc in collection.find():
         for key, _ in _nested_dicts_to_dotted_keys(doc):
-            if key == "_id" or key.split(".")[0] != "statepoint":
+            if key == "_id" or key.split(".")[0] != "sp":
                 continue
             collection.index(key, build=True)
     indexes = collection._indexes
 
     def strip_prefix(key):
-        return key[len("statepoint.") :]
+        return key[len("sp.") :]
 
     def remove_dict_placeholder(x):
         """Remove _DictPlaceholder elements from a mapping.

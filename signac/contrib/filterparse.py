@@ -4,6 +4,7 @@
 """Parse the filter arguments."""
 
 import sys
+from collections.abc import Mapping
 
 from ..core import json
 
@@ -159,7 +160,7 @@ def _cast(x):
                 return x
 
 
-def _parse_simple(key, value=None):
+def _parse_single(key, value=None):
     """Parse simple search syntax.
 
     Parameters
@@ -182,18 +183,41 @@ def _parse_simple(key, value=None):
 
     """
     if value is None or value == "!":
-        return {key: {"$exists": True}}
+        return key, {"$exists": True}
     elif _is_json(value):
-        return {key: _parse_json(value)}
+        return key, _parse_json(value)
     elif _is_regex(value):
-        return {key: {"$regex": value[1:-1]}}
+        return key, {"$regex": value[1:-1]}
     elif _is_json(key):
         raise ValueError(
             "Please check your filter arguments. "
             "Using a JSON expression as a key is not allowed: '{}'.".format(key)
         )
     else:
-        return {key: _cast(value)}
+        return key, _cast(value)
+
+
+def parse_simple(tokens):
+    """Parse a set of string tokens into a suitable filter.
+
+    Parameters
+    ----------
+    tokens : Sequence[str]
+        A Sequence of strings composing key-value pairs.
+
+    Yields
+    ------
+    tuple
+        A single key-value pair of input tokenized filter.
+
+    """
+    for i in range(0, len(tokens), 2):
+        key = tokens[i]
+        if i + 1 < len(tokens):
+            value = tokens[i + 1]
+        else:
+            value = None
+        yield _parse_single(key, value)
 
 
 def parse_filter_arg(args, file=sys.stderr):
@@ -218,14 +242,74 @@ def parse_filter_arg(args, file=sys.stderr):
         if _is_json(args[0]):
             return _parse_json(args[0])
         else:
-            return _with_message(_parse_simple(args[0]), file)
+            key, value = _parse_single(args[0])
+            return _with_message({key: value}, file)
     else:
-        q = {}
-        for i in range(0, len(args), 2):
-            key = args[i]
-            if i + 1 < len(args):
-                value = args[i + 1]
-            else:
-                value = None
-            q.update(_parse_simple(key, value))
+        q = dict(parse_simple(args))
+
         return _with_message(q, file)
+
+
+def _add_prefix(prefix, filter):
+    """Add desired prefix (e.g. 'sp.' or 'doc.') to a (possibly nested) filter."""
+    if filter:
+        for key, value in filter.items():
+            if key in ("$and", "$or"):
+                if isinstance(value, list) or isinstance(value, tuple):
+                    yield key, [dict(_add_prefix(prefix, item)) for item in value]
+                else:
+                    raise ValueError(
+                        "The argument to a logical operator must be a list or a tuple!"
+                    )
+            elif "." in key and key.split(".", 1)[0] in ("sp", "doc"):
+                yield key, value
+            elif key in ("sp", "doc"):
+                yield key, value
+            else:
+                yield prefix + key, value
+
+
+def _root_keys(filter):
+    for key, value in filter.items():
+        if key in ("$and", "$or"):
+            assert isinstance(value, (list, tuple))
+            for item in value:
+                for key in _root_keys(item):
+                    yield key
+        elif "." in key:
+            yield key.split(".", 1)[0]
+        else:
+            yield key
+
+
+def parse_filter(filter):
+    """Parse a provided sequence of filters.
+
+    Parameters
+    ----------
+    filter : Sequence, Mapping, or str
+        A set of key, value tuples corresponding to a single filter. This
+        filter may itself be a compound filter containing and/or statements. The
+        filter may be provided as a sequence of tuples, a mapping-like object,
+        or a string. In the last case, the string will be parsed to generate a
+        valid set of filters.
+
+    Yields
+    ------
+    tuple
+        A key value pair to be used as a filter.
+
+    """
+    if isinstance(filter, str):
+        yield from parse_simple(filter.split())
+    elif isinstance(filter, Mapping):
+        yield from filter.items()
+    else:
+        try:
+            yield from filter
+        except TypeError:
+            # This type was not iterable.
+            raise ValueError(
+                f"Invalid filter type {type(filter)}. The filter must "
+                "be a Sequence, Mapping, or str."
+            )
