@@ -2444,9 +2444,15 @@ class JobsCursor:
 
     _use_pandas_for_html_repr = True  # toggle use of pandas for html repr
 
-    def __init__(self, project, filter):
+    def __init__(self, project, filter, doc_filter=None):
         self._project = project
         self._filter = filter
+
+        # TODO: This is a compatibility layer for signac-flow. It should be
+        # removed after signac 2.0 is released and once signac-flow drops
+        # support for signac < 2.0.
+        if doc_filter:
+            filter.update(parse_filter(_add_prefix("doc.", doc_filter)))
 
         # This private attribute allows us to implement the deprecated
         # next() method for this class.
