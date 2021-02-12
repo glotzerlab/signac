@@ -36,7 +36,6 @@ from .errors import (
     JobsCorruptedError,
     WorkspaceError,
 )
-from .filterparse import _add_prefix, _root_keys, parse_filter
 from .hashing import calc_id
 from .indexing import MainCrawler, SignacProjectCrawler
 from .job import Job
@@ -129,16 +128,6 @@ class JobSearchIndex:
         -------
         list
             List of job ids matching the provided filter(s).
-
-        Raises
-        ------
-        TypeError
-            If the filters are not JSON serializable.
-        ValueError
-            If the filters are invalid.
-        RuntimeError
-            If the filters are not supported
-            by the index.
 
         """
         if filter:
@@ -852,7 +841,7 @@ class Project:
         from .schema import _build_job_statepoint_index
 
         if index is None:
-            index = [{"_id": job.id, "sp": job.sp()} for job in self]
+            index = [{"_id": job.id, "statepoint": job.statepoint()} for job in self]
         for x, y in _build_job_statepoint_index(
             exclude_const=exclude_const, index=index
         ):
@@ -979,15 +968,14 @@ class Project:
         if filter is None and doc_filter is None and index is None:
             return list(self._job_dirs())
         if index is None:
-            filter = dict(parse_filter(_add_prefix("sp.", filter)))
-            if doc_filter:
-                filter.update(parse_filter(_add_prefix("doc.", doc_filter)))
-                index = self.index(include_job_document=True)
-            elif "doc" in _root_keys(filter):
-                index = self.index(include_job_document=True)
-            else:
+            if doc_filter is None:
                 index = self._sp_index()
-        return Collection(index, _trust=True)._find(filter)
+            else:
+                index = self.index(include_job_document=True)
+            search_index = JobSearchIndex(index, _trust=True)
+        else:
+            search_index = JobSearchIndex(index)
+        return search_index.find_job_ids(filter=filter, doc_filter=doc_filter)
 
     def find_jobs(self, filter=None, doc_filter=None):
         """Find all jobs in the project's workspace.
@@ -1023,10 +1011,7 @@ class Project:
             If the filters are not supported by the index.
 
         """
-        filter = dict(parse_filter(_add_prefix("sp.", filter)))
-        if doc_filter:
-            filter.update(parse_filter(_add_prefix("doc.", doc_filter)))
-        return JobsCursor(self, filter)
+        return JobsCursor(self, filter, doc_filter)
 
     def __iter__(self):
         return iter(self.find_jobs())
@@ -1044,14 +1029,6 @@ class Project:
 
             # Group jobs by state point parameter 'a'.
             for key, group in project.groupby('a'):
-                print(key, list(group))
-
-            # Group jobs by document value 'a'.
-            for key, group in project.groupby('doc.a'):
-                print(key, list(group))
-
-            # Group jobs by jobs.sp['a'] and job.document['b']
-            for key, group in project.groupby('a', 'doc.b'):
                 print(key, list(group))
 
             # Find jobs where job.sp['a'] is 1 and group them
@@ -1834,7 +1811,7 @@ class Project:
                 raise
         if index is not None:
             for doc in index:
-                self._sp_cache[doc["signac_id"]] = doc["sp"]
+                self._sp_cache[doc["signac_id"]] = doc["statepoint"]
 
         corrupted = []
         for job_id in job_ids:
@@ -1902,7 +1879,7 @@ class Project:
         for _id in to_remove:
             del self._index_cache[_id]
         for _id in to_add:
-            self._index_cache[_id] = dict(sp=self._get_statepoint(_id), _id=_id)
+            self._index_cache[_id] = dict(statepoint=self._get_statepoint(_id), _id=_id)
         return self._index_cache.values()
 
     def _build_index(self, include_job_document=False):
@@ -1917,16 +1894,16 @@ class Project:
         """
         wd = self.workspace() if self.Job is Job else None
         for _id in self._find_job_ids():
-            doc = dict(_id=_id, sp=self._get_statepoint(_id))
+            doc = dict(_id=_id, statepoint=self._get_statepoint(_id))
             if include_job_document:
                 if wd is None:
-                    doc["doc"] = self.open_job(id=_id).document
+                    doc.update(self.open_job(id=_id).document)
                 else:  # use optimized path
                     try:
                         with open(
                             os.path.join(wd, _id, self.Job.FN_DOCUMENT), "rb"
                         ) as file:
-                            doc["doc"] = json.loads(file.read().decode())
+                            doc.update(json.loads(file.read().decode()))
                     except OSError as error:
                         if error.errno != errno.ENOENT:
                             raise
@@ -2439,28 +2416,36 @@ class JobsCursor:
     filter : dict
         A mapping of key-value pairs that all indexed job state points are
         compared against (Default value = None).
+    doc_filter : dict
+        A mapping of key-value pairs that all indexed job documents are
+        compared against (Default value = None).
 
     """
 
     _use_pandas_for_html_repr = True  # toggle use of pandas for html repr
 
-    def __init__(self, project, filter):
+    def __init__(self, project, filter, doc_filter):
         self._project = project
         self._filter = filter
+        self._doc_filter = doc_filter
 
         # This private attribute allows us to implement the deprecated
         # next() method for this class.
         self._next_iter = None
 
     def __eq__(self, other):
-        return self._project == other._project and self._filter == other._filter
+        return (
+            self._project == other._project
+            and self._filter == other._filter
+            and self._doc_filter == other._doc_filter
+        )
 
     def __len__(self):
         # Highly performance critical code path!!
-        if self._filter:
-            # We use the standard function for determining job ids if and only if
-            # any of the two filter is provided.
-            return len(self._project._find_job_ids(self._filter))
+        if self._filter or self._doc_filter:
+            # We use the standard function for determining job ids if a filter
+            # is provided.
+            return len(self._project._find_job_ids(self._filter, self._doc_filter))
         else:
             # Without filters, we can simply return the length of the whole project.
             return len(self._project)
@@ -2482,13 +2467,13 @@ class JobsCursor:
         if job not in self._project:
             # Exit early if the job is not in the project. This is O(1).
             return False
-        if self._filter:
+        if self._filter or self._doc_filter:
             # We use the standard function for determining job ids if a filter
             # is provided. This is O(N) and could be optimized by caching the
             # ids of state points that match a state point filter. Caching the
             # matches for a document filter is not safe because the document
             # can change.
-            return job.id in self._project._find_job_ids(self._filter)
+            return job.id in self._project._find_job_ids(self._filter, self._doc_filter)
         # Without filters, we can simply check if the job is in the project.
         # By the early-exit condition, we know the job must be contained.
         return True
@@ -2496,7 +2481,8 @@ class JobsCursor:
     def __iter__(self):
         # Code duplication here for improved performance.
         return _JobsCursorIterator(
-            self._project, self._project._find_job_ids(self._filter)
+            self._project,
+            self._project._find_job_ids(self._filter, self._doc_filter),
         )
 
     def next(self):
@@ -2533,14 +2519,6 @@ class JobsCursor:
             for key, group in project.groupby('a'):
                 print(key, list(group))
 
-            # Group jobs by document value 'a'.
-            for key, group in project.groupby('doc.a'):
-                print(key, list(group))
-
-            # Group jobs by jobs.sp['a'] and job.document['b']
-            for key, group in project.groupby('a', 'doc.b'):
-                print(key, list(group))
-
             # Find jobs where job.sp['a'] is 1 and group them
             # by job.sp['b'] and job.sp['c'].
             for key, group in project.find_jobs({'a': 1}).groupby(('b', 'c')):
@@ -2567,64 +2545,49 @@ class JobsCursor:
 
         """
         _filter = self._filter
-
-        if default is not None and not isinstance(key, (str, Iterable)):
-            warnings.warn(
-                "The default parameter is ignored for grouping except "
-                "when grouping by a (list of) string key(s)."
-            )
-
-        def _strip_prefix(key):
-            """Strip the prefix, if it is present.
-
-            Implicit and explicit sp prefixes are equivalent and can be treated
-            identically for this purpose.
-            """
-            return key.split(".", 1)[-1]
-
-        def _is_doc_key(key):
-            """Check if a key is a document key."""
-            return "." in key and key.split(".", 1)[0] == "doc"
-
         if isinstance(key, str):
-            stripped_key = _strip_prefix(key)
-
             if default is None:
                 if _filter is None:
                     _filter = {key: {"$exists": True}}
                 else:
                     _filter = {"$and": [{key: {"$exists": True}}, _filter]}
 
-                if _is_doc_key(key):
+                def keyfunction(job):
+                    """Return job's state point value corresponding to the key.
 
-                    def keyfunction(job):
-                        return job.document[stripped_key]
+                    Parameters
+                    ----------
+                    job : :class:`~signac.contrib.job.Job`
+                        The job instance.
 
-                else:
+                    Returns
+                    -------
+                    State point value corresponding to the key.
 
-                    def keyfunction(job):
-                        return job.sp[stripped_key]
+                    """
+                    return job.statepoint[key]
 
             else:
-                if _is_doc_key(key):
 
-                    def keyfunction(job):
-                        return job.document.get(stripped_key, default)
+                def keyfunction(job):
+                    """Return job's state point value corresponding to the key.
 
-                else:
+                    Return default if key is not present.
 
-                    def keyfunction(job):
-                        return job.sp.get(stripped_key, default)
+                    Parameters
+                    ----------
+                    job : :class:`~signac.contrib.job.Job`
+                        The job instance.
+
+                    Returns
+                    -------
+                    State point value corresponding to the key.
+                    Default if key is not present.
+
+                    """
+                    return job.statepoint.get(key, default)
 
         elif isinstance(key, Iterable):
-            sp_keys = []
-            doc_keys = []
-            for k in key:
-                if _is_doc_key(k):
-                    doc_keys.append(_strip_prefix(k))
-                else:
-                    sp_keys.append(_strip_prefix(k))
-
             if default is None:
                 if _filter is None:
                     _filter = {k: {"$exists": True} for k in key}
@@ -2632,22 +2595,57 @@ class JobsCursor:
                     _filter = {"$and": [{k: {"$exists": True} for k in key}, _filter]}
 
                 def keyfunction(job):
-                    return tuple(
-                        [job.sp[k] for k in sp_keys]
-                        + [job.document[k] for k in doc_keys]
-                    )
+                    """Return job's state point value corresponding to the key.
+
+                    Parameters
+                    ----------
+                    job : :class:`~signac.contrib.job.Job`
+                        The job instance.
+
+                    Returns
+                    -------
+                    tuple
+                        State point values.
+
+                    """
+                    return tuple(job.statepoint[k] for k in key)
 
             else:
 
                 def keyfunction(job):
-                    return tuple(
-                        [job.sp.get(k, default) for k in sp_keys]
-                        + [job.document.get(k, default) for k in doc_keys]
-                    )
+                    """Return job's state point value corresponding to the key.
+
+                    Return default if key is not present.
+
+                    Parameters
+                    ----------
+                    job : :class:`~signac.contrib.job.Job`
+                        The job instance.
+
+                    Returns
+                    -------
+                    tuple
+                        State point values.
+
+                    """
+                    return tuple(job.statepoint.get(k, default) for k in key)
 
         elif key is None:
             # Must return a type that can be ordered with <, >
             def keyfunction(job):
+                """Return the job's id.
+
+                Parameters
+                ----------
+                job : :class:`~signac.contrib.job.Job`
+                    The job instance.
+
+                Returns
+                -------
+                str
+                    The job's id.
+
+                """
                 return str(job)
 
         else:
@@ -2656,7 +2654,7 @@ class JobsCursor:
 
         return groupby(
             sorted(
-                iter(JobsCursor(self._project, _filter)),
+                iter(JobsCursor(self._project, _filter, self._doc_filter)),
                 key=keyfunction,
             ),
             key=keyfunction,
@@ -2704,32 +2702,112 @@ class JobsCursor:
             if default is None:
 
                 def keyfunction(job):
+                    """Return job's document value corresponding to the key.
+
+                    Parameters
+                    ----------
+                    job : :class:`~signac.contrib.job.Job`
+                        The job instance.
+
+                    Returns
+                    -------
+                    Document value corresponding to the key.
+
+                    """
                     return job.document[key]
 
             else:
 
                 def keyfunction(job):
+                    """Return job's document value corresponding to the key.
+
+                    Return default if key is not present.
+
+                    Parameters
+                    ----------
+                    job : class:`~signac.contrib.job.Job`
+                        The job instance.
+
+                    Returns
+                    -------
+                    Document value corresponding to the key.
+                    Default if key is not present.
+
+                    """
                     return job.document.get(key, default)
 
         elif isinstance(key, Iterable):
             if default is None:
 
                 def keyfunction(job):
+                    """Return job's document value corresponding to the key.
+
+                    Parameters
+                    ----------
+                    job : :class:`~signac.contrib.job.Job`
+                        The job instance.
+
+                    Returns
+                    -------
+                    tuple
+                        Document values.
+
+                    """
                     return tuple(job.document[k] for k in key)
 
             else:
 
                 def keyfunction(job):
+                    """Return job's document value corresponding to the key.
+
+                    Return default if key is not present.
+
+                    Parameters
+                    ----------
+                    job : :class:`~signac.contrib.job.Job`
+                        The job instance.
+
+                    Returns
+                    -------
+                    tuple
+                        Document values.
+
+                    """
                     return tuple(job.document.get(k, default) for k in key)
 
         elif key is None:
             # Must return a type that can be ordered with <, >
             def keyfunction(job):
+                """Return the job's id.
+
+                Parameters
+                ----------
+                job : :class:`~signac.contrib.job.Job`
+                    The job instance.
+
+                Returns
+                -------
+                str
+                    The job's id.
+
+                """
                 return str(job)
 
         else:
             # Pass the job document to a callable
             def keyfunction(job):
+                """Return job's document value corresponding to the key.
+
+                Parameters
+                ----------
+                job : :class:`~signac.contrib.job.Job`
+                    The job instance.
+
+                Returns
+                -------
+                Document values.
+
+                """
                 return key(job.document)
 
         return groupby(sorted(iter(self), key=keyfunction), key=keyfunction)
@@ -2847,10 +2925,11 @@ class JobsCursor:
         ).infer_objects()
 
     def __repr__(self):
-        return "{type}(project={project}, filter={filter})".format(
+        return "{type}(project={project}, filter={filter}, doc_filter={doc_filter})".format(
             type=self.__class__.__name__,
             project=repr(self._project),
             filter=repr(self._filter),
+            doc_filter=repr(self._doc_filter),
         )
 
     def _repr_html_jobs(self):
