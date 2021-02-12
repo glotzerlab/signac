@@ -7,6 +7,15 @@ The **signac** package follows `semantic versioning <https://semver.org/>`_.
 Version 1
 =========
 
+next
+----
+
+Added
++++++
+
+ - Unified querying for state point and document filters using 'sp' and 'doc' as prefixes (#332). This change introduces a minor backwards-incompatible change to the ``Collection`` index schema ('statepoint'->'sp'), but this does not affect any APIs, only indexes saved to file using a previous version of signac, and indexing APIs will be removed in signac 2.0.
+
+
 [1.6.0] -- 2020-01-24
 ---------------------
 

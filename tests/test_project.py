@@ -296,13 +296,22 @@ class TestProject(TestProjectBase):
             assert len(statepoints) == len(list(self.project.find_job_ids()))
             assert 1 == len(list(self.project.find_job_ids({"a": 0})))
             assert 0 == len(list(self.project.find_job_ids({"a": 5})))
+            assert 1 == len(list(self.project.find_job_ids({"sp.a": 0})))
+            assert 0 == len(list(self.project.find_job_ids({"sp.a": 5})))
             assert 1 == len(list(self.project.find_job_ids(doc_filter={"b": 0})))
             assert 0 == len(list(self.project.find_job_ids(doc_filter={"b": 5})))
+            assert 1 == len(list(self.project.find_job_ids({"doc.b": 0})))
+            assert 0 == len(list(self.project.find_job_ids({"doc.b": 5})))
+            assert 1 == len(list(self.project.find_job_ids({"a": 0, "doc.b": 0})))
+            assert 1 == len(list(self.project.find_job_ids({"sp.a": 0, "doc.b": 0})))
+            assert 0 == len(list(self.project.find_job_ids({"sp.a": 0, "doc.b": 5})))
+            assert 0 == len(list(self.project.find_job_ids({"sp.a": 5, "doc.b": 0})))
+            assert 0 == len(list(self.project.find_job_ids({"sp.a": 5, "doc.b": 5})))
             for job_id in self.project.find_job_ids():
-                assert self.project.open_job(id=job_id).id == job_id
+                assert self.project.open_job(id=job_id).get_id() == job_id
             index = list(self.project.index())
             for job_id in self.project.find_job_ids(index=index):
-                assert self.project.open_job(id=job_id).id == job_id
+                assert self.project.open_job(id=job_id).get_id() == job_id
 
     def test_find_jobs(self):
         statepoints = [{"a": i} for i in range(5)]
@@ -310,6 +319,10 @@ class TestProject(TestProjectBase):
             self.project.open_job(sp).document["test"] = True
         assert len(self.project) == len(self.project.find_jobs())
         assert len(self.project) == len(self.project.find_jobs({}))
+        assert 1 == len(list(self.project.find_jobs({"a": 0})))
+        assert 0 == len(list(self.project.find_jobs({"a": 5})))
+        assert 1 == len(list(self.project.find_jobs({"sp.a": 0})))
+        assert 0 == len(list(self.project.find_jobs({"sp.a": 5})))
         assert 1 == len(list(self.project.find_jobs({"a": 0})))
         assert 0 == len(list(self.project.find_jobs({"a": 5})))
 
@@ -353,41 +366,99 @@ class TestProject(TestProjectBase):
         assert len(self.project.find_jobs({"a.$lt": 5})) == 5
 
     def test_find_jobs_logical_operators(self):
+        def assert_result_len(q, num):
+            assert len(self.project.find_jobs(q)) == num
+
         for i in range(10):
-            self.project.open_job({"a": i, "b": {"c": i}}).init()
+            job = self.project.open_job({"a": i, "b": {"c": i}}).init()
+            job.doc.d = i
         assert len(self.project) == 10
         with pytest.raises(ValueError):
             list(self.project.find_jobs({"$and": {"foo": "bar"}}))
-        assert len(self.project.find_jobs({"$and": [{}, {"a": 0}]})) == 1
-        assert len(self.project.find_jobs({"$or": [{}, {"a": 0}]})) == len(self.project)
-        q = {"$and": [{"a": 0}, {"a": 1}]}
-        assert len(self.project.find_jobs(q)) == 0
-        q = {"$or": [{"a": 0}, {"a": 1}]}
-        assert len(self.project.find_jobs(q)) == 2
-        q = {"$and": [{"$and": [{"a": 0}, {"a": 1}]}]}
-        assert len(self.project.find_jobs(q)) == 0
-        q = {"$and": [{"$or": [{"a": 0}, {"a": 1}]}]}
-        assert len(self.project.find_jobs(q)) == 2
-        q = {"$or": [{"$or": [{"a": 0}, {"a": 1}]}]}
-        assert len(self.project.find_jobs(q)) == 2
-        q = {"$or": [{"$and": [{"a": 0}, {"a": 1}]}]}
-        assert len(self.project.find_jobs(q)) == 0
-        assert len(self.project.find_jobs({"$and": [{}, {"b": {"c": 0}}]})) == 1
-        assert len(self.project.find_jobs({"$or": [{}, {"b": {"c": 0}}]})) == len(
-            self.project
+
+        # implicit sp.-prefix
+        assert_result_len({"$and": [{}, {"a": 0}]}, 1)
+        assert_result_len({"$or": [{}, {"a": 0}]}, len(self.project))
+        assert len(self.project) == 10
+        with pytest.raises(ValueError):
+            list(self.project.find_jobs({"$and": {"foo": "bar"}}))
+        assert_result_len({"$and": [{}, {"a": 0}]}, 1)
+        assert_result_len({"$or": [{}, {"a": 0}]}, len(self.project))
+        assert_result_len({"$and": [{"a": 0}, {"a": 1}]}, 0)
+        assert_result_len({"$or": [{"a": 0}, {"a": 1}]}, 2)
+        assert_result_len({"$and": [{"$and": [{"a": 0}, {"a": 1}]}]}, 0)
+        assert_result_len({"$and": [{"$or": [{"a": 0}, {"a": 1}]}]}, 2)
+        assert_result_len({"$or": [{"$or": [{"a": 0}, {"a": 1}]}]}, 2)
+        assert_result_len({"$or": [{"$and": [{"a": 0}, {"a": 1}]}]}, 0)
+        assert_result_len({"$and": [{}, {"b": {"c": 0}}]}, 1)
+        assert_result_len({"$or": [{}, {"b": {"c": 0}}]}, len(self.project))
+        assert_result_len({"$and": [{"b": {"c": 0}}, {"b": {"c": 1}}]}, 0)
+        assert_result_len({"$or": [{"b": {"c": 0}}, {"b": {"c": 1}}]}, 2)
+        assert_result_len({"$and": [{"$and": [{"b": {"c": 0}}, {"b": {"c": 1}}]}]}, 0)
+        assert_result_len({"$and": [{"$or": [{"b": {"c": 0}}, {"b": {"c": 1}}]}]}, 2)
+        assert_result_len({"$or": [{"$or": [{"b": {"c": 0}}, {"b": {"c": 1}}]}]}, 2)
+        assert_result_len({"$or": [{"$and": [{"b": {"c": 0}}, {"b": {"c": 1}}]}]}, 0)
+
+        # explicit sp.-prefix
+        assert_result_len({"$and": [{}, {"sp.a": 0}]}, 1)
+        assert_result_len({"$or": [{}, {"sp.a": 0}]}, len(self.project))
+        assert_result_len({"$and": [{"sp.a": 0}, {"sp.a": 1}]}, 0)
+        assert_result_len({"$or": [{"sp.a": 0}, {"sp.a": 1}]}, 2)
+        assert_result_len({"$and": [{"$and": [{"sp.a": 0}, {"sp.a": 1}]}]}, 0)
+        assert_result_len({"$and": [{"$or": [{"sp.a": 0}, {"sp.a": 1}]}]}, 2)
+        assert_result_len({"$or": [{"$or": [{"sp.a": 0}, {"sp.a": 1}]}]}, 2)
+        assert_result_len({"$or": [{"$and": [{"sp.a": 0}, {"sp.a": 1}]}]}, 0)
+        assert_result_len({"$and": [{}, {"sp.b": {"c": 0}}]}, 1)
+        assert_result_len({"$and": [{}, {"sp.b.c": 0}]}, 1)
+        assert_result_len({"$or": [{}, {"sp.b": {"c": 0}}]}, len(self.project))
+        assert_result_len({"$or": [{}, {"sp.b.c": 0}]}, len(self.project))
+        assert_result_len({"$and": [{"sp.b": {"c": 0}}, {"sp.b": {"c": 1}}]}, 0)
+        assert_result_len({"$and": [{"sp.b": {"c": 0}}, {"sp.b.c": 1}]}, 0)
+        assert_result_len({"$or": [{"sp.b": {"c": 0}}, {"sp.b": {"c": 1}}]}, 2)
+        assert_result_len({"$or": [{"sp.b": {"c": 0}}, {"sp.b.c": 1}]}, 2)
+        assert_result_len(
+            {"$and": [{"$and": [{"sp.b": {"c": 0}}, {"sp.b": {"c": 1}}]}]}, 0
         )
-        q = {"$and": [{"b": {"c": 0}}, {"b": {"c": 1}}]}
-        assert len(self.project.find_jobs(q)) == 0
-        q = {"$or": [{"b": {"c": 0}}, {"b": {"c": 1}}]}
-        assert len(self.project.find_jobs(q)) == 2
-        q = {"$and": [{"$and": [{"b": {"c": 0}}, {"b": {"c": 1}}]}]}
-        assert len(self.project.find_jobs(q)) == 0
-        q = {"$and": [{"$or": [{"b": {"c": 0}}, {"b": {"c": 1}}]}]}
-        assert len(self.project.find_jobs(q)) == 2
-        q = {"$or": [{"$or": [{"b": {"c": 0}}, {"b": {"c": 1}}]}]}
-        assert len(self.project.find_jobs(q)) == 2
-        q = {"$or": [{"$and": [{"b": {"c": 0}}, {"b": {"c": 1}}]}]}
-        assert len(self.project.find_jobs(q)) == 0
+        assert_result_len({"$and": [{"$and": [{"sp.b.c": 0}, {"sp.b.c": 1}]}]}, 0)
+        assert_result_len(
+            {"$and": [{"$or": [{"sp.b": {"c": 0}}, {"sp.b": {"c": 1}}]}]}, 2
+        )
+        assert_result_len({"$and": [{"$or": [{"sp.b.c": 0}, {"sp.b.c": 1}]}]}, 2)
+        assert_result_len(
+            {"$or": [{"$or": [{"sp.b": {"c": 0}}, {"sp.b": {"c": 1}}]}]}, 2
+        )
+        assert_result_len({"$or": [{"$or": [{"sp.b.c": 0}, {"sp.b.c": 1}]}]}, 2)
+        assert_result_len(
+            {"$or": [{"$and": [{"sp.b": {"c": 0}}, {"sp.b": {"c": 1}}]}]}, 0
+        )
+        assert_result_len({"$or": [{"$and": [{"sp.b.c": 0}, {"sp.b.c": 1}]}]}, 0)
+
+        # Explicit doc prefix
+        assert_result_len({"doc.d": 1}, 1)
+
+        # Mixed filters
+
+        assert_result_len({"$and": [{"sp": {"a": 0}}, {"doc": {"d": 0}}]}, 1)
+        assert_result_len(
+            {"$and": [{"$and": [{"sp": {"a": 0}}, {"doc": {"d": 0}}]}]}, 1
+        )
+        assert_result_len({"$or": [{"sp": {"a": 0}}, {"doc": {"d": 0}}]}, 1)
+        assert_result_len({"$or": [{"$and": [{"sp": {"a": 0}}, {"doc": {"d": 0}}]}]}, 1)
+        assert_result_len({"$and": [{"sp": {"a": 0}}, {"doc": {"d": 1}}]}, 0)
+        assert_result_len(
+            {"$and": [{"$and": [{"sp": {"a": 0}}, {"doc": {"d": 1}}]}]}, 0
+        )
+        assert_result_len({"$or": [{"sp": {"a": 0}}, {"doc": {"d": 1}}]}, 2)
+
+        assert_result_len({"$and": [{"sp.a": 0}, {"doc": {"d": 0}}]}, 1)
+        assert_result_len({"$or": [{"sp.a": 0}, {"doc": {"d": 0}}]}, 1)
+        assert_result_len({"$and": [{"sp.a": 0}, {"doc": {"d": 1}}]}, 0)
+        assert_result_len({"$or": [{"sp.a": 0}, {"doc": {"d": 1}}]}, 2)
+
+        assert_result_len({"$and": [{"sp.a": 0}, {"doc.d": 0}]}, 1)
+        assert_result_len({"$or": [{"sp.a": 0}, {"doc.d": 0}]}, 1)
+        assert_result_len({"$and": [{"sp.a": 0}, {"doc.d": 1}]}, 0)
+        assert_result_len({"$or": [{"sp.a": 0}, {"doc.d": 1}]}, 2)
 
     def test_num_jobs(self):
         statepoints = [{"a": i} for i in range(5)]
@@ -604,6 +675,8 @@ class TestProject(TestProjectBase):
         assert len(docs) == 2 * len(statepoints)
         assert len({doc["_id"] for doc in docs}) == len(docs)
 
+    # Index schema is changed
+    @pytest.mark.xfail()
     def test_signac_project_crawler(self):
         statepoints = [{"a": i} for i in range(5)]
         for sp in statepoints:
@@ -870,8 +943,13 @@ class TestProject(TestProjectBase):
         def get_sp(i):
             return {"a": i, "b": i % 2, "c": i % 3}
 
+        def get_doc(i):
+            i += 1
+            return {"a": i, "b": i % 2, "c": i % 3}
+
         for i in range(12):
-            self.project.open_job(get_sp(i)).init()
+            job = self.project.open_job(get_sp(i)).init()
+            job.document = get_doc(i)
 
         for k, g in self.project.groupby("a"):
             assert len(list(g)) == 1
@@ -906,6 +984,56 @@ class TestProject(TestProjectBase):
                 assert str(job) == k
         assert group_count == len(list(self.project.find_jobs()))
 
+        # using sp.key and doc.key
+        for k, g in self.project.groupby("sp.a"):
+            assert len(list(g)) == 1
+            for job in list(g):
+                assert job.sp["a"] == k
+
+        assert len(list(self.project.groupby("d"))) == 0
+        for k, g in self.project.groupby("sp.d", default=-1):
+            assert k == -1
+            assert len(list(g)) == len(self.project)
+
+        for k, g in self.project.groupby(("sp.b", "c")):
+            assert len(list(g)) == 2
+            for job in list(g):
+                assert job.sp["b"] == k[0]
+                assert job.sp["c"] == k[1]
+
+        for k, g in self.project.groupby("doc.a"):
+            assert len(list(g)) == 1
+            for job in list(g):
+                assert job.document["a"] == k
+
+        for k, g in self.project.groupby("doc.a", default=-1):
+            assert len(list(g)) == 1
+            for job in list(g):
+                assert job.document["a"] == k
+
+        assert len(list(self.project.groupby("doc.d"))) == 0
+        for k, g in self.project.groupby("doc.d", default=-1):
+            assert k == -1
+            assert len(list(g)) == len(self.project)
+
+        for k, g in self.project.groupby(("doc.b", "doc.c")):
+            assert len(list(g)) == 2
+            for job in list(g):
+                assert job.document["b"] == k[0]
+                assert job.document["c"] == k[1]
+
+        for k, g in self.project.groupby(("b", "doc.c")):
+            assert len(list(g)) == 2
+            for job in list(g):
+                assert job.sp["b"] == k[0]
+                assert job.document["c"] == k[1]
+
+        for k, g in self.project.groupby(("sp.b", "doc.c")):
+            assert len(list(g)) == 2
+            for job in list(g):
+                assert job.sp["b"] == k[0]
+                assert job.document["c"] == k[1]
+
         self.project.open_job({"a": 20}).init()
         for k, g in self.project.groupby("b"):
             assert len(list(g)) == 6
@@ -922,8 +1050,7 @@ class TestProject(TestProjectBase):
             return {"a": i, "b": i % 2, "c": i % 3}
 
         for i in range(12):
-            job = self.project.open_job({"i": i})
-            job.init()
+            job = self.project.open_job({"i": i}).init()
             job.document = get_doc(i)
 
         for k, g in self.project.groupbydoc("a"):
@@ -1565,6 +1692,7 @@ class TestProjectRepresentation(TestProjectBase):
             assert len(str(self.project.find_jobs(filter_))) > 0
             assert len(repr(self.project.find_jobs(filter_))) > 0
             q = self.project.find_jobs(filter_)
+            print(q)
             assert eval(repr(q)) == q
             for use_pandas in (True, False):
                 type(self.project)._use_pandas_for_html_repr = use_pandas
@@ -2105,8 +2233,9 @@ class TestLinkedViewProject(TestProjectBase):
 
 class UpdateCacheAfterInitJob(signac.contrib.job.Job):
     def init(self, *args, **kwargs):
-        super().init(*args, **kwargs)
+        job = super().init(*args, **kwargs)
         self._project.update_cache()
+        return job
 
 
 class UpdateCacheAfterInitJobProject(signac.Project):
