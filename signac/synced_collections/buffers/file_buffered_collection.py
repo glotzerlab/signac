@@ -97,7 +97,7 @@ class FileBufferedCollection(BufferedCollection):
 
     Parameters
     ----------
-    filename: str, optional
+    filename : str, optional
         The filename of the associated JSON file on disk (Default value = None).
 
     Warnings

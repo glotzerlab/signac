@@ -131,6 +131,10 @@ class SyncedCollection(Collection):
     parent : SyncedCollection, optional
         If provided, the collection within which this collection is nested
         (Default value = None).
+        A parent instance of :class:`SyncedCollection` or ``None``. If ``None``,
+        the collection owns its own data, otherwise it is nested within its
+        parent. Every :class:`SyncedCollection` either owns its own data, or has
+        a parent (Default value = None).
 
     """
 
@@ -275,7 +279,7 @@ class SyncedCollection(Collection):
         ----------
         data : Collection
             Data to be converted from base type.
-        \*\*kwargs:
+        \*\*kwargs
             Any keyword arguments to pass to the collection constructor.
 
         Returns
@@ -405,9 +409,9 @@ class SyncedCollection(Collection):
     def _load(self):
         """Load the data from the backend.
 
-        This method encodes the recursive logic required to handle the loadingof
+        This method encodes the recursive logic required to handle the loading of
         nested collections. For a collection contained within another collection,
-        only the parent is ever responsible for loading the data. This method
+        only the root is ever responsible for loading the data. This method
         handles the appropriate recursive calls, then farms out the actual reading
         to the abstract method :meth:`~._load_from_resource`.
         """
@@ -438,9 +442,9 @@ class SyncedCollection(Collection):
         self._load()
         return self._data[key]
 
-    def __delitem__(self, item):
+    def __delitem__(self, key):
         with self._load_and_save:
-            del self._data[item]
+            del self._data[key]
 
     def __iter__(self):
         self._load()

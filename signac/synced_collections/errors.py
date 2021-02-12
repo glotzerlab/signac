@@ -13,7 +13,7 @@ class BufferedError(BufferException):
 
     Attribute
     ---------
-    files:
+    files : dict
         A dictionary of names that caused issues during the flush operation,
         mapped to a possible reason for the issue or None in case that it
         cannot be determined.

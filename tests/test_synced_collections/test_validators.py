@@ -20,7 +20,7 @@ class TestNoDotInKey:
         # valid data
         for key in ("valid_str", 1, False, None):
             test_dict[key] = testdata
-            no_dot_in_key(test_dict)  # should not raise any error.
+            no_dot_in_key(test_dict)
             assert key in test_dict
             assert test_dict[key] == testdata
 
@@ -43,15 +43,13 @@ class TestNoDotInKey:
 class TestJSONFormatValidator:
     def test_valid_data(self):
         for data in ("foo", 1, 1.0, True, None, {}, []):
-            json_format_validator(data)  # should not raise any error
-            json_format_validator({"test_key": data})  # should not raise any error
-        json_format_validator(
-            ("foo", 1, 1.0, True, None, {}, [])
-        )  # should not raise any error
+            json_format_validator(data)
+            json_format_validator({"test_key": data})
+        json_format_validator(("foo", 1, 1.0, True, None, {}, []))
 
     def test_dict_data(self, testdata):
         for data in ("foo", 1, 1.0, True, None):
-            json_format_validator({"test_key": data})  # should not raise any error
+            json_format_validator({"test_key": data})
         for key in (0.0, (1, 2, 3)):
             with pytest.raises(KeyTypeError):
                 json_format_validator({key: testdata})
@@ -59,8 +57,8 @@ class TestJSONFormatValidator:
     @pytest.mark.skipif(not NUMPY, reason="test requires the numpy package")
     def test_numpy_data(self):
         data = numpy.random.rand(3, 4)
-        json_format_validator(data)  # should not raise any error
-        json_format_validator(numpy.float_(3.14))  # should not raise any error
+        json_format_validator(data)
+        json_format_validator(numpy.float_(3.14))
         # numpy data as dict value
         json_format_validator({"test": data})
         json_format_validator({"test": numpy.float_(1.0)})

@@ -238,28 +238,28 @@ synced\_collections.synced\_list module
 Backends
 --------
 
-synced\_collections.collection\_json module
+synced\_collections.backends.collection\_json module
 +++++++++++++++++++++++++++++++++++++++++++
 
 .. automodule:: signac.synced_collections.backends.collection_json
    :members:
    :show-inheritance:
 
-synced\_collections.collection\_mongodb module
+synced\_collections.backends.collection\_mongodb module
 ++++++++++++++++++++++++++++++++++++++++++++++
 
 .. automodule:: signac.synced_collections.backends.collection_mongodb
    :members:
    :show-inheritance:
 
-synced\_collections.collection\_redis module
+synced\_collections.backends.collection\_redis module
 ++++++++++++++++++++++++++++++++++++++++++++
 
 .. automodule:: signac.synced_collections.backends.collection_redis
    :members:
    :show-inheritance:
 
-synced\_collections.collection\_zarr module
+synced\_collections.backends.collection\_zarr module
 +++++++++++++++++++++++++++++++++++++++++++
 
 .. automodule:: signac.synced_collections.backends.collection_zarr
@@ -269,7 +269,7 @@ synced\_collections.collection\_zarr module
 Buffers
 -------
 
-synced\_collections.buffered\_collection module
+synced\_collections.buffers.buffered\_collection module
 +++++++++++++++++++++++++++++++++++++++++++++++
 
 .. automodule:: signac.synced_collections.buffers.buffered_collection
@@ -277,21 +277,21 @@ synced\_collections.buffered\_collection module
    :private-members:
    :show-inheritance:
 
-synced\_collections.file\_buffered\_collection module
+synced\_collections.buffers.file\_buffered\_collection module
 +++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 .. automodule:: signac.synced_collections.buffers.file_buffered_collection
    :members:
    :show-inheritance:
 
-synced\_collections.serialized\_file\_buffered\_collection module
+synced\_collections.buffers.serialized\_file\_buffered\_collection module
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 .. automodule:: signac.synced_collections.buffers.serialized_file_buffered_collection
    :members:
    :show-inheritance:
 
-synced\_collections.memory\_buffered\_collection module
+synced\_collections.buffers.memory\_buffered\_collection module
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 .. automodule:: signac.synced_collections.buffers.memory_buffered_collection

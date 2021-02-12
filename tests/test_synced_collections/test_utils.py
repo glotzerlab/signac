@@ -45,16 +45,11 @@ def test_type_resolver():
 
 
 def test_json_encoder():
-    def encode_flat_dict(d):
-        """A limited JSON-encoding method for a flat dict or SyncedDict of ints."""
-        if hasattr(d, "_data"):
-            d = d._data
-
-        return "{" + ", ".join(f'"{k}": {v}' for k, v in d.items()) + "}"
-
     # Raw dictionaries should be encoded transparently.
     data = {"foo": 1, "bar": 2, "baz": 3}
-    assert json.dumps(data) == encode_flat_dict(data)
+    json_str_data = '{"foo": 1, "bar": 2, "baz": 3}'
+    assert json.dumps(data) == json_str_data
+    assert json.dumps(data, cls=SyncedCollectionJSONEncoder) == json_str_data
     assert json.dumps(data, cls=SyncedCollectionJSONEncoder) == json.dumps(data)
 
     with TemporaryDirectory() as tmp_dir:
@@ -63,9 +58,7 @@ def test_json_encoder():
         synced_data.update(data)
         with pytest.raises(TypeError):
             json.dumps(synced_data)
-        assert json.dumps(
-            synced_data, cls=SyncedCollectionJSONEncoder
-        ) == encode_flat_dict(synced_data)
+        assert json.dumps(synced_data, cls=SyncedCollectionJSONEncoder) == json_str_data
 
         if NUMPY:
             array = numpy.random.rand(3)

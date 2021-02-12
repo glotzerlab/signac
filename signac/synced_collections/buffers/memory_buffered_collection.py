@@ -267,7 +267,7 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
         Returns
         -------
         dict
-            Mapping of filename and errors occured during flushing data.
+            Mapping from filenames to errors that occured while flushing data.
 
         Raises
         ------

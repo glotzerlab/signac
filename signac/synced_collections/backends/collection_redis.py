@@ -8,7 +8,7 @@ from .. import SyncedAttrDict, SyncedCollection, SyncedList
 
 
 class RedisCollection(SyncedCollection):
-    """A :class:`~.SyncedCollection` that synchronizes with a Redis database.
+    r"""A :class:`~.SyncedCollection` that synchronizes with a Redis database.
 
     This backend stores data in Redis by associating it with the provided key.
 
@@ -22,12 +22,16 @@ class RedisCollection(SyncedCollection):
         The Redis client used to persist data.
     key : str
         The key associated with this collection in the Redis database.
+    \*args :
+        Positional arguments forwarded to parent constructors.
+    \*\*kwargs :
+        Keyword arguments forwarded to parent constructors.
 
     """
 
     _backend = __name__  # type: ignore
 
-    def __init__(self, client=None, key=None, **kwargs):
+    def __init__(self, client=None, key=None, *args, **kwargs):
         self._client = client
         self._key = key
         super().__init__(**kwargs)
@@ -66,7 +70,7 @@ class RedisCollection(SyncedCollection):
 
 
 class RedisDict(RedisCollection, SyncedAttrDict):
-    """A dict-like mapping interface to a persistent Redis database.
+    r"""A dict-like data structure that synchronizes with a persistent Redis database.
 
     Examples
     --------
@@ -75,7 +79,6 @@ class RedisDict(RedisCollection, SyncedAttrDict):
     >>> assert doc.foo == doc['foo'] == "bar"
     >>> assert 'foo' in doc
     >>> del doc['foo']
-
     >>> doc['foo'] = dict(bar=True)
     >>> doc
     {'foo': {'bar': True}}
@@ -90,14 +93,19 @@ class RedisDict(RedisCollection, SyncedAttrDict):
     key : str, optional
         The key of the  collection (Default value = None).
     data : :class:`collections.abc.Mapping`, optional
-        The initial data pass to :class:`RedisDict`. If ``None``, defaults to
+        The initial data passed to :class:`RedisDict`. If ``None``, defaults to
         ``{}`` (Default value = None).
     parent : RedisCollection, optional
-        A parent instance of :class:`RedisCollection` (Default value = None).
+        A parent instance of :class:`RedisCollection` or ``None``. If ``None``,
+        the collection owns its own data (Default value = None).
+    \*args :
+        Positional arguments forwarded to parent constructors.
+    \*\*kwargs :
+        Keyword arguments forwarded to parent constructors.
 
     Warnings
     --------
-    While the :class:`RedisDict` object behaves like a dictionary, there are important
+    While the :class:`RedisDict` object behaves like a :class:`dict`, there are important
     distinctions to remember. In particular, because operations are reflected
     as changes to an underlying database, copying a :class:`RedisDict` instance may
     exhibit unexpected behavior. If a true copy is required, you should use the
@@ -113,15 +121,17 @@ class RedisDict(RedisCollection, SyncedAttrDict):
 
 
 class RedisList(RedisCollection, SyncedList):
-    """A non-string sequence interface to a persistent Redis database.
+    r"""A list-like data structure that synchronizes with a persistent Redis database.
 
-    .. code-block:: python
+    Only non-string sequences are supported by this class.
 
-        synced_list = RedisList('data')
-        synced_list.append("bar")
-        assert synced_list[0] == "bar"
-        assert len(synced_list) == 1
-        del synced_list[0]
+    Examples
+    --------
+    >>> synced_list = RedisList('data')
+    >>> synced_list.append("bar")
+    >>> assert synced_list[0] == "bar"
+    >>> assert len(synced_list) == 1
+    >>> del synced_list[0]
 
 
     Parameters
@@ -131,14 +141,19 @@ class RedisList(RedisCollection, SyncedList):
     key : str, optional
         The key of the  collection (Default value = None).
     data : non-str :class:`collections.abc.Sequence`, optional
-        The initial data pass to :class:`RedisList`. If ``None``, defaults to
+        The initial data passed to :class:`RedisList`. If ``None``, defaults to
         ``[]`` (Default value = None).
     parent : RedisCollection, optional
-        A parent instance of :class:`RedisCollection` (Default value = None).
+        A parent instance of :class:`RedisCollection` or ``None``. If ``None``,
+        the collection owns its own data (Default value = None).
+    \*args :
+        Positional arguments forwarded to parent constructors.
+    \*\*kwargs :
+        Keyword arguments forwarded to parent constructors.
 
     Warnings
     --------
-    While the :class:`RedisList` object behaves like a list, there are
+    While the :class:`RedisList` object behaves like a :class:`list`, there are
     important distinctions to remember. In particular, because operations are
     reflected as changes to an underlying database, copying a
     :class:`RedisList` instance may exhibit unexpected behavior. If a true copy

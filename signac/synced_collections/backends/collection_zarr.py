@@ -15,7 +15,7 @@ except ImportError:
 
 
 class ZarrCollection(SyncedCollection):
-    """A :class:`~.SyncedCollection` that synchronizes with a Zarr group.
+    r"""A :class:`~.SyncedCollection` that synchronizes with a Zarr group.
 
     Since Zarr is designed for storage of array-like data, this backend implements
     synchronization by storing the collection in a 1-element object array. The user
@@ -35,12 +35,16 @@ class ZarrCollection(SyncedCollection):
     codec : numcodecs.abc.Codec
         The encoding mechanism for the data. If not provided, defaults to JSON
         encoding (Default value: None).
+    \*args :
+        Positional arguments forwarded to parent constructors.
+    \*\*kwargs :
+        Keyword arguments forwarded to parent constructors.
 
     """
 
     _backend = __name__  # type: ignore
 
-    def __init__(self, group=None, name=None, codec=None, **kwargs):
+    def __init__(self, group=None, name=None, codec=None, *args, **kwargs):
         if not ZARR:
             raise RuntimeError(
                 "The Zarr package must be installed to use the ZarrCollection."
@@ -116,7 +120,7 @@ class ZarrCollection(SyncedCollection):
 
 
 class ZarrDict(ZarrCollection, SyncedAttrDict):
-    """A dict-like mapping interface to data stored with Zarr.
+    r"""A dict-like data structure that synchronizes with a Zarr group.
 
     Examples
     --------
@@ -125,7 +129,6 @@ class ZarrDict(ZarrCollection, SyncedAttrDict):
     >>> assert doc.foo == doc['foo'] == "bar"
     >>> assert 'foo' in doc
     >>> del doc['foo']
-
     >>> doc['foo'] = dict(bar=True)
     >>> doc
     {'foo': {'bar': True}}
@@ -140,14 +143,19 @@ class ZarrDict(ZarrCollection, SyncedAttrDict):
     name : str, optional
         The name of the collection (Default value = None).
     data : :class:`collections.abc.Mapping`, optional
-        The initial data pass to :class:`ZarrDict`. If ``None``, Defaults to
+        The initial data passed to :class:`ZarrDict`. If ``None``, defaults to
         ``{}`` (Default value = None).
     parent : ZarrCollection, optional
-        A parent instance of :class:`ZarrCollection` or :code:`None` (Default value = None).
+        A parent instance of :class:`ZarrCollection` or ``None``. If ``None``,
+        the collection owns its own data (Default value = None).
+    \*args :
+        Positional arguments forwarded to parent constructors.
+    \*\*kwargs :
+        Keyword arguments forwarded to parent constructors.
 
     Warnings
     --------
-    While the :class:`ZarrDict` object behaves like a dictionary, there are important
+    While the :class:`ZarrDict` object behaves like a :class:`dict`, there are important
     distinctions to remember. In particular, because operations are reflected
     as changes to an underlying database, copying (even deep copying) a
     :class:`ZarrDict` instance may exhibit unexpected behavior. If a true copy is
@@ -163,15 +171,17 @@ class ZarrDict(ZarrCollection, SyncedAttrDict):
 
 
 class ZarrList(ZarrCollection, SyncedList):
-    """A non-string sequence interface to data stored with Zarr.
+    r"""A list-like data structure that synchronizes with a Zarr group.
 
-    .. code-block:: python
+    Only non-string sequences are supported by this class.
 
-        synced_list = ZarrList('data')
-        synced_list.append("bar")
-        assert synced_list[0] == "bar"
-        assert len(synced_list) == 1
-        del synced_list[0]
+    Examples
+    --------
+    >>> synced_list = ZarrList('data')
+    >>> synced_list.append("bar")
+    >>> assert synced_list[0] == "bar"
+    >>> assert len(synced_list) == 1
+    >>> del synced_list[0]
 
     Parameters
     ----------
@@ -180,14 +190,19 @@ class ZarrList(ZarrCollection, SyncedList):
     name : str, optional
         The name of the collection (Default value = None).
     data : non-str :class:`collections.abc.Sequence`, optional
-        The initial data pass to :class:`ZarrList`. If ``None``, Defaults to
+        The initial data passed to :class:`ZarrList`. If ``None``, defaults to
         ``[]`` (Default value = None).
     parent : ZarrCollection, optional
-        A parent instance of :class:`ZarrCollection` or None (Default value = None).
+        A parent instance of :class:`ZarrCollection` or ``None``. If ``None``,
+        the collection owns its own data (Default value = None).
+    \*args :
+        Positional arguments forwarded to parent constructors.
+    \*\*kwargs :
+        Keyword arguments forwarded to parent constructors.
 
     Warnings
     --------
-    While the :class:`ZarrList` object behaves like a list, there are important
+    While the :class:`ZarrList` object behaves like a :class:`list`, there are important
     distinctions to remember. In particular, because operations are reflected
     as changes to an underlying database, copying (even deep copying) a
     :class:`ZarrList` instance may exhibit unexpected behavior. If a true copy is

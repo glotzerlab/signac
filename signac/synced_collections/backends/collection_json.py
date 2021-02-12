@@ -59,7 +59,7 @@ def _convert_key_to_str(data):
 
 
 class JSONCollection(SyncedCollection):
-    """A :class:`~.SyncedCollection` that synchronizes with a JSON file.
+    r"""A :class:`~.SyncedCollection` that synchronizes with a JSON file.
 
     This collection implements synchronization by reading and writing the associated
     JSON file in its entirety for every read/write operation. This backend is a good
@@ -82,18 +82,20 @@ class JSONCollection(SyncedCollection):
     write_concern : bool, optional
         Ensure file consistency by writing changes back to a temporary file
         first, before replacing the original file (Default value = False).
+    \*args :
+        Positional arguments forwarded to parent constructors.
+    \*\*kwargs :
+        Keyword arguments forwarded to parent constructors.
 
     """
 
     _backend = __name__  # type: ignore
     _supports_threading = True
 
-    def __init__(
-        self, filename=None, write_concern=False, parent=None, *args, **kwargs
-    ):
+    def __init__(self, filename=None, write_concern=False, *args, **kwargs):
         self._write_concern = write_concern
         self._filename = filename
-        super().__init__(parent=parent, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def _load_from_resource(self):
         """Load the data from a JSON file.
@@ -152,7 +154,7 @@ class BufferedJSONCollection(SerializedFileBufferedCollection, JSONCollection):
     """A :class:`JSONCollection` that supports I/O buffering.
 
     This class implements the buffer protocol defined by
-    :class:`~.BufferedCollection`.  The concrete implementation of buffering
+    :class:`~.BufferedCollection`. The concrete implementation of buffering
     behavior is defined by the :class:`~.SerializedFileBufferedCollection`.
     """
 
@@ -171,7 +173,7 @@ class MemoryBufferedJSONCollection(SharedMemoryFileBufferedCollection, JSONColle
 
 
 class JSONDict(JSONCollection, SyncedAttrDict):
-    """A dict-like mapping interface to a persistent JSON file.
+    r"""A dict-like data structure that synchronizes with a persistent JSON file.
 
     Examples
     --------
@@ -180,7 +182,6 @@ class JSONDict(JSONCollection, SyncedAttrDict):
     >>> assert doc.foo == doc['foo'] == "bar"
     >>> assert 'foo' in doc
     >>> del doc['foo']
-
     >>> doc['foo'] = dict(bar=True)
     >>> doc
     {'foo': {'bar': True}}
@@ -196,14 +197,19 @@ class JSONDict(JSONCollection, SyncedAttrDict):
         Ensure file consistency by writing changes back to a temporary file
         first, before replacing the original file (Default value = False).
     data : :class:`collections.abc.Mapping`, optional
-        The initial data pass to :class:`JSONDict`. If ``None``, Defaults to
+        The initial data passed to :class:`JSONDict`. If ``None``, defaults to
         ``{}`` (Default value = None).
     parent : JSONCollection, optional
-        A parent instance of JSONCollection or None (Default value = None).
+        A parent instance of :class:`JSONCollection` or ``None``. If ``None``,
+        the collection owns its own data (Default value = None).
+    \*args :
+        Positional arguments forwarded to parent constructors.
+    \*\*kwargs :
+        Keyword arguments forwarded to parent constructors.
 
     Warnings
     --------
-    While the :class:`JSONDict` object behaves like a dictionary, there are important
+    While the :class:`JSONDict` object behaves like a :class:`dict`, there are important
     distinctions to remember. In particular, because operations are reflected
     as changes to an underlying file, copying (even deep copying) a :class:`JSONDict`
     instance may exhibit unexpected behavior. If a true copy is required, you
@@ -234,15 +240,17 @@ class JSONDict(JSONCollection, SyncedAttrDict):
 
 
 class JSONList(JSONCollection, SyncedList):
-    """A non-string sequence interface to a persistent JSON file.
+    r"""A list-like data structure that synchronizes with a persistent JSON file.
 
-    .. code-block:: python
+    Only non-string sequences are supported by this class.
 
-        synced_list = JSONList('data.json', write_concern=True)
-        synced_list.append("bar")
-        assert synced_list[0] == "bar"
-        assert len(synced_list) == 1
-        del synced_list[0]
+    Examples
+    --------
+    >>> synced_list = JSONList('data.json', write_concern=True)
+    >>> synced_list.append("bar")
+    >>> assert synced_list[0] == "bar"
+    >>> assert len(synced_list) == 1
+    >>> del synced_list[0]
 
     Parameters
     ----------
@@ -252,14 +260,19 @@ class JSONList(JSONCollection, SyncedList):
         Ensure file consistency by writing changes back to a temporary file
         first, before replacing the original file (Default value = None).
     data : non-str :class:`collections.abc.Sequence`, optional
-        The initial data pass to :class:`JSONList `. If ``None``, Defaults to
+        The initial data passed to :class:`JSONList `. If ``None``, defaults to
         ``[]`` (Default value = None).
     parent : JSONCollection, optional
-        A parent instance of JSONCollection or None (Default value = None).
+        A parent instance of :class:`JSONCollection` or ``None``. If ``None``,
+        the collection owns its own data (Default value = None).
+    \*args :
+        Positional arguments forwarded to parent constructors.
+    \*\*kwargs :
+        Keyword arguments forwarded to parent constructors.
 
     Warnings
     --------
-    While the :class:`JSONList` object behaves like a list, there are important
+    While the :class:`JSONList` object behaves like a :class:`list`, there are important
     distinctions to remember. In particular, because operations are reflected
     as changes to an underlying file, copying (even deep copying) a :class:`JSONList`
     instance may exhibit unexpected behavior. If a true copy is required, you

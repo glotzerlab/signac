@@ -29,21 +29,31 @@ _sequence_resolver = AbstractTypeResolver(
 
 
 class SyncedList(SyncedCollection, MutableSequence):
-    """Implementation of list data structure.
+    r"""Implementation of list data structure.
 
     The SyncedList inherits from :class:`~synced_collection.SyncedCollection`
     and :class:`~collections.abc.MutableSequence`. Therefore, it behaves similar
     to a :class:`list`.
 
+    Parameters
+    ----------
+    data : Sequence, optional
+        The initial data to populate the list. If ``None``, defaults to
+        ``[]`` (Default value = None).
+    \*args :
+        Positional arguments forwarded to parent constructors.
+    \*\*kwargs :
+        Keyword arguments forwarded to parent constructors.
+
     Warnings
     --------
-    While the SyncedList object behaves like a :class:`list`, there are
-    important distinctions to remember. In particular, because operations
+    While the :class:`SyncedList` object behaves like a :class:`list`, there
+    are important distinctions to remember. In particular, because operations
     are reflected as changes to an underlying backend, copying (even deep
-    copying) a SyncedList instance may exhibit unexpected behavior. If a
-    true copy is required, you should use the `_to_base()` method to get a
+    copying) a :class:`SyncedList` instance may exhibit unexpected behavior. If
+    a true copy is required, you should use the `_to_base()` method to get a
     :class:`list` representation, and if necessary construct a new
-    SyncedList.
+    :class:`SyncedList`.
 
     """
 
@@ -66,7 +76,7 @@ class SyncedList(SyncedCollection, MutableSequence):
 
         Parameters
         ----------
-        data: any
+        data : Any
             Data to be checked
 
         Returns
@@ -77,12 +87,12 @@ class SyncedList(SyncedCollection, MutableSequence):
         return _sequence_resolver.get_type(data) == "SEQUENCE"
 
     def _to_base(self):
-        """Convert the SyncedList object to list.
+        """Convert the SyncedList object to a :class:`list`.
 
         Returns
         -------
-        converted: list
-            List containing the conveted SyncedList object.
+        list
+        An equivalent raw :class:`list`.
 
         """
         converted = []

@@ -13,7 +13,7 @@ except ImportError:
 
 
 class MongoDBCollection(SyncedCollection):
-    """A :class:`~.SyncedCollection` that synchronizes with a MongoDB document.
+    r"""A :class:`~.SyncedCollection` that synchronizes with a MongoDB document.
 
     In MongoDB, a database is composed of multiple MongoDB **collections**, which
     are analogous to tables in SQL databases but do not enforce a schema like
@@ -39,6 +39,10 @@ class MongoDBCollection(SyncedCollection):
         The unique key-value mapping added to the data and stored in the document
         so that it is uniquely identifiable in the MongoDB collection. The key
         "data" is reserved and may not be part of this uid.
+    \*args :
+        Positional arguments forwarded to parent constructors.
+    \*\*kwargs :
+        Keyword arguments forwarded to parent constructors.
 
     Warnings
     --------
@@ -52,7 +56,7 @@ class MongoDBCollection(SyncedCollection):
 
     _backend = __name__  # type: ignore
 
-    def __init__(self, collection=None, uid=None, parent=None, **kwargs):
+    def __init__(self, collection=None, uid=None, parent=None, *args, **kwargs):
         if not MONGO:
             raise RuntimeError(
                 "The PyMongo package must be installed to use the MongoDBCollection."
@@ -103,7 +107,7 @@ class MongoDBCollection(SyncedCollection):
 
 
 class MongoDBDict(MongoDBCollection, SyncedAttrDict):
-    """A dict-like mapping interface to a persistent document in a MongoDB collection.
+    r"""A dict-like data structure that synchronizes with a document in a MongoDB collection.
 
     Examples
     --------
@@ -112,7 +116,6 @@ class MongoDBDict(MongoDBCollection, SyncedAttrDict):
     >>> assert doc.foo == doc['foo'] == "bar"
     >>> assert 'foo' in doc
     >>> del doc['foo']
-
     >>> doc['foo'] = dict(bar=True)
     >>> doc
     {'foo': {'bar': True}}
@@ -127,14 +130,19 @@ class MongoDBDict(MongoDBCollection, SyncedAttrDict):
     uid : dict, optional
         The unique key-value mapping identifying the collection (Default value = None).
     data : non-str :class:`collections.abc.Mapping`, optional
-        The initial data pass to :class:`MongoDBDict`. If ``None``, defaults to
+        The initial data passed to :class:`MongoDBDict`. If ``None``, defaults to
         ``{}`` (Default value = None).
     parent : MongoDBCollection, optional
-        A parent instance of :class:`MongoDBCollection` (Default value = None).
+        A parent instance of :class:`MongoDBCollection` or ``None``. If ``None``,
+        the collection owns its own data (Default value = None).
+    \*args :
+        Positional arguments forwarded to parent constructors.
+    \*\*kwargs :
+        Keyword arguments forwarded to parent constructors.
 
     Warnings
     --------
-    While the :class:`MongoDBDict` object behaves like a dictionary, there are
+    While the :class:`MongoDBDict` object behaves like a :class:`dict`, there are
     important distinctions to remember. In particular, because operations are
     reflected as changes to an underlying database, copying a
     :class:`MongoDBDict` instance may exhibit unexpected behavior. If a true
@@ -153,15 +161,17 @@ class MongoDBDict(MongoDBCollection, SyncedAttrDict):
 
 
 class MongoDBList(MongoDBCollection, SyncedList):
-    """A non-string sequence interface to a document in a MongoDB collection.
+    r"""A list-like data structure that synchronizes with a document in a MongoDB collection.
 
-    .. code-block:: python
+    Only non-string sequences are supported by this class.
 
-        synced_list = MongoDBList('data')
-        synced_list.append("bar")
-        assert synced_list[0] == "bar"
-        assert len(synced_list) == 1
-        del synced_list[0]
+    Examples
+    --------
+    >>> synced_list = MongoDBList('data')
+    >>> synced_list.append("bar")
+    >>> assert synced_list[0] == "bar"
+    >>> assert len(synced_list) == 1
+    >>> del synced_list[0]
 
     Parameters
     ----------
@@ -170,14 +180,19 @@ class MongoDBList(MongoDBCollection, SyncedList):
     uid : dict, optional
         The unique key-value mapping identifying the collection (Default value = None).
     data : non-str :class:`collections.abc.Sequence`, optional
-        The initial data pass to :class:`MongoDBList`. If ``None``, defaults to
+        The initial data passed to :class:`MongoDBList`. If ``None``, defaults to
         ``[]`` (Default value = None).
     parent : MongoDBCollection, optional
-        A parent instance of :class:`MongoDBCollection` (Default value = None).
+        A parent instance of :class:`MongoDBCollection` or ``None``. If ``None``,
+        the collection owns its own data (Default value = None).
+    \*args :
+        Positional arguments forwarded to parent constructors.
+    \*\*kwargs :
+        Keyword arguments forwarded to parent constructors.
 
     Warnings
     --------
-    While the :class:`MongoDBList` object behaves like a list, there are important
+    While the :class:`MongoDBList` object behaves like a :class:`list`, there are important
     distinctions to remember. In particular, because operations are reflected
     as changes to an underlying database, copying a :class:`MongoDBList` instance may
     exhibit unexpected behavior. If a true copy is required, you should use the

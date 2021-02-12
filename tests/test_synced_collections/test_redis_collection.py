@@ -21,7 +21,7 @@ try:
         RedisClient = redis.Redis()
         test_key = str(uuid.uuid4())
         RedisClient.set(test_key, 0)
-        assert RedisClient.get(test_key) == b"0"  # redis store data as bytes
+        assert RedisClient.get(test_key) == b"0"  # redis stores data as bytes
         RedisClient.delete(test_key)
         REDIS = True
     except (redis.exceptions.ConnectionError, AssertionError):

@@ -26,21 +26,32 @@ _mapping_resolver = AbstractTypeResolver(
 
 
 class SyncedAttrDict(SyncedCollection, MutableMapping):
-    """Implement the dict data structure along with values access through attributes named as keys.
+    r"""Implement the dict data structure along with values access through attributes named as keys.
 
     The SyncedAttrDict inherits from :class:`~.SyncedCollection`
     and :class:`~collections.abc.MutableMapping`. Therefore, it behaves similar to
     a :class:`dict`. This class also allows access to values through key indexing or
     attributes named by keys, including nested keys.
 
-    .. warning::
+    Parameters
+    ----------
+    data : Mapping, optional
+        The initial data to populate the dict. If ``None``, defaults to
+        ``{}`` (Default value = None).
+    \*args :
+        Positional arguments forwarded to parent constructors.
+    \*\*kwargs :
+        Keyword arguments forwarded to parent constructors.
 
-        While the SyncedAttrDict object behaves like a :class:`dict`, there are
-        important distinctions to remember. In particular, because operations
-        are reflected as changes to an underlying backend, copying (even deep
-        copying) a SyncedAttrDict instance may exhibit unexpected behavior. If a
-        true copy is required, you should use the `_to_base()` method to get a
-        :class:`dict` representation, and if necessary construct a new SyncedAttrDict.
+    Warning
+    -------
+    While the :class:`SyncedAttrDict` object behaves like a :class:`dict`,
+    there are important distinctions to remember. In particular, because
+    operations are reflected as changes to an underlying backend, copying (even
+    deep copying) a :class:`SyncedAttrDict` instance may exhibit unexpected
+    behavior. If a true copy is required, you should use the `_to_base()`
+    method to get a :class:`dict` representation, and if necessary construct a
+    new :class:`SyncedAttrDict`.
     """
 
     # Must specify this as a variable length tuple to allow subclasses to
@@ -69,12 +80,12 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
                 }
 
     def _to_base(self):
-        """Convert the SyncedDict object to Dictionary.
+        """Convert the SyncedDict object to a :class:`dict`.
 
         Returns
         -------
-        converted: dict
-            Dictionary containing the converted synced dict object.
+        dict
+            An equivalent raw :class:`dict`.
 
         """
         converted = {}
@@ -92,7 +103,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
 
         Parameters
         ----------
-        data: any
+        data : any
             Data to be checked.
 
         Returns
