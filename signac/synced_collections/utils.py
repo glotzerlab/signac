@@ -6,12 +6,7 @@
 from json import JSONEncoder
 from typing import Any, Dict
 
-try:
-    import numpy
-
-    NUMPY = True
-except ImportError:
-    NUMPY = False
+from .numpy_utils import _convert_numpy, _convert_numpy_scalar
 
 
 class AbstractTypeResolver:
@@ -71,10 +66,7 @@ class AbstractTypeResolver:
             will return ``None``.
 
         """
-        # 0-d NumPy arrays must be handled the right way here.
-        if NUMPY and isinstance(obj, numpy.ndarray):
-            if obj.shape == ():
-                obj = obj.item()
+        obj = _convert_numpy_scalar(obj)
 
         obj_type = type(obj)
         enum_type = None
@@ -111,18 +103,16 @@ def default(o: Any) -> Dict[str, Any]:  # noqa: D102
       serialized data may be incorrect.
 
     """
-    if NUMPY:
-        if isinstance(o, numpy.ndarray):
-            if o.shape == ():
-                return o.item()
-            else:
-                return o.tolist()
-        elif isinstance(o, numpy.number):
-            return o.item()
-    try:
-        return o._data
-    except AttributeError as e:
-        raise TypeError from e
+    # Numpy converters return the data unchanged.
+    converted_o = _convert_numpy(o)
+
+    if converted_o is o:
+        try:
+            return o._data
+        except AttributeError as e:
+            raise TypeError from e
+    else:
+        return converted_o
 
 
 class SyncedCollectionJSONEncoder(JSONEncoder):

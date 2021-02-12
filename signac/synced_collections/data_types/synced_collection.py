@@ -9,15 +9,8 @@ from inspect import isabstract
 from threading import RLock
 from typing import Any, Callable, DefaultDict, List
 
+from ..numpy_utils import _convert_numpy_scalar
 from ..utils import AbstractTypeResolver, _CounterContext, _NullContext
-
-try:
-    import numpy
-
-    NUMPY = True
-except ImportError:
-    NUMPY = False
-
 
 # Identifies types of SyncedCollection, which are the base type for this class.
 _sc_resolver = AbstractTypeResolver(
@@ -301,12 +294,7 @@ class SyncedCollection(Collection):
         for base_cls in SyncedCollection.registry[cls._backend]:
             if base_cls.is_base_type(data):
                 return base_cls(data=data, **kwargs)
-        if NUMPY:
-            if isinstance(data, numpy.number) or (
-                isinstance(data, numpy.ndarray) and data.shape == ()
-            ):
-                return data.item()
-        return data
+        return _convert_numpy_scalar(data)
 
     @abstractmethod
     def _to_base(self):

@@ -10,19 +10,16 @@ give a list-like API to a synchronized data structure.
 
 from collections.abc import MutableSequence, Sequence
 
+from ..numpy_utils import _convert_numpy, _is_numpy_type
 from ..utils import AbstractTypeResolver
-from .synced_collection import NUMPY, SyncedCollection, _sc_resolver
-
-if NUMPY:
-    import numpy
-
+from .synced_collection import SyncedCollection, _sc_resolver
 
 # Identifies sequences, which are the base type for this class.
 _sequence_resolver = AbstractTypeResolver(
     {
         "SEQUENCE": (
             lambda obj: (isinstance(obj, Sequence) and not isinstance(obj, str))
-            or (NUMPY and (isinstance(obj, numpy.ndarray) and obj.shape != ()))
+            or _is_numpy_type(obj)
         ),
     }
 )
@@ -63,8 +60,7 @@ class SyncedList(SyncedCollection, MutableSequence):
             self._data = []
         else:
             self._validate(data)
-            if NUMPY and isinstance(data, numpy.ndarray):
-                data = data.tolist()
+            data = _convert_numpy(data)
             with self._suspend_sync:
                 self._data = [
                     self._from_base(data=value, parent=self) for value in data
@@ -174,8 +170,7 @@ class SyncedList(SyncedCollection, MutableSequence):
             If the data is not a non-string sequence.
 
         """
-        if NUMPY and isinstance(data, numpy.ndarray):
-            data = data.tolist()
+        data = _convert_numpy(data)
         if _sequence_resolver.get_type(data) == "SEQUENCE":
             self._update(data)
             with self._thread_lock:

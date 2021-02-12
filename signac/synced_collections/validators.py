@@ -13,6 +13,7 @@ types as needed.
 from collections.abc import Mapping, Sequence
 
 from .errors import InvalidKeyError, KeyTypeError
+from .numpy_utils import _is_numpy_type
 from .utils import AbstractTypeResolver
 
 try:
@@ -106,7 +107,7 @@ _json_format_validator_type_resolver = AbstractTypeResolver(
         "BASE": lambda obj: isinstance(obj, (str, int, float, bool, type(None))),
         "MAPPING": lambda obj: isinstance(obj, Mapping),
         "SEQUENCE": lambda obj: isinstance(obj, Sequence),
-        "NUMPY": lambda obj: NUMPY and isinstance(obj, (numpy.ndarray, numpy.number)),
+        "NUMPY": lambda obj: _is_numpy_type(obj, allow_zero_d=True, allow_scalar=True),
     }
 )
 
@@ -140,6 +141,9 @@ def json_format_validator(data):
         for value in data:
             json_format_validator(value)
     elif switch_type == "NUMPY":
+        # TODO: Even raw Python complex values are not JSON-serializable.
+        # Rewriting this code should happen at the same time as fixing extended
+        # precision values in numpy.
         if numpy.iscomplex(data).any():
             raise TypeError(
                 "NumPy object with complex value(s) is not JSON serializable"
