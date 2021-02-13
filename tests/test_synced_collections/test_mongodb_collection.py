@@ -32,30 +32,26 @@ except ImportError:
 class MongoDBCollectionTest:
 
     _backend_collection = MongoDBCollection
+    _uid = {"MongoDBCollection::name": "test"}
 
-    def store(self, data):
-        data_to_insert = {**self._uid, "data": data}
-        self._collection.replace_one(self._uid, data_to_insert)
+    def store(self, synced_collection, data):
+        data_to_insert = {**synced_collection.uid, "data": data}
+        synced_collection.collection.replace_one(synced_collection.uid, data_to_insert)
 
     @pytest.fixture(autouse=True)
     def synced_collection(self, request):
-        self._uid = {"MongoDBCollection::name": "test"}
-        self._collection = mongo_client.test_db.test_dict
-        yield self._collection_type(uid=self._uid, collection=self._collection)
-        self._collection.drop()
+        yield self._collection_type(
+            uid=self._uid, collection=mongo_client.test_db.test_dict
+        )
+        mongo_client.test_db.test_dict.drop()
 
     @pytest.fixture
     def synced_collection_positional(self):
         """Fixture that initializes the object using positional arguments."""
-        self._uid = {"MongoDBCollection::name": "test"}
-        self._collection = mongo_client.test_db.test_dict
-        yield self._collection_type(self._collection, self._uid)
-
-    def test_collection(self, synced_collection):
-        assert synced_collection.collection == self._collection
+        yield self._collection_type(mongo_client.test_db.test_dict, self._uid)
 
     def test_uid(self, synced_collection):
-        assert synced_collection.uid == {"MongoDBCollection::name": "test"}
+        assert synced_collection.uid == self._uid
 
 
 @pytest.mark.skipif(

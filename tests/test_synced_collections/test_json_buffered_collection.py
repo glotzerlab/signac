@@ -43,8 +43,9 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
 
     @pytest.fixture
     def synced_collection2(self, tmpdir):
-        _fn_2 = os.path.join(tmpdir, "test2.json")
-        yield self._collection_type(filename=_fn_2, write_concern=False)
+        yield self._collection_type(
+            filename=os.path.join(tmpdir, "test2.json"), write_concern=False
+        )
 
     def test_buffered(self, synced_collection, testdata):
         """Test basic per-instance buffering behavior."""
@@ -145,7 +146,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         with pytest.raises(BufferedError):
             with self._collection_type.buffer_backend():
                 synced_collection["buffered2"] = 2
-                self.store({"test": 1})
+                self.store(synced_collection, {"test": 1})
                 assert synced_collection["buffered2"] == 2
         assert "test" in synced_collection
         assert synced_collection["test"] == 1
@@ -586,7 +587,7 @@ class TestBufferedJSONList(BufferedJSONCollectionTest, TestJSONList):
                 # to ensure that the change in time will be
                 # detected.
                 time.sleep(0.01)
-                self.store([1, 2, 3])
+                self.store(synced_collection, [1, 2, 3])
                 assert synced_collection == [1]
         assert len(synced_collection) == 3
         assert synced_collection == [1, 2, 3]

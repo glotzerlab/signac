@@ -22,9 +22,10 @@ except ImportError:
 class ZarrCollectionTest:
 
     _backend_collection = ZarrCollection
+    _name = "test"
 
-    def store(self, data):
-        dataset = self._group.require_dataset(
+    def store(self, synced_collection, data):
+        dataset = synced_collection.group.require_dataset(
             "test",
             overwrite=True,
             shape=1,
@@ -35,22 +36,17 @@ class ZarrCollectionTest:
 
     @pytest.fixture(autouse=True)
     def synced_collection(self, tmpdir):
-        self._group = zarr.group(zarr.DirectoryStore(tmpdir))
-        self._name = "test"
-        yield self._collection_type(name=self._name, group=self._group)
+        yield self._collection_type(
+            name=self._name, group=zarr.group(zarr.DirectoryStore(tmpdir))
+        )
 
     @pytest.fixture
     def synced_collection_positional(self, tmpdir):
         """Fixture that initializes the object using positional arguments."""
-        self._group = zarr.group(zarr.DirectoryStore(tmpdir))
-        self._name = "test"
-        yield self._collection_type(self._group, self._name)
-
-    def test_group(self, synced_collection):
-        assert synced_collection.group == self._group
+        yield self._collection_type(zarr.group(zarr.DirectoryStore(tmpdir)), self._name)
 
     def test_name(self, synced_collection):
-        assert synced_collection.name == "test"
+        assert synced_collection.name == self._name
 
 
 @pytest.mark.skipif(not ZARR, reason="test requires the zarr package")

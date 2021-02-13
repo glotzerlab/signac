@@ -23,23 +23,23 @@ class JSONCollectionTest:
     _write_concern = False
     _fn = "test.json"
 
-    def store(self, data):
-        with open(self._fn_, "wb") as file:
-            file.write(json.dumps(data).encode())
+    def store(self, synced_collection, data):
+        with open(synced_collection.filename, "wb") as f:
+            f.write(json.dumps(data).encode())
 
     @pytest.fixture(autouse=True)
     def synced_collection(self, tmpdir):
-        self._fn_ = os.path.join(tmpdir, self._fn)
         yield self._collection_type(
-            filename=self._fn_,
+            filename=os.path.join(tmpdir, self._fn),
             write_concern=self._write_concern,
         )
 
     @pytest.fixture
     def synced_collection_positional(self, tmpdir):
         """Fixture that initializes the object using positional arguments."""
-        self._fn_ = os.path.join(tmpdir, "test2.json")
-        yield self._collection_type(self._fn_, self._write_concern)
+        yield self._collection_type(
+            os.path.join(tmpdir, "test2.json"), self._write_concern
+        )
 
     def test_filename(self, synced_collection):
         assert os.path.basename(synced_collection.filename) == self._fn

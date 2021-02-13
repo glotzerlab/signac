@@ -22,11 +22,22 @@ PYPY = "PyPy" in platform.python_implementation()
 
 
 class SyncedCollectionTest:
-    def store(self, data):
+    def store(self, synced_collection, data):
+        """Directly store data to the backend using its own API.
+
+        This method should bypass the synced_collection, just using it to get
+        information on the underlying resource (e.g. a file) and then saving to
+        it directly. This is used, for instance, to test data integrity validation.
+        """
         raise NotImplementedError("All backend tests must implement the store method.")
 
     @pytest.fixture(autouse=True)
     def synced_collection(self):
+        """Generate a synced collection of the appropriate type.
+
+        The type of the synced collection should be specified by the _collection_type
+        class variable.
+        """
         raise NotImplementedError(
             "All backend tests must implement a synced_collection autouse "
             "fixture that returns an empty instance."
@@ -272,7 +283,7 @@ class SyncedDictTest(SyncedCollectionTest):
         assert "b" in synced_collection
         assert "c" in synced_collection
         data = {"a": 1, "c": [0, 1, 3], "d": 1}
-        self.store(data)
+        self.store(synced_collection, data)
         assert synced_collection == data
 
         # Test multiple changes. kwargs should supersede the mapping
@@ -296,7 +307,7 @@ class SyncedDictTest(SyncedCollectionTest):
 
         # invalid data
         data = [1, 2, 3]
-        self.store(data)
+        self.store(synced_collection, data)
         with pytest.raises(ValueError):
             synced_collection._load()
 
@@ -560,15 +571,15 @@ class SyncedListTest(SyncedCollectionTest):
         synced_collection.reset([{"a": 1}, "b", [1, 2, 3]])
         assert synced_collection == [{"a": 1}, "b", [1, 2, 3]]
         data = ["a", "b", [1, 2, 4], "d"]
-        self.store(data)
+        self.store(synced_collection, data)
         assert synced_collection == data
         data1 = ["a", "b"]
-        self.store(data1)
+        self.store(synced_collection, data1)
         assert synced_collection == data1
 
         # invalid data in file
         data2 = {"a": 1}
-        self.store(data2)
+        self.store(synced_collection, data2)
         with pytest.raises(ValueError):
             synced_collection._load()
 
