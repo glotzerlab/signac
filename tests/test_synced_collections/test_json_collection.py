@@ -11,7 +11,6 @@ from synced_collection_test import SyncedDictTest, SyncedListTest
 from signac.synced_collections.backends.collection_json import (
     JSONAttrDict,
     JSONAttrList,
-    JSONCollection,
     JSONDict,
     JSONList,
 )
@@ -19,7 +18,6 @@ from signac.synced_collections.backends.collection_json import (
 
 class JSONCollectionTest:
 
-    _backend_collection = JSONCollection
     _write_concern = False
     _fn = "test.json"
 

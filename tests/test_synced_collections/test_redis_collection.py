@@ -7,11 +7,7 @@ import uuid
 import pytest
 from synced_collection_test import SyncedDictTest, SyncedListTest
 
-from signac.synced_collections.backends.collection_redis import (
-    RedisCollection,
-    RedisDict,
-    RedisList,
-)
+from signac.synced_collections.backends.collection_redis import RedisDict, RedisList
 
 try:
     import redis
@@ -32,7 +28,6 @@ except ImportError:
 
 class RedisCollectionTest:
 
-    _backend_collection = RedisCollection
     _key = "test"
 
     def store(self, synced_collection, data):

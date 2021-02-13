@@ -4,11 +4,7 @@
 import pytest
 from synced_collection_test import SyncedDictTest, SyncedListTest
 
-from signac.synced_collections.backends.collection_zarr import (
-    ZarrCollection,
-    ZarrDict,
-    ZarrList,
-)
+from signac.synced_collections.backends.collection_zarr import ZarrDict, ZarrList
 
 try:
     import numcodecs  # zarr depends on numcodecs
@@ -21,7 +17,6 @@ except ImportError:
 
 class ZarrCollectionTest:
 
-    _backend_collection = ZarrCollection
     _name = "test"
 
     def store(self, synced_collection, data):

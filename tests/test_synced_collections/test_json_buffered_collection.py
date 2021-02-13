@@ -14,12 +14,10 @@ from test_json_collection import JSONCollectionTest, TestJSONDict, TestJSONList
 from signac.synced_collections.backends.collection_json import (
     BufferedJSONAttrDict,
     BufferedJSONAttrList,
-    BufferedJSONCollection,
     BufferedJSONDict,
     BufferedJSONList,
     MemoryBufferedJSONAttrDict,
     MemoryBufferedJSONAttrList,
-    MemoryBufferedJSONCollection,
     MemoryBufferedJSONDict,
     MemoryBufferedJSONList,
 )
@@ -27,9 +25,6 @@ from signac.synced_collections.errors import BufferedError, MetadataError
 
 
 class BufferedJSONCollectionTest(JSONCollectionTest):
-
-    _backend_collection = BufferedJSONCollection  # type: ignore
-
     def load(self, collection):
         """Load the data corresponding to a SyncedCollection from disk."""
         with open(collection.filename) as f:
@@ -713,7 +708,6 @@ class TestBufferedJSONList(BufferedJSONCollectionTest, TestJSONList):
 class TestMemoryBufferedJSONDict(TestBufferedJSONDict):
     """Tests of MemoryBufferedJSONDicts."""
 
-    _backend_collection = MemoryBufferedJSONCollection  # type: ignore
     _collection_type = MemoryBufferedJSONDict  # type: ignore
 
     def test_buffer_flush(self, synced_collection, synced_collection2):
@@ -757,7 +751,6 @@ class TestMemoryBufferedJSONDict(TestBufferedJSONDict):
 class TestMemoryBufferedJSONList(TestBufferedJSONList):
     """Tests of MemoryBufferedJSONLists."""
 
-    _backend_collection = MemoryBufferedJSONCollection  # type: ignore
     _collection_type = MemoryBufferedJSONList  # type: ignore
 
 

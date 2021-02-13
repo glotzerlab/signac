@@ -22,6 +22,13 @@ PYPY = "PyPy" in platform.python_implementation()
 
 
 class SyncedCollectionTest:
+    """The parent for all synced collection tests.
+
+    This class defines the standard APIs that are expected of all test subclasses.
+    Following these protocols allows different backends and data types to share
+    most test by just defining the expected additional variables.
+    """
+
     def store(self, synced_collection, data):
         """Directly store data to the backend using its own API.
 
@@ -41,6 +48,19 @@ class SyncedCollectionTest:
         raise NotImplementedError(
             "All backend tests must implement a synced_collection autouse "
             "fixture that returns an empty instance."
+        )
+
+    @pytest.fixture(autouse=True)
+    def base_collection(self):
+        """Generate a collection of the base data type.
+
+        This fixture should generate a base collection (e.g. a list or a dict)
+        that can be used to set the data of a synced collection of the corresponding
+        type for comparison in tests.
+        """
+        raise NotImplementedError(
+            "All data type tests must implement a base_collection autouse "
+            "fixture that returns an instance populated with test data."
         )
 
 

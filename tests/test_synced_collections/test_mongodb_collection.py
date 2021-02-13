@@ -5,7 +5,6 @@ import pytest
 from synced_collection_test import SyncedDictTest, SyncedListTest
 
 from signac.synced_collections.backends.collection_mongodb import (
-    MongoDBCollection,
     MongoDBDict,
     MongoDBList,
 )
@@ -31,7 +30,6 @@ except ImportError:
 
 class MongoDBCollectionTest:
 
-    _backend_collection = MongoDBCollection
     _uid = {"MongoDBCollection::name": "test"}
 
     def store(self, synced_collection, data):
@@ -49,6 +47,7 @@ class MongoDBCollectionTest:
     def synced_collection_positional(self):
         """Fixture that initializes the object using positional arguments."""
         yield self._collection_type(mongo_client.test_db.test_dict, self._uid)
+        mongo_client.test_db.test_dict.drop()
 
     def test_uid(self, synced_collection):
         assert synced_collection.uid == self._uid
