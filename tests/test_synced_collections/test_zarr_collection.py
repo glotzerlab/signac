@@ -37,8 +37,7 @@ class ZarrCollectionTest:
     def synced_collection(self, tmpdir):
         self._group = zarr.group(zarr.DirectoryStore(tmpdir))
         self._name = "test"
-        self._backend_kwargs = {"name": self._name, "group": self._group}
-        yield self._collection_type(**self._backend_kwargs)
+        yield self._collection_type(name=self._name, group=self._group)
 
     @pytest.fixture
     def synced_collection_positional(self, tmpdir):

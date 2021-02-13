@@ -44,9 +44,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
     @pytest.fixture
     def synced_collection2(self, tmpdir):
         _fn_2 = os.path.join(tmpdir, "test2.json")
-        _backend_kwargs2 = {"filename": _fn_2, "write_concern": False}
-        tmp = self._collection_type(**_backend_kwargs2)
-        yield tmp
+        yield self._collection_type(filename=_fn_2, write_concern=False)
 
     def test_buffered(self, synced_collection, testdata):
         """Test basic per-instance buffering behavior."""

@@ -42,8 +42,7 @@ class RedisCollectionTest:
         self._client = RedisClient
         request.addfinalizer(self._client.flushall)
         self._key = "test"
-        self._backend_kwargs = {"key": self._key, "client": self._client}
-        yield self._collection_type(**self._backend_kwargs)
+        yield self._collection_type(key=self._key, client=self._client)
 
     @pytest.fixture
     def synced_collection_positional(self, request):

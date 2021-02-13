@@ -30,11 +30,10 @@ class JSONCollectionTest:
     @pytest.fixture(autouse=True)
     def synced_collection(self, tmpdir):
         self._fn_ = os.path.join(tmpdir, self._fn)
-        self._backend_kwargs = {
-            "filename": self._fn_,
-            "write_concern": self._write_concern,
-        }
-        yield self._collection_type(**self._backend_kwargs)
+        yield self._collection_type(
+            filename=self._fn_,
+            write_concern=self._write_concern,
+        )
 
     @pytest.fixture
     def synced_collection_positional(self, tmpdir):
