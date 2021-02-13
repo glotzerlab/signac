@@ -3,7 +3,6 @@
 # This software is licensed under the BSD 3-Clause License.
 import json
 import os
-from tempfile import TemporaryDirectory
 
 import pytest
 from attr_dict_test import AttrDictTest, AttrListTest
@@ -29,23 +28,19 @@ class JSONCollectionTest:
             file.write(json.dumps(data).encode())
 
     @pytest.fixture(autouse=True)
-    def synced_collection(self):
-        self._tmp_dir = TemporaryDirectory(prefix="json_")
-        self._fn_ = os.path.join(self._tmp_dir.name, self._fn)
+    def synced_collection(self, tmpdir):
+        self._fn_ = os.path.join(tmpdir, self._fn)
         self._backend_kwargs = {
             "filename": self._fn_,
             "write_concern": self._write_concern,
         }
         yield self._collection_type(**self._backend_kwargs)
-        self._tmp_dir.cleanup()
 
     @pytest.fixture
-    def synced_collection_positional(self):
+    def synced_collection_positional(self, tmpdir):
         """Fixture that initializes the object using positional arguments."""
-        self._tmp_dir = TemporaryDirectory(prefix="json_")
-        self._fn_ = os.path.join(self._tmp_dir.name, "test2.json")
+        self._fn_ = os.path.join(tmpdir, "test2.json")
         yield self._collection_type(self._fn_, self._write_concern)
-        self._tmp_dir.cleanup()
 
     def test_filename(self, synced_collection):
         assert os.path.basename(synced_collection.filename) == self._fn

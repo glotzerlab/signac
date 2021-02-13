@@ -1,8 +1,6 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-from tempfile import TemporaryDirectory
-
 import pytest
 from synced_collection_test import SyncedDictTest, SyncedListTest
 
@@ -36,22 +34,18 @@ class ZarrCollectionTest:
         dataset[0] = data
 
     @pytest.fixture(autouse=True)
-    def synced_collection(self):
-        self._tmp_dir = TemporaryDirectory(prefix="zarr_")
-        self._group = zarr.group(zarr.DirectoryStore(self._tmp_dir.name))
+    def synced_collection(self, tmpdir):
+        self._group = zarr.group(zarr.DirectoryStore(tmpdir))
         self._name = "test"
         self._backend_kwargs = {"name": self._name, "group": self._group}
         yield self._collection_type(**self._backend_kwargs)
-        self._tmp_dir.cleanup()
 
     @pytest.fixture
-    def synced_collection_positional(self):
+    def synced_collection_positional(self, tmpdir):
         """Fixture that initializes the object using positional arguments."""
-        self._tmp_dir = TemporaryDirectory(prefix="zarr_")
-        self._group = zarr.group(zarr.DirectoryStore(self._tmp_dir.name))
+        self._group = zarr.group(zarr.DirectoryStore(tmpdir))
         self._name = "test"
         yield self._collection_type(self._group, self._name)
-        self._tmp_dir.cleanup()
 
     def test_group(self, synced_collection):
         assert synced_collection.group == self._group
