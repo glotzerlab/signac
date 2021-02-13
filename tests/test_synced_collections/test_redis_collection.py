@@ -33,7 +33,7 @@ class RedisCollectionTest:
     def store(self, synced_collection, data):
         synced_collection.client.set(synced_collection.key, json.dumps(data).encode())
 
-    @pytest.fixture(autouse=True)
+    @pytest.fixture
     def synced_collection(self, request):
         request.addfinalizer(redis_client.flushall)
         yield self._collection_type(key=self._key, client=redis_client)

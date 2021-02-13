@@ -36,7 +36,7 @@ class MongoDBCollectionTest:
         data_to_insert = {**synced_collection.uid, "data": data}
         synced_collection.collection.replace_one(synced_collection.uid, data_to_insert)
 
-    @pytest.fixture(autouse=True)
+    @pytest.fixture
     def synced_collection(self, request):
         yield self._collection_type(
             uid=self._uid, collection=mongo_client.test_db.test_dict

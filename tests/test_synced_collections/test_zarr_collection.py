@@ -29,7 +29,7 @@ class ZarrCollectionTest:
         )
         dataset[0] = data
 
-    @pytest.fixture(autouse=True)
+    @pytest.fixture
     def synced_collection(self, tmpdir):
         yield self._collection_type(
             name=self._name, group=zarr.group(zarr.DirectoryStore(tmpdir))

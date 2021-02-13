@@ -38,7 +38,7 @@ class SyncedCollectionTest:
         """
         raise NotImplementedError("All backend tests must implement the store method.")
 
-    @pytest.fixture(autouse=True)
+    @pytest.fixture
     def synced_collection(self):
         """Generate a synced collection of the appropriate type.
 
@@ -46,11 +46,11 @@ class SyncedCollectionTest:
         class variable.
         """
         raise NotImplementedError(
-            "All backend tests must implement a synced_collection autouse "
-            "fixture that returns an empty instance."
+            "All backend tests must implement a synced_collection fixture "
+            "that returns an empty instance."
         )
 
-    @pytest.fixture(autouse=True)
+    @pytest.fixture
     def base_collection(self):
         """Generate a collection of the base data type.
 
@@ -59,13 +59,13 @@ class SyncedCollectionTest:
         type for comparison in tests.
         """
         raise NotImplementedError(
-            "All data type tests must implement a base_collection autouse "
-            "fixture that returns an instance populated with test data."
+            "All data type tests must implement a base_collection fixture that "
+            "returns an instance populated with test data."
         )
 
 
 class SyncedDictTest(SyncedCollectionTest):
-    @pytest.fixture(autouse=True)
+    @pytest.fixture
     def base_collection(self):
         return {"a": 0}
 
@@ -443,7 +443,7 @@ class SyncedDictTest(SyncedCollectionTest):
 
 
 class SyncedListTest(SyncedCollectionTest):
-    @pytest.fixture(autouse=True)
+    @pytest.fixture
     def base_collection(self):
         return [0]
 
