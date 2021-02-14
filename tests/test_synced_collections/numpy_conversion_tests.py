@@ -123,6 +123,24 @@ class SyncedListNumpyTest:
         with pytest.raises((ValueError, TypeError)):
             synced_collection[-1] = value
 
+    @pytest.mark.parametrize("dtype", NUMPY_INT_TYPES)
+    @pytest.mark.parametrize("shape", (None, (1,), (2,)))
+    def test_reset_numpy_int_data(self, synced_collection, dtype, shape):
+        """Test setting scalar int types, which should always work."""
+        try:
+            max_value = np.iinfo(dtype).max
+        except ValueError:
+            max_value = 1
+        value = np.random.randint(max_value, dtype=dtype, size=shape)
+
+        # TODO: Use pytest.warns once the warning is added.
+        if shape is None:
+            with pytest.raises(ValueError):
+                synced_collection.reset(value)
+        else:
+            synced_collection.reset(value)
+            assert synced_collection == value.tolist()
+
     def test_set_get_numpy_data(self, synced_collection):
         data = np.random.rand(3, 4)
         data_as_list = data.tolist()
