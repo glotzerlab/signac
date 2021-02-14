@@ -74,7 +74,7 @@ class MongoDBCollectionTest:
         assert synced_collection.uid == self._uid
 
     @pytest.mark.parametrize("dtype", NUMPY_INT_TYPES)
-    @pytest.mark.parametrize("shape", (None, (), (2,)))
+    @pytest.mark.parametrize("shape", (None, (1,), (2,)))
     def test_set_get_numpy_int_data(self, synced_collection, dtype, shape):
         """Override parent test to use the subset of int types."""
         super().test_set_get_numpy_int_data(synced_collection, dtype, shape)
