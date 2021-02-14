@@ -38,8 +38,10 @@ class _LoadAndSave:
         self._collection._load()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self._collection._save()
-        self._collection._thread_lock.__exit__(exc_type, exc_val, exc_tb)
+        try:
+            self._collection._save()
+        finally:
+            self._collection._thread_lock.__exit__(exc_type, exc_val, exc_tb)
 
 
 class SyncedCollection(Collection):
