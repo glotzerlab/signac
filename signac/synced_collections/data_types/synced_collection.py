@@ -9,7 +9,7 @@ from inspect import isabstract
 from threading import RLock
 from typing import Any, Callable, DefaultDict, List
 
-from ..numpy_utils import _convert_numpy_scalar
+from ..numpy_utils import _convert_numpy
 from ..utils import AbstractTypeResolver, _CounterContext, _NullContext
 
 # Identifies types of SyncedCollection, which are the base type for this class.
@@ -296,7 +296,7 @@ class SyncedCollection(Collection):
         for base_cls in SyncedCollection.registry[cls._backend]:
             if base_cls.is_base_type(data):
                 return base_cls(data=data, **kwargs)
-        return _convert_numpy_scalar(data)
+        return _convert_numpy(data)
 
     @abstractmethod
     def _to_base(self):

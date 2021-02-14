@@ -6,7 +6,7 @@
 from json import JSONEncoder
 from typing import Any, Dict
 
-from .numpy_utils import _convert_numpy, _convert_numpy_scalar, _is_numpy_type
+from .numpy_utils import _convert_numpy, _is_numpy_type
 
 
 class AbstractTypeResolver:
@@ -66,7 +66,7 @@ class AbstractTypeResolver:
             will return ``None``.
 
         """
-        obj = _convert_numpy_scalar(obj)
+        obj = _convert_numpy(obj)
 
         obj_type = type(obj)
         enum_type = None

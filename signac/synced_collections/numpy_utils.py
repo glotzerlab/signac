@@ -16,61 +16,51 @@ data types. Broadly speaking, there are two main reasons for this:
 This module provides facilities for both.
 """
 
-# TODO: Switch evaluation orders in all methods to early-exit when _not_ a
-# numpy type (the more common case).
 # TODO: Rewrite conditionals in most efficient manner.
 # TODO: Add warning on conversion.
 
 try:
     import numpy
 
-    NUMPY = True
-except ImportError:
-    NUMPY = False
+    def _convert_numpy(data):
+        """Convert a numpy data types to the corresponding base data types.
 
-
-def _convert_numpy_scalar(data):
-    """Convert a numpy scalar to a raw scalar.
-
-    If data already a raw scalar, this function is a no-op.
-    """
-    if NUMPY:
-        if isinstance(data, (numpy.number, numpy.bool_)) or (
-            isinstance(data, numpy.ndarray) and data.shape == ()
-        ):
-            return data.item()
-    return data
-
-
-def _convert_numpy(data):
-    """Convert a numpy data types to the corresponding base data types.
-
-    0-d numpy arrays and numpy scalars are converted to their corresponding
-    primitive types, while other numpy arrays are converted to lists. If data
-    not a numpy data type, this function is a no-op.
-    """
-    if NUMPY:
+        0d numpy arrays and numpy scalars are converted to their corresponding
+        primitive types, while other numpy arrays are converted to lists. If data
+        not a numpy data type, this function is a no-op.
+        """
         if isinstance(data, numpy.ndarray):
             # tolist will return a scalar for 0d arrays, so there's no need to
-            # special-case that check.
+            # special-case that check. 1-element 1d arrays should remain
+            # arrays, i.e. np.array([1])->[1], not 1.
             return data.tolist()
         elif isinstance(data, (numpy.number, numpy.bool_)):
             return data.item()
-    return data
+        return data
+
+    def _is_numpy_type(data, allow_zero_d=False, allow_scalar=False):
+        """Check if an object is a numpy type.
+
+        Parameters
+        ----------
+        allow_zero_d : bool
+            If True, 0d numpy arrays will return True (Default value: False).
+        allow_scalar : bool
+            If True, numpy scalars will return True (Default value: False).
+        """
+        return (
+            isinstance(data, numpy.ndarray)
+            and (data.shape != () or allow_zero_d)
+            or (allow_scalar and isinstance(data, (numpy.number, numpy.bool_)))
+        )
 
 
-def _is_numpy_type(data, allow_zero_d=False, allow_scalar=False):
-    """Check if an object is a numpy type.
+except ImportError:
 
-    Parameters
-    ----------
-    allow_zero_d : bool
-        If True, 0d numpy arrays will return True (Default value: False).
-    allow_scalar : bool
-        If True, numpy scalars will return True (Default value: False).
-    """
-    return (
-        NUMPY
-        and (isinstance(data, numpy.ndarray) and (data.shape != () or allow_zero_d))
-        or (allow_scalar and isinstance(data, (numpy.number, numpy.bool_)))
-    )
+    def _convert_numpy(data):
+        """Trivial implementation if numpy is not present."""
+        return data
+
+    def _is_numpy_type(data, allow_zero_d=False, allow_scalar=False):
+        """Trivial implementation if numpy is not present."""
+        return False
