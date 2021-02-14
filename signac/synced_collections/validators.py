@@ -106,7 +106,8 @@ _json_format_validator_type_resolver = AbstractTypeResolver(
     {
         "BASE": lambda obj: isinstance(obj, (str, int, float, bool, type(None))),
         "MAPPING": lambda obj: isinstance(obj, Mapping),
-        "SEQUENCE": lambda obj: isinstance(obj, Sequence),
+        # We identify >0d numpy arrays as sequences for validation purposes.
+        "SEQUENCE": lambda obj: isinstance(obj, Sequence) or _is_numpy_type(obj),
         "NUMPY": lambda obj: _is_numpy_type(obj, allow_zero_d=True, allow_scalar=True),
     }
 )
@@ -144,6 +145,11 @@ def json_format_validator(data):
         # TODO: Even raw Python complex values are not JSON-serializable.
         # Rewriting this code should happen at the same time as fixing extended
         # precision values in numpy.
+        # TODO: Numpy arrays will not be registered as sequences, so numpy
+        # arrays will also reach this point. That prevents us from assuming
+        # we're getting a scalar value here and using x.item() to see if the
+        # output is still a numpy data type. That would be the ideal thing to
+        # do here though, so if necessary we should figure it out.
         if numpy.iscomplex(data).any():
             raise TypeError(
                 "NumPy object with complex value(s) is not JSON serializable"

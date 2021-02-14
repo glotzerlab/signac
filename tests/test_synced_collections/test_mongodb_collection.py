@@ -28,6 +28,14 @@ except ImportError:
     PYMONGO = False
 
 
+try:
+    import numpy
+
+    NUMPY = True
+except ImportError:
+    NUMPY = False
+
+
 class MongoDBCollectionTest:
 
     _uid = {"MongoDBCollection::name": "test"}
@@ -57,6 +65,16 @@ class MongoDBCollectionTest:
     not PYMONGO, reason="test requires the pymongo package and mongodb server"
 )
 class TestMongoDBDict(MongoDBCollectionTest, SyncedDictTest):
+    # BSON does not support >8-byte ints, and these types may be larger
+    # depending on the architecture being tested. Programatically remove larger
+    # types since this may be architecture-dependent.
+    if NUMPY:
+        NUMPY_INT_TYPES = [
+            dtype
+            for dtype in SyncedListTest.NUMPY_INT_TYPES
+            if isinstance(dtype, numpy.number)
+            and numpy.log2(numpy.iinfo(dtype).max) / 8 <= 8
+        ]
 
     _collection_type = MongoDBDict
 

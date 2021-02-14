@@ -168,7 +168,10 @@ class SyncedDict(SyncedCollection, MutableMapping):
         # should not have side effects once that backwards compatibility layer
         # is removed, so we can validate a temporary dict {key: value} and
         # directly set using those rather than looping over data.
+
         data = {key: value}
+        # TODO: May need to convert from base prior to validation to handle
+        # special objects e.g. numpy data types.
         self._validate(data)
         with self._load_and_save, self._suspend_sync:
             for key, value in data.items():

@@ -6,17 +6,10 @@ from collections.abc import MutableMapping, MutableSequence
 from copy import deepcopy
 
 import pytest
+from numpy_conversion_tests import SyncedDictNumpyTest, SyncedListNumpyTest
 
 from signac.errors import KeyTypeError
 from signac.synced_collections import SyncedCollection
-
-try:
-    import numpy
-
-    NUMPY = True
-except ImportError:
-    NUMPY = False
-
 
 PYPY = "PyPy" in platform.python_implementation()
 
@@ -64,7 +57,7 @@ class SyncedCollectionTest:
         )
 
 
-class SyncedDictTest(SyncedCollectionTest):
+class SyncedDictTest(SyncedCollectionTest, SyncedDictNumpyTest):
     @pytest.fixture
     def base_collection(self):
         return {"a": 0}
@@ -442,7 +435,7 @@ class SyncedDictTest(SyncedCollectionTest):
         assert len(synced_collection) == num_threads
 
 
-class SyncedListTest(SyncedCollectionTest):
+class SyncedListTest(SyncedCollectionTest, SyncedListNumpyTest):
     @pytest.fixture
     def base_collection(self):
         return [0]
@@ -466,22 +459,6 @@ class SyncedListTest(SyncedCollectionTest):
         assert bool(synced_collection)
         assert len(synced_collection) == 1
         assert synced_collection[0] == 1
-
-    @pytest.mark.skipif(not NUMPY, reason="test requires the numpy package")
-    def test_set_get_numpy_data(self, synced_collection):
-        data = numpy.random.rand(3, 4)
-        data_as_list = data.tolist()
-        synced_collection.reset(data)
-        assert len(synced_collection) == len(data_as_list)
-        assert synced_collection == data_as_list
-        data2 = numpy.random.rand(3, 4)
-        synced_collection.append(data2)
-        assert len(synced_collection) == len(data_as_list) + 1
-        assert synced_collection[len(data_as_list)] == data2.tolist()
-        data3 = numpy.float_(3.14)
-        synced_collection.append(data3)
-        assert len(synced_collection) == len(data_as_list) + 2
-        assert synced_collection[len(data_as_list) + 1] == data3
 
     def test_iter(self, synced_collection, testdata):
         d = [testdata, 43]
