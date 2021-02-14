@@ -4,6 +4,7 @@
 import pytest
 
 from signac.synced_collections.errors import InvalidKeyError, KeyTypeError
+from signac.synced_collections.numpy_utils import NumpyConversionWarning
 from signac.synced_collections.validators import (
     json_format_validator,
     no_dot_in_key,
@@ -78,13 +79,18 @@ class TestJSONFormatValidator:
     @pytest.mark.skipif(not NUMPY, reason="test requires the numpy package")
     def test_numpy_data(self):
         data = numpy.random.rand(3, 4)
-        json_format_validator(data)
-        json_format_validator(numpy.float_(3.14))
+        with pytest.warns(NumpyConversionWarning):
+            json_format_validator(data)
+        with pytest.warns(NumpyConversionWarning):
+            json_format_validator(numpy.float_(3.14))
         # numpy data as dict value
-        json_format_validator({"test": data})
-        json_format_validator({"test": numpy.float_(1.0)})
+        with pytest.warns(NumpyConversionWarning):
+            json_format_validator({"test": data})
+        with pytest.warns(NumpyConversionWarning):
+            json_format_validator({"test": numpy.float_(1.0)})
         # numpy data in list
-        json_format_validator([data, numpy.float_(1.0), 1, "test"])
+        with pytest.warns(NumpyConversionWarning):
+            json_format_validator([data, numpy.float_(1.0), 1, "test"])
 
     def test_invalid_data(self):
         class A:
@@ -106,9 +112,9 @@ class TestJSONFormatValidator:
     def test_numpy_invalid_data(self):
         # complex data
         data = numpy.complex(1 + 2j)
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError), pytest.warns(NumpyConversionWarning):
             json_format_validator(data)
         # complex data in ndarray
         data = numpy.asarray([1, 2, 1j, 1 + 2j])
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError), pytest.warns(NumpyConversionWarning):
             json_format_validator(data)

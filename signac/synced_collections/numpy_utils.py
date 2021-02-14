@@ -3,9 +3,20 @@
 # This software is licensed under the BSD 3-Clause License.
 """Define utilities for handling NumPy arrays."""
 
-# TODO: Add warning on conversion.
+
+class NumpyConversionWarning(UserWarning):
+    """Warning that NumPy data was converted."""
+
+
 try:
+    import warnings
+
     import numpy
+
+    NUMPY_CONVERSION_WARNING = (
+        "Any numpy types provided will be transparently converted to the "
+        "closest base Python equivalents."
+    )
 
     def _convert_numpy(data):
         """Convert a numpy data types to the corresponding base data types.
@@ -18,8 +29,10 @@ try:
             # tolist will return a scalar for 0d arrays, so there's no need to
             # special-case that check. 1-element 1d arrays should remain
             # arrays, i.e. np.array([1])->[1], not 1.
+            warnings.warn(NUMPY_CONVERSION_WARNING, NumpyConversionWarning)
             return data.tolist()
         elif isinstance(data, (numpy.number, numpy.bool_)):
+            warnings.warn(NUMPY_CONVERSION_WARNING, NumpyConversionWarning)
             return data.item()
         return data
 

@@ -9,6 +9,7 @@ import pytest
 
 from signac.synced_collections import SyncedList
 from signac.synced_collections.backends.collection_json import JSONDict
+from signac.synced_collections.numpy_utils import NumpyConversionWarning
 from signac.synced_collections.utils import (
     AbstractTypeResolver,
     SyncedCollectionJSONEncoder,
@@ -60,7 +61,8 @@ def test_json_encoder(tmpdir):
 
     if NUMPY:
         array = numpy.random.rand(3)
-        synced_data["foo"] = array
+        with pytest.warns(NumpyConversionWarning):
+            synced_data["foo"] = array
         assert isinstance(synced_data["foo"], SyncedList)
         assert (
             json.loads(json.dumps(synced_data, cls=SyncedCollectionJSONEncoder))

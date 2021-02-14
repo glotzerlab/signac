@@ -9,6 +9,7 @@ import pytest
 
 from signac.errors import KeyTypeError
 from signac.synced_collections import SyncedCollection
+from signac.synced_collections.numpy_utils import NumpyConversionWarning
 
 PYPY = "PyPy" in platform.python_implementation()
 
@@ -500,8 +501,8 @@ class SyncedDictTest(SyncedCollectionTest):
             max_value = 1
         value = np.random.randint(max_value, dtype=dtype, size=shape)
 
-        # TODO: Use pytest.warns once the warning is added.
-        synced_collection["numpy_dtype_val"] = value
+        with pytest.warns(NumpyConversionWarning):
+            synced_collection["numpy_dtype_val"] = value
         raw_value = value.item() if shape is None else value.tolist()
         assert synced_collection["numpy_dtype_val"] == raw_value
 
@@ -520,11 +521,13 @@ class SyncedDictTest(SyncedCollectionTest):
         should_fail = isinstance(test_value, (np.number, np.bool_))
 
         if should_fail:
-            with pytest.raises((ValueError, TypeError)):
+            with pytest.raises((ValueError, TypeError)), pytest.warns(
+                NumpyConversionWarning
+            ):
                 synced_collection["numpy_dtype_val"] = value
         else:
-            # TODO: Use pytest.warns once the warning is added.
-            synced_collection["numpy_dtype_val"] = value
+            with pytest.warns(NumpyConversionWarning):
+                synced_collection["numpy_dtype_val"] = value
             assert synced_collection["numpy_dtype_val"] == raw_value
 
     @pytest.mark.skipif(not NUMPY, reason="This test requires the numpy package.")
@@ -541,8 +544,9 @@ class SyncedDictTest(SyncedCollectionTest):
         # Explicitly get an array with a shape so we can
         value = dtype(np.random.random_sample(shape))
 
-        # TODO: Use pytest.warns once the warning is added.
-        with pytest.raises((ValueError, TypeError)):
+        with pytest.raises((ValueError, TypeError)), pytest.warns(
+            NumpyConversionWarning
+        ):
             synced_collection["numpy_dtype_val"] = value
 
 
@@ -778,13 +782,14 @@ class SyncedListTest(SyncedCollectionTest):
             max_value = 1
         value = np.random.randint(max_value, dtype=dtype, size=shape)
 
-        # TODO: Use pytest.warns once the warning is added.
-        synced_collection.append(value)
+        with pytest.warns(NumpyConversionWarning):
+            synced_collection.append(value)
         raw_value = value.item() if shape is None else value.tolist()
         assert synced_collection[-1] == raw_value
 
         # Test assignment after append.
-        synced_collection[-1] = value
+        with pytest.warns(NumpyConversionWarning):
+            synced_collection[-1] = value
 
     @pytest.mark.skipif(not NUMPY, reason="This test requires the numpy package.")
     @pytest.mark.parametrize("dtype", NUMPY_FLOAT_TYPES)
@@ -801,15 +806,18 @@ class SyncedListTest(SyncedCollectionTest):
         should_fail = isinstance(test_value, (np.number, np.bool_))
 
         if should_fail:
-            with pytest.raises((ValueError, TypeError)):
+            with pytest.raises((ValueError, TypeError)), pytest.warns(
+                NumpyConversionWarning
+            ):
                 synced_collection.append(value)
         else:
-            # TODO: Use pytest.warns once the warning is added.
-            synced_collection.append(value)
+            with pytest.warns(NumpyConversionWarning):
+                synced_collection.append(value)
             assert synced_collection[-1] == raw_value
 
             # Test assignment after append.
-            synced_collection[-1] = value
+            with pytest.warns(NumpyConversionWarning):
+                synced_collection[-1] = value
 
     @pytest.mark.skipif(not NUMPY, reason="This test requires the numpy package.")
     @pytest.mark.parametrize("dtype", NUMPY_COMPLEX_TYPES)
@@ -825,11 +833,14 @@ class SyncedListTest(SyncedCollectionTest):
         # Explicitly get an array with a shape so we can
         value = dtype(np.random.random_sample(shape))
 
-        # TODO: Use pytest.warns once the warning is added.
-        with pytest.raises((ValueError, TypeError)):
+        with pytest.raises((ValueError, TypeError)), pytest.warns(
+            NumpyConversionWarning
+        ):
             synced_collection.append(value)
 
-        with pytest.raises((ValueError, TypeError)):
+        with pytest.raises((ValueError, TypeError)), pytest.warns(
+            NumpyConversionWarning
+        ):
             synced_collection[-1] = value
 
     @pytest.mark.parametrize("dtype", NUMPY_INT_TYPES)
@@ -842,10 +853,12 @@ class SyncedListTest(SyncedCollectionTest):
             max_value = 1
         value = np.random.randint(max_value, dtype=dtype, size=shape)
 
-        # TODO: Use pytest.warns once the warning is added.
         if shape is None:
-            with pytest.raises(ValueError):
+            with pytest.raises((ValueError, TypeError)), pytest.warns(
+                NumpyConversionWarning
+            ):
                 synced_collection.reset(value)
         else:
-            synced_collection.reset(value)
+            with pytest.warns(NumpyConversionWarning):
+                synced_collection.reset(value)
             assert synced_collection == value.tolist()
