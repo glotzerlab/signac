@@ -62,39 +62,44 @@ except ImportError:
 @pytest.mark.skipif(not NUMPY, reason="This test requires the np package.")
 class SyncedListNumpyTest:
     @pytest.mark.parametrize("dtype", NUMPY_INT_TYPES)
-    def test_set_get_numpy_scalar_int_data(self, synced_collection, dtype):
+    @pytest.mark.parametrize("shape", (None, (), (2,)))
+    def test_set_get_numpy_int_data(self, synced_collection, dtype, shape):
         """Test setting scalar int types, which should always work."""
-        for size in (None, ()):
-            try:
-                max_value = np.iinfo(dtype).max
-            except ValueError:
-                max_value = 1
-            value = np.random.randint(max_value, dtype=dtype, size=size)
-            # TODO: Use pytest.warns once the warning is added.
-            synced_collection.append(value)
-            assert synced_collection[-1] == value.item()
+        try:
+            max_value = np.iinfo(dtype).max
+        except ValueError:
+            max_value = 1
+        value = np.random.randint(max_value, dtype=dtype, size=shape)
+        # TODO: Use pytest.warns once the warning is added.
+        synced_collection.append(value)
+        raw_value = value.tolist() if shape == (2,) else value.item()
+        assert synced_collection[-1] == raw_value
 
-            # Test assignment after append.
-            synced_collection[-1] = value
+        # Test assignment after append.
+        synced_collection[-1] = value
 
     @pytest.mark.parametrize("dtype", NUMPY_FLOAT_TYPES)
-    def test_set_get_numpy_scalar_float_data(self, synced_collection, dtype):
+    @pytest.mark.parametrize("shape", (None, (), (2,)))
+    def test_set_get_numpy_float_data(self, synced_collection, dtype, shape):
         """Test setting scalar float types, which work if a raw Python analog exists."""
-        for squeeze in (True, False):
+        squeezes = (False,) if shape == (2,) else (True, False)
+        for squeeze in squeezes:
             # Explicitly get an array with a shape so we can
-            value = dtype(np.random.rand())
+            value = dtype(np.random.random_sample(shape))
             if squeeze:
                 value = value.squeeze()
-            raw_value = value.item()
-
-            # TODO: Use pytest.warns once the warning is added.
 
             # If casting via item does not give a base Python type, the number
             # should fail to set correctly.
-            if isinstance(raw_value, (np.number, np.bool_)):
+            raw_value = value.tolist() if shape == (2,) else value.item()
+            test_value = value[0].item() if isinstance(raw_value, list) else raw_value
+            should_fail = isinstance(test_value, (np.number, np.bool_))
+
+            if should_fail:
                 with pytest.raises((ValueError, TypeError)):
                     synced_collection.append(value)
             else:
+                # TODO: Use pytest.warns once the warning is added.
                 synced_collection.append(value)
                 assert synced_collection[-1] == raw_value
 
@@ -102,7 +107,8 @@ class SyncedListNumpyTest:
                 synced_collection[-1] = value
 
     @pytest.mark.parametrize("dtype", NUMPY_COMPLEX_TYPES)
-    def test_set_get_numpy_scalar_complex_data(self, synced_collection, dtype):
+    @pytest.mark.parametrize("shape", (None, (), (2,)))
+    def test_set_get_numpy_complex_data(self, synced_collection, dtype, shape):
         """Test setting scalar complex types, which should always fail."""
         # Note that the current behavior of this test is based on the fact that
         # all backends rely on JSON-serialization (at least implicitly), even
@@ -110,9 +116,10 @@ class SyncedListNumpyTest:
         # backends that support other data, or if we want to test cases like
         # ZarrCollection with a non-JSON codec (alternatives are supported, but
         # not a priority to test here).
-        for squeeze in (True, False):
+        squeezes = (False,) if shape == (2,) else (True, False)
+        for squeeze in squeezes:
             # Explicitly get an array with a shape so we can
-            value = dtype(np.random.rand())
+            value = dtype(np.random.random_sample(shape))
             if squeeze:
                 value = value.squeeze()
 
@@ -122,60 +129,6 @@ class SyncedListNumpyTest:
 
             with pytest.raises((ValueError, TypeError)):
                 synced_collection[-1] = value
-
-    @pytest.mark.parametrize("dtype", NUMPY_INT_TYPES)
-    def test_set_get_numpy_vector_int_data(self, synced_collection, dtype):
-        """Test setting scalar int types, which should always work."""
-        try:
-            max_value = np.iinfo(dtype).max
-        except ValueError:
-            max_value = 1
-        value = np.random.randint(max_value, dtype=dtype, size=(2,))
-        # TODO: Use pytest.warns once the warning is added.
-        synced_collection.append(value)
-        assert synced_collection[-1] == value.tolist()
-
-        # Test assignment after append.
-        synced_collection[-1] = value
-
-    @pytest.mark.parametrize("dtype", NUMPY_FLOAT_TYPES)
-    def test_set_get_numpy_vector_float_data(self, synced_collection, dtype):
-        """Test setting scalar float types, which work if a raw Python analog exists."""
-        # Explicitly get an array with a shape so we can
-        value = dtype(np.random.rand(2))
-
-        # TODO: Use pytest.warns once the warning is added.
-
-        # If casting via item does not give a base Python type, the number
-        # should fail to set correctly.
-        if isinstance(value[0].item(), (np.number, np.bool_)):
-            with pytest.raises((ValueError, TypeError)):
-                synced_collection.append(value)
-        else:
-            synced_collection.append(value)
-            assert synced_collection[-1] == value.tolist()
-
-            # Test assignment after append.
-            synced_collection[-1] = value
-
-    @pytest.mark.parametrize("dtype", NUMPY_COMPLEX_TYPES)
-    def test_set_get_numpy_vector_complex_data(self, synced_collection, dtype):
-        """Test setting scalar complex types, which should always fail."""
-        # Note that the current behavior of this test is based on the fact that
-        # all backends rely on JSON-serialization (at least implicitly), even
-        # non-JSON backends. This test may have to be generalized if we add any
-        # backends that support other data, or if we want to test cases like
-        # ZarrCollection with a non-JSON codec (alternatives are supported, but
-        # not a priority to test here).
-        # Explicitly get an array with a shape so we can
-        value = dtype(np.random.rand(2))
-
-        # TODO: Use pytest.warns once the warning is added.
-        with pytest.raises((ValueError, TypeError)):
-            synced_collection.append(value)
-
-        with pytest.raises((ValueError, TypeError)):
-            synced_collection[-1] = value
 
     def test_set_get_numpy_data(self, synced_collection):
         data = np.random.rand(3, 4)
@@ -207,89 +160,47 @@ class SyncedListNumpyTest:
 @pytest.mark.skipif(not NUMPY, reason="This test requires the np package.")
 class SyncedDictNumpyTest:
     @pytest.mark.parametrize("dtype", NUMPY_INT_TYPES)
-    def test_set_get_numpy_scalar_int_data(self, synced_collection, dtype):
-        """Test setting scalar int types, which should always work."""
-        for size in (None, ()):
-            try:
-                max_value = np.iinfo(dtype).max
-            except ValueError:
-                max_value = 1
-            value = np.random.randint(max_value, dtype=dtype, size=size)
-            # TODO: Use pytest.warns once the warning is added.
-            synced_collection["np_dtype_val"] = value
-            assert synced_collection["np_dtype_val"] == value.item()
-
-    @pytest.mark.parametrize("dtype", NUMPY_FLOAT_TYPES)
-    def test_set_get_numpy_scalar_float_data(self, synced_collection, dtype):
-        """Test setting scalar float types, which work if a raw Python analog exists."""
-        for squeeze in (True, False):
-            # Explicitly get an array with a shape so we can
-            value = dtype(np.random.rand())
-            if squeeze:
-                value = value.squeeze()
-            raw_value = value.item()
-
-            # TODO: Use pytest.warns once the warning is added.
-
-            # If casting via item does not give a base Python type, the number
-            # should fail to set correctly.
-            if isinstance(raw_value, (np.number, np.bool_)):
-                with pytest.raises((ValueError, TypeError)):
-                    synced_collection["np_dtype_val"] = value
-            else:
-                synced_collection["np_dtype_val"] = value
-                assert synced_collection["np_dtype_val"] == raw_value
-
-    @pytest.mark.parametrize("dtype", NUMPY_COMPLEX_TYPES)
-    def test_set_get_numpy_scalar_complex_data(self, synced_collection, dtype):
-        """Test setting scalar complex types, which should always fail."""
-        # Note that the current behavior of this test is based on the fact that
-        # all backends rely on JSON-serialization (at least implicitly), even
-        # non-JSON backends. This test may have to be generalized if we add any
-        # backends that support other data, or if we want to test cases like
-        # ZarrCollection with a non-JSON codec (alternatives are supported, but
-        # not a priority to test here).
-        for squeeze in (True, False):
-            # Explicitly get an array with a shape so we can
-            value = dtype(np.random.rand())
-            if squeeze:
-                value = value.squeeze()
-
-            # TODO: Use pytest.warns once the warning is added.
-            with pytest.raises((ValueError, TypeError)):
-                synced_collection["np_dtype_val"] = value
-
-    @pytest.mark.parametrize("dtype", NUMPY_INT_TYPES)
-    def test_set_get_numpy_vector_int_data(self, synced_collection, dtype):
+    @pytest.mark.parametrize("shape", (None, (), (2,)))
+    def test_set_get_numpy_int_data(self, synced_collection, dtype, shape):
         """Test setting scalar int types, which should always work."""
         try:
             max_value = np.iinfo(dtype).max
         except ValueError:
             max_value = 1
-        value = np.random.randint(max_value, dtype=dtype, size=(2,))
+        value = np.random.randint(max_value, dtype=dtype, size=shape)
         # TODO: Use pytest.warns once the warning is added.
         synced_collection["np_dtype_val"] = value
-        assert synced_collection["np_dtype_val"] == value.tolist()
+        raw_value = value.tolist() if shape == (2,) else value.item()
+        assert synced_collection["np_dtype_val"] == raw_value
 
     @pytest.mark.parametrize("dtype", NUMPY_FLOAT_TYPES)
-    def test_set_get_numpy_vector_float_data(self, synced_collection, dtype):
+    @pytest.mark.parametrize("shape", (None, (), (2,)))
+    def test_set_get_numpy_float_data(self, synced_collection, dtype, shape):
         """Test setting scalar float types, which work if a raw Python analog exists."""
-        # Explicitly get an array with a shape so we can
-        value = dtype(np.random.rand(2))
+        squeezes = (False,) if shape == (2,) else (True, False)
+        for squeeze in squeezes:
+            # Explicitly get an array with a shape so we can
+            value = dtype(np.random.random_sample(shape))
+            if squeeze:
+                value = value.squeeze()
 
-        # TODO: Use pytest.warns once the warning is added.
+            # If casting via item does not give a base Python type, the number
+            # should fail to set correctly.
+            raw_value = value.tolist() if shape == (2,) else value.item()
+            test_value = value[0].item() if isinstance(raw_value, list) else raw_value
+            should_fail = isinstance(test_value, (np.number, np.bool_))
 
-        # If casting via item does not give a base Python type, the number
-        # should fail to set correctly.
-        if isinstance(value[0].item(), (np.number, np.bool_)):
-            with pytest.raises((ValueError, TypeError)):
+            if should_fail:
+                with pytest.raises((ValueError, TypeError)):
+                    synced_collection["np_dtype_val"] = value
+            else:
+                # TODO: Use pytest.warns once the warning is added.
                 synced_collection["np_dtype_val"] = value
-        else:
-            synced_collection["np_dtype_val"] = value
-            assert synced_collection["np_dtype_val"] == value.tolist()
+                assert synced_collection["np_dtype_val"] == raw_value
 
     @pytest.mark.parametrize("dtype", NUMPY_COMPLEX_TYPES)
-    def test_set_get_numpy_vector_complex_data(self, synced_collection, dtype):
+    @pytest.mark.parametrize("shape", (None, (), (2,)))
+    def test_set_get_numpy_complex_data(self, synced_collection, dtype, shape):
         """Test setting scalar complex types, which should always fail."""
         # Note that the current behavior of this test is based on the fact that
         # all backends rely on JSON-serialization (at least implicitly), even
@@ -297,9 +208,13 @@ class SyncedDictNumpyTest:
         # backends that support other data, or if we want to test cases like
         # ZarrCollection with a non-JSON codec (alternatives are supported, but
         # not a priority to test here).
-        # Explicitly get an array with a shape so we can
-        value = dtype(np.random.rand(2))
+        squeezes = (False,) if shape == (2,) else (True, False)
+        for squeeze in squeezes:
+            # Explicitly get an array with a shape so we can
+            value = dtype(np.random.random_sample(shape))
+            if squeeze:
+                value = value.squeeze()
 
-        # TODO: Use pytest.warns once the warning is added.
-        with pytest.raises((ValueError, TypeError)):
-            synced_collection["np_dtype_val"] = value
+            # TODO: Use pytest.warns once the warning is added.
+            with pytest.raises((ValueError, TypeError)):
+                synced_collection["np_dtype_val"] = value
