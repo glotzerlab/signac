@@ -32,8 +32,21 @@ try:
     import numpy
 
     NUMPY = True
+
+    from numpy_conversion_tests import NUMPY_INT_TYPES
+
+    # BSON does not support >8-byte ints. We Programatically remove larger
+    # types since some are architecture-dependent.
+    NUMPY_INT_TYPES = [
+        dtype
+        for dtype in NUMPY_INT_TYPES
+        if issubclass(dtype, numpy.number)
+        and numpy.log2(numpy.iinfo(dtype).max) / 8 < 8
+    ]
 except ImportError:
     NUMPY = False
+
+    NUMPY_INT_TYPES = []
 
 
 class MongoDBCollectionTest:
@@ -60,22 +73,21 @@ class MongoDBCollectionTest:
     def test_uid(self, synced_collection):
         assert synced_collection.uid == self._uid
 
+    @pytest.mark.parametrize("dtype", NUMPY_INT_TYPES)
+    def test_set_get_numpy_scalar_int_data(self, synced_collection, dtype):
+        """Override parent test to use the subset of int types."""
+        super().test_set_get_numpy_scalar_int_data(synced_collection, dtype)
+
+    @pytest.mark.parametrize("dtype", NUMPY_INT_TYPES)
+    def test_set_get_numpy_vector_int_data(self, synced_collection, dtype):
+        """Override parent test to use the subset of int types."""
+        super().test_set_get_numpy_vector_int_data(synced_collection, dtype)
+
 
 @pytest.mark.skipif(
     not PYMONGO, reason="test requires the pymongo package and mongodb server"
 )
 class TestMongoDBDict(MongoDBCollectionTest, SyncedDictTest):
-    # BSON does not support >8-byte ints, and these types may be larger
-    # depending on the architecture being tested. Programatically remove larger
-    # types since this may be architecture-dependent.
-    if NUMPY:
-        NUMPY_INT_TYPES = [
-            dtype
-            for dtype in SyncedListTest.NUMPY_INT_TYPES
-            if isinstance(dtype, numpy.number)
-            and numpy.log2(numpy.iinfo(dtype).max) / 8 <= 8
-        ]
-
     _collection_type = MongoDBDict
 
 
@@ -83,15 +95,4 @@ class TestMongoDBDict(MongoDBCollectionTest, SyncedDictTest):
     not PYMONGO, reason="test requires the pymongo package and mongodb server"
 )
 class TestMongoDBList(MongoDBCollectionTest, SyncedListTest):
-    # BSON does not support >8-byte ints, and these types may be larger
-    # depending on the architecture being tested. Programatically remove larger
-    # types since this may be architecture-dependent.
-    if NUMPY:
-        NUMPY_INT_TYPES = [
-            dtype
-            for dtype in SyncedListTest.NUMPY_INT_TYPES
-            if isinstance(dtype, numpy.number)
-            and numpy.log2(numpy.iinfo(dtype).max) / 8 <= 8
-        ]
-
     _collection_type = MongoDBList
