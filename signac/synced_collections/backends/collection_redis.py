@@ -73,6 +73,11 @@ class RedisCollection(SyncedCollection):
         raise TypeError("RedisCollection does not support deepcopying.")
 
 
+# TODO: Currently all the backends implicitly or explicitly rely on JSON
+# encoding. Redis and Zarr encode to JSON before serializing, while Mongo uses
+# BSON, which has nearly the same restrictions. Perhaps we should use the
+# validator for JSON formatting on all of them?
+
 # Redis collection relies on JSON-serialization for the data.
 RedisCollection.add_validator(json_format_validator)
 
