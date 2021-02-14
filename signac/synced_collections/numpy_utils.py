@@ -1,24 +1,9 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"""Define utilities for handling NumPy arrays.
+"""Define utilities for handling NumPy arrays."""
 
-Various parts of the synced collections framework require conversion of NumPy
-data types. Broadly speaking, there are two main reasons for this:
-    1. :class:`numpy.ndarray` objects must be converted into :class:`SyncedList`
-       objects. This requirement is true for all synced collections irrespective
-       of backend because all collections nested within a :class:`SyncedCollection`
-       must also be instances of :class:`SyncedCollection` to ensure that synchronization
-       always occurs on modification.
-    2. NumPy scalar types must be converted to raw Python types. This requirement
-       may not be true for all backends, and should be handled at that level.
-
-This module provides facilities for both.
-"""
-
-# TODO: Rewrite conditionals in most efficient manner.
 # TODO: Add warning on conversion.
-
 try:
     import numpy
 
@@ -38,20 +23,39 @@ try:
             return data.item()
         return data
 
-    def _is_numpy_type(data, allow_zero_d=False, allow_scalar=False):
-        """Check if an object is a numpy type.
+    def _is_nonscalar_numpy_array(data):
+        """Check if an object is a nonscalar numpy array.
+
+        0d numpy arrays are not considered numpy arrays by this function. This
+        behavior is in line with typical requirements in the synced collections
+        framework, since >0d arrays are mapped to (synced) lists while 0d
+        arrays are mapped to scalars.
+
+        Returns
+        -------
+        bool
+            Whether or not the input is a numpy array.
+        """
+        return isinstance(data, numpy.ndarray) and data.shape != ()
+
+    def _is_numpy_scalar(data, allow_zero_d_array=False):
+        """Check if an object is a numpy scalar.
+
+        In certain cases a 0d numpy array is an acceptable surrogate for a scalar,
+        in which case the optional parameter can be set to True.
 
         Parameters
         ----------
-        allow_zero_d : bool
+        allow_zero_d_array : bool
             If True, 0d numpy arrays will return True (Default value: False).
-        allow_scalar : bool
-            If True, numpy scalars will return True (Default value: False).
+
+        Returns
+        -------
+        bool
+            Whether or not the input is a numpy scalar type.
         """
-        return (
-            isinstance(data, numpy.ndarray)
-            and (data.shape != () or allow_zero_d)
-            or (allow_scalar and isinstance(data, (numpy.number, numpy.bool_)))
+        return isinstance(data, (numpy.number, numpy.bool_)) or (
+            allow_zero_d_array and isinstance(data, numpy.ndarray) and data.shape != ()
         )
 
 
@@ -61,6 +65,10 @@ except ImportError:
         """Trivial implementation if numpy is not present."""
         return data
 
-    def _is_numpy_type(data, allow_zero_d=False, allow_scalar=False):
+    def _is_nonscalar_numpy_array(data):
+        """Trivial implementation if numpy is not present."""
+        return False
+
+    def _is_numpy_scalar(data, allow_zero_d_array=False):
         """Trivial implementation if numpy is not present."""
         return False

@@ -10,7 +10,7 @@ give a list-like API to a synchronized data structure.
 
 from collections.abc import MutableSequence, Sequence
 
-from ..numpy_utils import _convert_numpy, _is_numpy_type
+from ..numpy_utils import _convert_numpy, _is_nonscalar_numpy_array
 from ..utils import AbstractTypeResolver
 from .synced_collection import SyncedCollection, _sc_resolver
 
@@ -19,7 +19,7 @@ _sequence_resolver = AbstractTypeResolver(
     {
         "SEQUENCE": (
             lambda obj: (isinstance(obj, Sequence) and not isinstance(obj, str))
-            or _is_numpy_type(obj)
+            or _is_nonscalar_numpy_array(obj)
         ),
     }
 )

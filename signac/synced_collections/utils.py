@@ -6,7 +6,7 @@
 from json import JSONEncoder
 from typing import Any, Dict
 
-from .numpy_utils import _convert_numpy, _is_numpy_type
+from .numpy_utils import _convert_numpy, _is_numpy_scalar
 
 
 class AbstractTypeResolver:
@@ -105,7 +105,11 @@ def default(o: Any) -> Dict[str, Any]:  # noqa: D102
     """
     # Numpy converters return the data unchanged.
     converted_o = _convert_numpy(o)
-    if _is_numpy_type(converted_o, allow_scalar=True):
+
+    # Numpy arrays will be converted to lists, then recursively parsed by the
+    # JSON encoder, so we only have to handle the case where we have a scalar
+    # type at the bottom level that can't been converted to a Python scalar.
+    if _is_numpy_scalar(converted_o):
         raise ValueError(
             "Only NumPy types that can be converted to raw Python types can be"
             "JSON-encoded. All other types, such as NumPy extended-precision types, "
