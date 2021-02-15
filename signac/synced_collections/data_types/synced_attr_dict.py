@@ -1,7 +1,7 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"""Implements the :class:`SyncedAttrDict`.
+"""Implements the :class:`SyncedDict`.
 
 This implements a dict-like data structure that also conforms to the
 :class:`~.SyncedCollection` API and can be combined with any backend type to
@@ -24,10 +24,10 @@ _mapping_resolver = AbstractTypeResolver(
 )
 
 
-class SyncedAttrDict(SyncedCollection, MutableMapping):
+class SyncedDict(SyncedCollection, MutableMapping):
     r"""Implement the dict data structure along with values access through attributes named as keys.
 
-    The SyncedAttrDict inherits from :class:`~.SyncedCollection`
+    The SyncedDict inherits from :class:`~.SyncedCollection`
     and :class:`~collections.abc.MutableMapping`. Therefore, it behaves like a
     :class:`dict`.
 
@@ -43,13 +43,13 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
 
     Warning
     -------
-    While the :class:`SyncedAttrDict` object behaves like a :class:`dict`,
+    While the :class:`SyncedDict` object behaves like a :class:`dict`,
     there are important distinctions to remember. In particular, because
     operations are reflected as changes to an underlying backend, copying (even
-    deep copying) a :class:`SyncedAttrDict` instance may exhibit unexpected
+    deep copying) a :class:`SyncedDict` instance may exhibit unexpected
     behavior. If a true copy is required, you should use the `_to_base()`
     method to get a :class:`dict` representation, and if necessary construct a
-    new :class:`SyncedAttrDict`.
+    new :class:`SyncedDict`.
     """
 
     # Must specify this as a variable length tuple to allow subclasses to
@@ -286,7 +286,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
     def _protected_keys(self):
         """Get the protected keys of this class.
 
-        The :class:`SyncedAttrDict` overrides the default getattr and setattr
+        The :class:`SyncedDict` overrides the default getattr and setattr
         methods to provide attribute-based access to dictionary elements. The
         cost of this feature is that internal attribute access is also piped
         through this logic and there is no easy way around it. To circumvent

@@ -4,7 +4,7 @@
 """Implements a Zarr :class:`~.SyncedCollection` backend."""
 from copy import deepcopy
 
-from .. import SyncedAttrDict, SyncedCollection, SyncedList
+from .. import SyncedCollection, SyncedDict, SyncedList
 from ..data_types.attr_dict import AttrDict
 from ..validators import no_dot_in_key
 
@@ -121,7 +121,7 @@ class ZarrCollection(SyncedCollection):
         return self._name
 
 
-class ZarrDict(ZarrCollection, SyncedAttrDict, AttrDict):
+class ZarrDict(ZarrCollection, SyncedDict, AttrDict):
     r"""A dict-like data structure that synchronizes with a Zarr group.
 
     Examples

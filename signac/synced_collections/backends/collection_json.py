@@ -10,7 +10,7 @@ import uuid
 import warnings
 from typing import Tuple
 
-from .. import SyncedAttrDict, SyncedCollection, SyncedList
+from .. import SyncedCollection, SyncedDict, SyncedList
 from ..buffers.memory_buffered_collection import SharedMemoryFileBufferedCollection
 from ..buffers.serialized_file_buffered_collection import (
     SerializedFileBufferedCollection,
@@ -173,7 +173,7 @@ class MemoryBufferedJSONCollection(SharedMemoryFileBufferedCollection, JSONColle
     _backend = __name__ + ".memory_buffered"  # type: ignore
 
 
-class JSONDict(JSONCollection, SyncedAttrDict, AttrDict):
+class JSONDict(JSONCollection, SyncedDict, AttrDict):
     r"""A dict-like data structure that synchronizes with a persistent JSON file.
 
     Examples
@@ -304,7 +304,7 @@ class JSONList(JSONCollection, SyncedList):
         )
 
 
-class BufferedJSONDict(BufferedJSONCollection, SyncedAttrDict, AttrDict):
+class BufferedJSONDict(BufferedJSONCollection, SyncedDict, AttrDict):
     """A buffered :class:`JSONDict`."""
 
     _PROTECTED_KEYS: Tuple[str, ...] = (
@@ -361,10 +361,10 @@ class BufferedJSONList(BufferedJSONCollection, SyncedList):
         )
 
 
-class MemoryBufferedJSONDict(MemoryBufferedJSONCollection, SyncedAttrDict, AttrDict):
+class MemoryBufferedJSONDict(MemoryBufferedJSONCollection, SyncedDict, AttrDict):
     """A buffered :class:`JSONDict`."""
 
-    _PROTECTED_KEYS: Tuple[str, ...] = SyncedAttrDict._PROTECTED_KEYS + (
+    _PROTECTED_KEYS: Tuple[str, ...] = SyncedDict._PROTECTED_KEYS + (
         "_filename",
         "_write_concern",
         "buffered",

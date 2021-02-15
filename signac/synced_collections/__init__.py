@@ -20,6 +20,6 @@ synchronization mechanism is completely transparent to the user; for example, a
 dict, and all changes will be automatically persisted to a JSON file.
 """
 
-from .data_types import SyncedAttrDict, SyncedCollection, SyncedList
+from .data_types import SyncedCollection, SyncedDict, SyncedList
 
-__all__ = ["SyncedCollection", "SyncedAttrDict", "SyncedList"]
+__all__ = ["SyncedCollection", "SyncedDict", "SyncedList"]

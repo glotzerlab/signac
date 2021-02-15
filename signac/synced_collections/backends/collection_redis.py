@@ -4,7 +4,7 @@
 """Implements a Redis :class:`~.SyncedCollection` backend."""
 import json
 
-from .. import SyncedAttrDict, SyncedCollection, SyncedList
+from .. import SyncedCollection, SyncedDict, SyncedList
 from ..data_types.attr_dict import AttrDict
 from ..validators import no_dot_in_key
 
@@ -71,7 +71,7 @@ class RedisCollection(SyncedCollection):
         raise TypeError("RedisCollection does not support deepcopying.")
 
 
-class RedisDict(RedisCollection, SyncedAttrDict, AttrDict):
+class RedisDict(RedisCollection, SyncedDict, AttrDict):
     r"""A dict-like data structure that synchronizes with a persistent Redis database.
 
     Examples

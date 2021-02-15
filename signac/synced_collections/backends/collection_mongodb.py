@@ -2,7 +2,7 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 """Implements a MongoDB :class:`~.SyncedCollection` backend."""
-from .. import SyncedAttrDict, SyncedCollection, SyncedList
+from .. import SyncedCollection, SyncedDict, SyncedList
 from ..data_types.attr_dict import AttrDict
 from ..validators import no_dot_in_key
 
@@ -108,7 +108,7 @@ class MongoDBCollection(SyncedCollection):
         raise TypeError("MongoDBCollection does not support deepcopying.")
 
 
-class MongoDBDict(MongoDBCollection, SyncedAttrDict, AttrDict):
+class MongoDBDict(MongoDBCollection, SyncedDict, AttrDict):
     r"""A dict-like data structure that synchronizes with a document in a MongoDB collection.
 
     Examples

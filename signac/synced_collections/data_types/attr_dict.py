@@ -34,7 +34,7 @@ class AttrDict:
 
     def __getattr__(self, name):
         if name.startswith("__"):
-            raise AttributeError(f"'AttrDict' object has no attribute '{name}'")
+            raise AttributeError(f"{type(self)} has no attribute '{name}'")
         try:
             return self.__getitem__(name)
         except KeyError as e:
