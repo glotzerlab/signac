@@ -5,9 +5,7 @@
 
 This implements a dict-like data structure that also conforms to the
 :class:`~.SyncedCollection` API and can be combined with any backend type to
-give a dict-like API to a synchronized data structure. This class also allows
-access to values through key indexing or attributes named by keys, including
-nested keys.
+give a dict-like API to a synchronized data structure.
 """
 
 from collections.abc import Mapping, MutableMapping
