@@ -3,8 +3,7 @@
 # This software is licensed under the BSD 3-Clause License.
 """Implements a MongoDB :class:`~.SyncedCollection` backend."""
 from .. import SyncedCollection, SyncedDict, SyncedList
-from ..data_types.attr_dict import AttrDict
-from ..validators import no_dot_in_key
+from ..validators import require_string_key
 
 try:
     import bson
@@ -108,7 +107,7 @@ class MongoDBCollection(SyncedCollection):
         raise TypeError("MongoDBCollection does not support deepcopying.")
 
 
-class MongoDBDict(MongoDBCollection, SyncedDict, AttrDict):
+class MongoDBDict(MongoDBCollection, SyncedDict):
     r"""A dict-like data structure that synchronizes with a document in a MongoDB collection.
 
     Examples
@@ -167,7 +166,7 @@ class MongoDBDict(MongoDBCollection, SyncedDict, AttrDict):
         )
 
 
-MongoDBDict.add_validator(no_dot_in_key)
+MongoDBDict.add_validator(require_string_key)
 
 
 class MongoDBList(MongoDBCollection, SyncedList):

@@ -5,8 +5,7 @@
 import json
 
 from .. import SyncedCollection, SyncedDict, SyncedList
-from ..data_types.attr_dict import AttrDict
-from ..validators import no_dot_in_key
+from ..validators import require_string_key
 
 
 class RedisCollection(SyncedCollection):
@@ -71,7 +70,7 @@ class RedisCollection(SyncedCollection):
         raise TypeError("RedisCollection does not support deepcopying.")
 
 
-class RedisDict(RedisCollection, SyncedDict, AttrDict):
+class RedisDict(RedisCollection, SyncedDict):
     r"""A dict-like data structure that synchronizes with a persistent Redis database.
 
     Examples
@@ -127,7 +126,10 @@ class RedisDict(RedisCollection, SyncedDict, AttrDict):
         )
 
 
-RedisDict.add_validator(no_dot_in_key)
+# TODO: This restriction actually may not be necessary, Redis can handle more
+# generic data types easily. However, for now it is easier to manage a uniform
+# set of restrictions across backends and relax this later.
+RedisDict.add_validator(require_string_key)
 
 
 class RedisList(RedisCollection, SyncedList):

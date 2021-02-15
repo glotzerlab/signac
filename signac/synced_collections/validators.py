@@ -54,6 +54,7 @@ def no_dot_in_key(data):
 
     if switch_type == "MAPPING":
         for key, value in data.items():
+            # TODO: Make it an error to have a non-str key here.
             if isinstance(key, str):
                 if "." in key:
                     raise InvalidKeyError(
@@ -67,6 +68,37 @@ def no_dot_in_key(data):
     elif switch_type == "NON_STR_SEQUENCE":
         for value in data:
             no_dot_in_key(value)
+
+
+def require_string_key(data):
+    """Raise an exception if key in a mapping is not a string.
+
+    Almost all supported backends require string keys.
+
+    Parameters
+    ----------
+    data
+        Data to validate.
+
+    Raises
+    ------
+    KeyTypeError
+        If key type is not not a string.
+
+    """
+    # Reuse the type resolver here since it's the same groupings.
+    switch_type = _no_dot_in_key_type_resolver.get_type(data)
+
+    if switch_type == "MAPPING":
+        for key, value in data.items():
+            if not isinstance(key, str):
+                raise KeyTypeError(
+                    f"Mapping keys must be str, not {type(key).__name__}"
+                )
+            require_string_key(value)
+    elif switch_type == "NON_STR_SEQUENCE":
+        for value in data:
+            require_string_key(value)
 
 
 _json_format_validator_type_resolver = AbstractTypeResolver(

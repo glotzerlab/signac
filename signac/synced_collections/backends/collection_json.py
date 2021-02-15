@@ -15,9 +15,8 @@ from ..buffers.memory_buffered_collection import SharedMemoryFileBufferedCollect
 from ..buffers.serialized_file_buffered_collection import (
     SerializedFileBufferedCollection,
 )
-from ..data_types.attr_dict import AttrDict
 from ..utils import SyncedCollectionJSONEncoder
-from ..validators import json_format_validator, no_dot_in_key
+from ..validators import json_format_validator
 
 
 # TODO: This method should be removed in signac 2.0.
@@ -173,7 +172,7 @@ class MemoryBufferedJSONCollection(SharedMemoryFileBufferedCollection, JSONColle
     _backend = __name__ + ".memory_buffered"  # type: ignore
 
 
-class JSONDict(JSONCollection, SyncedDict, AttrDict):
+class JSONDict(JSONCollection, SyncedDict):
     r"""A dict-like data structure that synchronizes with a persistent JSON file.
 
     Examples
@@ -240,9 +239,6 @@ class JSONDict(JSONCollection, SyncedDict, AttrDict):
         )
 
 
-JSONDict.add_validator(no_dot_in_key)
-
-
 class JSONList(JSONCollection, SyncedList):
     r"""A list-like data structure that synchronizes with a persistent JSON file.
 
@@ -304,7 +300,7 @@ class JSONList(JSONCollection, SyncedList):
         )
 
 
-class BufferedJSONDict(BufferedJSONCollection, SyncedDict, AttrDict):
+class BufferedJSONDict(BufferedJSONCollection, SyncedDict):
     """A buffered :class:`JSONDict`."""
 
     _PROTECTED_KEYS: Tuple[str, ...] = (
@@ -336,9 +332,6 @@ class BufferedJSONDict(BufferedJSONCollection, SyncedDict, AttrDict):
         )
 
 
-BufferedJSONDict.add_validator(no_dot_in_key)
-
-
 class BufferedJSONList(BufferedJSONCollection, SyncedList):
     """A buffered :class:`JSONList`."""
 
@@ -361,7 +354,7 @@ class BufferedJSONList(BufferedJSONCollection, SyncedList):
         )
 
 
-class MemoryBufferedJSONDict(MemoryBufferedJSONCollection, SyncedDict, AttrDict):
+class MemoryBufferedJSONDict(MemoryBufferedJSONCollection, SyncedDict):
     """A buffered :class:`JSONDict`."""
 
     _PROTECTED_KEYS: Tuple[str, ...] = SyncedDict._PROTECTED_KEYS + (
@@ -391,9 +384,6 @@ class MemoryBufferedJSONDict(MemoryBufferedJSONCollection, SyncedDict, AttrDict)
             *args,
             **kwargs,
         )
-
-
-MemoryBufferedJSONDict.add_validator(no_dot_in_key)
 
 
 class MemoryBufferedJSONList(MemoryBufferedJSONCollection, SyncedList):

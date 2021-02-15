@@ -7,7 +7,7 @@ from copy import deepcopy
 
 import pytest
 
-from signac.errors import InvalidKeyError, KeyTypeError
+from signac.errors import KeyTypeError
 from signac.synced_collections import SyncedCollection
 
 try:
@@ -216,35 +216,6 @@ class SyncedDictTest(SyncedCollectionTest):
         with pytest.raises(ValueError):
             synced_collection.reset([0, 1])
 
-    def test_attr_dict(self, synced_collection, testdata):
-        key = "test"
-        synced_collection[key] = testdata
-        assert len(synced_collection) == 1
-        assert key in synced_collection
-        assert synced_collection[key] == testdata
-        assert synced_collection.get(key) == testdata
-        assert synced_collection.test == testdata
-        del synced_collection.test
-        assert len(synced_collection) == 0
-        assert key not in synced_collection
-        key = "test2"
-        synced_collection.test2 = testdata
-        assert len(synced_collection) == 1
-        assert key in synced_collection
-        assert synced_collection[key] == testdata
-        assert synced_collection.get(key) == testdata
-        assert synced_collection.test2 == testdata
-        with pytest.raises(AttributeError):
-            synced_collection.not_exist
-
-        # deleting a protected attribute
-        synced_collection._load()
-        del synced_collection._root
-        # deleting _root will lead to recursion as _root is treated as key
-        # _load() will check for _root and __getattr__ will call __getitem__ which calls _load()
-        with pytest.raises(RecursionError):
-            synced_collection._load()
-
     def test_clear(self, synced_collection, testdata):
         key = "clear"
         synced_collection[key] = testdata
@@ -294,9 +265,9 @@ class SyncedDictTest(SyncedCollectionTest):
         assert synced_collection2[key] == testdata
 
     def test_update_recursive(self, synced_collection, testdata):
-        synced_collection.a = {"a": 1}
-        synced_collection.b = "test"
-        synced_collection.c = [0, 1, 2]
+        synced_collection["a"] = {"a": 1}
+        synced_collection["b"] = "test"
+        synced_collection["c"] = [0, 1, 2]
         assert "a" in synced_collection
         assert "b" in synced_collection
         assert "c" in synced_collection
@@ -369,10 +340,6 @@ class SyncedDictTest(SyncedCollectionTest):
         assert len(synced_collection) == 1
         assert synced_collection[key] == testdata
 
-    def test_keys_with_dots(self, synced_collection):
-        with pytest.raises(InvalidKeyError):
-            synced_collection["a.b"] = None
-
     def test_keys_str_type(self, synced_collection, testdata):
         class MyStr(str):
             pass
@@ -382,11 +349,13 @@ class SyncedDictTest(SyncedCollectionTest):
             assert key in synced_collection
             assert synced_collection[key] == testdata
 
+    # TODO: This test should only be applied for backends where JSON-formatting
+    # is required.
     def test_keys_invalid_type(self, synced_collection, testdata):
         class A:
             pass
 
-        for key in (0.0, A(), (1, 2, 3)):
+        for key in (A(), (1, 2, 3)):
             with pytest.raises(KeyTypeError):
                 synced_collection[key] = testdata
         for key in ([], {}):
