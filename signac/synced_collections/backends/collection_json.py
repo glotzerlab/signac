@@ -15,8 +15,27 @@ from ..buffers.memory_buffered_collection import SharedMemoryFileBufferedCollect
 from ..buffers.serialized_file_buffered_collection import (
     SerializedFileBufferedCollection,
 )
+from ..errors import KeyTypeError
 from ..utils import SyncedCollectionJSONEncoder
 from ..validators import json_format_validator
+
+
+# TODO: This method should be removed in signac 2.0.
+def _str_key(key):
+    VALID_KEY_TYPES = (str, int, bool, type(None))
+
+    if not isinstance(key, VALID_KEY_TYPES):
+        raise KeyTypeError(
+            f"Mapping keys must be str, int, bool or None, not {type(key).__name__}"
+        )
+    elif not isinstance(key, str):
+        warnings.warn(
+            f"Use of {type(key).__name__} as key is deprecated "
+            "and will be removed in version 2.0",
+            DeprecationWarning,
+        )
+        key = str(key)
+    return key
 
 
 # TODO: This method should be removed in signac 2.0.
@@ -38,18 +57,9 @@ def _convert_key_to_str(data):
     This behavior can be removed in signac 2.0 once non-str keys become an error.
     """
     if isinstance(data, dict):
-
-        def _str_key(key):
-            if not isinstance(key, str):
-                warnings.warn(
-                    f"Use of {type(key).__name__} as key is deprecated "
-                    "and will be removed in version 2.0",
-                    DeprecationWarning,
-                )
-                key = str(key)
-            return key
-
-        # Get a list of keys a priori to support modification in place.
+        # Explicitly call `list(keys)` to get a fixed list of keys to avoid
+        # running into issues with iterating over a DictKeys view while
+        # modifying the dict at the same time.
         for key in list(data):
             _convert_key_to_str(data[key])
             data[_str_key(key)] = data.pop(key)
@@ -146,8 +156,14 @@ class JSONCollection(SyncedCollection):
         return self._filename
 
 
-# The _convert_key_to_str validator will be removed in signac 2.0.
-JSONCollection.add_validator(json_format_validator, _convert_key_to_str)
+# The order in which these validators are added is important, because
+# validators are called in sequence and _convert_key_to_str will ensure that
+# valid non-str keys are converted to strings before json_format_validator is
+# called. This ordering is an implementation detail that we should not rely on
+# in the future, however, the _convert_key_to_str validator will be removed in
+# signac 2.0 so this is OK (that validator is modifying the data in place,
+# which is also not supported behavior for validators anyway).
+JSONCollection.add_validator(_convert_key_to_str, json_format_validator)
 
 
 class BufferedJSONCollection(SerializedFileBufferedCollection, JSONCollection):

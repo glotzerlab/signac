@@ -39,11 +39,11 @@ class TestNoDotInKey:
     def test_valid_data(self, testdata):
         test_dict = {}
         # valid data
-        for key in ("valid_str", 1, False, None):
-            test_dict[key] = testdata
-            no_dot_in_key(test_dict)
-            assert key in test_dict
-            assert test_dict[key] == testdata
+        key = "valid_str"
+        test_dict[key] = testdata
+        no_dot_in_key(test_dict)
+        assert key in test_dict
+        assert test_dict[key] == testdata
 
     def test_invalid_data(self, testdata):
         # dict key containing dot
@@ -56,7 +56,7 @@ class TestNoDotInKey:
         with pytest.raises(InvalidKeyError):
             no_dot_in_key([{"a.b": 1}])
         # invalid key types
-        for key in (0.0, 1.0 + 2.0j, (1, 2, 3)):
+        for key in (0.0, 1.0 + 2.0j, (1, 2, 3), 1, False, None):
             with pytest.raises(KeyTypeError):
                 no_dot_in_key({key: testdata})
 
