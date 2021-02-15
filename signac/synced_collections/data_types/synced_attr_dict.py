@@ -14,7 +14,6 @@ from collections.abc import Mapping, MutableMapping
 from typing import Tuple
 
 from ..utils import AbstractTypeResolver
-from ..validators import no_dot_in_key
 from .synced_collection import SyncedCollection, _sc_resolver
 
 # Identifies mappings, which are the base type for this class.
@@ -29,9 +28,8 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
     r"""Implement the dict data structure along with values access through attributes named as keys.
 
     The SyncedAttrDict inherits from :class:`~.SyncedCollection`
-    and :class:`~collections.abc.MutableMapping`. Therefore, it behaves similar to
-    a :class:`dict`. This class also allows access to values through key indexing or
-    attributes named by keys, including nested keys.
+    and :class:`~collections.abc.MutableMapping`. Therefore, it behaves like a
+    :class:`dict`.
 
     Parameters
     ----------
@@ -310,30 +308,3 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
                     protected_keys.update(base_cls._PROTECTED_KEYS)
             type(self)._all_protected_keys = protected_keys
             return protected_keys
-
-    def __getattr__(self, name):
-        if name.startswith("__"):
-            raise AttributeError(f"'SyncedAttrDict' object has no attribute '{name}'")
-        try:
-            return self.__getitem__(name)
-        except KeyError as e:
-            raise AttributeError(e)
-
-    def __setattr__(self, key, value):
-        # This logic assumes that __setitem__ will not be called until after
-        # the object has been fully instantiated. We may want to add a try
-        # except in the else clause in case someone subclasses these and tries
-        # to use d['foo'] inside a constructor prior to _data being defined.
-        if key.startswith("__") or key in self._protected_keys:
-            super().__setattr__(key, value)
-        else:
-            self.__setitem__(key, value)
-
-    def __delattr__(self, key):
-        if key.startswith("__") or key in self._protected_keys:
-            super().__delattr__(key)
-        else:
-            self.__delitem__(key)
-
-
-SyncedAttrDict.add_validator(no_dot_in_key)

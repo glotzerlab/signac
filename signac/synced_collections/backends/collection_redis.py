@@ -5,6 +5,8 @@
 import json
 
 from .. import SyncedAttrDict, SyncedCollection, SyncedList
+from ..data_types.attr_dict import AttrDict
+from ..validators import no_dot_in_key
 
 
 class RedisCollection(SyncedCollection):
@@ -69,7 +71,7 @@ class RedisCollection(SyncedCollection):
         raise TypeError("RedisCollection does not support deepcopying.")
 
 
-class RedisDict(RedisCollection, SyncedAttrDict):
+class RedisDict(RedisCollection, SyncedAttrDict, AttrDict):
     r"""A dict-like data structure that synchronizes with a persistent Redis database.
 
     Examples
@@ -123,6 +125,9 @@ class RedisDict(RedisCollection, SyncedAttrDict):
         super().__init__(
             client=client, key=key, data=data, parent=parent, *args, **kwargs
         )
+
+
+RedisDict.add_validator(no_dot_in_key)
 
 
 class RedisList(RedisCollection, SyncedList):

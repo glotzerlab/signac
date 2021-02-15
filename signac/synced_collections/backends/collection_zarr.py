@@ -5,6 +5,8 @@
 from copy import deepcopy
 
 from .. import SyncedAttrDict, SyncedCollection, SyncedList
+from ..data_types.attr_dict import AttrDict
+from ..validators import no_dot_in_key
 
 try:
     import numcodecs
@@ -119,7 +121,7 @@ class ZarrCollection(SyncedCollection):
         return self._name
 
 
-class ZarrDict(ZarrCollection, SyncedAttrDict):
+class ZarrDict(ZarrCollection, SyncedAttrDict, AttrDict):
     r"""A dict-like data structure that synchronizes with a Zarr group.
 
     Examples
@@ -174,6 +176,9 @@ class ZarrDict(ZarrCollection, SyncedAttrDict):
         super().__init__(
             group=group, name=name, data=data, parent=parent, *args, **kwargs
         )
+
+
+ZarrDict.add_validator(no_dot_in_key)
 
 
 class ZarrList(ZarrCollection, SyncedList):
