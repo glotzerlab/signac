@@ -65,6 +65,10 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         "_root",
         "_validators",
         "_load_and_save",
+        "_suspend_sync",
+        "_supports_threading",
+        "_LoadSaveType",
+        "registry",
     )
 
     def __init__(self, data=None, *args, **kwargs):
@@ -316,15 +320,14 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
             raise AttributeError(e)
 
     def __setattr__(self, key, value):
-        try:
-            self.__getattribute__("_data")
-        except AttributeError:
+        # This logic assumes that __setitem__ will not be called until after
+        # the object has been fully instantiated. We may want to add a try
+        # except in the else clause in case someone subclasses these and tries
+        # to use d['foo'] inside a constructor prior to _data being defined.
+        if key.startswith("__") or key in self._protected_keys:
             super().__setattr__(key, value)
         else:
-            if key.startswith("__") or key in self._protected_keys:
-                super().__setattr__(key, value)
-            else:
-                self.__setitem__(key, value)
+            self.__setitem__(key, value)
 
     def __delattr__(self, key):
         if key.startswith("__") or key in self._protected_keys:

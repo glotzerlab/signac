@@ -152,6 +152,11 @@ class MongoDBDict(MongoDBCollection, SyncedAttrDict):
 
     """
 
+    _PROTECTED_KEYS = (
+        "_collection",
+        "_uid",
+    )
+
     def __init__(
         self, collection=None, uid=None, data=None, parent=None, *args, **kwargs
     ):

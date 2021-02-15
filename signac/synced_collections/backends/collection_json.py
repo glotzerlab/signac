@@ -218,7 +218,7 @@ class JSONDict(JSONCollection, SyncedAttrDict):
 
     """
 
-    _PROTECTED_KEYS: Tuple[str, ...] = ("_filename",)
+    _PROTECTED_KEYS: Tuple[str, ...] = ("_filename", "_write_concern")
 
     def __init__(
         self,
@@ -305,8 +305,12 @@ class BufferedJSONDict(BufferedJSONCollection, SyncedAttrDict):
 
     _PROTECTED_KEYS: Tuple[str, ...] = (
         "_filename",
-        "_buffered",
+        "_write_concern",
+        "buffered",
         "_is_buffered",
+        "_buffer_lock",
+        "_buffer_context",
+        "_buffered_collections",
     )
 
     def __init__(
@@ -355,8 +359,12 @@ class MemoryBufferedJSONDict(MemoryBufferedJSONCollection, SyncedAttrDict):
 
     _PROTECTED_KEYS: Tuple[str, ...] = SyncedAttrDict._PROTECTED_KEYS + (
         "_filename",
-        "_buffered",
+        "_write_concern",
+        "buffered",
         "_is_buffered",
+        "_buffer_lock",
+        "_buffer_context",
+        "_buffered_collections",
     )
 
     def __init__(
