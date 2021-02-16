@@ -65,6 +65,15 @@ try:
     )
     NUMPY_SHAPES: Tuple[Any, ...] = (None, (1,), (2,), (2, 2))
 
+    # Older numpy versions don't have the new rngs.
+    try:
+        rng = numpy.random.default_rng()
+        random_sample = rng.random
+        randint = rng.integers
+    except AttributeError:
+        random_sample = numpy.random.random_sample
+        randint = numpy.random.randint
+
 except ImportError:
     NUMPY = False
     NUMPY_INT_TYPES = ()
@@ -502,7 +511,7 @@ class SyncedDictTest(SyncedCollectionTest):
             max_value = numpy.iinfo(dtype).max
         except ValueError:
             max_value = 1
-        value = numpy.random.randint(max_value, dtype=dtype, size=shape)
+        value = randint(max_value, dtype=dtype, size=shape)
 
         with pytest.warns(NumpyConversionWarning):
             synced_collection["numpy_dtype_val"] = value
@@ -514,7 +523,7 @@ class SyncedDictTest(SyncedCollectionTest):
     @pytest.mark.parametrize("shape", NUMPY_SHAPES)
     def test_set_get_numpy_float_data(self, synced_collection, dtype, shape):
         """Test setting scalar float types, which work if a raw Python analog exists."""
-        value = dtype(numpy.random.default_rng().random(shape))
+        value = dtype(random_sample(shape))
 
         # If casting via item does not give a base Python type, the number
         # should fail to set correctly.
@@ -545,7 +554,7 @@ class SyncedDictTest(SyncedCollectionTest):
         # backends that support other data, or if we want to test cases like
         # ZarrCollection with a non-JSON codec (alternatives are supported, but
         # not a priority to test here).
-        value = dtype(numpy.random.default_rng().random(shape))
+        value = dtype(random_sample(shape))
 
         with pytest.raises((ValueError, TypeError)), pytest.warns(
             NumpyConversionWarning
@@ -783,7 +792,7 @@ class SyncedListTest(SyncedCollectionTest):
             max_value = numpy.iinfo(dtype).max
         except ValueError:
             max_value = 1
-        value = numpy.random.randint(max_value, dtype=dtype, size=shape)
+        value = randint(max_value, dtype=dtype, size=shape)
 
         with pytest.warns(NumpyConversionWarning):
             synced_collection.append(value)
@@ -799,7 +808,7 @@ class SyncedListTest(SyncedCollectionTest):
     @pytest.mark.parametrize("shape", NUMPY_SHAPES)
     def test_set_get_numpy_float_data(self, synced_collection, dtype, shape):
         """Test setting scalar float types, which work if a raw Python analog exists."""
-        value = dtype(numpy.random.default_rng().random(shape))
+        value = dtype(random_sample(shape))
 
         # If casting via item does not give a base Python type, the number
         # should fail to set correctly.
@@ -832,7 +841,7 @@ class SyncedListTest(SyncedCollectionTest):
         # backends that support other data, or if we want to test cases like
         # ZarrCollection with a non-JSON codec (alternatives are supported, but
         # not a priority to test here).
-        value = dtype(numpy.random.default_rng().random(shape))
+        value = dtype(random_sample(shape))
 
         with pytest.raises((ValueError, TypeError)), pytest.warns(
             NumpyConversionWarning
@@ -852,7 +861,7 @@ class SyncedListTest(SyncedCollectionTest):
             max_value = numpy.iinfo(dtype).max
         except ValueError:
             max_value = 1
-        value = numpy.random.randint(max_value, dtype=dtype, size=shape)
+        value = randint(max_value, dtype=dtype, size=shape)
 
         if shape is None:
             with pytest.raises((ValueError, TypeError)), pytest.warns(
