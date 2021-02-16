@@ -58,6 +58,7 @@ class MongoDBCollection(SyncedCollection):
     _backend = __name__  # type: ignore
 
     def __init__(self, collection=None, uid=None, parent=None, *args, **kwargs):
+        super().__init__(parent=parent, **kwargs)
         if not MONGO:
             raise RuntimeError(
                 "The PyMongo package must be installed to use the MongoDBCollection."
@@ -67,7 +68,6 @@ class MongoDBCollection(SyncedCollection):
         if uid is not None and "data" in uid:
             raise ValueError("The key 'data' may not be part of the uid.")
         self._uid = uid
-        super().__init__(parent=parent, **kwargs)
 
     def _load_from_resource(self):
         """Load the data from a MongoDB document.

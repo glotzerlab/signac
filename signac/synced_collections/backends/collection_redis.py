@@ -33,9 +33,9 @@ class RedisCollection(SyncedCollection):
     _backend = __name__  # type: ignore
 
     def __init__(self, client=None, key=None, *args, **kwargs):
+        super().__init__(**kwargs)
         self._client = client
         self._key = key
-        super().__init__(**kwargs)
 
     def _load_from_resource(self):
         """Load the data from a Redis database.

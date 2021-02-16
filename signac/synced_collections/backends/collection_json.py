@@ -121,9 +121,12 @@ class JSONCollection(SyncedCollection):
     _supports_threading = True
 
     def __init__(self, filename=None, write_concern=False, *args, **kwargs):
-        self._write_concern = write_concern
+        # The `_filename` attribute _must_ be defined prior to calling the
+        # superclass constructors because the filename defines the `_lock_id`
+        # used to uniquely identify thread locks for this collection.
         self._filename = filename
         super().__init__(*args, **kwargs)
+        self._write_concern = write_concern
 
     def _load_from_resource(self):
         """Load the data from a JSON file.
