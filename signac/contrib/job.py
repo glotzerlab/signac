@@ -439,7 +439,7 @@ class Job:
             modifiable copy that will not modify the underlying JSON file,
             you can access a dict copy of the state point by calling it, e.g.
             ``sp_dict = job.statepoint()`` instead of ``sp = job.statepoint``.
-            For more information, see : :class:`~signac.JSONAttrDict`.
+            For more information, see : :class:`~signac.JSONDict`.
 
         See :ref:`signac statepoint <signac-cli-statepoint>` for the command line equivalent.
 

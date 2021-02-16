@@ -20,13 +20,13 @@ from ..errors import KeyTypeError
 from ..utils import SyncedCollectionJSONEncoder
 from ..validators import json_format_validator, no_dot_in_key
 
-###############################################################################
-# There are many classes defined in this file. Most of the definitions are    #
-# trivial since logic is largely inherited, but the large number of classes   #
-# and the extensive docstrings can be intimidating and make the source        #
-# difficult to parse. Section headers like these are used to organize the     #
-# code to reduce this barrier.                                                #
-###############################################################################
+"""
+There are many classes defined in this file. Most of the definitions are
+trivial since logic is largely inherited, but the large number of classes
+and the extensive docstrings can be intimidating and make the source
+difficult to parse. Section headers like these are used to organize the
+code to reduce this barrier.
+"""
 
 
 # TODO: This method should be removed in signac 2.0.
@@ -77,13 +77,13 @@ def _convert_key_to_str(data):
             _convert_key_to_str(value)
 
 
-###############################################################################
-# Here we define the main JSONCollection class that encapsulates most of the  #
-# logic for reading from and writing to JSON files. The remaining classes in  #
-# this file inherit from these classes to add features like buffering or      #
-# attribute-based dictionary access, each with a different backend name for   #
-# correct resolution of nested SyncedCollection types.                        #
-###############################################################################
+"""
+Here we define the main JSONCollection class that encapsulates most of the
+logic for reading from and writing to JSON files. The remaining classes in
+this file inherit from these classes to add features like buffering or
+attribute-based dictionary access, each with a different backend name for
+correct resolution of nested SyncedCollection types.
+"""
 
 
 class JSONCollection(SyncedCollection):
@@ -183,7 +183,7 @@ class JSONCollection(SyncedCollection):
 # called. This ordering is an implementation detail that we should not rely on
 # in the future, however, the _convert_key_to_str validator will be removed in
 # signac 2.0 so this is OK (that validator is modifying the data in place,
-# which is also not supported behavior for validators anyway).
+# which is unsupported behavior that will be removed in signac 2.0 as well).
 JSONCollection.add_validator(_convert_key_to_str, json_format_validator)
 
 
@@ -333,11 +333,11 @@ class JSONList(JSONCollection, SyncedList):
         )
 
 
-###############################################################################
-# Here we define the BufferedJSONCollection class and its data type           #
-# subclasses, which augment the JSONCollection with a serialized in-memory    #
-# buffer for improved performance.
-###############################################################################
+"""
+Here we define the BufferedJSONCollection class and its data type
+subclasses, which augment the JSONCollection with a serialized in-memory
+buffer for improved performance.
+"""
 
 
 class BufferedJSONCollection(SerializedFileBufferedCollection, JSONCollection):
@@ -409,11 +409,11 @@ class BufferedJSONList(BufferedJSONCollection, SyncedList):
         )
 
 
-###############################################################################
-# Here we define the MemoryBufferedJSONCollection class and its data type     #
-# subclasses, which augment the JSONCollection with a serialized in-memory    #
-# buffer for improved performance.
-###############################################################################
+"""
+Here we define the MemoryBufferedJSONCollection class and its data type
+subclasses, which augment the JSONCollection with a serialized in-memory
+buffer for improved performance.
+"""
 
 
 class MemoryBufferedJSONCollection(SharedMemoryFileBufferedCollection, JSONCollection):
@@ -475,12 +475,12 @@ class MemoryBufferedJSONList(MemoryBufferedJSONCollection, SyncedList):
         )
 
 
-###############################################################################
-# Here we define various extensions of the above classes that add             #
-# attribute-based access to dictionaries. Although list behavior is not       #
-# modified in any way by these, they still require separate classes with the  #
-# right backend so that nested classes are created appropriately.             #
-###############################################################################
+"""
+Here we define various extensions of the above classes that add
+attribute-based access to dictionaries. Although list behavior is not
+modified in any way by these, they still require separate classes with the
+right backend so that nested classes are created appropriately.
+"""
 
 
 class JSONAttrDict(JSONDict, AttrDict):
@@ -539,7 +539,7 @@ JSONAttrDict.add_validator(no_dot_in_key)
 
 
 class JSONAttrList(JSONList):
-    r"""A :class:`JSONList` whose children will be of type :class:`JSONAttrDict`."""
+    """A :class:`JSONList` whose dict-like children will be of type :class:`JSONAttrDict`."""
 
     _backend = __name__ + ".attr"  # type: ignore
 
@@ -554,7 +554,7 @@ BufferedJSONAttrDict.add_validator(no_dot_in_key)
 
 
 class BufferedJSONAttrList(BufferedJSONList):
-    r"""A :class:`BufferedJSONList` whose children will be of type :class:`BufferedJSONAttrDict`."""
+    """A :class:`BufferedJSONList` whose dict-like children will be of type :class:`BufferedJSONAttrDict`."""  # noqa: E501
 
     _backend = __name__ + ".buffered_attr"  # type: ignore
 
@@ -569,6 +569,6 @@ MemoryBufferedJSONAttrDict.add_validator(no_dot_in_key)
 
 
 class MemoryBufferedJSONAttrList(MemoryBufferedJSONList):
-    r"""A :class:`MemoryBufferedJSONList` :class:`MemoryBufferedJSONAttrDict` children."""
+    """A :class:`MemoryBufferedJSONList` whose dict-like children will be of type :class:`MemoryBufferedJSONAttrDict`."""  # noqa: E501
 
     _backend = __name__ + ".memory_buffered_attr"  # type: ignore

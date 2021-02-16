@@ -59,7 +59,7 @@ def no_dot_in_key(data):
                     raise InvalidKeyError(
                         f"Mapping keys may not contain dots ('.'): {key}"
                     )
-            # TODO: Make it an error to have a non-str key here.
+            # TODO: Make it an error to have a non-str key here in signac 2.0.
             elif not isinstance(key, VALID_KEY_TYPES):
                 raise KeyTypeError(
                     f"Mapping keys must be str, int, bool or None, not {type(key).__name__}"
@@ -86,7 +86,7 @@ def require_string_key(data):
         If key type is not not a string.
 
     """
-    # Reuse the type resolver here since it's the same groupings.
+    # Reuse the type resolver here since it has the same groupings.
     switch_type = _no_dot_in_key_type_resolver.get_type(data)
 
     if switch_type == "MAPPING":

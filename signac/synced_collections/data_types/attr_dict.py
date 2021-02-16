@@ -3,24 +3,24 @@
 # This software is licensed under the BSD 3-Clause License.
 """Implements the :class:`AttrDict`.
 
-This simple mixin class implements overloads for setattr, getattr, and delattr.
-While we do not want to offer this API generally for all SyncedDict objects,
-some applications may want to add this feature, so this simple mixin can be
-combined via inheritance without causing much difficulty.
+This simple mixin class implements overloads for __setattr__, __getattr__, and
+__delattr__.  While we do not want to offer this API generally for all
+SyncedDict objects, some applications may want to add this feature, so this
+simple mixin can be combined via inheritance without causing much difficulty.
 """
 
 from typing import Tuple
 
 
 class AttrDict:
-    r"""A class that redirects attribute access methods to getitem.
+    r"""A class that redirects attribute access methods to __getitem__.
 
     Although this class is called an :class:`AttrDict`, it does not directly
     inherit from any dict-like class or offer any relevant APIs. Its only purpose
     is to be used as a mixin with other dict-like classes to add attribute-based
     access to dictionary contents.
 
-    Subclasses that inherit from this class must define the `_PROTECTED_KEYS`
+    Subclasses that inherit from this class must define the ``_PROTECTED_KEYS``
     class variable, which indicates known attributes of the object. This indication
     is necessary because otherwise accessing ``obj.data`` is ambiguous as to
     whether it is a reference to a special ``data`` attribute or whether it is
