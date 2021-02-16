@@ -48,19 +48,21 @@ def no_dot_in_key(data):
         If the key contains invalid characters or is otherwise malformed.
 
     """
+    VALID_KEY_TYPES = (str, int, bool, type(None))
+
     switch_type = _no_dot_in_key_type_resolver.get_type(data)
 
     if switch_type == "MAPPING":
         for key, value in data.items():
-            # TODO: Make it an error to have a non-str key here.
             if isinstance(key, str):
                 if "." in key:
                     raise InvalidKeyError(
                         f"Mapping keys may not contain dots ('.'): {key}"
                     )
-            elif not isinstance(key, str):
+            # TODO: Make it an error to have a non-str key here.
+            elif not isinstance(key, VALID_KEY_TYPES):
                 raise KeyTypeError(
-                    f"Mapping keys must be str, not {type(key).__name__}"
+                    f"Mapping keys must be str, int, bool or None, not {type(key).__name__}"
                 )
             no_dot_in_key(value)
     elif switch_type == "NON_STR_SEQUENCE":

@@ -77,15 +77,12 @@ class RedisDict(RedisCollection, SyncedDict):
     --------
     >>> doc = RedisDict('data')
     >>> doc['foo'] = "bar"
-    >>> assert doc.foo == doc['foo'] == "bar"
+    >>> assert doc['foo'] == "bar"
     >>> assert 'foo' in doc
     >>> del doc['foo']
     >>> doc['foo'] = dict(bar=True)
     >>> doc
     {'foo': {'bar': True}}
-    >>> doc.foo.bar = False
-    >>> doc
-    {'foo': {'bar': False}}
 
     Parameters
     ----------

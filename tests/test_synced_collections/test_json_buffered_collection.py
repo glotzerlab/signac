@@ -9,12 +9,17 @@ from concurrent.futures import ThreadPoolExecutor
 from tempfile import TemporaryDirectory
 
 import pytest
+from attr_dict_test import AttrDictTest, AttrListTest
 from test_json_collection import JSONCollectionTest, TestJSONDict, TestJSONList
 
 from signac.synced_collections.backends.collection_json import (
+    BufferedJSONAttrDict,
+    BufferedJSONAttrList,
     BufferedJSONCollection,
     BufferedJSONDict,
     BufferedJSONList,
+    MemoryBufferedJSONAttrDict,
+    MemoryBufferedJSONAttrList,
     MemoryBufferedJSONCollection,
     MemoryBufferedJSONDict,
     MemoryBufferedJSONList,
@@ -782,3 +787,23 @@ class TestBufferedJSONDictWriteConcern(TestBufferedJSONDict):
 
 class TestBufferedJSONListWriteConcern(TestBufferedJSONList):
     _write_concern = True
+
+
+class TestBufferedJSONAttrDict(TestBufferedJSONDict, AttrDictTest):
+
+    _collection_type = BufferedJSONAttrDict  # type: ignore
+
+
+class TestBufferedJSONAttrList(TestBufferedJSONList, AttrListTest):
+
+    _collection_type = BufferedJSONAttrList  # type: ignore
+
+
+class TestMemoryBufferedJSONAttrDict(TestMemoryBufferedJSONDict, AttrDictTest):
+
+    _collection_type = MemoryBufferedJSONAttrDict  # type: ignore
+
+
+class TestMemoryBufferedJSONAttrList(TestMemoryBufferedJSONList, AttrListTest):
+
+    _collection_type = MemoryBufferedJSONAttrList  # type: ignore

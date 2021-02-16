@@ -24,6 +24,11 @@ from .utility import _mkdir_p
 logger = logging.getLogger(__name__)
 
 
+# Note: All children of _StatePointDict will be of its parent type because they
+# share a backend and the SyncedCollection registry parses the classes in order
+# of registration. _If_ we need more control over this, that process can be
+# exposed more thoroughly and registration can be made explicit rather than
+# implicit, but for now the existing behavior works fine.
 class _StatePointDict(JSONDict):
     """A JSON-backed dictionary for storing job state points.
 
