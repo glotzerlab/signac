@@ -184,6 +184,27 @@ class JSONCollection(SyncedCollection):
 JSONCollection.add_validator(_convert_key_to_str, json_format_validator)
 
 
+# These are the common protected keys used by all JSONDict types.
+_JSONDICT_PROTECTED_KEYS = (
+    # These are all protected keys that are inherited from data type classes.
+    "_data",
+    "_name",
+    "_suspend_sync_",
+    "_load",
+    "_sync",
+    "_root",
+    "_validators",
+    "_load_and_save",
+    "_suspend_sync",
+    "_supports_threading",
+    "_LoadSaveType",
+    "registry",
+    # These keys are specific to the JSON backend.
+    "_filename",
+    "_write_concern",
+)
+
+
 class JSONDict(JSONCollection, SyncedDict):
     r"""A dict-like data structure that synchronizes with a persistent JSON file.
 
@@ -227,7 +248,7 @@ class JSONDict(JSONCollection, SyncedDict):
 
     """
 
-    _PROTECTED_KEYS: Tuple[str, ...] = ("_filename", "_write_concern")
+    _PROTECTED_KEYS: Tuple[str, ...] = _JSONDICT_PROTECTED_KEYS
 
     def __init__(
         self,
@@ -327,17 +348,21 @@ class BufferedJSONCollection(SerializedFileBufferedCollection, JSONCollection):
     _backend = __name__ + ".buffered"  # type: ignore
 
 
+# These are the keys common to buffer backends.
+_BUFFERED_PROTECTED_KEYS = (
+    "buffered",
+    "_is_buffered",
+    "_buffer_lock",
+    "_buffer_context",
+    "_buffered_collections",
+)
+
+
 class BufferedJSONDict(BufferedJSONCollection, SyncedDict):
     """A buffered :class:`JSONDict`."""
 
     _PROTECTED_KEYS: Tuple[str, ...] = (
-        "_filename",
-        "_write_concern",
-        "buffered",
-        "_is_buffered",
-        "_buffer_lock",
-        "_buffer_context",
-        "_buffered_collections",
+        _JSONDICT_PROTECTED_KEYS + _BUFFERED_PROTECTED_KEYS
     )
 
     def __init__(
@@ -402,14 +427,8 @@ class MemoryBufferedJSONCollection(SharedMemoryFileBufferedCollection, JSONColle
 class MemoryBufferedJSONDict(MemoryBufferedJSONCollection, SyncedDict):
     """A buffered :class:`JSONDict`."""
 
-    _PROTECTED_KEYS: Tuple[str, ...] = SyncedDict._PROTECTED_KEYS + (
-        "_filename",
-        "_write_concern",
-        "buffered",
-        "_is_buffered",
-        "_buffer_lock",
-        "_buffer_context",
-        "_buffered_collections",
+    _PROTECTED_KEYS: Tuple[str, ...] = (
+        _JSONDICT_PROTECTED_KEYS + _BUFFERED_PROTECTED_KEYS
     )
 
     def __init__(
@@ -511,7 +530,6 @@ class JSONAttrDict(JSONDict, AttrDict):
     """
 
     _backend = __name__ + ".attr"  # type: ignore
-    _PROTECTED_KEYS: Tuple[str, ...] = ("_filename", "_write_concern")
 
 
 JSONAttrDict.add_validator(no_dot_in_key)
@@ -528,16 +546,6 @@ class BufferedJSONAttrDict(BufferedJSONDict, AttrDict):
 
     _backend = __name__ + ".buffered_attr"  # type: ignore
 
-    _PROTECTED_KEYS: Tuple[str, ...] = (
-        "_filename",
-        "_write_concern",
-        "buffered",
-        "_is_buffered",
-        "_buffer_lock",
-        "_buffer_context",
-        "_buffered_collections",
-    )
-
 
 BufferedJSONAttrDict.add_validator(no_dot_in_key)
 
@@ -552,16 +560,6 @@ class MemoryBufferedJSONAttrDict(MemoryBufferedJSONDict, AttrDict):
     """A buffered :class:`JSONAttrDict`."""
 
     _backend = __name__ + ".memory_buffered_attr"  # type: ignore
-
-    _PROTECTED_KEYS: Tuple[str, ...] = (
-        "_filename",
-        "_write_concern",
-        "buffered",
-        "_is_buffered",
-        "_buffer_lock",
-        "_buffer_context",
-        "_buffered_collections",
-    )
 
 
 MemoryBufferedJSONAttrDict.add_validator(no_dot_in_key)

@@ -112,11 +112,6 @@ class RedisDict(RedisCollection, SyncedDict):
 
     """
 
-    _PROTECTED_KEYS = (
-        "_client",
-        "_key",
-    )
-
     def __init__(self, client=None, key=None, data=None, parent=None, *args, **kwargs):
         super().__init__(
             client=client, key=key, data=data, parent=parent, *args, **kwargs

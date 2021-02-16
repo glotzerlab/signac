@@ -9,6 +9,8 @@ some applications may want to add this feature, so this simple mixin can be
 combined via inheritance without causing much difficulty.
 """
 
+from typing import Tuple
+
 
 class AttrDict:
     r"""A class that redirects attribute access methods to getitem.
@@ -32,6 +34,8 @@ class AttrDict:
 
     """
 
+    _PROTECTED_KEYS: Tuple[str, ...] = ()
+
     def __getattr__(self, name):
         if name.startswith("__"):
             raise AttributeError(f"{type(self)} has no attribute '{name}'")
@@ -45,13 +49,13 @@ class AttrDict:
         # the object has been fully instantiated. We may want to add a try
         # except in the else clause in case someone subclasses these and tries
         # to use d['foo'] inside a constructor prior to _data being defined.
-        if key.startswith("__") or key in self._protected_keys:
+        if key.startswith("__") or key in self._PROTECTED_KEYS:
             super().__setattr__(key, value)
         else:
             self.__setitem__(key, value)
 
     def __delattr__(self, key):
-        if key.startswith("__") or key in self._protected_keys:
+        if key.startswith("__") or key in self._PROTECTED_KEYS:
             super().__delattr__(key)
         else:
             self.__delitem__(key)

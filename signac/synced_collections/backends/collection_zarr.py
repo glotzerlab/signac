@@ -162,12 +162,6 @@ class ZarrDict(ZarrCollection, SyncedDict):
 
     """
 
-    _PROTECTED_KEYS = (
-        "_group",
-        "_name",
-        "_object_codec",
-    )
-
     def __init__(self, group=None, name=None, data=None, parent=None, *args, **kwargs):
         super().__init__(
             group=group, name=name, data=data, parent=parent, *args, **kwargs
