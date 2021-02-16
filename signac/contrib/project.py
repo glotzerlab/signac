@@ -27,7 +27,7 @@ from packaging import version
 from ..common.config import Config, get_config, load_config
 from ..core.h5store import H5StoreManager
 from ..sync import sync_projects
-from ..synced_collections.backends.collection_json import BufferedJSONDict
+from ..synced_collections.backends.collection_json import BufferedJSONAttrDict
 from ..version import SCHEMA_VERSION, __version__
 from .collection import Collection
 from .errors import (
@@ -496,13 +496,13 @@ class Project:
 
         Returns
         -------
-        :class:`~signac.synced_collections.backends.collection_json.BufferedJSONDict`
+        :class:`~signac.synced_collections.backends.collection_json.BufferedJSONAttrDict`
             The project document.
 
         """
         if self._document is None:
             fn_doc = os.path.join(self.root_directory(), self.FN_DOCUMENT)
-            self._document = BufferedJSONDict(filename=fn_doc, write_concern=True)
+            self._document = BufferedJSONAttrDict(filename=fn_doc, write_concern=True)
         return self._document
 
     @document.setter
@@ -525,7 +525,7 @@ class Project:
 
         Returns
         -------
-        :class:`~signac.synced_collections.backends.collection_json.BufferedJSONDict`
+        :class:`~signac.synced_collections.backends.collection_json.BufferedJSONAttrDict`
             The project document.
 
         """

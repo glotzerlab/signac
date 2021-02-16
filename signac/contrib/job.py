@@ -15,7 +15,10 @@ from deprecation import deprecated
 from ..core.h5store import H5StoreManager
 from ..errors import KeyTypeError
 from ..sync import sync_jobs
-from ..synced_collections.backends.collection_json import BufferedJSONDict, JSONDict
+from ..synced_collections.backends.collection_json import (
+    BufferedJSONAttrDict,
+    JSONAttrDict,
+)
 from ..version import __version__
 from .errors import DestinationExistsError, JobsCorruptedError
 from .hashing import calc_id
@@ -29,10 +32,10 @@ logger = logging.getLogger(__name__)
 # of registration. _If_ we need more control over this, that process can be
 # exposed more thoroughly and registration can be made explicit rather than
 # implicit, but for now the existing behavior works fine.
-class _StatePointDict(JSONDict):
+class _StatePointDict(JSONAttrDict):
     """A JSON-backed dictionary for storing job state points.
 
-    There are three principal reasons for extending the base JSONDict:
+    There are three principal reasons for extending the base JSONAttrDict:
         1. Saving needs to trigger a job directory migration, and
         2. State points are assumed to not support external modification, so
            they never need to load from disk _except_ the very first time a job
@@ -148,7 +151,7 @@ class _StatePointDict(JSONDict):
     def save(self, force=False):
         """Trigger a save to disk.
 
-        Unlike normal JSONDict objects, this class requires the ability to save
+        Unlike normal JSONAttrDict objects, this class requires the ability to save
         on command. Moreover, this save must be conditional on whether or not a
         file is present to allow the user to observe state points in corrupted
         data spaces and attempt to recover.
@@ -178,7 +181,7 @@ class _StatePointDict(JSONDict):
     def load(self, job_id):
         """Trigger a load from disk.
 
-        Unlike normal JSONDict objects, this class requires the ability to
+        Unlike normal JSONAttrDict objects, this class requires the ability to
         load on command. These loads typically occur when the state point
         must be validated against the data on disk; at all other times, the
         in-memory data is assumed to be accurate to avoid unnecessary I/O.
@@ -435,7 +438,7 @@ class Job:
             modifiable copy that will not modify the underlying JSON file,
             you can access a dict copy of the state point by calling it, e.g.
             ``sp_dict = job.statepoint()`` instead of ``sp = job.statepoint``.
-            For more information, see : :class:`~signac.JSONDict`.
+            For more information, see : :class:`~signac.JSONAttrDict`.
 
         See :ref:`signac statepoint <signac-cli-statepoint>` for the command line equivalent.
 
@@ -489,20 +492,20 @@ class Job:
             persistent JSON file, use the call operator to get an equivalent
             plain dictionary: ``job.document()``.
             For more information, see
-            :class:`~signac.synced_collections.collection_json.BufferedJSONDict`.
+            :class:`~signac.synced_collections.collection_json.BufferedJSONAttrDict`.
 
         See :ref:`signac document <signac-cli-document>` for the command line equivalent.
 
         Returns
         -------
-        :class:`~signac.JSONDict`
+        :class:`~signac.BufferedJSONAttrDict`
             The job document handle.
 
         """
         if self._document is None:
             self.init()
             fn_doc = os.path.join(self.workspace(), self.FN_DOCUMENT)
-            self._document = BufferedJSONDict(filename=fn_doc, write_concern=True)
+            self._document = BufferedJSONAttrDict(filename=fn_doc, write_concern=True)
         return self._document
 
     @document.setter
@@ -533,7 +536,7 @@ class Job:
 
         Returns
         -------
-        :class:`~signac.synced_collections.backends.collection_json.BufferedJSONDict`
+        :class:`~signac.synced_collections.backends.collection_json.BufferedJSONAttrDict`
             The job document handle.
 
         """
