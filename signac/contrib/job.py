@@ -439,7 +439,8 @@ class Job:
             modifiable copy that will not modify the underlying JSON file,
             you can access a dict copy of the state point by calling it, e.g.
             ``sp_dict = job.statepoint()`` instead of ``sp = job.statepoint``.
-            For more information, see : :class:`~signac.JSONDict`.
+            For more information, see
+            :class:`~signac.synced_collections.backends.collection_json.JSONAttrDict`.
 
         See :ref:`signac statepoint <signac-cli-statepoint>` for the command line equivalent.
 
@@ -493,13 +494,13 @@ class Job:
             persistent JSON file, use the call operator to get an equivalent
             plain dictionary: ``job.document()``.
             For more information, see
-            :class:`~signac.synced_collections.collection_json.BufferedJSONAttrDict`.
+            :class:`~signac.JSONDict`.
 
         See :ref:`signac document <signac-cli-document>` for the command line equivalent.
 
         Returns
         -------
-        :class:`~signac.BufferedJSONAttrDict`
+        :class:`~signac.JSONDict`
             The job document handle.
 
         """
@@ -537,7 +538,7 @@ class Job:
 
         Returns
         -------
-        :class:`~signac.synced_collections.backends.collection_json.BufferedJSONAttrDict`
+        :class:`~signac.JSONDict`
             The job document handle.
 
         """

@@ -30,16 +30,17 @@ from .core.h5store import H5Store, H5StoreManager
 from .core.jsondict import flush_all as flush
 from .db import get_database
 from .diff import diff_jobs
-from .synced_collections.backends.collection_json import BufferedJSONAttrDict
-from .synced_collections.backends.collection_json import JSONAttrDict as JSONDict
+from .synced_collections.backends.collection_json import (
+    BufferedJSONAttrDict as JSONDict,
+)
 from .version import __version__
 
 # Alias some properties related to buffering into the signac namespace.
-buffered = BufferedJSONAttrDict.buffer_backend
-is_buffered = BufferedJSONAttrDict.backend_is_buffered
-get_buffer_load = BufferedJSONAttrDict.get_current_buffer_size
-get_buffer_size = BufferedJSONAttrDict.get_buffer_capacity
-set_buffer_size = BufferedJSONAttrDict.set_buffer_capacity
+buffered = JSONDict.buffer_backend
+is_buffered = JSONDict.backend_is_buffered
+get_buffer_load = JSONDict.get_current_buffer_size
+get_buffer_size = JSONDict.get_buffer_capacity
+set_buffer_size = JSONDict.set_buffer_capacity
 
 __all__ = [
     "__version__",

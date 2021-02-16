@@ -13,7 +13,7 @@ from typing import Tuple
 
 
 class AttrDict:
-    r"""A class that redirects attribute access methods to __getitem__.
+    """A class that redirects attribute access methods to __getitem__.
 
     Although this class is called an :class:`AttrDict`, it does not directly
     inherit from any dict-like class or offer any relevant APIs. Its only purpose

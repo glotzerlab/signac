@@ -83,7 +83,7 @@ def require_string_key(data):
     Raises
     ------
     KeyTypeError
-        If key type is not not a string.
+        If key type is not a string.
 
     """
     # Reuse the type resolver here since it has the same groupings.
