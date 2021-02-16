@@ -103,17 +103,17 @@ def default(o: Any) -> Dict[str, Any]:  # noqa: D102
       serialized data may be incorrect.
 
     """
-    # Numpy converters return the data unchanged.
+    # NumPy converters return the data unchanged.
     converted_o = _convert_numpy(o)
 
-    # Numpy arrays will be converted to lists, then recursively parsed by the
+    # NumPy arrays will be converted to lists, then recursively parsed by the
     # JSON encoder, so we only have to handle the case where we have a scalar
-    # type at the bottom level that can't been converted to a Python scalar.
+    # type at the bottom level that can't be converted to a Python scalar.
     if _is_numpy_scalar(converted_o):
         raise ValueError(
-            "Only NumPy types that can be converted to raw Python types can be"
-            "JSON-encoded. All other types, such as NumPy extended-precision types, "
-            "must be converted by the user."
+            "Only NumPy types with corresponding Python types can be JSON-encoded"
+            "All other types, such as NumPy extended-precision types, must be "
+            "converted by the user."
         )
 
     if converted_o is o:

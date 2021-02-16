@@ -35,8 +35,8 @@ try:
 
     from numpy_conversion_tests import NUMPY_INT_TYPES
 
-    # BSON does not support >8-byte ints. We Programatically remove larger
-    # types since some are architecture-dependent.
+    # BSON does not support >8-byte ints. We remove larger types since some are
+    # architecture-dependent.
     NUMPY_INT_TYPES = [
         dtype
         for dtype in NUMPY_INT_TYPES

@@ -4,6 +4,7 @@
 import platform
 from collections.abc import MutableMapping, MutableSequence
 from copy import deepcopy
+from typing import Any, Tuple, Type
 
 import pytest
 
@@ -15,59 +16,61 @@ PYPY = "PyPy" in platform.python_implementation()
 
 
 try:
-    import numpy as np
+    import numpy
 
     NUMPY = True
 
-    NUMPY_INT_TYPES = [
-        np.bool_,
-        np.byte,
-        np.ubyte,
-        np.short,
-        np.ushort,
-        np.intc,
-        np.uintc,
-        np.int_,
-        np.uint,
-        np.longlong,
-        np.ulonglong,
-        np.int8,
-        np.int16,
-        np.int32,
-        np.int64,
-        np.uint8,
-        np.uint16,
-        np.uint32,
-        np.uint64,
-        np.intp,
-        np.uintp,
-    ]
+    NUMPY_INT_TYPES: Tuple[Type, ...] = (
+        numpy.bool_,
+        numpy.byte,
+        numpy.ubyte,
+        numpy.short,
+        numpy.ushort,
+        numpy.intc,
+        numpy.uintc,
+        numpy.int_,
+        numpy.uint,
+        numpy.longlong,
+        numpy.ulonglong,
+        numpy.int8,
+        numpy.int16,
+        numpy.int32,
+        numpy.int64,
+        numpy.uint8,
+        numpy.uint16,
+        numpy.uint32,
+        numpy.uint64,
+        numpy.intp,
+        numpy.uintp,
+    )
 
-    NUMPY_FLOAT_TYPES = [
-        np.half,
-        np.float16,
-        np.single,
-        np.longdouble,
-        np.float32,
-        np.float64,
-        np.float128,
-        np.float_,
-    ]
+    NUMPY_FLOAT_TYPES: Tuple[Type, ...] = (
+        numpy.half,
+        numpy.float16,
+        numpy.single,
+        numpy.longdouble,
+        numpy.float32,
+        numpy.float64,
+        numpy.float128,
+        numpy.float_,
+    )
 
-    NUMPY_COMPLEX_TYPES = [
-        np.csingle,
-        np.cdouble,
-        np.clongdouble,
-        np.complex64,
-        np.complex128,
-        np.complex_,
-    ]
+    NUMPY_COMPLEX_TYPES: Tuple[Type, ...] = (
+        numpy.csingle,
+        numpy.cdouble,
+        numpy.clongdouble,
+        numpy.complex64,
+        numpy.complex128,
+        numpy.complex_,
+    )
+    NUMPY_SHAPES: Tuple[Any, ...] = (None, (1,), (2,), (2, 2))
 
 except ImportError:
     NUMPY = False
-    NUMPY_INT_TYPES = []
-    NUMPY_FLOAT_TYPES = []
-    NUMPY_COMPLEX_TYPES = []
+    NUMPY_INT_TYPES = ()
+    NUMPY_FLOAT_TYPES = ()
+    NUMPY_COMPLEX_TYPES = ()
+    NUMPY_SHAPES = ()
 
 
 class SyncedCollectionTest:
@@ -492,14 +495,14 @@ class SyncedDictTest(SyncedCollectionTest):
 
     @pytest.mark.skipif(not NUMPY, reason="This test requires the numpy package.")
     @pytest.mark.parametrize("dtype", NUMPY_INT_TYPES)
-    @pytest.mark.parametrize("shape", (None, (1,), (2,)))
+    @pytest.mark.parametrize("shape", NUMPY_SHAPES)
     def test_set_get_numpy_int_data(self, synced_collection, dtype, shape):
         """Test setting scalar int types, which should always work."""
         try:
-            max_value = np.iinfo(dtype).max
+            max_value = numpy.iinfo(dtype).max
         except ValueError:
             max_value = 1
-        value = np.random.randint(max_value, dtype=dtype, size=shape)
+        value = numpy.random.randint(max_value, dtype=dtype, size=shape)
 
         with pytest.warns(NumpyConversionWarning):
             synced_collection["numpy_dtype_val"] = value
@@ -508,19 +511,20 @@ class SyncedDictTest(SyncedCollectionTest):
 
     @pytest.mark.skipif(not NUMPY, reason="This test requires the numpy package.")
     @pytest.mark.parametrize("dtype", NUMPY_FLOAT_TYPES)
-    @pytest.mark.parametrize("shape", (None, (1,), (2,)))
+    @pytest.mark.parametrize("shape", NUMPY_SHAPES)
     def test_set_get_numpy_float_data(self, synced_collection, dtype, shape):
         """Test setting scalar float types, which work if a raw Python analog exists."""
-        # Explicitly get an array with a shape so we can
-        value = dtype(np.random.random_sample(shape))
+        value = dtype(numpy.random.default_rng().random(shape))
 
         # If casting via item does not give a base Python type, the number
         # should fail to set correctly.
         raw_value = value.item() if shape is None else value.tolist()
-        test_value = value[0].item() if isinstance(raw_value, list) else raw_value
-        should_fail = isinstance(test_value, (np.number, np.bool_))
+        test_value = value.item(0) if isinstance(raw_value, list) else raw_value
+        has_corresponding_python_type = isinstance(
+            test_value, (numpy.number, numpy.bool_)
+        )
 
-        if should_fail:
+        if has_corresponding_python_type:
             with pytest.raises((ValueError, TypeError)), pytest.warns(
                 NumpyConversionWarning
             ):
@@ -532,7 +536,7 @@ class SyncedDictTest(SyncedCollectionTest):
 
     @pytest.mark.skipif(not NUMPY, reason="This test requires the numpy package.")
     @pytest.mark.parametrize("dtype", NUMPY_COMPLEX_TYPES)
-    @pytest.mark.parametrize("shape", (None, (1,), (2,)))
+    @pytest.mark.parametrize("shape", NUMPY_SHAPES)
     def test_set_get_numpy_complex_data(self, synced_collection, dtype, shape):
         """Test setting scalar complex types, which should always fail."""
         # Note that the current behavior of this test is based on the fact that
@@ -541,8 +545,7 @@ class SyncedDictTest(SyncedCollectionTest):
         # backends that support other data, or if we want to test cases like
         # ZarrCollection with a non-JSON codec (alternatives are supported, but
         # not a priority to test here).
-        # Explicitly get an array with a shape so we can
-        value = dtype(np.random.random_sample(shape))
+        value = dtype(numpy.random.default_rng().random(shape))
 
         with pytest.raises((ValueError, TypeError)), pytest.warns(
             NumpyConversionWarning
@@ -773,14 +776,14 @@ class SyncedListTest(SyncedCollectionTest):
 
     @pytest.mark.skipif(not NUMPY, reason="This test requires the numpy package.")
     @pytest.mark.parametrize("dtype", NUMPY_INT_TYPES)
-    @pytest.mark.parametrize("shape", (None, (1,), (2,)))
+    @pytest.mark.parametrize("shape", NUMPY_SHAPES)
     def test_set_get_numpy_int_data(self, synced_collection, dtype, shape):
         """Test setting scalar int types, which should always work."""
         try:
-            max_value = np.iinfo(dtype).max
+            max_value = numpy.iinfo(dtype).max
         except ValueError:
             max_value = 1
-        value = np.random.randint(max_value, dtype=dtype, size=shape)
+        value = numpy.random.randint(max_value, dtype=dtype, size=shape)
 
         with pytest.warns(NumpyConversionWarning):
             synced_collection.append(value)
@@ -793,17 +796,16 @@ class SyncedListTest(SyncedCollectionTest):
 
     @pytest.mark.skipif(not NUMPY, reason="This test requires the numpy package.")
     @pytest.mark.parametrize("dtype", NUMPY_FLOAT_TYPES)
-    @pytest.mark.parametrize("shape", (None, (1,), (2,)))
+    @pytest.mark.parametrize("shape", NUMPY_SHAPES)
     def test_set_get_numpy_float_data(self, synced_collection, dtype, shape):
         """Test setting scalar float types, which work if a raw Python analog exists."""
-        # Explicitly get an array with a shape so we can
-        value = dtype(np.random.random_sample(shape))
+        value = dtype(numpy.random.default_rng().random(shape))
 
         # If casting via item does not give a base Python type, the number
         # should fail to set correctly.
         raw_value = value.item() if shape is None else value.tolist()
-        test_value = value[0].item() if isinstance(raw_value, list) else raw_value
-        should_fail = isinstance(test_value, (np.number, np.bool_))
+        test_value = value.item(0) if isinstance(raw_value, list) else raw_value
+        should_fail = isinstance(test_value, (numpy.number, numpy.bool_))
 
         if should_fail:
             with pytest.raises((ValueError, TypeError)), pytest.warns(
@@ -821,7 +823,7 @@ class SyncedListTest(SyncedCollectionTest):
 
     @pytest.mark.skipif(not NUMPY, reason="This test requires the numpy package.")
     @pytest.mark.parametrize("dtype", NUMPY_COMPLEX_TYPES)
-    @pytest.mark.parametrize("shape", (None, (1,), (2,)))
+    @pytest.mark.parametrize("shape", NUMPY_SHAPES)
     def test_set_get_numpy_complex_data(self, synced_collection, dtype, shape):
         """Test setting scalar complex types, which should always fail."""
         # Note that the current behavior of this test is based on the fact that
@@ -830,8 +832,7 @@ class SyncedListTest(SyncedCollectionTest):
         # backends that support other data, or if we want to test cases like
         # ZarrCollection with a non-JSON codec (alternatives are supported, but
         # not a priority to test here).
-        # Explicitly get an array with a shape so we can
-        value = dtype(np.random.random_sample(shape))
+        value = dtype(numpy.random.default_rng().random(shape))
 
         with pytest.raises((ValueError, TypeError)), pytest.warns(
             NumpyConversionWarning
@@ -844,14 +845,14 @@ class SyncedListTest(SyncedCollectionTest):
             synced_collection[-1] = value
 
     @pytest.mark.parametrize("dtype", NUMPY_INT_TYPES)
-    @pytest.mark.parametrize("shape", (None, (1,), (2,)))
+    @pytest.mark.parametrize("shape", NUMPY_SHAPES)
     def test_reset_numpy_int_data(self, synced_collection, dtype, shape):
         """Test setting scalar int types, which should always work."""
         try:
-            max_value = np.iinfo(dtype).max
+            max_value = numpy.iinfo(dtype).max
         except ValueError:
             max_value = 1
-        value = np.random.randint(max_value, dtype=dtype, size=shape)
+        value = numpy.random.randint(max_value, dtype=dtype, size=shape)
 
         if shape is None:
             with pytest.raises((ValueError, TypeError)), pytest.warns(
