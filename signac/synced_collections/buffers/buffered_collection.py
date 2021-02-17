@@ -83,14 +83,8 @@ class BufferedCollection(SyncedCollection):
     """
 
     def __init__(self, *args, **kwargs):
-        # The `_buffered` attribute _must_ be defined prior to calling the
-        # superclass constructors in order to enable subclasses to override
-        # setattr and getattr in nontrivial ways. In particular, if setattr and
-        # getattr need to access the synced data, they may call sync and load,
-        # which depend on this parameter existing and could otherwise end up in
-        # an infinite recursion.
-        self.buffered = _CounterFuncContext(self._flush)
         super().__init__(*args, **kwargs)
+        self.buffered = _CounterFuncContext(self._flush)
 
     @classmethod
     def __init_subclass__(cls):

@@ -1,20 +1,16 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"""Implements the :class:`SyncedAttrDict`.
+"""Implements the :class:`SyncedDict`.
 
 This implements a dict-like data structure that also conforms to the
 :class:`~.SyncedCollection` API and can be combined with any backend type to
-give a dict-like API to a synchronized data structure. This class also allows
-access to values through key indexing or attributes named by keys, including
-nested keys.
+give a dict-like API to a synchronized data structure.
 """
 
 from collections.abc import Mapping, MutableMapping
-from typing import Tuple
 
 from ..utils import AbstractTypeResolver
-from ..validators import no_dot_in_key
 from .synced_collection import SyncedCollection, _sc_resolver
 
 # Identifies mappings, which are the base type for this class.
@@ -25,13 +21,12 @@ _mapping_resolver = AbstractTypeResolver(
 )
 
 
-class SyncedAttrDict(SyncedCollection, MutableMapping):
+class SyncedDict(SyncedCollection, MutableMapping):
     r"""Implement the dict data structure along with values access through attributes named as keys.
 
-    The SyncedAttrDict inherits from :class:`~.SyncedCollection`
-    and :class:`~collections.abc.MutableMapping`. Therefore, it behaves similar to
-    a :class:`dict`. This class also allows access to values through key indexing or
-    attributes named by keys, including nested keys.
+    The SyncedDict inherits from :class:`~.SyncedCollection`
+    and :class:`~collections.abc.MutableMapping`. Therefore, it behaves like a
+    :class:`dict`.
 
     Parameters
     ----------
@@ -45,27 +40,14 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
 
     Warning
     -------
-    While the :class:`SyncedAttrDict` object behaves like a :class:`dict`,
+    While the :class:`SyncedDict` object behaves like a :class:`dict`,
     there are important distinctions to remember. In particular, because
     operations are reflected as changes to an underlying backend, copying (even
-    deep copying) a :class:`SyncedAttrDict` instance may exhibit unexpected
+    deep copying) a :class:`SyncedDict` instance may exhibit unexpected
     behavior. If a true copy is required, you should use the `_to_base()`
     method to get a :class:`dict` representation, and if necessary construct a
-    new :class:`SyncedAttrDict`.
+    new :class:`SyncedDict`.
     """
-
-    # Must specify this as a variable length tuple to allow subclasses to
-    # extend the list of protected keys.
-    _PROTECTED_KEYS: Tuple[str, ...] = (
-        "_data",
-        "_name",
-        "_suspend_sync_",
-        "_load",
-        "_sync",
-        "_root",
-        "_validators",
-        "_load_and_save",
-    )
 
     def __init__(self, data=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -279,58 +261,3 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
                     for key, value in data.items():
                         self._data[key] = value
         return ret
-
-    @property
-    def _protected_keys(self):
-        """Get the protected keys of this class.
-
-        The :class:`SyncedAttrDict` overrides the default getattr and setattr
-        methods to provide attribute-based access to dictionary elements. The
-        cost of this feature is that internal attribute access is also piped
-        through this logic and there is no easy way around it. To circumvent
-        this problem, classes can specify the ``_PROTECTED_KEYS`` attribute to
-        indicate what attributes should be set as actual attributes rather than
-        being added as dict elements. Since subclasses may add additional such
-        attributes to the ones specified by this class, this property provides
-        a centralized means by which all the protected keys associated with a
-        given class can be accessed by accumulated all of the protected keys of
-        all the classes in the inheritance hierarchy.
-        """
-        try:
-            return type(self)._all_protected_keys
-        except AttributeError:
-            protected_keys = set()
-            # Classes inherit the protected attributes of their parent classes.
-            for base_cls in type(self).__mro__:
-                if hasattr(base_cls, "_PROTECTED_KEYS"):
-                    protected_keys.update(base_cls._PROTECTED_KEYS)
-            type(self)._all_protected_keys = protected_keys
-            return protected_keys
-
-    def __getattr__(self, name):
-        if name.startswith("__"):
-            raise AttributeError(f"'SyncedAttrDict' object has no attribute '{name}'")
-        try:
-            return self.__getitem__(name)
-        except KeyError as e:
-            raise AttributeError(e)
-
-    def __setattr__(self, key, value):
-        try:
-            self.__getattribute__("_data")
-        except AttributeError:
-            super().__setattr__(key, value)
-        else:
-            if key.startswith("__") or key in self._protected_keys:
-                super().__setattr__(key, value)
-            else:
-                self.__setitem__(key, value)
-
-    def __delattr__(self, key):
-        if key.startswith("__") or key in self._protected_keys:
-            super().__delattr__(key)
-        else:
-            self.__delitem__(key)
-
-
-SyncedAttrDict.add_validator(no_dot_in_key)

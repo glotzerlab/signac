@@ -6,9 +6,12 @@ import os
 from tempfile import TemporaryDirectory
 
 import pytest
+from attr_dict_test import AttrDictTest, AttrListTest
 from synced_collection_test import SyncedDictTest, SyncedListTest
 
 from signac.synced_collections.backends.collection_json import (
+    JSONAttrDict,
+    JSONAttrList,
     JSONCollection,
     JSONDict,
     JSONList,
@@ -74,3 +77,13 @@ class TestJSONDictWriteConcern(TestJSONDict):
 
 class TestJSONListWriteConcern(TestJSONList):
     _write_concern = True
+
+
+class TestJSONAttrDict(TestJSONDict, AttrDictTest):
+
+    _collection_type = JSONAttrDict
+
+
+class TestJSONAttrList(TestJSONList, AttrListTest):
+
+    _collection_type = JSONAttrList

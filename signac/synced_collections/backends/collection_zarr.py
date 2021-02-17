@@ -4,7 +4,8 @@
 """Implements a Zarr :class:`~.SyncedCollection` backend."""
 from copy import deepcopy
 
-from .. import SyncedAttrDict, SyncedCollection, SyncedList
+from .. import SyncedCollection, SyncedDict, SyncedList
+from ..validators import require_string_key
 
 try:
     import numcodecs
@@ -50,10 +51,10 @@ class ZarrCollection(SyncedCollection):
                 "The Zarr package must be installed to use the ZarrCollection."
             )
 
+        super().__init__(**kwargs)
         self._group = group
         self._name = name
         self._object_codec = numcodecs.JSON() if codec is None else codec
-        super().__init__(**kwargs)
 
     def _load_from_resource(self):
         """Load the data from the Zarr group.
@@ -119,22 +120,19 @@ class ZarrCollection(SyncedCollection):
         return self._name
 
 
-class ZarrDict(ZarrCollection, SyncedAttrDict):
+class ZarrDict(ZarrCollection, SyncedDict):
     r"""A dict-like data structure that synchronizes with a Zarr group.
 
     Examples
     --------
     >>> doc = ZarrDict('data')
     >>> doc['foo'] = "bar"
-    >>> assert doc.foo == doc['foo'] == "bar"
+    >>> assert doc['foo'] == "bar"
     >>> assert 'foo' in doc
     >>> del doc['foo']
     >>> doc['foo'] = dict(bar=True)
     >>> doc
     {'foo': {'bar': True}}
-    >>> doc.foo.bar = False
-    >>> doc
-    {'foo': {'bar': False}}
 
     Parameters
     ----------
@@ -168,6 +166,9 @@ class ZarrDict(ZarrCollection, SyncedAttrDict):
         super().__init__(
             group=group, name=name, data=data, parent=parent, *args, **kwargs
         )
+
+
+ZarrDict.add_validator(require_string_key)
 
 
 class ZarrList(ZarrCollection, SyncedList):

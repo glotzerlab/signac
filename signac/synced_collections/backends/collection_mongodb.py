@@ -2,7 +2,8 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 """Implements a MongoDB :class:`~.SyncedCollection` backend."""
-from .. import SyncedAttrDict, SyncedCollection, SyncedList
+from .. import SyncedCollection, SyncedDict, SyncedList
+from ..validators import require_string_key
 
 try:
     import bson
@@ -57,6 +58,7 @@ class MongoDBCollection(SyncedCollection):
     _backend = __name__  # type: ignore
 
     def __init__(self, collection=None, uid=None, parent=None, *args, **kwargs):
+        super().__init__(parent=parent, **kwargs)
         if not MONGO:
             raise RuntimeError(
                 "The PyMongo package must be installed to use the MongoDBCollection."
@@ -66,7 +68,6 @@ class MongoDBCollection(SyncedCollection):
         if uid is not None and "data" in uid:
             raise ValueError("The key 'data' may not be part of the uid.")
         self._uid = uid
-        super().__init__(parent=parent, **kwargs)
 
     def _load_from_resource(self):
         """Load the data from a MongoDB document.
@@ -106,22 +107,19 @@ class MongoDBCollection(SyncedCollection):
         raise TypeError("MongoDBCollection does not support deepcopying.")
 
 
-class MongoDBDict(MongoDBCollection, SyncedAttrDict):
+class MongoDBDict(MongoDBCollection, SyncedDict):
     r"""A dict-like data structure that synchronizes with a document in a MongoDB collection.
 
     Examples
     --------
     >>> doc = MongoDBDict('data')
     >>> doc['foo'] = "bar"
-    >>> assert doc.foo == doc['foo'] == "bar"
+    >>> assert doc['foo'] == "bar"
     >>> assert 'foo' in doc
     >>> del doc['foo']
     >>> doc['foo'] = dict(bar=True)
     >>> doc
     {'foo': {'bar': True}}
-    >>> doc.foo.bar = False
-    >>> doc
-    {'foo': {'bar': False}}
 
     Parameters
     ----------
@@ -158,6 +156,9 @@ class MongoDBDict(MongoDBCollection, SyncedAttrDict):
         super().__init__(
             collection=collection, uid=uid, data=data, parent=parent, *args, **kwargs
         )
+
+
+MongoDBDict.add_validator(require_string_key)
 
 
 class MongoDBList(MongoDBCollection, SyncedList):

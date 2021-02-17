@@ -4,7 +4,11 @@
 import pytest
 
 from signac.synced_collections.errors import InvalidKeyError, KeyTypeError
-from signac.synced_collections.validators import json_format_validator, no_dot_in_key
+from signac.synced_collections.validators import (
+    json_format_validator,
+    no_dot_in_key,
+    require_string_key,
+)
 
 try:
     import numpy
@@ -12,6 +16,23 @@ try:
     NUMPY = True
 except ImportError:
     NUMPY = False
+
+
+class TestRequireStringKey:
+    def test_valid_data(self, testdata):
+        test_dict = {}
+
+        key = "valid_str"
+        test_dict[key] = testdata
+        require_string_key(test_dict)
+        assert key in test_dict
+        assert test_dict[key] == testdata
+
+    def test_invalid_data(self, testdata):
+        # invalid key types
+        for key in (0.0, 1.0 + 2.0j, (1, 2, 3), 1, False, None):
+            with pytest.raises(KeyTypeError):
+                require_string_key({key: testdata})
 
 
 class TestNoDotInKey:

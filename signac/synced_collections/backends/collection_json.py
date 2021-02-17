@@ -10,13 +10,41 @@ import uuid
 import warnings
 from typing import Tuple
 
-from .. import SyncedAttrDict, SyncedCollection, SyncedList
+from .. import SyncedCollection, SyncedDict, SyncedList
 from ..buffers.memory_buffered_collection import SharedMemoryFileBufferedCollection
 from ..buffers.serialized_file_buffered_collection import (
     SerializedFileBufferedCollection,
 )
+from ..data_types.attr_dict import AttrDict
+from ..errors import KeyTypeError
 from ..utils import SyncedCollectionJSONEncoder
-from ..validators import json_format_validator
+from ..validators import json_format_validator, no_dot_in_key
+
+"""
+There are many classes defined in this file. Most of the definitions are
+trivial since logic is largely inherited, but the large number of classes
+and the extensive docstrings can be intimidating and make the source
+difficult to parse. Section headers like these are used to organize the
+code to reduce this barrier.
+"""
+
+
+# TODO: This method should be removed in signac 2.0.
+def _str_key(key):
+    VALID_KEY_TYPES = (str, int, bool, type(None))
+
+    if not isinstance(key, VALID_KEY_TYPES):
+        raise KeyTypeError(
+            f"Mapping keys must be str, int, bool or None, not {type(key).__name__}"
+        )
+    elif not isinstance(key, str):
+        warnings.warn(
+            f"Use of {type(key).__name__} as key is deprecated "
+            "and will be removed in version 2.0",
+            DeprecationWarning,
+        )
+        key = str(key)
+    return key
 
 
 # TODO: This method should be removed in signac 2.0.
@@ -38,24 +66,24 @@ def _convert_key_to_str(data):
     This behavior can be removed in signac 2.0 once non-str keys become an error.
     """
     if isinstance(data, dict):
-
-        def _str_key(key):
-            if not isinstance(key, str):
-                warnings.warn(
-                    f"Use of {type(key).__name__} as key is deprecated "
-                    "and will be removed in version 2.0",
-                    DeprecationWarning,
-                )
-                key = str(key)
-            return key
-
-        # Get a list of keys a priori to support modification in place.
+        # Explicitly call `list(keys)` to get a fixed list of keys to avoid
+        # running into issues with iterating over a DictKeys view while
+        # modifying the dict at the same time.
         for key in list(data):
             _convert_key_to_str(data[key])
             data[_str_key(key)] = data.pop(key)
     elif isinstance(data, list):
         for i, value in enumerate(data):
             _convert_key_to_str(value)
+
+
+"""
+Here we define the main JSONCollection class that encapsulates most of the
+logic for reading from and writing to JSON files. The remaining classes in
+this file inherit from these classes to add features like buffering or
+attribute-based dictionary access, each with a different backend name for
+correct resolution of nested SyncedCollection types.
+"""
 
 
 class JSONCollection(SyncedCollection):
@@ -93,9 +121,12 @@ class JSONCollection(SyncedCollection):
     _supports_threading = True
 
     def __init__(self, filename=None, write_concern=False, *args, **kwargs):
-        self._write_concern = write_concern
+        # The `_filename` attribute _must_ be defined prior to calling the
+        # superclass constructors because the filename defines the `_lock_id`
+        # used to uniquely identify thread locks for this collection.
         self._filename = filename
         super().__init__(*args, **kwargs)
+        self._write_concern = write_concern
 
     def _load_from_resource(self):
         """Load the data from a JSON file.
@@ -146,48 +177,50 @@ class JSONCollection(SyncedCollection):
         return self._filename
 
 
-# The _convert_key_to_str validator will be removed in signac 2.0.
-JSONCollection.add_validator(json_format_validator, _convert_key_to_str)
+# The order in which these validators are added is important, because
+# validators are called in sequence and _convert_key_to_str will ensure that
+# valid non-str keys are converted to strings before json_format_validator is
+# called. This ordering is an implementation detail that we should not rely on
+# in the future, however, the _convert_key_to_str validator will be removed in
+# signac 2.0 so this is OK (that validator is modifying the data in place,
+# which is unsupported behavior that will be removed in signac 2.0 as well).
+JSONCollection.add_validator(_convert_key_to_str, json_format_validator)
 
 
-class BufferedJSONCollection(SerializedFileBufferedCollection, JSONCollection):
-    """A :class:`JSONCollection` that supports I/O buffering.
+# These are the common protected keys used by all JSONDict types.
+_JSONDICT_PROTECTED_KEYS = (
+    # These are all protected keys that are inherited from data type classes.
+    "_data",
+    "_name",
+    "_suspend_sync_",
+    "_load",
+    "_sync",
+    "_root",
+    "_validators",
+    "_load_and_save",
+    "_suspend_sync",
+    "_supports_threading",
+    "_LoadSaveType",
+    "registry",
+    # These keys are specific to the JSON backend.
+    "_filename",
+    "_write_concern",
+)
 
-    This class implements the buffer protocol defined by
-    :class:`~.BufferedCollection`. The concrete implementation of buffering
-    behavior is defined by the :class:`~.SerializedFileBufferedCollection`.
-    """
 
-    _backend = __name__ + ".buffered"  # type: ignore
-
-
-class MemoryBufferedJSONCollection(SharedMemoryFileBufferedCollection, JSONCollection):
-    """A :class:`JSONCollection` that supports I/O buffering.
-
-    This class implements the buffer protocol defined by :class:`~.BufferedCollection`.
-    The concrete implementation of buffering behavior is defined by the
-    :class:`~.SharedMemoryFileBufferedCollection`.
-    """
-
-    _backend = __name__ + ".memory_buffered"  # type: ignore
-
-
-class JSONDict(JSONCollection, SyncedAttrDict):
+class JSONDict(JSONCollection, SyncedDict):
     r"""A dict-like data structure that synchronizes with a persistent JSON file.
 
     Examples
     --------
     >>> doc = JSONDict('data.json', write_concern=True)
     >>> doc['foo'] = "bar"
-    >>> assert doc.foo == doc['foo'] == "bar"
+    >>> assert doc['foo'] == "bar"
     >>> assert 'foo' in doc
     >>> del doc['foo']
     >>> doc['foo'] = dict(bar=True)
     >>> doc
     {'foo': {'bar': True}}
-    >>> doc.foo.bar = False
-    >>> doc
-    {'foo': {'bar': False}}
 
     Parameters
     ----------
@@ -218,7 +251,7 @@ class JSONDict(JSONCollection, SyncedAttrDict):
 
     """
 
-    _PROTECTED_KEYS: Tuple[str, ...] = ("_filename",)
+    _PROTECTED_KEYS: Tuple[str, ...] = _JSONDICT_PROTECTED_KEYS
 
     def __init__(
         self,
@@ -300,13 +333,39 @@ class JSONList(JSONCollection, SyncedList):
         )
 
 
-class BufferedJSONDict(BufferedJSONCollection, SyncedAttrDict):
+"""
+Here we define the BufferedJSONCollection class and its data type
+subclasses, which augment the JSONCollection with a serialized in-memory
+buffer for improved performance.
+"""
+
+
+class BufferedJSONCollection(SerializedFileBufferedCollection, JSONCollection):
+    """A :class:`JSONCollection` that supports I/O buffering.
+
+    This class implements the buffer protocol defined by
+    :class:`~.BufferedCollection`. The concrete implementation of buffering
+    behavior is defined by the :class:`~.SerializedFileBufferedCollection`.
+    """
+
+    _backend = __name__ + ".buffered"  # type: ignore
+
+
+# These are the keys common to buffer backends.
+_BUFFERED_PROTECTED_KEYS = (
+    "buffered",
+    "_is_buffered",
+    "_buffer_lock",
+    "_buffer_context",
+    "_buffered_collections",
+)
+
+
+class BufferedJSONDict(BufferedJSONCollection, SyncedDict):
     """A buffered :class:`JSONDict`."""
 
     _PROTECTED_KEYS: Tuple[str, ...] = (
-        "_filename",
-        "_buffered",
-        "_is_buffered",
+        _JSONDICT_PROTECTED_KEYS + _BUFFERED_PROTECTED_KEYS
     )
 
     def __init__(
@@ -350,13 +409,29 @@ class BufferedJSONList(BufferedJSONCollection, SyncedList):
         )
 
 
-class MemoryBufferedJSONDict(MemoryBufferedJSONCollection, SyncedAttrDict):
+"""
+Here we define the MemoryBufferedJSONCollection class and its data type
+subclasses, which augment the JSONCollection with a serialized in-memory
+buffer for improved performance.
+"""
+
+
+class MemoryBufferedJSONCollection(SharedMemoryFileBufferedCollection, JSONCollection):
+    """A :class:`JSONCollection` that supports I/O buffering.
+
+    This class implements the buffer protocol defined by :class:`~.BufferedCollection`.
+    The concrete implementation of buffering behavior is defined by the
+    :class:`~.SharedMemoryFileBufferedCollection`.
+    """
+
+    _backend = __name__ + ".memory_buffered"  # type: ignore
+
+
+class MemoryBufferedJSONDict(MemoryBufferedJSONCollection, SyncedDict):
     """A buffered :class:`JSONDict`."""
 
-    _PROTECTED_KEYS: Tuple[str, ...] = SyncedAttrDict._PROTECTED_KEYS + (
-        "_filename",
-        "_buffered",
-        "_is_buffered",
+    _PROTECTED_KEYS: Tuple[str, ...] = (
+        _JSONDICT_PROTECTED_KEYS + _BUFFERED_PROTECTED_KEYS
     )
 
     def __init__(
@@ -398,3 +473,102 @@ class MemoryBufferedJSONList(MemoryBufferedJSONCollection, SyncedList):
             *args,
             **kwargs,
         )
+
+
+"""
+Here we define various extensions of the above classes that add
+attribute-based access to dictionaries. Although list behavior is not
+modified in any way by these, they still require separate classes with the
+right backend so that nested classes are created appropriately.
+"""
+
+
+class JSONAttrDict(JSONDict, AttrDict):
+    r"""A dict-like data structure that synchronizes with a persistent JSON file.
+
+    Unlike :class:`JSONAttrDict`, this class also supports attribute-based access to
+    dictionary contents, e.g. ``doc.foo == doc['foo']``.
+
+    Examples
+    --------
+    >>> doc = JSONAttrDict('data.json', write_concern=True)
+    >>> doc['foo'] = "bar"
+    >>> assert doc.foo == doc['foo'] == "bar"
+    >>> assert 'foo' in doc
+    >>> del doc['foo']
+    >>> doc['foo'] = dict(bar=True)
+    >>> doc
+    {'foo': {'bar': True}}
+    >>> doc.foo.bar = False
+    >>> doc
+    {'foo': {'bar': False}}
+
+    Parameters
+    ----------
+    filename : str, optional
+        The filename of the associated JSON file on disk (Default value = None).
+    write_concern : bool, optional
+        Ensure file consistency by writing changes back to a temporary file
+        first, before replacing the original file (Default value = False).
+    data : :class:`collections.abc.Mapping`, optional
+        The initial data passed to :class:`JSONAttrDict`. If ``None``, defaults to
+        ``{}`` (Default value = None).
+    parent : JSONCollection, optional
+        A parent instance of :class:`JSONCollection` or ``None``. If ``None``,
+        the collection owns its own data (Default value = None).
+    \*args :
+        Positional arguments forwarded to parent constructors.
+    \*\*kwargs :
+        Keyword arguments forwarded to parent constructors.
+
+    Warnings
+    --------
+    While the :class:`JSONAttrDict` object behaves like a :class:`dict`, there are important
+    distinctions to remember. In particular, because operations are reflected
+    as changes to an underlying file, copying (even deep copying) a :class:`JSONAttrDict`
+    instance may exhibit unexpected behavior. If a true copy is required, you
+    should use the call operator to get a dictionary representation, and if
+    necessary construct a new :class:`JSONAttrDict` instance.
+
+    """
+
+    _backend = __name__ + ".attr"  # type: ignore
+
+
+JSONAttrDict.add_validator(no_dot_in_key)
+
+
+class JSONAttrList(JSONList):
+    """A :class:`JSONList` whose dict-like children will be of type :class:`JSONAttrDict`."""
+
+    _backend = __name__ + ".attr"  # type: ignore
+
+
+class BufferedJSONAttrDict(BufferedJSONDict, AttrDict):
+    """A buffered :class:`JSONAttrDict`."""
+
+    _backend = __name__ + ".buffered_attr"  # type: ignore
+
+
+BufferedJSONAttrDict.add_validator(no_dot_in_key)
+
+
+class BufferedJSONAttrList(BufferedJSONList):
+    """A :class:`BufferedJSONList` whose dict-like children will be of type :class:`BufferedJSONAttrDict`."""  # noqa: E501
+
+    _backend = __name__ + ".buffered_attr"  # type: ignore
+
+
+class MemoryBufferedJSONAttrDict(MemoryBufferedJSONDict, AttrDict):
+    """A buffered :class:`JSONAttrDict`."""
+
+    _backend = __name__ + ".memory_buffered_attr"  # type: ignore
+
+
+MemoryBufferedJSONAttrDict.add_validator(no_dot_in_key)
+
+
+class MemoryBufferedJSONAttrList(MemoryBufferedJSONList):
+    """A :class:`MemoryBufferedJSONList` whose dict-like children will be of type :class:`MemoryBufferedJSONAttrDict`."""  # noqa: E501
+
+    _backend = __name__ + ".memory_buffered_attr"  # type: ignore

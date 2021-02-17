@@ -59,6 +59,7 @@ def no_dot_in_key(data):
                     raise InvalidKeyError(
                         f"Mapping keys may not contain dots ('.'): {key}"
                     )
+            # TODO: Make it an error to have a non-str key here in signac 2.0.
             elif not isinstance(key, VALID_KEY_TYPES):
                 raise KeyTypeError(
                     f"Mapping keys must be str, int, bool or None, not {type(key).__name__}"
@@ -67,6 +68,37 @@ def no_dot_in_key(data):
     elif switch_type == "NON_STR_SEQUENCE":
         for value in data:
             no_dot_in_key(value)
+
+
+def require_string_key(data):
+    """Raise an exception if key in a mapping is not a string.
+
+    Almost all supported backends require string keys.
+
+    Parameters
+    ----------
+    data
+        Data to validate.
+
+    Raises
+    ------
+    KeyTypeError
+        If key type is not a string.
+
+    """
+    # Reuse the type resolver here since it has the same groupings.
+    switch_type = _no_dot_in_key_type_resolver.get_type(data)
+
+    if switch_type == "MAPPING":
+        for key, value in data.items():
+            if not isinstance(key, str):
+                raise KeyTypeError(
+                    f"Mapping keys must be str, not {type(key).__name__}"
+                )
+            require_string_key(value)
+    elif switch_type == "NON_STR_SEQUENCE":
+        for value in data:
+            require_string_key(value)
 
 
 _json_format_validator_type_resolver = AbstractTypeResolver(
@@ -101,12 +133,8 @@ def json_format_validator(data):
         return
     elif switch_type == "MAPPING":
         for key, value in data.items():
-            # Support for non-str keys will be removed in version 2.0.
-            # See issue: https://github.com/glotzerlab/signac/issues/316.
-            if not isinstance(key, (str, int, bool, type(None))):
-                raise KeyTypeError(
-                    f"Keys must be str, int, bool or None, not {type(key).__name__}"
-                )
+            if not isinstance(key, str):
+                raise KeyTypeError(f"Keys must be str, not {type(key).__name__}")
             json_format_validator(value)
     elif switch_type == "SEQUENCE":
         for value in data:

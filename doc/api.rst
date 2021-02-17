@@ -221,10 +221,10 @@ synced\_collections.synced\_collection module
    :private-members:
    :show-inheritance:
 
-synced\_collections.synced\_attr\_dict module
+synced\_collections.synced\_dict module
 +++++++++++++++++++++++++++++++++++++++++++++
 
-.. automodule:: signac.synced_collections.data_types.synced_attr_dict
+.. automodule:: signac.synced_collections.data_types.synced_dict
    :members:
    :show-inheritance:
 

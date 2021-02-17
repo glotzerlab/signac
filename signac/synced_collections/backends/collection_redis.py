@@ -4,7 +4,8 @@
 """Implements a Redis :class:`~.SyncedCollection` backend."""
 import json
 
-from .. import SyncedAttrDict, SyncedCollection, SyncedList
+from .. import SyncedCollection, SyncedDict, SyncedList
+from ..validators import require_string_key
 
 
 class RedisCollection(SyncedCollection):
@@ -32,9 +33,9 @@ class RedisCollection(SyncedCollection):
     _backend = __name__  # type: ignore
 
     def __init__(self, client=None, key=None, *args, **kwargs):
+        super().__init__(**kwargs)
         self._client = client
         self._key = key
-        super().__init__(**kwargs)
 
     def _load_from_resource(self):
         """Load the data from a Redis database.
@@ -69,22 +70,19 @@ class RedisCollection(SyncedCollection):
         raise TypeError("RedisCollection does not support deepcopying.")
 
 
-class RedisDict(RedisCollection, SyncedAttrDict):
+class RedisDict(RedisCollection, SyncedDict):
     r"""A dict-like data structure that synchronizes with a persistent Redis database.
 
     Examples
     --------
     >>> doc = RedisDict('data')
     >>> doc['foo'] = "bar"
-    >>> assert doc.foo == doc['foo'] == "bar"
+    >>> assert doc['foo'] == "bar"
     >>> assert 'foo' in doc
     >>> del doc['foo']
     >>> doc['foo'] = dict(bar=True)
     >>> doc
     {'foo': {'bar': True}}
-    >>> doc.foo.bar = False
-    >>> doc
-    {'foo': {'bar': False}}
 
     Parameters
     ----------
@@ -118,6 +116,12 @@ class RedisDict(RedisCollection, SyncedAttrDict):
         super().__init__(
             client=client, key=key, data=data, parent=parent, *args, **kwargs
         )
+
+
+# TODO: This restriction actually may not be necessary, Redis can handle more
+# generic data types easily. However, for now it is easier to manage a uniform
+# set of restrictions across backends and relax this later.
+RedisDict.add_validator(require_string_key)
 
 
 class RedisList(RedisCollection, SyncedList):
