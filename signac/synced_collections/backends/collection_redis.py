@@ -6,7 +6,7 @@ import json
 
 from .. import SyncedCollection, SyncedDict, SyncedList
 from ..utils import SyncedCollectionJSONEncoder
-from ..validators import require_string_key, json_format_validator
+from ..validators import json_format_validator, require_string_key
 
 
 class RedisCollection(SyncedCollection):

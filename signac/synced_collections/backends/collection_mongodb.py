@@ -3,7 +3,7 @@
 # This software is licensed under the BSD 3-Clause License.
 """Implements a MongoDB :class:`~.SyncedCollection` backend."""
 from .. import SyncedCollection, SyncedDict, SyncedList
-from ..validators import require_string_key, json_format_validator
+from ..validators import json_format_validator, require_string_key
 
 try:
     import bson
