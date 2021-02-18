@@ -49,6 +49,7 @@ except ImportError:
     NUMPY = False
 
     NUMPY_INT_TYPES = ()
+    NUMPY_SHAPES = ()
 
 
 class MongoDBCollectionTest:
