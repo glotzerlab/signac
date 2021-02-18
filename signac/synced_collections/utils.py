@@ -6,12 +6,7 @@
 from json import JSONEncoder
 from typing import Any, Dict
 
-try:
-    import numpy
-
-    NUMPY = True
-except ImportError:
-    NUMPY = False
+from .numpy_utils import _convert_numpy, _is_numpy_scalar
 
 
 class AbstractTypeResolver:
@@ -48,12 +43,19 @@ class AbstractTypeResolver:
     type_map : Dict[Type, str]
         A mapping from concrete types to the corresponding named abstract type
         from :attr:`~.abstract_type_identifiers`.
+    preprocessor : callable or None
+        An operation to perform on an object before type lookup. Providing this
+        callable can be used if input data types cannot be checked because
+        objects of a given type must be treated differently based on additional
+        criteria, in which case this function can be used to preprocess them and
+        convert them to a suitable type for type-checking.
 
     """
 
-    def __init__(self, abstract_type_identifiers):
+    def __init__(self, abstract_type_identifiers, preprocessor=None):
         self.abstract_type_identifiers = abstract_type_identifiers
         self.type_map = {}
+        self.preprocessor = preprocessor
 
     def get_type(self, obj):
         """Get the type string corresponding to this data type.
@@ -71,10 +73,8 @@ class AbstractTypeResolver:
             will return ``None``.
 
         """
-        # 0-d NumPy arrays must be handled the right way here.
-        if NUMPY and isinstance(obj, numpy.ndarray):
-            if obj.shape == ():
-                obj = obj.item()
+        if self.preprocessor is not None:
+            obj = self.preprocessor(obj)
 
         obj_type = type(obj)
         enum_type = None
@@ -111,18 +111,29 @@ def default(o: Any) -> Dict[str, Any]:  # noqa: D102
       serialized data may be incorrect.
 
     """
-    if NUMPY:
-        if isinstance(o, numpy.ndarray):
-            if o.shape == ():
-                return o.item()
-            else:
-                return o.tolist()
-        elif isinstance(o, numpy.number):
-            return o.item()
-    try:
-        return o._data
-    except AttributeError as e:
-        raise TypeError from e
+    # NumPy converters return the data unchanged.
+    converted_o = _convert_numpy(o)
+
+    # NumPy arrays will be converted to lists, then recursively parsed by the
+    # JSON encoder, so we only have to handle the case where we have a scalar
+    # type at the bottom level that can't be converted to a Python scalar.
+    if _is_numpy_scalar(converted_o):
+        raise ValueError(
+            "In order for a NumPy type to be JSON-encoded, it must have a corresponding "
+            "Python type. All other types, such as NumPy extended-precision types, must "
+            "be converted by the user. Note that the existence of a corresponding type "
+            "is a necessary but not sufficient condition because not all Python types "
+            "can be JSON-encoded. For instance, complex numpy values can be converted "
+            "to Python complex values, but these still cannot be JSON-encoded."
+        )
+
+    if converted_o is o:
+        try:
+            return o._data
+        except AttributeError as e:
+            raise TypeError from e
+    else:
+        return converted_o
 
 
 class SyncedCollectionJSONEncoder(JSONEncoder):

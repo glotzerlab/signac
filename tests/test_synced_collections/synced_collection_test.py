@@ -4,37 +4,129 @@
 import platform
 from collections.abc import MutableMapping, MutableSequence
 from copy import deepcopy
+from typing import Any, Tuple, Type
 
 import pytest
 
 from signac.errors import KeyTypeError
 from signac.synced_collections import SyncedCollection
+from signac.synced_collections.numpy_utils import NumpyConversionWarning
+
+PYPY = "PyPy" in platform.python_implementation()
+
 
 try:
     import numpy
 
     NUMPY = True
+
+    NUMPY_INT_TYPES: Tuple[Type, ...] = (
+        numpy.bool_,
+        numpy.byte,
+        numpy.ubyte,
+        numpy.short,
+        numpy.ushort,
+        numpy.intc,
+        numpy.uintc,
+        numpy.int_,
+        numpy.uint,
+        numpy.longlong,
+        numpy.ulonglong,
+        numpy.int8,
+        numpy.int16,
+        numpy.int32,
+        numpy.int64,
+        numpy.uint8,
+        numpy.uint16,
+        numpy.uint32,
+        numpy.uint64,
+        numpy.intp,
+        numpy.uintp,
+    )
+
+    NUMPY_FLOAT_TYPES: Tuple[Type, ...] = (
+        numpy.half,
+        numpy.float16,
+        numpy.single,
+        numpy.longdouble,
+        numpy.float32,
+        numpy.float64,
+        numpy.float128,
+        numpy.float_,
+    )
+
+    NUMPY_COMPLEX_TYPES: Tuple[Type, ...] = (
+        numpy.csingle,
+        numpy.cdouble,
+        numpy.clongdouble,
+        numpy.complex64,
+        numpy.complex128,
+        numpy.complex_,
+    )
+    NUMPY_SHAPES: Tuple[Any, ...] = (None, (1,), (2,), (2, 2))
+
+    # Older numpy versions don't have the new rngs.
+    try:
+        rng = numpy.random.default_rng()
+        random_sample = rng.random
+        randint = rng.integers
+    except AttributeError:
+        random_sample = numpy.random.random_sample
+        randint = numpy.random.randint
+
 except ImportError:
     NUMPY = False
-
-
-PYPY = "PyPy" in platform.python_implementation()
+    NUMPY_INT_TYPES = ()
+    NUMPY_FLOAT_TYPES = ()
+    NUMPY_COMPLEX_TYPES = ()
+    NUMPY_SHAPES = ()
 
 
 class SyncedCollectionTest:
-    def store(self, data):
+    """The parent for all synced collection tests.
+
+    This class defines the standard APIs that are expected of all test subclasses.
+    Following these protocols allows different backends and data types to share
+    most test by just defining the expected additional variables.
+    """
+
+    def store(self, synced_collection, data):
+        """Directly store data to the backend using its own API.
+
+        This method should bypass the synced_collection, just using it to get
+        information on the underlying resource (e.g. a file) and then saving to
+        it directly. This is used, for instance, to test data integrity validation.
+        """
         raise NotImplementedError("All backend tests must implement the store method.")
 
-    @pytest.fixture(autouse=True)
+    @pytest.fixture
     def synced_collection(self):
+        """Generate a synced collection of the appropriate type.
+
+        The type of the synced collection should be specified by the _collection_type
+        class variable.
+        """
         raise NotImplementedError(
-            "All backend tests must implement a synced_collection autouse "
-            "fixture that returns an empty instance."
+            "All backend tests must implement a synced_collection fixture "
+            "that returns an empty instance."
+        )
+
+    @pytest.fixture
+    def base_collection(self):
+        """Generate a collection of the base data type.
+
+        This fixture should generate a base collection (e.g. a list or a dict)
+        that can be used to set the data of a synced collection of the corresponding
+        type for comparison in tests.
+        """
+        raise NotImplementedError(
+            "All data type tests must implement a base_collection fixture that "
+            "returns an instance populated with test data."
         )
 
 
 class SyncedDictTest(SyncedCollectionTest):
-    @pytest.fixture(autouse=True)
+    @pytest.fixture
     def base_collection(self):
         return {"a": 0}
 
@@ -272,7 +364,7 @@ class SyncedDictTest(SyncedCollectionTest):
         assert "b" in synced_collection
         assert "c" in synced_collection
         data = {"a": 1, "c": [0, 1, 3], "d": 1}
-        self.store(data)
+        self.store(synced_collection, data)
         assert synced_collection == data
 
         # Test multiple changes. kwargs should supersede the mapping
@@ -296,7 +388,7 @@ class SyncedDictTest(SyncedCollectionTest):
 
         # invalid data
         data = [1, 2, 3]
-        self.store(data)
+        self.store(synced_collection, data)
         with pytest.raises(ValueError):
             synced_collection._load()
 
@@ -410,9 +502,68 @@ class SyncedDictTest(SyncedCollectionTest):
 
         assert len(synced_collection) == num_threads
 
+    @pytest.mark.skipif(not NUMPY, reason="This test requires the numpy package.")
+    @pytest.mark.parametrize("dtype", NUMPY_INT_TYPES)
+    @pytest.mark.parametrize("shape", NUMPY_SHAPES)
+    def test_set_get_numpy_int_data(self, synced_collection, dtype, shape):
+        """Test setting scalar int types, which should always work."""
+        try:
+            max_value = numpy.iinfo(dtype).max
+        except ValueError:
+            max_value = 1
+        value = randint(max_value, dtype=dtype, size=shape)
+
+        with pytest.warns(NumpyConversionWarning):
+            synced_collection["numpy_dtype_val"] = value
+        raw_value = value.item() if shape is None else value.tolist()
+        assert synced_collection["numpy_dtype_val"] == raw_value
+
+    @pytest.mark.skipif(not NUMPY, reason="This test requires the numpy package.")
+    @pytest.mark.parametrize("dtype", NUMPY_FLOAT_TYPES)
+    @pytest.mark.parametrize("shape", NUMPY_SHAPES)
+    def test_set_get_numpy_float_data(self, synced_collection, dtype, shape):
+        """Test setting scalar float types, which work if a raw Python analog exists."""
+        value = dtype(random_sample(shape))
+
+        # If casting via item does not give a base Python type, the number
+        # should fail to set correctly.
+        raw_value = value.item() if shape is None else value.tolist()
+        test_value = value.item(0) if isinstance(raw_value, list) else raw_value
+        has_corresponding_python_type = isinstance(
+            test_value, (numpy.number, numpy.bool_)
+        )
+
+        if has_corresponding_python_type:
+            with pytest.raises((ValueError, TypeError)), pytest.warns(
+                NumpyConversionWarning
+            ):
+                synced_collection["numpy_dtype_val"] = value
+        else:
+            with pytest.warns(NumpyConversionWarning):
+                synced_collection["numpy_dtype_val"] = value
+            assert synced_collection["numpy_dtype_val"] == raw_value
+
+    @pytest.mark.skipif(not NUMPY, reason="This test requires the numpy package.")
+    @pytest.mark.parametrize("dtype", NUMPY_COMPLEX_TYPES)
+    @pytest.mark.parametrize("shape", NUMPY_SHAPES)
+    def test_set_get_numpy_complex_data(self, synced_collection, dtype, shape):
+        """Test setting scalar complex types, which should always fail."""
+        # Note that the current behavior of this test is based on the fact that
+        # all backends rely on JSON-serialization (at least implicitly), even
+        # non-JSON backends. This test may have to be generalized if we add any
+        # backends that support other data, or if we want to test cases like
+        # ZarrCollection with a non-JSON codec (alternatives are supported, but
+        # not a priority to test here).
+        value = dtype(random_sample(shape))
+
+        with pytest.raises((ValueError, TypeError)), pytest.warns(
+            NumpyConversionWarning
+        ):
+            synced_collection["numpy_dtype_val"] = value
+
 
 class SyncedListTest(SyncedCollectionTest):
-    @pytest.fixture(autouse=True)
+    @pytest.fixture
     def base_collection(self):
         return [0]
 
@@ -435,22 +586,6 @@ class SyncedListTest(SyncedCollectionTest):
         assert bool(synced_collection)
         assert len(synced_collection) == 1
         assert synced_collection[0] == 1
-
-    @pytest.mark.skipif(not NUMPY, reason="test requires the numpy package")
-    def test_set_get_numpy_data(self, synced_collection):
-        data = numpy.random.rand(3, 4)
-        data_as_list = data.tolist()
-        synced_collection.reset(data)
-        assert len(synced_collection) == len(data_as_list)
-        assert synced_collection == data_as_list
-        data2 = numpy.random.rand(3, 4)
-        synced_collection.append(data2)
-        assert len(synced_collection) == len(data_as_list) + 1
-        assert synced_collection[len(data_as_list)] == data2.tolist()
-        data3 = numpy.float_(3.14)
-        synced_collection.append(data3)
-        assert len(synced_collection) == len(data_as_list) + 2
-        assert synced_collection[len(data_as_list) + 1] == data3
 
     def test_iter(self, synced_collection, testdata):
         d = [testdata, 43]
@@ -560,15 +695,15 @@ class SyncedListTest(SyncedCollectionTest):
         synced_collection.reset([{"a": 1}, "b", [1, 2, 3]])
         assert synced_collection == [{"a": 1}, "b", [1, 2, 3]]
         data = ["a", "b", [1, 2, 4], "d"]
-        self.store(data)
+        self.store(synced_collection, data)
         assert synced_collection == data
         data1 = ["a", "b"]
-        self.store(data1)
+        self.store(synced_collection, data1)
         assert synced_collection == data1
 
         # invalid data in file
         data2 = {"a": 1}
-        self.store(data2)
+        self.store(synced_collection, data2)
         with pytest.raises(ValueError):
             synced_collection._load()
 
@@ -647,3 +782,93 @@ class SyncedListTest(SyncedCollectionTest):
             list(executor.map(append_value, [synced_collection] * num_elements))
 
         assert len(synced_collection) == num_elements
+
+    @pytest.mark.skipif(not NUMPY, reason="This test requires the numpy package.")
+    @pytest.mark.parametrize("dtype", NUMPY_INT_TYPES)
+    @pytest.mark.parametrize("shape", NUMPY_SHAPES)
+    def test_set_get_numpy_int_data(self, synced_collection, dtype, shape):
+        """Test setting scalar int types, which should always work."""
+        try:
+            max_value = numpy.iinfo(dtype).max
+        except ValueError:
+            max_value = 1
+        value = randint(max_value, dtype=dtype, size=shape)
+
+        with pytest.warns(NumpyConversionWarning):
+            synced_collection.append(value)
+        raw_value = value.item() if shape is None else value.tolist()
+        assert synced_collection[-1] == raw_value
+
+        # Test assignment after append.
+        with pytest.warns(NumpyConversionWarning):
+            synced_collection[-1] = value
+
+    @pytest.mark.skipif(not NUMPY, reason="This test requires the numpy package.")
+    @pytest.mark.parametrize("dtype", NUMPY_FLOAT_TYPES)
+    @pytest.mark.parametrize("shape", NUMPY_SHAPES)
+    def test_set_get_numpy_float_data(self, synced_collection, dtype, shape):
+        """Test setting scalar float types, which work if a raw Python analog exists."""
+        value = dtype(random_sample(shape))
+
+        # If casting via item does not give a base Python type, the number
+        # should fail to set correctly.
+        raw_value = value.item() if shape is None else value.tolist()
+        test_value = value.item(0) if isinstance(raw_value, list) else raw_value
+        should_fail = isinstance(test_value, (numpy.number, numpy.bool_))
+
+        if should_fail:
+            with pytest.raises((ValueError, TypeError)), pytest.warns(
+                NumpyConversionWarning
+            ):
+                synced_collection.append(value)
+        else:
+            with pytest.warns(NumpyConversionWarning):
+                synced_collection.append(value)
+            assert synced_collection[-1] == raw_value
+
+            # Test assignment after append.
+            with pytest.warns(NumpyConversionWarning):
+                synced_collection[-1] = value
+
+    @pytest.mark.skipif(not NUMPY, reason="This test requires the numpy package.")
+    @pytest.mark.parametrize("dtype", NUMPY_COMPLEX_TYPES)
+    @pytest.mark.parametrize("shape", NUMPY_SHAPES)
+    def test_set_get_numpy_complex_data(self, synced_collection, dtype, shape):
+        """Test setting scalar complex types, which should always fail."""
+        # Note that the current behavior of this test is based on the fact that
+        # all backends rely on JSON-serialization (at least implicitly), even
+        # non-JSON backends. This test may have to be generalized if we add any
+        # backends that support other data, or if we want to test cases like
+        # ZarrCollection with a non-JSON codec (alternatives are supported, but
+        # not a priority to test here).
+        value = dtype(random_sample(shape))
+
+        with pytest.raises((ValueError, TypeError)), pytest.warns(
+            NumpyConversionWarning
+        ):
+            synced_collection.append(value)
+
+        with pytest.raises((ValueError, TypeError)), pytest.warns(
+            NumpyConversionWarning
+        ):
+            synced_collection[-1] = value
+
+    @pytest.mark.parametrize("dtype", NUMPY_INT_TYPES)
+    @pytest.mark.parametrize("shape", NUMPY_SHAPES)
+    def test_reset_numpy_int_data(self, synced_collection, dtype, shape):
+        """Test setting scalar int types, which should always work."""
+        try:
+            max_value = numpy.iinfo(dtype).max
+        except ValueError:
+            max_value = 1
+        value = randint(max_value, dtype=dtype, size=shape)
+
+        if shape is None:
+            with pytest.raises((ValueError, TypeError)), pytest.warns(
+                NumpyConversionWarning
+            ):
+                synced_collection.reset(value)
+        else:
+            with pytest.warns(NumpyConversionWarning):
+                synced_collection.reset(value)
+            assert synced_collection == value.tolist()

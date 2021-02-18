@@ -67,8 +67,10 @@ class _BufferedLoadAndSave(_LoadAndSave):
         super().__enter__()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        super().__exit__(exc_type, exc_val, exc_tb)
-        self._collection._buffer_lock.__exit__(exc_type, exc_val, exc_tb)
+        try:
+            super().__exit__(exc_type, exc_val, exc_tb)
+        finally:
+            self._collection._buffer_lock.__exit__(exc_type, exc_val, exc_tb)
 
 
 class FileBufferedCollection(BufferedCollection):

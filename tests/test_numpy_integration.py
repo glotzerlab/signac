@@ -4,6 +4,8 @@
 import pytest
 from test_project import TestProjectBase
 
+from signac.synced_collections.numpy_utils import NumpyConversionWarning
+
 try:
     import numpy  # noqa
     import numpy.testing
@@ -19,8 +21,10 @@ class TestNumpyIntegration(TestProjectBase):
         for i in range(10):
             a = numpy.float32(i) if i % 2 else numpy.float64(i)
             b = numpy.float64(i) if i % 2 else numpy.float32(i)
-            job = self.project.open_job(dict(a=a))
-            job.doc.b = b
+            with pytest.warns(NumpyConversionWarning):
+                job = self.project.open_job(dict(a=a))
+            with pytest.warns(NumpyConversionWarning):
+                job.doc.b = b
             numpy.testing.assert_equal(job.doc.b, b)
         for i, job in enumerate(sorted(self.project, key=lambda job: job.sp.a)):
             assert job.sp.a == i
@@ -28,7 +32,8 @@ class TestNumpyIntegration(TestProjectBase):
 
     def test_store_array_in_sp(self):
         for i in range(10):
-            self.project.open_job(dict(a=numpy.array([i]))).init()
+            with pytest.warns(NumpyConversionWarning):
+                self.project.open_job(dict(a=numpy.array([i]))).init()
         for i, job in enumerate(sorted(self.project, key=lambda job: job.sp.a)):
             assert [i] == job.sp.a
             assert numpy.array([i]) == job.sp.a
@@ -36,7 +41,8 @@ class TestNumpyIntegration(TestProjectBase):
     def test_store_array_in_doc(self):
         for i in range(10):
             job = self.project.open_job(dict(a=i))
-            job.doc.array = numpy.ones(3) * i
+            with pytest.warns(NumpyConversionWarning):
+                job.doc.array = numpy.ones(3) * i
             numpy.testing.assert_equal(job.doc.array, numpy.ones(3) * i)
         for i, job in enumerate(sorted(self.project, key=lambda job: job.sp.a)):
             assert i == job.sp.a
@@ -47,7 +53,8 @@ class TestNumpyIntegration(TestProjectBase):
         # Zero-dimensional arrays have size 1, and their tolist() method
         # returns a single value.
         value = 1.0
-        job = self.project.open_job(dict(a=numpy.array(value))).init()
+        with pytest.warns(NumpyConversionWarning):
+            job = self.project.open_job(dict(a=numpy.array(value))).init()
         assert value == job.sp.a
         assert numpy.array(value) == job.sp.a
 
@@ -56,7 +63,8 @@ class TestNumpyIntegration(TestProjectBase):
         # returns a single value.
         value = 1.0
         job = self.project.open_job(dict(a=1)).init()
-        job.doc.array = numpy.array(value)
+        with pytest.warns(NumpyConversionWarning):
+            job.doc.array = numpy.array(value)
         numpy.testing.assert_equal(job.doc.array, numpy.array(value))
         assert value == job.doc.array
         assert numpy.array(value) == job.doc.array

@@ -4,12 +4,12 @@
 import json
 import os
 from collections.abc import Collection, MutableSequence
-from tempfile import TemporaryDirectory
 
 import pytest
 
 from signac.synced_collections import SyncedList
 from signac.synced_collections.backends.collection_json import JSONDict
+from signac.synced_collections.numpy_utils import NumpyConversionWarning
 from signac.synced_collections.utils import (
     AbstractTypeResolver,
     SyncedCollectionJSONEncoder,
@@ -44,7 +44,7 @@ def test_type_resolver():
     assert resolver.get_type(set()) == "collection"
 
 
-def test_json_encoder():
+def test_json_encoder(tmpdir):
     # Raw dictionaries should be encoded transparently.
     data = {"foo": 1, "bar": 2, "baz": 3}
     json_str_data = '{"foo": 1, "bar": 2, "baz": 3}'
@@ -52,19 +52,19 @@ def test_json_encoder():
     assert json.dumps(data, cls=SyncedCollectionJSONEncoder) == json_str_data
     assert json.dumps(data, cls=SyncedCollectionJSONEncoder) == json.dumps(data)
 
-    with TemporaryDirectory() as tmp_dir:
-        fn = os.path.join(tmp_dir, "test_json_encoding.json")
-        synced_data = JSONDict(fn)
-        synced_data.update(data)
-        with pytest.raises(TypeError):
-            json.dumps(synced_data)
-        assert json.dumps(synced_data, cls=SyncedCollectionJSONEncoder) == json_str_data
+    fn = os.path.join(tmpdir, "test_json_encoding.json")
+    synced_data = JSONDict(fn)
+    synced_data.update(data)
+    with pytest.raises(TypeError):
+        json.dumps(synced_data)
+    assert json.dumps(synced_data, cls=SyncedCollectionJSONEncoder) == json_str_data
 
-        if NUMPY:
-            array = numpy.random.rand(3)
+    if NUMPY:
+        array = numpy.random.rand(3)
+        with pytest.warns(NumpyConversionWarning):
             synced_data["foo"] = array
-            assert isinstance(synced_data["foo"], SyncedList)
-            assert (
-                json.loads(json.dumps(synced_data, cls=SyncedCollectionJSONEncoder))
-                == synced_data()
-            )
+        assert isinstance(synced_data["foo"], SyncedList)
+        assert (
+            json.loads(json.dumps(synced_data, cls=SyncedCollectionJSONEncoder))
+            == synced_data()
+        )

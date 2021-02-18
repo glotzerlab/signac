@@ -13,7 +13,7 @@ next
 Added
 +++++
 
- - New ``SyncedCollection`` class and subclasses to replace ``JSONDict`` with more general support for different types of resources (such as MongoDB collections or Redis databases) and more complete support for different data types synchronized with files (#196, #234, #249, #316, #397, #465, #484).
+ - New ``SyncedCollection`` class and subclasses to replace ``JSONDict`` with more general support for different types of resources (such as MongoDB collections or Redis databases) and more complete support for different data types synchronized with files (#196, #234, #249, #316, #383, #397, #465, #484).
 
 [1.6.0] -- 2020-01-24
 ---------------------

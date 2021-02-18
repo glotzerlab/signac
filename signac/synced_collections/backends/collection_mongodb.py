@@ -3,7 +3,7 @@
 # This software is licensed under the BSD 3-Clause License.
 """Implements a MongoDB :class:`~.SyncedCollection` backend."""
 from .. import SyncedCollection, SyncedDict, SyncedList
-from ..validators import require_string_key
+from ..validators import json_format_validator, require_string_key
 
 try:
     import bson
@@ -105,6 +105,13 @@ class MongoDBCollection(SyncedCollection):
     def __deepcopy__(self, memo):
         # The underlying MongoDB collection cannot be deepcopied.
         raise TypeError("MongoDBCollection does not support deepcopying.")
+
+
+# MongoDB uses BSON, which is not exactly JSON but is close enough that
+# JSON-validation is reasonably appropriate. we could generalize this to do
+# proper BSON validation if we find that the discrepancies (for instance, the
+# supported integer data types differ) are too severe.
+MongoDBCollection.add_validator(json_format_validator)
 
 
 class MongoDBDict(MongoDBCollection, SyncedDict):

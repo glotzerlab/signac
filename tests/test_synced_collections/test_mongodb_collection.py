@@ -5,7 +5,6 @@ import pytest
 from synced_collection_test import SyncedDictTest, SyncedListTest
 
 from signac.synced_collections.backends.collection_mongodb import (
-    MongoDBCollection,
     MongoDBDict,
     MongoDBList,
 )
@@ -16,8 +15,8 @@ try:
     try:
         # Test the mongodb server. Set a short timeout so that tests don't
         # appear to hang while waiting for a connection.
-        MongoClient = pymongo.MongoClient(serverSelectionTimeoutMS=1000)
-        tmp_collection = MongoClient["test_db"]["test"]
+        mongo_client = pymongo.MongoClient(serverSelectionTimeoutMS=1000)
+        tmp_collection = mongo_client["test_db"]["test"]
         tmp_collection.insert_one({"test": "0"})
         ret = tmp_collection.find_one({"test": "0"})
         assert ret["test"] == "0"
@@ -29,43 +28,65 @@ except ImportError:
     PYMONGO = False
 
 
+try:
+    import numpy
+
+    NUMPY = True
+
+    from synced_collection_test import NUMPY_INT_TYPES, NUMPY_SHAPES
+
+    # BSON does not support >8-byte ints. We remove larger types since some are
+    # architecture-dependent.
+    NUMPY_INT_TYPES = tuple(
+        [
+            dtype
+            for dtype in NUMPY_INT_TYPES
+            if issubclass(dtype, numpy.number)
+            and numpy.log2(numpy.iinfo(dtype).max) / 8 < 8
+        ]
+    )
+except ImportError:
+    NUMPY = False
+
+    NUMPY_INT_TYPES = ()
+    NUMPY_SHAPES = ()
+
+
 class MongoDBCollectionTest:
 
-    _backend_collection = MongoDBCollection
+    _uid = {"MongoDBCollection::name": "test"}
 
-    def store(self, data):
-        data_to_insert = {**self._uid, "data": data}
-        self._collection.replace_one(self._uid, data_to_insert)
+    def store(self, synced_collection, data):
+        data_to_insert = {**synced_collection.uid, "data": data}
+        synced_collection.collection.replace_one(synced_collection.uid, data_to_insert)
 
-    @pytest.fixture(autouse=True)
+    @pytest.fixture
     def synced_collection(self, request):
-        self._client = MongoClient
-        self._uid = {"MongoDBCollection::name": "test"}
-        self._collection = self._client.test_db.test_dict
-        self._backend_kwargs = {"uid": self._uid, "collection": self._collection}
-        yield self._collection_type(**self._backend_kwargs)
-        self._collection.drop()
+        yield self._collection_type(
+            uid=self._uid, collection=mongo_client.test_db.test_dict
+        )
+        mongo_client.test_db.test_dict.drop()
 
     @pytest.fixture
     def synced_collection_positional(self):
         """Fixture that initializes the object using positional arguments."""
-        self._client = MongoClient
-        self._uid = {"MongoDBCollection::name": "test"}
-        self._collection = self._client.test_db.test_dict
-        yield self._collection_type(self._collection, self._uid)
-
-    def test_collection(self, synced_collection):
-        assert synced_collection.collection == self._collection
+        yield self._collection_type(mongo_client.test_db.test_dict, self._uid)
+        mongo_client.test_db.test_dict.drop()
 
     def test_uid(self, synced_collection):
-        assert synced_collection.uid == {"MongoDBCollection::name": "test"}
+        assert synced_collection.uid == self._uid
+
+    @pytest.mark.parametrize("dtype", NUMPY_INT_TYPES)
+    @pytest.mark.parametrize("shape", NUMPY_SHAPES)
+    def test_set_get_numpy_int_data(self, synced_collection, dtype, shape):
+        """Override parent test to use the subset of int types."""
+        super().test_set_get_numpy_int_data(synced_collection, dtype, shape)
 
 
 @pytest.mark.skipif(
     not PYMONGO, reason="test requires the pymongo package and mongodb server"
 )
 class TestMongoDBDict(MongoDBCollectionTest, SyncedDictTest):
-
     _collection_type = MongoDBDict
 
 
@@ -73,5 +94,10 @@ class TestMongoDBDict(MongoDBCollectionTest, SyncedDictTest):
     not PYMONGO, reason="test requires the pymongo package and mongodb server"
 )
 class TestMongoDBList(MongoDBCollectionTest, SyncedListTest):
-
     _collection_type = MongoDBList
+
+    @pytest.mark.parametrize("dtype", NUMPY_INT_TYPES)
+    @pytest.mark.parametrize("shape", (None, (1,), (2,)))
+    def test_reset_numpy_int_data(self, synced_collection, dtype, shape):
+        """Override parent test to use the subset of int types."""
+        super().test_reset_numpy_int_data(synced_collection, dtype, shape)

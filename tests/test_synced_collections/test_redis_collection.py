@@ -7,22 +7,18 @@ import uuid
 import pytest
 from synced_collection_test import SyncedDictTest, SyncedListTest
 
-from signac.synced_collections.backends.collection_redis import (
-    RedisCollection,
-    RedisDict,
-    RedisList,
-)
+from signac.synced_collections.backends.collection_redis import RedisDict, RedisList
 
 try:
     import redis
 
     try:
         # try to connect to server
-        RedisClient = redis.Redis()
+        redis_client = redis.Redis()
         test_key = str(uuid.uuid4())
-        RedisClient.set(test_key, 0)
-        assert RedisClient.get(test_key) == b"0"  # redis stores data as bytes
-        RedisClient.delete(test_key)
+        redis_client.set(test_key, 0)
+        assert redis_client.get(test_key) == b"0"  # redis stores data as bytes
+        redis_client.delete(test_key)
         REDIS = True
     except (redis.exceptions.ConnectionError, AssertionError):
         REDIS = False
@@ -32,32 +28,24 @@ except ImportError:
 
 class RedisCollectionTest:
 
-    _backend_collection = RedisCollection
+    _key = "test"
 
-    def store(self, data):
-        self._client.set(self._key, json.dumps(data).encode())
+    def store(self, synced_collection, data):
+        synced_collection.client.set(synced_collection.key, json.dumps(data).encode())
 
-    @pytest.fixture(autouse=True)
+    @pytest.fixture
     def synced_collection(self, request):
-        self._client = RedisClient
-        request.addfinalizer(self._client.flushall)
-        self._key = "test"
-        self._backend_kwargs = {"key": self._key, "client": self._client}
-        yield self._collection_type(**self._backend_kwargs)
+        request.addfinalizer(redis_client.flushall)
+        yield self._collection_type(key=self._key, client=redis_client)
 
     @pytest.fixture
     def synced_collection_positional(self, request):
         """Fixture that initializes the object using positional arguments."""
-        self._client = RedisClient
-        request.addfinalizer(self._client.flushall)
-        self._key = "test"
-        yield self._collection_type(self._client, self._key)
-
-    def test_client(self, synced_collection):
-        assert synced_collection.client == self._client
+        request.addfinalizer(redis_client.flushall)
+        yield self._collection_type(redis_client, self._key)
 
     def test_key(self, synced_collection):
-        assert synced_collection.key == "test"
+        assert synced_collection.key == self._key
 
 
 @pytest.mark.skipif(

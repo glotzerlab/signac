@@ -5,7 +5,8 @@
 import json
 
 from .. import SyncedCollection, SyncedDict, SyncedList
-from ..validators import require_string_key
+from ..utils import SyncedCollectionJSONEncoder
+from ..validators import json_format_validator, require_string_key
 
 
 class RedisCollection(SyncedCollection):
@@ -53,7 +54,9 @@ class RedisCollection(SyncedCollection):
 
     def _save_to_resource(self):
         """Write the data to a Redis database."""
-        self._client.set(self._key, json.dumps(self._to_base()).encode())
+        self._client.set(
+            self._key, json.dumps(self, cls=SyncedCollectionJSONEncoder).encode()
+        )
 
     @property
     def client(self):
@@ -68,6 +71,10 @@ class RedisCollection(SyncedCollection):
     def __deepcopy__(self, memo):
         # The underlying Redis client cannot be deepcopied.
         raise TypeError("RedisCollection does not support deepcopying.")
+
+
+# Redis collection relies on JSON-serialization for the data.
+RedisCollection.add_validator(json_format_validator)
 
 
 class RedisDict(RedisCollection, SyncedDict):
