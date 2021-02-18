@@ -58,23 +58,16 @@ def _is_atleast_1d_numpy_array(data):
     return NUMPY and isinstance(data, numpy.ndarray) and data.ndim > 0
 
 
-def _is_numpy_scalar(data, allow_zero_d_array=False):
+def _is_numpy_scalar(data):
     """Check if an object is a numpy scalar.
 
-    In certain cases a 0d numpy array is an acceptable surrogate for a scalar,
-    in which case the optional parameter can be set to True.
-
-    Parameters
-    ----------
-    allow_zero_d_array : bool
-        If True, 0d numpy arrays will return True (Default value: False).
+    This function is designed for use in situations where _convert_numpy has
+    already been applied (if necessary), so 0d arrays are not considered
+    scalars here.
 
     Returns
     -------
     bool
         Whether or not the input is a numpy scalar type.
     """
-    return NUMPY and (
-        isinstance(data, (numpy.number, numpy.bool_))
-        or (allow_zero_d_array and isinstance(data, numpy.ndarray) and data.ndim == 0)
-    )
+    return NUMPY and (isinstance(data, (numpy.number, numpy.bool_)))

@@ -43,12 +43,19 @@ class AbstractTypeResolver:
     type_map : Dict[Type, str]
         A mapping from concrete types to the corresponding named abstract type
         from :attr:`~.abstract_type_identifiers`.
+    preprocessor : callable or None
+        An operation to perform on an object before type lookup. Providing this
+        callable can be used if input data types cannot be checked because
+        objects of a given type must be treated differently based on additional
+        criteria, in which case this function can be used to preprocess them and
+        convert them to a suitable type for type-checking.
 
     """
 
-    def __init__(self, abstract_type_identifiers):
+    def __init__(self, abstract_type_identifiers, preprocessor=None):
         self.abstract_type_identifiers = abstract_type_identifiers
         self.type_map = {}
+        self.preprocessor = preprocessor
 
     def get_type(self, obj):
         """Get the type string corresponding to this data type.
@@ -66,7 +73,8 @@ class AbstractTypeResolver:
             will return ``None``.
 
         """
-        obj = _convert_numpy(obj)
+        if self.preprocessor is not None:
+            obj = self.preprocessor(obj)
 
         obj_type = type(obj)
         enum_type = None
