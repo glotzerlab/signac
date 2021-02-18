@@ -33,20 +33,22 @@ try:
 
     NUMPY = True
 
-    from numpy_conversion_tests import NUMPY_INT_TYPES
+    from synced_collection_test import NUMPY_INT_TYPES, NUMPY_SHAPES
 
     # BSON does not support >8-byte ints. We remove larger types since some are
     # architecture-dependent.
-    NUMPY_INT_TYPES = [
-        dtype
-        for dtype in NUMPY_INT_TYPES
-        if issubclass(dtype, numpy.number)
-        and numpy.log2(numpy.iinfo(dtype).max) / 8 < 8
-    ]
+    NUMPY_INT_TYPES = tuple(
+        [
+            dtype
+            for dtype in NUMPY_INT_TYPES
+            if issubclass(dtype, numpy.number)
+            and numpy.log2(numpy.iinfo(dtype).max) / 8 < 8
+        ]
+    )
 except ImportError:
     NUMPY = False
 
-    NUMPY_INT_TYPES = []
+    NUMPY_INT_TYPES = ()
 
 
 class MongoDBCollectionTest:
@@ -74,7 +76,7 @@ class MongoDBCollectionTest:
         assert synced_collection.uid == self._uid
 
     @pytest.mark.parametrize("dtype", NUMPY_INT_TYPES)
-    @pytest.mark.parametrize("shape", (None, (1,), (2,)))
+    @pytest.mark.parametrize("shape", NUMPY_SHAPES)
     def test_set_get_numpy_int_data(self, synced_collection, dtype, shape):
         """Override parent test to use the subset of int types."""
         super().test_set_get_numpy_int_data(synced_collection, dtype, shape)

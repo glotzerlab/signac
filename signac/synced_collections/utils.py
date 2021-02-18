@@ -111,9 +111,12 @@ def default(o: Any) -> Dict[str, Any]:  # noqa: D102
     # type at the bottom level that can't be converted to a Python scalar.
     if _is_numpy_scalar(converted_o):
         raise ValueError(
-            "Only NumPy types with corresponding Python types can be JSON-encoded"
-            "All other types, such as NumPy extended-precision types, must be "
-            "converted by the user."
+            "In order for a NumPy type to be JSON-encoded, it must have a corresponding "
+            "Python type. All other types, such as NumPy extended-precision types, must "
+            "be converted by the user. Note that the existence of a corresponding type "
+            "is a necessary but not sufficient condition because not all Python types "
+            "can be JSON-encoded. For instance, complex numpy values can be converted "
+            "to Python complex values, but these still cannot be JSON-encoded."
         )
 
     if converted_o is o:

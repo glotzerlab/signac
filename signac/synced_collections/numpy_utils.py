@@ -24,17 +24,17 @@ NUMPY_CONVERSION_WARNING = (
 
 
 def _convert_numpy(data):
-    """Convert a numpy data types to the corresponding base data types.
+    """Convert numpy data types to the corresponding base data types.
 
     0d numpy arrays and numpy scalars are converted to their corresponding
-    primitive types, while other numpy arrays are converted to lists. If data
-    not a numpy data type, this function is a no-op.
+    primitive types, while other numpy arrays are converted to lists. If ``data``
+    is not a numpy data type, this function is a no-op.
     """
     if NUMPY:
         if isinstance(data, numpy.ndarray):
             # tolist will return a scalar for 0d arrays, so there's no need to
             # special-case that check. 1-element 1d arrays should remain
-            # arrays, i.e. np.array([1])->[1], not 1.
+            # arrays, i.e. np.array([1]) should become [1], not 1.
             warnings.warn(NUMPY_CONVERSION_WARNING, NumpyConversionWarning)
             return data.tolist()
         elif isinstance(data, (numpy.number, numpy.bool_)):
@@ -46,9 +46,9 @@ def _convert_numpy(data):
 def _is_atleast_1d_numpy_array(data):
     """Check if an object is a nonscalar numpy array.
 
-    The need to ignore 0d numpy arrays is in typical in the synced
-    collections framework, since >0d arrays are mapped to (synced) lists
-    while 0d arrays are mapped to scalars.
+    The synced collections framework must differentiate 0d numpy arrays from
+    other arrays because they are mapped to scalars while >0d arrays are mapped
+    to (synced) lists.
 
     Returns
     -------
