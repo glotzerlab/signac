@@ -160,7 +160,7 @@ class TestH5Store(TestH5StoreBase):
                 ),
                 "numpy_void_array": numpy.array(
                     [
-                        b"abcde",
+                        b"abcdefghijk",
                         b"\x73\x69\x67\x6E\x61\x63\x00\xF0\x9F\x8E\xA8",
                     ],
                     dtype="V",
