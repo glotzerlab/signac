@@ -21,7 +21,8 @@ _sequence_resolver = AbstractTypeResolver(
             lambda obj: (isinstance(obj, Sequence) and not isinstance(obj, str))
             or _is_atleast_1d_numpy_array(obj)
         ),
-    }
+    },
+    _convert_numpy,
 )
 
 
