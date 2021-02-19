@@ -31,8 +31,12 @@ class AbstractTypeResolver:
     abstract_type_identifiers : Mapping
         A mapping from a string identifier for a group of types (e.g. ``"MAPPING"``)
         to a callable that can be used to identify that type. Due to insertion order
-        guarantees of dictionaries in Python>=3.6 (officially 3.7), it is beneficial
+        guarantees of dictionaries in Python>=3.6 (officially 3.7), it may be beneficial
         to order this dictionary with the most frequently occuring types first.
+        However, unless users have many different concrete types implementing
+        the same abstract interface (e.g. many Mapping types identified via
+        ``isinstance(obj, Mapping)``), any performance gain should be negligible
+        since the callables will only be executed once per type.
     cache_blocklist : Sequence, optional
         A sequence of string identifiers from ``abstract_type_identifiers`` that
         should not be cached. If there are cases where objects of the same type
@@ -40,7 +44,11 @@ class AbstractTypeResolver:
         ``abstract_type_identifiers``, this argument allows users to specify that
         this type should not be cached. This argument should be used sparingly
         because performance will quickly degrade if many calls to
-        :meth:`get_type` are with types that cannot be cached.
+        :meth:`get_type` are with types that cannot be cached. The identifiers
+        (keys in ``abstract_type_identifiers``) corresponding to elements of the
+        blocklist should be placed first in the ``abstract_type_identifiers``
+        dictionary since they will never be cached and are therefore the most
+        likely callables to be used repeatedly (Default value = None).
 
     Attributes
     ----------

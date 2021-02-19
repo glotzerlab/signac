@@ -101,12 +101,12 @@ def require_string_key(data):
 
 _json_format_validator_type_resolver = AbstractTypeResolver(
     {
-        "BASE": lambda obj: isinstance(obj, (str, int, float, bool, type(None))),
-        "MAPPING": lambda obj: isinstance(obj, Mapping),
         # We identify >0d numpy arrays as sequences for validation purposes.
         "SEQUENCE": lambda obj: isinstance(obj, Sequence)
         or _is_atleast_1d_numpy_array(obj),
         "NUMPY": lambda obj: _is_numpy_scalar(obj),
+        "BASE": lambda obj: isinstance(obj, (str, int, float, bool, type(None))),
+        "MAPPING": lambda obj: isinstance(obj, Mapping),
     },
     cache_blocklist=(ndarray,),
 )
