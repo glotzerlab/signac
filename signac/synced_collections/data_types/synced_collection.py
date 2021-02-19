@@ -272,7 +272,7 @@ class SyncedCollection(Collection):
 
     @property
     def validators(self):
-        """List[Callable]: The validators that will be applied."""
+        """Tuple[Callable]: The validators that will be applied."""
         return self._all_validators
 
     @property
