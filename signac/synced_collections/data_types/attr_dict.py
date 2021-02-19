@@ -9,7 +9,7 @@ SyncedDict objects, some applications may want to add this feature, so this
 simple mixin can be combined via inheritance without causing much difficulty.
 """
 
-from typing import Tuple
+from typing import FrozenSet
 
 
 class AttrDict:
@@ -34,7 +34,7 @@ class AttrDict:
 
     """
 
-    _PROTECTED_KEYS: Tuple[str, ...] = ()
+    _PROTECTED_KEYS: FrozenSet[str] = frozenset()
 
     def __getattr__(self, name):
         if name.startswith("__"):

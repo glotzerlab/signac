@@ -9,9 +9,8 @@ import os
 import uuid
 import warnings
 from collections.abc import Mapping, Sequence
-from typing import Callable
+from typing import Callable, FrozenSet
 from typing import Sequence as Sequence_t
-from typing import Tuple
 
 from .. import SyncedCollection, SyncedDict, SyncedList
 from ..buffers.memory_buffered_collection import SharedMemoryFileBufferedCollection
@@ -278,24 +277,26 @@ class JSONCollection(SyncedCollection):
 
 
 # These are the common protected keys used by all JSONDict types.
-_JSONDICT_PROTECTED_KEYS = (
-    # These are all protected keys that are inherited from data type classes.
-    "_data",
-    "_name",
-    "_suspend_sync_",
-    "_load",
-    "_sync",
-    "_root",
-    "_validators",
-    "_all_validators",
-    "_load_and_save",
-    "_suspend_sync",
-    "_supports_threading",
-    "_LoadSaveType",
-    "registry",
-    # These keys are specific to the JSON backend.
-    "_filename",
-    "_write_concern",
+_JSONDICT_PROTECTED_KEYS = frozenset(
+    [
+        # These are all protected keys that are inherited from data type classes.
+        "_data",
+        "_name",
+        "_suspend_sync_",
+        "_load",
+        "_sync",
+        "_root",
+        "_validators",
+        "_all_validators",
+        "_load_and_save",
+        "_suspend_sync",
+        "_supports_threading",
+        "_LoadSaveType",
+        "registry",
+        # These keys are specific to the JSON backend.
+        "_filename",
+        "_write_concern",
+    ]
 )
 
 
@@ -342,7 +343,7 @@ class JSONDict(JSONCollection, SyncedDict):
 
     """
 
-    _PROTECTED_KEYS: Tuple[str, ...] = _JSONDICT_PROTECTED_KEYS
+    _PROTECTED_KEYS: FrozenSet[str] = _JSONDICT_PROTECTED_KEYS
 
     def __init__(
         self,
@@ -443,20 +444,22 @@ class BufferedJSONCollection(SerializedFileBufferedCollection, JSONCollection):
 
 
 # These are the keys common to buffer backends.
-_BUFFERED_PROTECTED_KEYS = (
-    "buffered",
-    "_is_buffered",
-    "_buffer_lock",
-    "_buffer_context",
-    "_buffered_collections",
+_BUFFERED_PROTECTED_KEYS = frozenset(
+    [
+        "buffered",
+        "_is_buffered",
+        "_buffer_lock",
+        "_buffer_context",
+        "_buffered_collections",
+    ]
 )
 
 
 class BufferedJSONDict(BufferedJSONCollection, SyncedDict):
     """A buffered :class:`JSONDict`."""
 
-    _PROTECTED_KEYS: Tuple[str, ...] = (
-        _JSONDICT_PROTECTED_KEYS + _BUFFERED_PROTECTED_KEYS
+    _PROTECTED_KEYS: FrozenSet[str] = (
+        _JSONDICT_PROTECTED_KEYS | _BUFFERED_PROTECTED_KEYS
     )
 
     def __init__(
@@ -521,8 +524,8 @@ class MemoryBufferedJSONCollection(SharedMemoryFileBufferedCollection, JSONColle
 class MemoryBufferedJSONDict(MemoryBufferedJSONCollection, SyncedDict):
     """A buffered :class:`JSONDict`."""
 
-    _PROTECTED_KEYS: Tuple[str, ...] = (
-        _JSONDICT_PROTECTED_KEYS + _BUFFERED_PROTECTED_KEYS
+    _PROTECTED_KEYS: FrozenSet[str] = (
+        _JSONDICT_PROTECTED_KEYS | _BUFFERED_PROTECTED_KEYS
     )
 
     def __init__(

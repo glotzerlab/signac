@@ -9,7 +9,7 @@ import os
 import shutil
 from copy import deepcopy
 from json import JSONDecodeError
-from typing import Tuple
+from typing import FrozenSet
 
 from deprecation import deprecated
 
@@ -46,7 +46,9 @@ class _StatePointDict(JSONAttrDict):
            job directory migrations.
     """
 
-    _PROTECTED_KEYS: Tuple[str, ...] = JSONAttrDict._PROTECTED_KEYS + ("_jobs",)
+    _PROTECTED_KEYS: FrozenSet[str] = JSONAttrDict._PROTECTED_KEYS | frozenset(
+        ["_jobs"]
+    )
     _all_validators = (json_attr_dict_validator,)
 
     def __init__(
