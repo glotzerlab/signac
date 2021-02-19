@@ -346,7 +346,7 @@ class Job:
         """
         if self._wd is None:
             # We can rely on the project workspace to be well-formed, so just
-            # use string-concatenation with os.sep.
+            # use string-concatenation with os.sep instead of os.path.join for speed.
             self._wd = self._project.workspace() + os.sep + self.id
         return self._wd
 
