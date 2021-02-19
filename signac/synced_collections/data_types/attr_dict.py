@@ -49,13 +49,17 @@ class AttrDict:
         # the object has been fully instantiated. We may want to add a try
         # except in the else clause in case someone subclasses these and tries
         # to use d['foo'] inside a constructor prior to _data being defined.
-        if key.startswith("__") or key in self._PROTECTED_KEYS:
+        # The order of these checks assumes that setting protected keys will be
+        # much more common than setting dunder attributes.
+        if key in self._PROTECTED_KEYS or key.startswith("__"):
             super().__setattr__(key, value)
         else:
             self.__setitem__(key, value)
 
     def __delattr__(self, key):
-        if key.startswith("__") or key in self._PROTECTED_KEYS:
+        # The order of these checks assumes that setting protected keys will be
+        # much more common than setting dunder attributes.
+        if key in self._PROTECTED_KEYS or key.startswith("__"):
             super().__delattr__(key)
         else:
             self.__delitem__(key)
