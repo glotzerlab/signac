@@ -7,6 +7,8 @@ import errno
 import logging
 import os
 import shutil
+import warnings
+from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from json import JSONDecodeError
 from typing import Tuple
@@ -14,18 +16,103 @@ from typing import Tuple
 from deprecation import deprecated
 
 from ..core.h5store import H5StoreManager
-from ..errors import KeyTypeError
+from ..errors import InvalidKeyError, KeyTypeError
 from ..sync import sync_jobs
 from ..synced_collections.backends.collection_json import (
     BufferedJSONAttrDict,
     JSONAttrDict,
 )
+from ..synced_collections.numpy_utils import (
+    _convert_numpy,
+    _is_atleast_1d_numpy_array,
+    _is_numpy_scalar,
+)
+from ..synced_collections.utils import AbstractTypeResolver
 from ..version import __version__
 from .errors import DestinationExistsError, JobsCorruptedError
 from .hashing import calc_id
 from .utility import _mkdir_p
 
 logger = logging.getLogger(__name__)
+
+
+_state_point_validator_type_resolver = AbstractTypeResolver(
+    {
+        "BASE": lambda obj: isinstance(obj, (str, int, float, bool, type(None))),
+        "MAPPING": lambda obj: isinstance(obj, Mapping),
+        # We identify >0d numpy arrays as sequences for validation purposes.
+        "SEQUENCE": lambda obj: isinstance(obj, Sequence)
+        or _is_atleast_1d_numpy_array(obj),
+        "NUMPY": lambda obj: _is_numpy_scalar(obj),
+    },
+    preprocessor=_convert_numpy,
+)
+
+
+def _state_point_validator(data):
+    """Validate data for state points.
+
+    This validator combines the logic from the following validators into one to
+    make statepoint initialization more efficient:
+
+    This validator combines the logic of the following validators:
+        - json_format_validator
+        - no_dot_in_key
+        - _convert_key_to_str
+
+    Parameters
+    ----------
+    data
+        Data to validate.
+
+    Raises
+    ------
+    KeyTypeError
+        If key data type is not supported.
+    TypeError
+        If the data type of ``data`` is not supported.
+
+    """
+    switch_type = _state_point_validator_type_resolver.get_type(data)
+
+    if switch_type == "BASE":
+        return
+    elif switch_type == "MAPPING":
+        # Explicitly call `list(keys)` to get a fixed list of keys to avoid
+        # running into issues with iterating over a DictKeys view while
+        # modifying the dict at the same time. Inside the loop, we:
+        #   1) validate the key, converting to string if necessary
+        #   2) pop and validate the value
+        #   3) reassign the value to the (possibly converted) key
+        for key in list(data):
+            _state_point_validator(data[key])
+            if isinstance(key, str):
+                if "." in key:
+                    raise InvalidKeyError(
+                        f"Mapping keys may not contain dots ('.'): {key}"
+                    )
+            elif isinstance(key, (int, bool, type(None))):
+                # TODO: Remove this branch in signac 2.0.
+                warnings.warn(
+                    f"Use of {type(key).__name__} as key is deprecated "
+                    "and will be removed in version 2.0",
+                    DeprecationWarning,
+                )
+                data[str(key)] = data.pop(key)
+            else:
+                raise KeyTypeError(
+                    f"Mapping keys must be str, int, bool or None, not {type(key).__name__}"
+                )
+    elif switch_type == "SEQUENCE":
+        for value in data:
+            _state_point_validator(value)
+    elif switch_type == "NUMPY":
+        if _is_numpy_scalar(data.item()):
+            raise TypeError("NumPy extended precision types are not JSON serializable.")
+    else:
+        raise TypeError(
+            f"Object of type {type(data).__name__} is not JSON serializable"
+        )
 
 
 # Note: All children of _StatePointDict will be of its parent type because they
@@ -46,6 +133,7 @@ class _StatePointDict(JSONAttrDict):
     """
 
     _PROTECTED_KEYS: Tuple[str, ...] = JSONAttrDict._PROTECTED_KEYS + ("_jobs",)
+    _all_validators = (_state_point_validator,)
 
     def __init__(
         self,
