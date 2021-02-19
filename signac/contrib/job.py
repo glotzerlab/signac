@@ -23,9 +23,9 @@ from ..synced_collections.backends.collection_json import (
     JSONAttrDict,
 )
 from ..synced_collections.numpy_utils import (
-    _convert_numpy,
     _is_atleast_1d_numpy_array,
     _is_numpy_scalar,
+    ndarray,
 )
 from ..synced_collections.utils import AbstractTypeResolver
 from ..version import __version__
@@ -45,7 +45,7 @@ _state_point_validator_type_resolver = AbstractTypeResolver(
         or _is_atleast_1d_numpy_array(obj),
         "NUMPY": lambda obj: _is_numpy_scalar(obj),
     },
-    preprocessor=_convert_numpy,
+    cache_blocklist=(ndarray,),
 )
 
 

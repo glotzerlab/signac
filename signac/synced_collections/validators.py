@@ -13,7 +13,12 @@ types as needed.
 from collections.abc import Mapping, Sequence
 
 from .errors import InvalidKeyError, KeyTypeError
-from .numpy_utils import _convert_numpy, _is_atleast_1d_numpy_array, _is_numpy_scalar
+from .numpy_utils import (
+    _is_atleast_1d_numpy_array,
+    _is_complex,
+    _is_numpy_scalar,
+    ndarray,
+)
 from .utils import AbstractTypeResolver
 
 _no_dot_in_key_type_resolver = AbstractTypeResolver(
@@ -103,7 +108,7 @@ _json_format_validator_type_resolver = AbstractTypeResolver(
         or _is_atleast_1d_numpy_array(obj),
         "NUMPY": lambda obj: _is_numpy_scalar(obj),
     },
-    preprocessor=_convert_numpy,
+    cache_blocklist=(ndarray,),
 )
 
 
@@ -138,6 +143,8 @@ def json_format_validator(data):
     elif switch_type == "NUMPY":
         if _is_numpy_scalar(data.item()):
             raise TypeError("NumPy extended precision types are not JSON serializable.")
+        elif _is_complex(data):
+            raise TypeError("Complex numbers are not JSON serializable.")
     else:
         raise TypeError(
             f"Object of type {type(data).__name__} is not JSON serializable"
