@@ -20,9 +20,14 @@ from ..buffers.serialized_file_buffered_collection import (
 )
 from ..data_types.attr_dict import AttrDict
 from ..errors import InvalidKeyError, KeyTypeError
-from ..numpy_utils import _is_atleast_1d_numpy_array, _is_numpy_scalar, ndarray
 from ..utils import AbstractTypeResolver, SyncedCollectionJSONEncoder
 from ..validators import json_format_validator, no_dot_in_key
+from .numpy_utils import (
+    _is_atleast_1d_numpy_array,
+    _is_complex,
+    _is_numpy_scalar,
+    ndarray,
+)
 
 """
 There are many classes defined in this file. Most of the definitions are
@@ -155,6 +160,8 @@ def json_attr_dict_validator(data):
     elif switch_type == "NUMPY":
         if _is_numpy_scalar(data.item()):
             raise TypeError("NumPy extended precision types are not JSON serializable.")
+        elif _is_complex(data):
+            raise TypeError("Complex numbers are not JSON serializable.")
     else:
         raise TypeError(
             f"Object of type {type(data).__name__} is not JSON serializable"
