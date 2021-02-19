@@ -55,12 +55,16 @@ class SyncedList(SyncedCollection, MutableSequence):
 
     """
 
-    def __init__(self, data=None, *args, **kwargs):
+    # The _validate parameter is an optimization for internal use only. This
+    # argument will be passed by _from_base whenever an unsynced collection is
+    # being recursively converted, ensuring that validation only happens once.
+    def __init__(self, data=None, _validate=True, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if data is None:
             self._data = []
         else:
-            self._validate(data)
+            if _validate:
+                self._validate(data)
             data = _convert_numpy(data)
             with self._suspend_sync:
                 self._data = [

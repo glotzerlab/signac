@@ -300,6 +300,14 @@ class SyncedCollection(Collection):
     def _from_base(cls, data, **kwargs):
         r"""Dynamically resolve the type of object to the corresponding synced collection.
 
+        This method assumes that ``data`` has already been validated. This assumption
+        can always be met, since this method should only be called internally by
+        other methods that modify the internal collection data. While this requirement
+        does require that all calling methods be responsible for validation, it
+        confers significant performance benefits because it can instruct any invoked
+        class constructors not to validate, which is especially important for nested
+        collections.
+
         Parameters
         ----------
         data : Collection
@@ -325,7 +333,7 @@ class SyncedCollection(Collection):
         """
         for base_cls in SyncedCollection.registry[cls._backend]:
             if base_cls.is_base_type(data):
-                return base_cls(data=data, **kwargs)
+                return base_cls(data=data, _validate=False, **kwargs)
         return _convert_numpy(data)
 
     @abstractmethod
