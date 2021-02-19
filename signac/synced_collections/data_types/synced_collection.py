@@ -19,6 +19,12 @@ _sc_resolver = AbstractTypeResolver(
     }
 )
 
+_collection_resolver = AbstractTypeResolver(
+    {
+        "COLLECTION": lambda obj: isinstance(obj, Collection),
+    }
+)
+
 
 class _LoadAndSave:
     """A context manager for :class:`SyncedCollection` to wrap saving and loading.
@@ -331,9 +337,10 @@ class SyncedCollection(Collection):
         implementations.
 
         """
-        for base_cls in SyncedCollection.registry[cls._backend]:
-            if base_cls.is_base_type(data):
-                return base_cls(data=data, _validate=False, **kwargs)
+        if _collection_resolver.get_type(data) == "COLLECTION":
+            for base_cls in SyncedCollection.registry[cls._backend]:
+                if base_cls.is_base_type(data):
+                    return base_cls(data=data, _validate=False, **kwargs)
         return _convert_numpy(data)
 
     @abstractmethod
