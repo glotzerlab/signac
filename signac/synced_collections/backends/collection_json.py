@@ -8,7 +8,10 @@ import json
 import os
 import uuid
 import warnings
-from typing import Callable, Sequence, Tuple
+from collections.abc import Mapping, Sequence
+from typing import Callable
+from typing import Sequence as Sequence_t
+from typing import Tuple
 
 from .. import SyncedCollection, SyncedDict, SyncedList
 from ..buffers.memory_buffered_collection import SharedMemoryFileBufferedCollection
@@ -16,8 +19,14 @@ from ..buffers.serialized_file_buffered_collection import (
     SerializedFileBufferedCollection,
 )
 from ..data_types.attr_dict import AttrDict
-from ..errors import KeyTypeError
-from ..utils import SyncedCollectionJSONEncoder
+from ..errors import InvalidKeyError, KeyTypeError
+from ..numpy_utils import (
+    _is_atleast_1d_numpy_array,
+    _is_complex,
+    _is_numpy_scalar,
+    _numpy_cache_blocklist,
+)
+from ..utils import AbstractTypeResolver, SyncedCollectionJSONEncoder
 from ..validators import json_format_validator, no_dot_in_key
 
 """
@@ -77,6 +86,88 @@ def _convert_key_to_str(data):
             _convert_key_to_str(value)
 
 
+_json_attr_dict_validator_type_resolver = AbstractTypeResolver(
+    {
+        # We identify >0d numpy arrays as sequences for validation purposes.
+        "SEQUENCE": lambda obj: (isinstance(obj, Sequence) and not isinstance(obj, str))
+        or _is_atleast_1d_numpy_array(obj),
+        "NUMPY": lambda obj: _is_numpy_scalar(obj),
+        "BASE": lambda obj: isinstance(obj, (str, int, float, bool, type(None))),
+        "MAPPING": lambda obj: isinstance(obj, Mapping),
+    },
+    cache_blocklist=_numpy_cache_blocklist,
+)
+
+
+def json_attr_dict_validator(data):
+    """Validate data for JSONAttrDict.
+
+    This validator combines the logic from the following validators into one to
+    make validation more efficient:
+
+    This validator combines the following logic:
+        - JSON format validation
+        - Ensuring no dots are present in string keys
+        - Converting non-str keys to strings. This is a backwards compatibility
+          layer that will be removed in signac 2.0.
+
+    Parameters
+    ----------
+    data
+        Data to validate.
+
+    Raises
+    ------
+    KeyTypeError
+        If key data type is not supported.
+    TypeError
+        If the data type of ``data`` is not supported.
+
+    """
+    switch_type = _json_attr_dict_validator_type_resolver.get_type(data)
+
+    if switch_type == "BASE":
+        return
+    elif switch_type == "MAPPING":
+        # Explicitly call `list(keys)` to get a fixed list of keys to avoid
+        # running into issues with iterating over a DictKeys view while
+        # modifying the dict at the same time. Inside the loop, we:
+        #   1) validate the key, converting to string if necessary
+        #   2) pop and validate the value
+        #   3) reassign the value to the (possibly converted) key
+        for key in list(data):
+            json_attr_dict_validator(data[key])
+            if isinstance(key, str):
+                if "." in key:
+                    raise InvalidKeyError(
+                        f"Mapping keys may not contain dots ('.'): {key}."
+                    )
+            elif isinstance(key, (int, bool, type(None))):
+                # TODO: Remove this branch in signac 2.0.
+                warnings.warn(
+                    f"Use of {type(key).__name__} as key is deprecated "
+                    "and will be removed in version 2.0.",
+                    DeprecationWarning,
+                )
+                data[str(key)] = data.pop(key)
+            else:
+                raise KeyTypeError(
+                    f"Mapping keys must be str, int, bool or None, not {type(key).__name__}."
+                )
+    elif switch_type == "SEQUENCE":
+        for value in data:
+            json_attr_dict_validator(value)
+    elif switch_type == "NUMPY":
+        if _is_numpy_scalar(data.item()):
+            raise TypeError("NumPy extended precision types are not JSON serializable.")
+        elif _is_complex(data):
+            raise TypeError("Complex numbers are not JSON serializable.")
+    else:
+        raise TypeError(
+            f"Object of type {type(data).__name__} is not JSON serializable."
+        )
+
+
 """
 Here we define the main JSONCollection class that encapsulates most of the
 logic for reading from and writing to JSON files. The remaining classes in
@@ -127,7 +218,7 @@ class JSONCollection(SyncedCollection):
     # in the future, however, the _convert_key_to_str validator will be removed in
     # signac 2.0 so this is OK (that validator is modifying the data in place,
     # which is unsupported behavior that will be removed in signac 2.0 as well).
-    _validators: Sequence[Callable] = (_convert_key_to_str, json_format_validator)
+    _validators: Sequence_t[Callable] = (_convert_key_to_str, json_format_validator)
 
     def __init__(self, filename=None, write_concern=False, *args, **kwargs):
         # The `_filename` attribute _must_ be defined prior to calling the
@@ -533,7 +624,10 @@ class JSONAttrDict(JSONDict, AttrDict):
     """
 
     _backend = __name__ + ".attr"  # type: ignore
+    # Define the validators in case subclasses want to inherit the correct
+    # behavior, but define _all_validators for performance of this class.
     _validators = (no_dot_in_key,)
+    _all_validators = (json_attr_dict_validator,)
 
 
 class JSONAttrList(JSONList):
@@ -546,7 +640,10 @@ class BufferedJSONAttrDict(BufferedJSONDict, AttrDict):
     """A buffered :class:`JSONAttrDict`."""
 
     _backend = __name__ + ".buffered_attr"  # type: ignore
+    # Define the validators in case subclasses want to inherit the correct
+    # behavior, but define _all_validators for performance of this class.
     _validators = (no_dot_in_key,)
+    _all_validators = (json_attr_dict_validator,)
 
 
 class BufferedJSONAttrList(BufferedJSONList):
@@ -559,7 +656,10 @@ class MemoryBufferedJSONAttrDict(MemoryBufferedJSONDict, AttrDict):
     """A buffered :class:`JSONAttrDict`."""
 
     _backend = __name__ + ".memory_buffered_attr"  # type: ignore
+    # Define the validators in case subclasses want to inherit the correct
+    # behavior, but define _all_validators for performance of this class.
     _validators = (no_dot_in_key,)
+    _all_validators = (json_attr_dict_validator,)
 
 
 class MemoryBufferedJSONAttrList(MemoryBufferedJSONList):

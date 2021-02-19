@@ -10,7 +10,11 @@ give a list-like API to a synchronized data structure.
 
 from collections.abc import MutableSequence, Sequence
 
-from ..numpy_utils import _convert_numpy, _is_atleast_1d_numpy_array
+from ..numpy_utils import (
+    _convert_numpy,
+    _is_atleast_1d_numpy_array,
+    _numpy_cache_blocklist,
+)
 from ..utils import AbstractTypeResolver
 from .synced_collection import SyncedCollection, _sc_resolver
 
@@ -22,7 +26,7 @@ _sequence_resolver = AbstractTypeResolver(
             or _is_atleast_1d_numpy_array(obj)
         ),
     },
-    _convert_numpy,
+    cache_blocklist=_numpy_cache_blocklist,
 )
 
 

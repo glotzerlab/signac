@@ -9,8 +9,10 @@ try:
     import numpy
 
     NUMPY = True
+    _numpy_cache_blocklist = (numpy.ndarray,)
 except ImportError:
     NUMPY = False
+    _numpy_cache_blocklist = None  # type: ignore
 
 
 class NumpyConversionWarning(UserWarning):
@@ -70,4 +72,20 @@ def _is_numpy_scalar(data):
     bool
         Whether or not the input is a numpy scalar type.
     """
-    return NUMPY and (isinstance(data, (numpy.number, numpy.bool_)))
+    return NUMPY and (
+        (isinstance(data, (numpy.number, numpy.bool_)))
+        or (isinstance(data, numpy.ndarray) and data.ndim == 0)
+    )
+
+
+def _is_complex(data):
+    """Check if an object is complex.
+
+    This function works for both numpy raw Python data types.
+
+    Returns
+    -------
+    bool
+        Whether or not the input is a complex number.
+    """
+    return (NUMPY and numpy.iscomplex(data).any()) or (isinstance(data, complex))

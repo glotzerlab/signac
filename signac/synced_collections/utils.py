@@ -24,15 +24,31 @@ class AbstractTypeResolver:
     of types that must be resolved and a way to identify each of these (which
     may be expensive), it maintains a local cache of all instances of a given
     type that have previously been observed. This reduces the cost of type checking
-    to a simple dict lookup, except for the first time a new type is observed.
+    to a simple ``dict`` lookup, except for the first time a new type is observed.
 
     Parameters
     ----------
-    abstract_type_identifiers : collections.abc.Mapping
+    abstract_type_identifiers : Mapping
         A mapping from a string identifier for a group of types (e.g. ``"MAPPING"``)
         to a callable that can be used to identify that type. Due to insertion order
-        guarantees of dictionaries in Python>=3.6 (officially 3.7), it is beneficial
+        guarantees of dictionaries in Python>=3.6 (officially 3.7), it may be beneficial
         to order this dictionary with the most frequently occuring types first.
+        However, unless users have many different concrete types implementing
+        the same abstract interface (e.g. many Mapping types identified via
+        ``isinstance(obj, Mapping)``), any performance gain should be negligible
+        since the callables will only be executed once per type.
+    cache_blocklist : Sequence, optional
+        A sequence of string identifiers from ``abstract_type_identifiers`` that
+        should not be cached. If there are cases where objects of the same type
+        would be classified into separate groups based on the callables in
+        ``abstract_type_identifiers``, this argument allows users to specify that
+        this type should not be cached. This argument should be used sparingly
+        because performance will quickly degrade if many calls to
+        :meth:`get_type` are with types that cannot be cached. The identifiers
+        (keys in ``abstract_type_identifiers``) corresponding to elements of the
+        blocklist should be placed first in the ``abstract_type_identifiers``
+        dictionary since they will never be cached and are therefore the most
+        likely callables to be used repeatedly (Default value = None).
 
     Attributes
     ----------
@@ -43,19 +59,13 @@ class AbstractTypeResolver:
     type_map : Dict[Type, str]
         A mapping from concrete types to the corresponding named abstract type
         from :attr:`~.abstract_type_identifiers`.
-    preprocessor : callable or None
-        An operation to perform on an object before type lookup. Providing this
-        callable can be used if input data types cannot be checked because
-        objects of a given type must be treated differently based on additional
-        criteria, in which case this function can be used to preprocess them and
-        convert them to a suitable type for type-checking.
 
     """
 
-    def __init__(self, abstract_type_identifiers, preprocessor=None):
+    def __init__(self, abstract_type_identifiers, cache_blocklist=None):
         self.abstract_type_identifiers = abstract_type_identifiers
         self.type_map = {}
-        self.preprocessor = preprocessor
+        self.cache_blocklist = cache_blocklist if cache_blocklist is not None else ()
 
     def get_type(self, obj):
         """Get the type string corresponding to this data type.
@@ -73,9 +83,6 @@ class AbstractTypeResolver:
             will return ``None``.
 
         """
-        if self.preprocessor is not None:
-            obj = self.preprocessor(obj)
-
         obj_type = type(obj)
         enum_type = None
         try:
@@ -83,9 +90,10 @@ class AbstractTypeResolver:
         except KeyError:
             for data_type, id_func in self.abstract_type_identifiers.items():
                 if id_func(obj):
-                    enum_type = self.type_map[obj_type] = data_type
+                    enum_type = data_type
                     break
-            self.type_map[obj_type] = enum_type
+            if obj_type not in self.cache_blocklist:
+                self.type_map[obj_type] = enum_type
 
         return enum_type
 

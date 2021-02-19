@@ -13,14 +13,18 @@ types as needed.
 from collections.abc import Mapping, Sequence
 
 from .errors import InvalidKeyError, KeyTypeError
-from .numpy_utils import _convert_numpy, _is_atleast_1d_numpy_array, _is_numpy_scalar
+from .numpy_utils import (
+    _is_atleast_1d_numpy_array,
+    _is_complex,
+    _is_numpy_scalar,
+    _numpy_cache_blocklist,
+)
 from .utils import AbstractTypeResolver
 
 _no_dot_in_key_type_resolver = AbstractTypeResolver(
     {
         "MAPPING": lambda obj: isinstance(obj, Mapping),
-        "NON_STR_SEQUENCE": lambda obj: isinstance(obj, Sequence)
-        and not isinstance(obj, str),
+        "SEQUENCE": lambda obj: isinstance(obj, Sequence) and not isinstance(obj, str),
     }
 )
 
@@ -58,7 +62,7 @@ def no_dot_in_key(data):
                     f"Mapping keys must be str, int, bool or None, not {type(key).__name__}"
                 )
             no_dot_in_key(value)
-    elif switch_type == "NON_STR_SEQUENCE":
+    elif switch_type == "SEQUENCE":
         for value in data:
             no_dot_in_key(value)
 
@@ -96,14 +100,14 @@ def require_string_key(data):
 
 _json_format_validator_type_resolver = AbstractTypeResolver(
     {
-        "BASE": lambda obj: isinstance(obj, (str, int, float, bool, type(None))),
-        "MAPPING": lambda obj: isinstance(obj, Mapping),
         # We identify >0d numpy arrays as sequences for validation purposes.
-        "SEQUENCE": lambda obj: isinstance(obj, Sequence)
+        "SEQUENCE": lambda obj: (isinstance(obj, Sequence) and not isinstance(obj, str))
         or _is_atleast_1d_numpy_array(obj),
         "NUMPY": lambda obj: _is_numpy_scalar(obj),
+        "BASE": lambda obj: isinstance(obj, (str, int, float, bool, type(None))),
+        "MAPPING": lambda obj: isinstance(obj, Mapping),
     },
-    preprocessor=_convert_numpy,
+    cache_blocklist=_numpy_cache_blocklist,
 )
 
 
@@ -138,6 +142,8 @@ def json_format_validator(data):
     elif switch_type == "NUMPY":
         if _is_numpy_scalar(data.item()):
             raise TypeError("NumPy extended precision types are not JSON serializable.")
+        elif _is_complex(data):
+            raise TypeError("Complex numbers are not JSON serializable.")
     else:
         raise TypeError(
             f"Object of type {type(data).__name__} is not JSON serializable"

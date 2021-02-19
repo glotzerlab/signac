@@ -60,6 +60,13 @@ def test_json_encoder(tmpdir):
     assert json.dumps(synced_data, cls=SyncedCollectionJSONEncoder) == json_str_data
 
     if NUMPY:
+        # Test both scalar and array numpy types since they could have
+        # different problems.
+        array = numpy.array(3)
+        with pytest.warns(NumpyConversionWarning):
+            synced_data["foo"] = array
+        assert isinstance(synced_data["foo"], int)
+
         array = numpy.random.rand(3)
         with pytest.warns(NumpyConversionWarning):
             synced_data["foo"] = array
