@@ -8,7 +8,7 @@ import json
 import os
 import uuid
 import warnings
-from typing import Tuple
+from typing import Callable, Sequence, Tuple
 
 from .. import SyncedCollection, SyncedDict, SyncedList
 from ..buffers.memory_buffered_collection import SharedMemoryFileBufferedCollection
@@ -120,6 +120,15 @@ class JSONCollection(SyncedCollection):
     _backend = __name__  # type: ignore
     _supports_threading = True
 
+    # The order in which these validators are added is important, because
+    # validators are called in sequence and _convert_key_to_str will ensure that
+    # valid non-str keys are converted to strings before json_format_validator is
+    # called. This ordering is an implementation detail that we should not rely on
+    # in the future, however, the _convert_key_to_str validator will be removed in
+    # signac 2.0 so this is OK (that validator is modifying the data in place,
+    # which is unsupported behavior that will be removed in signac 2.0 as well).
+    _validators: Sequence[Callable] = (_convert_key_to_str, json_format_validator)
+
     def __init__(self, filename=None, write_concern=False, *args, **kwargs):
         # The `_filename` attribute _must_ be defined prior to calling the
         # superclass constructors because the filename defines the `_lock_id`
@@ -177,16 +186,6 @@ class JSONCollection(SyncedCollection):
         return self._filename
 
 
-# The order in which these validators are added is important, because
-# validators are called in sequence and _convert_key_to_str will ensure that
-# valid non-str keys are converted to strings before json_format_validator is
-# called. This ordering is an implementation detail that we should not rely on
-# in the future, however, the _convert_key_to_str validator will be removed in
-# signac 2.0 so this is OK (that validator is modifying the data in place,
-# which is unsupported behavior that will be removed in signac 2.0 as well).
-JSONCollection.add_validator(_convert_key_to_str, json_format_validator)
-
-
 # These are the common protected keys used by all JSONDict types.
 _JSONDICT_PROTECTED_KEYS = (
     # These are all protected keys that are inherited from data type classes.
@@ -197,6 +196,7 @@ _JSONDICT_PROTECTED_KEYS = (
     "_sync",
     "_root",
     "_validators",
+    "_all_validators",
     "_load_and_save",
     "_suspend_sync",
     "_supports_threading",
@@ -533,9 +533,7 @@ class JSONAttrDict(JSONDict, AttrDict):
     """
 
     _backend = __name__ + ".attr"  # type: ignore
-
-
-JSONAttrDict.add_validator(no_dot_in_key)
+    _validators = (no_dot_in_key,)
 
 
 class JSONAttrList(JSONList):
@@ -548,9 +546,7 @@ class BufferedJSONAttrDict(BufferedJSONDict, AttrDict):
     """A buffered :class:`JSONAttrDict`."""
 
     _backend = __name__ + ".buffered_attr"  # type: ignore
-
-
-BufferedJSONAttrDict.add_validator(no_dot_in_key)
+    _validators = (no_dot_in_key,)
 
 
 class BufferedJSONAttrList(BufferedJSONList):
@@ -563,9 +559,7 @@ class MemoryBufferedJSONAttrDict(MemoryBufferedJSONDict, AttrDict):
     """A buffered :class:`JSONAttrDict`."""
 
     _backend = __name__ + ".memory_buffered_attr"  # type: ignore
-
-
-MemoryBufferedJSONAttrDict.add_validator(no_dot_in_key)
+    _validators = (no_dot_in_key,)
 
 
 class MemoryBufferedJSONAttrList(MemoryBufferedJSONList):

@@ -7,7 +7,7 @@ from collections import defaultdict
 from collections.abc import Collection
 from inspect import isabstract
 from threading import RLock
-from typing import Any, Callable, DefaultDict, List
+from typing import Any, DefaultDict, List
 
 from ..numpy_utils import _convert_numpy
 from ..utils import AbstractTypeResolver, _CounterContext, _NullContext
@@ -88,12 +88,34 @@ class SyncedCollection(Collection):
     a given group should be interchangeable. For instance, a dict-like SyncedCollection
     can be combined equally easily with JSON, MongoDB, or SQL backends.
 
-    To fully support the restrictions and requirements of particular backends,
-    arbitrary validators may be added to different subclasses. Validators are
-    callables that accept different data types as input and raise Exceptions if the
-    data does not conform to the requirements of a particular backend. For
-    example, a JSON validator would raise Exceptions if it detected non-string
-    keys in a dict. Validators should have no side effects.
+    **Validation**
+
+    Due to the restrictions of a particular backend or the needs of a particular
+    application, synced collections may need to restrict the data that they can
+    store. Validators provide a standardized mechanism for this. A validator is
+    a callable that parses any data added to a :class:`SyncedCollection` and
+    raises an `Exception` if any invalid data is provided. Validators cannot
+    modify the data and should have no side effects. They are purely provided
+    as a mechanism to reject invalid data.  For example, a JSON validator would
+    raise Exceptions if it detected non-string keys in a dict.
+
+    Since :class:`SyncedCollection` is designed for extensive usage of
+    inheritance, validators may be inherited by subclasses. There are two attributes
+    that subclasses of :class:`SyncedCollection` can define to control the
+    validators used:
+        - ``_validators``: A list of callables that will be inherited by all
+          subclasses.
+        - ``_all_validators``: A list of callables that will be used to
+          validate this class, and this class alone.
+
+    When a  :class:`SyncedCollection` subclass is initialized (note that this
+    is at *class* definition time, not when instances are created), its
+    :meth:`_register_validators` method will be called. If this class defines
+    an ``_all_validators`` attribute, this set of validators will be used by all
+    instances of this class. Otherwise, :meth:`_register_validators` will traverse
+    the MRO and collect the ``_validators`` attributes from all parents of a class,
+    and store these in the ``_all_validators`` attribute for the class.
+
 
     .. note::
 
@@ -107,18 +129,24 @@ class SyncedCollection(Collection):
 
     **Thread safety**
 
-    Whether or not SyncedCollection objects are thread-safe depends on the
+    Whether or not :class:`SyncedCollection` objects are thread-safe depends on the
     implementation of the backend. Thread-safety of SyncedCollection objects
     is predicated on backends providing an atomic write operation. All concrete
     collection types use mutexes to guard against concurrent write operations,
     while allowing read operations to happen freely. The validity of this mode
     of access depends on the write operations of a SyncedCollection being
-    atomic, specifically the `:meth:`~._save_to_resource` method.
+    atomic, specifically the `:meth:`~._save_to_resource` method. Whether or not
+    a particular subclass of :class:`SyncedCollection` is thread-safe should be
+    indicated by that subclass setting the ``_supports_threading`` class variable
+    to ``True``. This variable is set to ``False`` by :class:`SyncedCollection`,
+    so subclasses must explicitly opt-in to support threading by setting this
+    variable to ``True``.
 
     Backends that support multithreaded execution will have multithreaded
     support turned on by default. This support can be enabled or disabled using
     the :meth:`enable_multithreading` and :meth:`disable_multithreading`
-    methods.
+    methods. :meth:`enable_multithreading` will raise a `ValueError` if called
+    on a class that does not support multithreading.
 
 
     Parameters
@@ -134,7 +162,6 @@ class SyncedCollection(Collection):
     """
 
     registry: DefaultDict[str, List[Any]] = defaultdict(list)
-    _validators: List[Callable] = []
     # Backends that support threading should modify this flag.
     _supports_threading: bool = False
     _LoadSaveType = _LoadAndSave
@@ -159,6 +186,30 @@ class SyncedCollection(Collection):
             type(self)._locks[self._lock_id] = RLock()
 
     @classmethod
+    def _register_validators(cls):
+        """Register all inherited validators to this class.
+
+        This method is called by __init_subclass__ when subclasses are created
+        to control what validators will be applied to data added to instances of
+        that class. By default, the ``_all_validators`` class variable defined
+        on the class itself determines the validation rules for that class. If
+        that variable is not defined, then all parents of the class are searched,
+        and a list of validators is constructed by concatenating the ``_validators``
+        class variable for each parent class that defines it.
+        """
+        # Must explicitly look in cls.__dict__ so that the attribute is not
+        # inherited from a parent class.
+        if "_all_validators" not in cls.__dict__:
+            validators = []
+            # Classes inherit the validators of their parent classes.
+            for base_cls in cls.__mro__:
+                if hasattr(base_cls, "_validators"):
+                    validators.extend(
+                        [v for v in base_cls._validators if v not in validators]
+                    )
+            cls._all_validators = validators
+
+    @classmethod
     def __init_subclass__(cls):
         """Register and enable validation in subclasses.
 
@@ -174,7 +225,8 @@ class SyncedCollection(Collection):
         # whether we have a concrete subclass or not.
         if not isabstract(cls):
             SyncedCollection.registry[cls._backend].append(cls)
-        cls._validators = []
+
+        cls._register_validators()
 
         # Monkey-patch subclasses that support locking.
         if cls._supports_threading:
@@ -220,18 +272,8 @@ class SyncedCollection(Collection):
 
     @property
     def validators(self):
-        """List[Callable]: The validators that will be applied.
-
-        Validators are inherited from all parents of a class.
-        """
-        validators = []
-        # Classes inherit the validators of their parent classes.
-        for base_cls in type(self).__mro__:
-            if hasattr(base_cls, "_validators"):
-                validators.extend(
-                    [v for v in base_cls._validators if v not in validators]
-                )
-        return validators
+        """List[Callable]: The validators that will be applied."""
+        return self._all_validators
 
     @property
     def _lock_id(self):
@@ -241,18 +283,6 @@ class SyncedCollection(Collection):
             "all collections that will be used to maintain a resource-specific "
             "set of locks."
         )
-
-    @classmethod
-    def add_validator(cls, *args):
-        r"""Register a validator to this class.
-
-        Parameters
-        ----------
-        \*args : List[Callable]
-            Validator(s) to register.
-
-        """
-        cls._validators.extend([v for v in args if v not in cls._validators])
 
     @property
     @abstractmethod
