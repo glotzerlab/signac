@@ -57,6 +57,12 @@ class MongoDBCollection(SyncedCollection):
 
     _backend = __name__  # type: ignore
 
+    # MongoDB uses BSON, which is not exactly JSON but is close enough that
+    # JSON-validation is reasonably appropriate. we could generalize this to do
+    # proper BSON validation if we find that the discrepancies (for instance, the
+    # supported integer data types differ) are too severe.
+    _validators = (json_format_validator,)
+
     def __init__(self, collection=None, uid=None, parent=None, *args, **kwargs):
         super().__init__(parent=parent, **kwargs)
         if not MONGO:
@@ -107,13 +113,6 @@ class MongoDBCollection(SyncedCollection):
         raise TypeError("MongoDBCollection does not support deepcopying.")
 
 
-# MongoDB uses BSON, which is not exactly JSON but is close enough that
-# JSON-validation is reasonably appropriate. we could generalize this to do
-# proper BSON validation if we find that the discrepancies (for instance, the
-# supported integer data types differ) are too severe.
-MongoDBCollection.add_validator(json_format_validator)
-
-
 class MongoDBDict(MongoDBCollection, SyncedDict):
     r"""A dict-like data structure that synchronizes with a document in a MongoDB collection.
 
@@ -157,15 +156,14 @@ class MongoDBDict(MongoDBCollection, SyncedDict):
 
     """
 
+    _validators = (require_string_key,)
+
     def __init__(
         self, collection=None, uid=None, data=None, parent=None, *args, **kwargs
     ):
         super().__init__(
             collection=collection, uid=uid, data=data, parent=parent, *args, **kwargs
         )
-
-
-MongoDBDict.add_validator(require_string_key)
 
 
 class MongoDBList(MongoDBCollection, SyncedList):

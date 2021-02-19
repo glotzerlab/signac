@@ -162,13 +162,12 @@ class ZarrDict(ZarrCollection, SyncedDict):
 
     """
 
+    _validators = (require_string_key,)
+
     def __init__(self, group=None, name=None, data=None, parent=None, *args, **kwargs):
         super().__init__(
             group=group, name=name, data=data, parent=parent, *args, **kwargs
         )
-
-
-ZarrDict.add_validator(require_string_key)
 
 
 class ZarrList(ZarrCollection, SyncedList):

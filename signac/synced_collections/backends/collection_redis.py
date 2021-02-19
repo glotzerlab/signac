@@ -33,6 +33,9 @@ class RedisCollection(SyncedCollection):
 
     _backend = __name__  # type: ignore
 
+    # Redis collection relies on JSON-serialization for the data.
+    _validators = (json_format_validator,)
+
     def __init__(self, client=None, key=None, *args, **kwargs):
         super().__init__(**kwargs)
         self._client = client
@@ -71,10 +74,6 @@ class RedisCollection(SyncedCollection):
     def __deepcopy__(self, memo):
         # The underlying Redis client cannot be deepcopied.
         raise TypeError("RedisCollection does not support deepcopying.")
-
-
-# Redis collection relies on JSON-serialization for the data.
-RedisCollection.add_validator(json_format_validator)
 
 
 class RedisDict(RedisCollection, SyncedDict):
@@ -119,16 +118,12 @@ class RedisDict(RedisCollection, SyncedDict):
 
     """
 
+    _validators = (require_string_key,)
+
     def __init__(self, client=None, key=None, data=None, parent=None, *args, **kwargs):
         super().__init__(
             client=client, key=key, data=data, parent=parent, *args, **kwargs
         )
-
-
-# TODO: This restriction actually may not be necessary, Redis can handle more
-# generic data types easily. However, for now it is easier to manage a uniform
-# set of restrictions across backends and relax this later.
-RedisDict.add_validator(require_string_key)
 
 
 class RedisList(RedisCollection, SyncedList):
