@@ -158,7 +158,7 @@ class SyncedList(SyncedCollection, MutableSequence):
                 if len(self._data) > len(data):
                     self._data = self._data[: len(data)]
                 else:
-                    new_data = data[len(self):]
+                    new_data = data[len(self) :]
                     if not trust_source:
                         self._validate(new_data)
                     self.extend(new_data)
