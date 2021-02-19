@@ -380,7 +380,18 @@ class Job:
             The job's new state point.
 
         """
-        self.statepoint.reset(new_statepoint)
+        if self._statepoint_requires_init:
+            # Instantiate state point data lazily - no load is required, since
+            # we are provided with the new state point data.
+            self._statepoint = _StatePointDict(
+                jobs=[self], filename=self._statepoint_filename, data=new_statepoint
+            )
+
+            # Update the project's state point cache when loaded lazily
+            self._project._register(self.id, new_statepoint)
+            self._statepoint_requires_init = False
+        else:
+            self.statepoint.reset(new_statepoint)
 
     def update_statepoint(self, update, overwrite=False):
         """Change the state point of this job while preserving job data.
@@ -424,9 +435,12 @@ class Job:
         if not overwrite:
             for key, value in update.items():
                 if statepoint.get(key, value) != value:
-                    raise KeyError(key)
+                    raise KeyError(
+                        f"Key {key} was provided but already exists in the "
+                        "mapping with another value."
+                    )
         statepoint.update(update)
-        self.statepoint.reset(statepoint)
+        self.reset_statepoint(statepoint)
 
     @property
     def statepoint(self):
@@ -474,7 +488,7 @@ class Job:
             The new state point to be assigned.
 
         """
-        self.statepoint.reset(new_statepoint)
+        self.reset_statepoint(new_statepoint)
 
     @property
     def sp(self):
