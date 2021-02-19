@@ -9,14 +9,10 @@ try:
     import numpy
 
     NUMPY = True
-    ndarray = numpy.ndarray
+    _numpy_cache_blocklist = (numpy.ndarray,)
 except ImportError:
     NUMPY = False
-
-    class ndarray:  # type: ignore
-        """A spoofed ndarray class for use in type checks when numpy is not present."""
-
-        pass
+    _numpy_cache_blocklist = None  # type: ignore
 
 
 class NumpyConversionWarning(UserWarning):

@@ -10,7 +10,7 @@ import uuid
 import warnings
 from collections.abc import Mapping, Sequence
 from typing import Callable
-from typing import Sequence as TypingSequence
+from typing import Sequence as Sequence_t
 from typing import Tuple
 
 from .. import SyncedCollection, SyncedDict, SyncedList
@@ -24,7 +24,7 @@ from ..numpy_utils import (
     _is_atleast_1d_numpy_array,
     _is_complex,
     _is_numpy_scalar,
-    ndarray,
+    _numpy_cache_blocklist,
 )
 from ..utils import AbstractTypeResolver, SyncedCollectionJSONEncoder
 from ..validators import json_format_validator, no_dot_in_key
@@ -95,7 +95,7 @@ _json_attr_dict_validator_type_resolver = AbstractTypeResolver(
         "BASE": lambda obj: isinstance(obj, (str, int, float, bool, type(None))),
         "MAPPING": lambda obj: isinstance(obj, Mapping),
     },
-    cache_blocklist=(ndarray,),
+    cache_blocklist=_numpy_cache_blocklist,
 )
 
 
@@ -140,19 +140,19 @@ def json_attr_dict_validator(data):
             if isinstance(key, str):
                 if "." in key:
                     raise InvalidKeyError(
-                        f"Mapping keys may not contain dots ('.'): {key}"
+                        f"Mapping keys may not contain dots ('.'): {key}."
                     )
             elif isinstance(key, (int, bool, type(None))):
                 # TODO: Remove this branch in signac 2.0.
                 warnings.warn(
                     f"Use of {type(key).__name__} as key is deprecated "
-                    "and will be removed in version 2.0",
+                    "and will be removed in version 2.0.",
                     DeprecationWarning,
                 )
                 data[str(key)] = data.pop(key)
             else:
                 raise KeyTypeError(
-                    f"Mapping keys must be str, int, bool or None, not {type(key).__name__}"
+                    f"Mapping keys must be str, int, bool or None, not {type(key).__name__}."
                 )
     elif switch_type == "SEQUENCE":
         for value in data:
@@ -164,7 +164,7 @@ def json_attr_dict_validator(data):
             raise TypeError("Complex numbers are not JSON serializable.")
     else:
         raise TypeError(
-            f"Object of type {type(data).__name__} is not JSON serializable"
+            f"Object of type {type(data).__name__} is not JSON serializable."
         )
 
 
@@ -218,7 +218,7 @@ class JSONCollection(SyncedCollection):
     # in the future, however, the _convert_key_to_str validator will be removed in
     # signac 2.0 so this is OK (that validator is modifying the data in place,
     # which is unsupported behavior that will be removed in signac 2.0 as well).
-    _validators: TypingSequence[Callable] = (_convert_key_to_str, json_format_validator)
+    _validators: Sequence_t[Callable] = (_convert_key_to_str, json_format_validator)
 
     def __init__(self, filename=None, write_concern=False, *args, **kwargs):
         # The `_filename` attribute _must_ be defined prior to calling the

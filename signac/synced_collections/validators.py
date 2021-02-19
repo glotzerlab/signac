@@ -17,7 +17,7 @@ from .numpy_utils import (
     _is_atleast_1d_numpy_array,
     _is_complex,
     _is_numpy_scalar,
-    ndarray,
+    _numpy_cache_blocklist,
 )
 from .utils import AbstractTypeResolver
 
@@ -107,7 +107,7 @@ _json_format_validator_type_resolver = AbstractTypeResolver(
         "BASE": lambda obj: isinstance(obj, (str, int, float, bool, type(None))),
         "MAPPING": lambda obj: isinstance(obj, Mapping),
     },
-    cache_blocklist=(ndarray,),
+    cache_blocklist=_numpy_cache_blocklist,
 )
 
 
