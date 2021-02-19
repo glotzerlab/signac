@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 _state_point_validator_type_resolver = AbstractTypeResolver(
     {
         # We identify >0d numpy arrays as sequences for validation purposes.
-        "SEQUENCE": lambda obj: isinstance(obj, Sequence)
+        "SEQUENCE": lambda obj: (isinstance(obj, Sequence) and not isinstance(obj, str))
         or _is_atleast_1d_numpy_array(obj),
         "NUMPY": lambda obj: _is_numpy_scalar(obj),
         "BASE": lambda obj: isinstance(obj, (str, int, float, bool, type(None))),

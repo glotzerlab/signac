@@ -24,8 +24,7 @@ from .utils import AbstractTypeResolver
 _no_dot_in_key_type_resolver = AbstractTypeResolver(
     {
         "MAPPING": lambda obj: isinstance(obj, Mapping),
-        "NON_STR_SEQUENCE": lambda obj: isinstance(obj, Sequence)
-        and not isinstance(obj, str),
+        "SEQUENCE": lambda obj: isinstance(obj, Sequence) and not isinstance(obj, str),
     }
 )
 
@@ -63,7 +62,7 @@ def no_dot_in_key(data):
                     f"Mapping keys must be str, int, bool or None, not {type(key).__name__}"
                 )
             no_dot_in_key(value)
-    elif switch_type == "NON_STR_SEQUENCE":
+    elif switch_type == "SEQUENCE":
         for value in data:
             no_dot_in_key(value)
 
@@ -102,7 +101,7 @@ def require_string_key(data):
 _json_format_validator_type_resolver = AbstractTypeResolver(
     {
         # We identify >0d numpy arrays as sequences for validation purposes.
-        "SEQUENCE": lambda obj: isinstance(obj, Sequence)
+        "SEQUENCE": lambda obj: (isinstance(obj, Sequence) and not isinstance(obj, str))
         or _is_atleast_1d_numpy_array(obj),
         "NUMPY": lambda obj: _is_numpy_scalar(obj),
         "BASE": lambda obj: isinstance(obj, (str, int, float, bool, type(None))),
