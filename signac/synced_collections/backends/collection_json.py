@@ -278,7 +278,7 @@ class JSONCollection(SyncedCollection):
 
 # These are the common protected keys used by all JSONDict types.
 _JSONDICT_PROTECTED_KEYS = frozenset(
-    [
+    (
         # These are all protected keys that are inherited from data type classes.
         "_data",
         "_name",
@@ -296,7 +296,7 @@ _JSONDICT_PROTECTED_KEYS = frozenset(
         # These keys are specific to the JSON backend.
         "_filename",
         "_write_concern",
-    ]
+    )
 )
 
 
@@ -445,13 +445,13 @@ class BufferedJSONCollection(SerializedFileBufferedCollection, JSONCollection):
 
 # These are the keys common to buffer backends.
 _BUFFERED_PROTECTED_KEYS = frozenset(
-    [
+    (
         "buffered",
         "_is_buffered",
         "_buffer_lock",
         "_buffer_context",
         "_buffered_collections",
-    ]
+    )
 )
 
 

@@ -57,8 +57,8 @@ class AttrDict:
             self.__setitem__(key, value)
 
     def __delattr__(self, key):
-        # The order of these checks assumes that setting protected keys will be
-        # much more common than setting dunder attributes.
+        # The order of these checks assumes that deleting protected keys will be
+        # much more common than deleting dunder attributes.
         if key in self._PROTECTED_KEYS or key.startswith("__"):
             super().__delattr__(key)
         else:

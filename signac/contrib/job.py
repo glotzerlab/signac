@@ -46,9 +46,7 @@ class _StatePointDict(JSONAttrDict):
            job directory migrations.
     """
 
-    _PROTECTED_KEYS: FrozenSet[str] = JSONAttrDict._PROTECTED_KEYS | frozenset(
-        ["_jobs"]
-    )
+    _PROTECTED_KEYS: FrozenSet[str] = JSONAttrDict._PROTECTED_KEYS.union(("_jobs",))
     _all_validators = (json_attr_dict_validator,)
 
     def __init__(
