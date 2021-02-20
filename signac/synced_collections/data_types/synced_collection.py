@@ -19,6 +19,12 @@ _sc_resolver = AbstractTypeResolver(
     }
 )
 
+_collection_resolver = AbstractTypeResolver(
+    {
+        "COLLECTION": lambda obj: isinstance(obj, Collection),
+    }
+)
+
 
 class _LoadAndSave:
     """A context manager for :class:`SyncedCollection` to wrap saving and loading.
@@ -170,20 +176,19 @@ class SyncedCollection(Collection):
         # Nested collections need to know their root collection, which is
         # responsible for all synchronization, and therefore all the associated
         # context managers are also stored from the root.
+
         if parent is not None:
-            self._root = parent._root if parent._root is not None else parent
+            root = parent._root if parent._root is not None else parent
+            self._root = root
+            self._suspend_sync = root._suspend_sync
+            self._load_and_save = root._load_and_save
         else:
-            self._root = parent
-        self._suspend_sync = (
-            _CounterContext() if self._root is None else self._root._suspend_sync
-        )
-        self._load_and_save = (
-            type(self)._LoadSaveType(self)
-            if self._root is None
-            else self._root._load_and_save
-        )
-        if type(self)._supports_threading:
-            type(self)._locks[self._lock_id] = RLock()
+            self._root = None
+            self._suspend_sync = _CounterContext()
+            self._load_and_save = self._LoadSaveType(self)
+
+        if self._supports_threading:
+            self._locks[self._lock_id] = RLock()
 
     @classmethod
     def _register_validators(cls):
@@ -271,11 +276,6 @@ class SyncedCollection(Collection):
         cls._threading_support_is_active = False
 
     @property
-    def validators(self):
-        """Tuple[Callable]: The validators that will be applied."""
-        return self._all_validators
-
-    @property
     def _lock_id(self):
         raise NotImplementedError(
             "Backends must implement the _lock_id property to support multithreaded "
@@ -331,9 +331,10 @@ class SyncedCollection(Collection):
         implementations.
 
         """
-        for base_cls in SyncedCollection.registry[cls._backend]:
-            if base_cls.is_base_type(data):
-                return base_cls(data=data, _validate=False, **kwargs)
+        if _collection_resolver.get_type(data) == "COLLECTION":
+            for base_cls in SyncedCollection.registry[cls._backend]:
+                if base_cls.is_base_type(data):
+                    return base_cls(data=data, _validate=False, **kwargs)
         return _convert_numpy(data)
 
     @abstractmethod
@@ -460,7 +461,7 @@ class SyncedCollection(Collection):
             An collection satisfying :meth:`is_base_type`.
 
         """
-        for validator in self.validators:
+        for validator in self._all_validators:
             validator(data)
 
     # The following methods share a common implementation for
