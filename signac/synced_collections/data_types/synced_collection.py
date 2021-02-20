@@ -276,11 +276,6 @@ class SyncedCollection(Collection):
         cls._threading_support_is_active = False
 
     @property
-    def validators(self):
-        """Tuple[Callable]: The validators that will be applied."""
-        return self._all_validators
-
-    @property
     def _lock_id(self):
         raise NotImplementedError(
             "Backends must implement the _lock_id property to support multithreaded "
@@ -466,7 +461,7 @@ class SyncedCollection(Collection):
             An collection satisfying :meth:`is_base_type`.
 
         """
-        for validator in self.validators:
+        for validator in self._all_validators:
             validator(data)
 
     # The following methods share a common implementation for
