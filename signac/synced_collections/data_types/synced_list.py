@@ -109,7 +109,7 @@ class SyncedList(SyncedCollection, MutableSequence):
                 converted.append(value)
         return converted
 
-    def _update(self, data=None, trust_source=False):
+    def _update(self, data=None, _validate=False):
         """Update the in-memory representation to match the provided data.
 
         The purpose of this method is to update the SyncedCollection to match
@@ -127,7 +127,7 @@ class SyncedList(SyncedCollection, MutableSequence):
         data : collections.abc.Sequence
             The data to be assigned to this list. If ``None``, the data is left
             unchanged (Default value = None).
-        trust_source : bool
+        _validate : bool
             If True, the data will not be validated (Default value = False).
 
         """
@@ -151,7 +151,7 @@ class SyncedList(SyncedCollection, MutableSequence):
                             continue
                         except ValueError:
                             pass
-                    if not trust_source:
+                    if not _validate:
                         self._validate(data[i])
                     self._data[i] = self._from_base(data[i], parent=self)
 
@@ -159,7 +159,7 @@ class SyncedList(SyncedCollection, MutableSequence):
                     self._data = self._data[: len(data)]
                 else:
                     new_data = data[len(self) :]
-                    if not trust_source:
+                    if not _validate:
                         self._validate(new_data)
                     self.extend(new_data)
         else:

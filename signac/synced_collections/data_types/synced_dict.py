@@ -99,7 +99,7 @@ class SyncedDict(SyncedCollection, MutableMapping):
         """
         return _mapping_resolver.get_type(data) == "MAPPING"
 
-    def _update(self, data=None, trust_source=False):
+    def _update(self, data=None, _validate=False):
         """Update the in-memory representation to match the provided data.
 
         The purpose of this method is to update the SyncedCollection to match
@@ -117,7 +117,7 @@ class SyncedDict(SyncedCollection, MutableMapping):
         data : collections.abc.Mapping
             The data to be assigned to this dict. If ``None``, the data is left
             unchanged (Default value = None).
-        trust_source : bool
+        _validate : bool
             If True, the data will not be validated (Default value = False).
 
         """
@@ -137,7 +137,7 @@ class SyncedDict(SyncedCollection, MutableMapping):
                     except KeyError:
                         # If the item wasn't present at all, we can simply
                         # assign it.
-                        if not trust_source:
+                        if not _validate:
                             self._validate({key: new_value})
                         self._data[key] = self._from_base(new_value, parent=self)
                     else:
@@ -156,7 +156,7 @@ class SyncedDict(SyncedCollection, MutableMapping):
                         #        (in which case we would have tried to update it), OR
                         #     2) The existing value is a SyncedCollection, but
                         #       the new value is not a compatible type for _update.
-                        if not trust_source:
+                        if not _validate:
                             self._validate({key: new_value})
                         self._data[key] = self._from_base(new_value, parent=self)
 
