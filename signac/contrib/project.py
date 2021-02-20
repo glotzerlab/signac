@@ -914,19 +914,19 @@ class Project:
 
         Parameters
         ----------
-        filter : dict
-            A mapping of key-value pairs that all
-            indexed job state points are compared against (Default value = None).
-        doc_filter : dict
-            A mapping of key-value pairs that all
-            indexed job documents are compared against (Default value = None).
+        filter : Mapping
+            A mapping of key-value pairs that all indexed job state points
+            are compared against (Default value = None).
+        doc_filter : Mapping
+            A mapping of key-value pairs that all indexed job documents are
+            compared against (Default value = None).
         index :
-             A document index. If not provided, an index will be computed
+            A document index. If not provided, an index will be computed
             (Default value = None).
 
         Returns
         -------
-        The ids of all indexed jobs matching both filter(s).
+        The ids of all indexed jobs matching both filters.
 
         Raises
         ------
@@ -953,9 +953,9 @@ class Project:
         Parameters
         ----------
         filter : Mapping
-            A mapping of key-value pairs that all indexed job state points are
-            compared against (Default value = None).
-        doc_filter :
+            A mapping of key-value pairs that all indexed job state points
+            are compared against (Default value = None).
+        doc_filter : Mapping
             A mapping of key-value pairs that all indexed job documents are
             compared against (Default value = None).
         index :
@@ -976,7 +976,7 @@ class Project:
             If the filters are not supported by the index.
 
         """
-        if filter is None and doc_filter is None and index is None:
+        if not filter and not doc_filter and index is None:
             return list(self._job_dirs())
         if index is None:
             filter = dict(parse_filter(_add_prefix("sp.", filter)))
@@ -2436,7 +2436,7 @@ class JobsCursor:
     ----------
     project : :class:`~signac.Project`
         Project handle.
-    filter : dict
+    filter : Mapping
         A mapping of key-value pairs that all indexed job state points are
         compared against (Default value = None).
 
@@ -2444,7 +2444,7 @@ class JobsCursor:
 
     _use_pandas_for_html_repr = True  # toggle use of pandas for html repr
 
-    def __init__(self, project, filter, doc_filter=None):
+    def __init__(self, project, filter=None, doc_filter=None):
         self._project = project
         self._filter = filter
 
@@ -2452,7 +2452,15 @@ class JobsCursor:
         # removed after signac 2.0 is released and once signac-flow drops
         # support for signac < 2.0.
         if doc_filter:
-            filter.update(parse_filter(_add_prefix("doc.", doc_filter)))
+            doc_filter = parse_filter(_add_prefix("doc.", doc_filter))
+            if self._filter:
+                self._filter.update(doc_filter)
+            else:
+                self._filter = doc_filter
+
+        # Replace empty filters with None for performance
+        if self._filter == {}:
+            self._filter = None
 
         # This private attribute allows us to implement the deprecated
         # next() method for this class.
