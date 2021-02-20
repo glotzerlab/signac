@@ -42,7 +42,7 @@ def _convert_numpy(data):
             # arrays, i.e. np.array([1]) should become [1], not 1.
             warnings.warn(NUMPY_CONVERSION_WARNING, NumpyConversionWarning)
             return data.tolist()
-        elif isinstance(data, (numpy.number, numpy.bool_)):
+        else:
             warnings.warn(NUMPY_CONVERSION_WARNING, NumpyConversionWarning)
             return data.item()
     return data
