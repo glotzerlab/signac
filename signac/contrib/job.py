@@ -215,7 +215,7 @@ class _StatePointDict(JSONAttrDict):
             raise JobsCorruptedError([job_id])
 
         with self._suspend_sync:
-            self._update(data, _validate=True)
+            self._update(data, _validate=False)
 
         return data
 
