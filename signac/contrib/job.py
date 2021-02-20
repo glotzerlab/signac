@@ -384,14 +384,13 @@ class Job:
             # Instantiate state point data lazily - no load is required, since
             # we are provided with the new state point data.
             self._statepoint = _StatePointDict(
-                jobs=[self], filename=self._statepoint_filename, data=new_statepoint
+                jobs=[self], filename=self._statepoint_filename
             )
-
-            # Update the project's state point cache when loaded lazily
-            self._project._register(self.id, new_statepoint)
             self._statepoint_requires_init = False
-        else:
-            self.statepoint.reset(new_statepoint)
+        self.statepoint.reset(new_statepoint)
+
+        # Update the project's state point cache when loaded lazily
+        self._project._register(self.id, new_statepoint)
 
     def update_statepoint(self, update, overwrite=False):
         """Change the state point of this job while preserving job data.
