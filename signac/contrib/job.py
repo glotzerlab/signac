@@ -345,14 +345,16 @@ class Job:
         """
         if self._wd is None:
             # We can rely on the project workspace to be well-formed, so just
-            # use string-concatenation with os.sep instead of os.path.join for speed.
-            self._wd = self._project.workspace() + os.sep + self.id
+            # use str.join with os.sep instead of os.path.join for speed.
+            self._wd = os.sep.join((self._project.workspace(), self.id))
         return self._wd
 
     @property
     def _statepoint_filename(self):
         """Get the path of the state point file for this job."""
-        return self.workspace() + os.sep + self.FN_MANIFEST
+        # We can rely on the job workspace to be well-formed, so just
+        # use str.join with os.sep instead of os.path.join for speed.
+        return os.sep.join((self.workspace(), self.FN_MANIFEST))
 
     @property
     def ws(self):
