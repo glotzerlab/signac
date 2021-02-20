@@ -7,11 +7,11 @@ import sys
 from contextlib import contextmanager
 from io import StringIO
 from itertools import chain
+from json import JSONDecodeError
 
 import pytest
 
 from signac.contrib.filterparse import parse_filter_arg, parse_simple
-from signac.core.json import JSONDecodeError
 
 FILTERS = [
     {"a": 0},

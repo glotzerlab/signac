@@ -16,6 +16,7 @@
 
 import argparse
 import io
+import json
 import logging
 import operator
 import re
@@ -24,7 +25,6 @@ from itertools import islice
 from math import isclose
 from numbers import Number
 
-from ..core import json
 from .filterparse import parse_filter_arg
 from .utility import _nested_dicts_to_dotted_keys, _to_hashable
 

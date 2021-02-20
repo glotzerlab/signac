@@ -13,6 +13,9 @@ from contextlib import contextmanager
 from copy import copy
 from tempfile import mkstemp
 
+from deprecation import deprecated
+
+from ..version import __version__
 from . import json
 from .attrdict import SyncedAttrDict
 from .errors import Error
@@ -28,6 +31,10 @@ _BUFFER_LOAD = 0
 _JSONDICT_BUFFER = {}
 _JSONDICT_HASHES = {}
 _JSONDICT_META = {}
+
+"""
+THIS MODULE IS DEPRECATED!
+"""
 
 
 class BufferException(Error):
@@ -91,6 +98,11 @@ def _store_in_buffer(filename, blob, store_hash=False):
     return True
 
 
+@deprecated(
+    deprecated_in="1.7",
+    removed_in="2.0",
+    current_version=__version__,
+)
 def flush_all():
     """Execute all deferred JSONDict write operations."""
     global _BUFFER_LOAD
@@ -127,21 +139,41 @@ def flush_all():
     _BUFFER_LOAD = 0
 
 
+@deprecated(
+    deprecated_in="1.7",
+    removed_in="2.0",
+    current_version=__version__,
+)
 def get_buffer_size():
     """Return the current maximum size of the read/write buffer."""
     return _BUFFER_SIZE
 
 
+@deprecated(
+    deprecated_in="1.7",
+    removed_in="2.0",
+    current_version=__version__,
+)
 def get_buffer_load():
     """Return the current actual size of the read/write buffer."""
     return _BUFFER_LOAD
 
 
+@deprecated(
+    deprecated_in="1.7",
+    removed_in="2.0",
+    current_version=__version__,
+)
 def in_buffered_mode():
     """Return true if in buffered read/write mode."""
     return _BUFFERED_MODE > 0
 
 
+@deprecated(
+    deprecated_in="1.7",
+    removed_in="2.0",
+    current_version=__version__,
+)
 @contextmanager
 def buffer_reads_writes(buffer_size=DEFAULT_BUFFER_SIZE, force_write=False):
     """Enter a global buffer mode for all JSONDict instances.
@@ -253,6 +285,11 @@ class JSONDict(SyncedAttrDict):
         A parent instance of JSONDict or None.
     """
 
+    @deprecated(
+        deprecated_in="1.7",
+        removed_in="2.0",
+        current_version=__version__,
+    )
     def __init__(self, filename=None, write_concern=False, parent=None):
         if (filename is None) == (parent is None):
             raise ValueError(

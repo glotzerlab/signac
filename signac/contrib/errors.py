@@ -28,8 +28,8 @@ class DestinationExistsError(Error, RuntimeError):
 
     Parameters
     ----------
-    destination :
-        The destination object causing the error.
+    destination : str
+        The destination causing the error.
 
     """
 

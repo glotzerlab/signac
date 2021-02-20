@@ -16,12 +16,12 @@ import pytest
 
 import signac.common.config
 import signac.contrib
-from signac import Project  # noqa: F401
-from signac.contrib.job import Job  # noqa: F401
+from signac.contrib.errors import JobsCorruptedError
+from signac.contrib.job import Job
 from signac.errors import DestinationExistsError, InvalidKeyError, KeyTypeError
 
 try:
-    import h5py  # noqa
+    import h5py  # noqa: F401
 
     H5PY = True
 except ImportError:
@@ -446,10 +446,13 @@ class TestJobSpInterface(TestJobBase):
             assert str(key) in job.sp
 
     def test_invalid_sp_key_types(self):
-        job = self.open_job(dict(invalid_key=True)).init()
-
         class A:
             pass
+
+        with pytest.raises(KeyTypeError):
+            self.open_job({A(): True}).init()
+
+        job = self.open_job(dict(invalid_key=True)).init()
 
         for key in (0.0, A(), (1, 2, 3)):
             with pytest.raises(KeyTypeError):
@@ -537,6 +540,9 @@ class TestJobOpenAndClosing(TestJobBase):
         assert os.path.exists(os.path.join(job.workspace(), job.FN_MANIFEST))
 
     def test_construction(self):
+        from signac import Project  # noqa: F401
+
+        # The eval statement needs to have Project available
         job = self.open_job(test_token)
         job2 = eval(repr(job))
         assert job == job2
@@ -627,8 +633,8 @@ class TestJobOpenAndClosing(TestJobBase):
         job2 = self.open_job(test_token)
         try:
             logging.disable(logging.ERROR)
-            # Detects the corrupted manifest and overwrites with valid data
-            job2.init()
+            with pytest.raises(JobsCorruptedError):
+                job2.init()
         finally:
             logging.disable(logging.NOTSET)
         job2.init(force=True)
@@ -997,6 +1003,40 @@ class TestJobDocument(TestJobBase):
         assert key in src_job.data
         assert len(src_job.data) == 1
         src_job.reset_statepoint(dst)
+        src_job = self.open_job(src)
+        dst_job = self.open_job(dst)
+        assert key in dst_job.document
+        assert len(dst_job.document) == 1
+        assert key not in src_job.document
+        assert key in dst_job.data
+        assert len(dst_job.data) == 1
+        assert key not in src_job.data
+        with pytest.raises(RuntimeError):
+            src_job.reset_statepoint(dst)
+        with pytest.raises(DestinationExistsError):
+            src_job.reset_statepoint(dst)
+
+    @pytest.mark.skipif(not H5PY, reason="test requires the h5py package")
+    def test_reset_statepoint_job_lazy_access(self):
+        key = "move_job"
+        d = testdata()
+        src = test_token
+        dst = dict(test_token)
+        dst["dst"] = True
+        src_job = self.open_job(src)
+        src_job.document[key] = d
+        assert key in src_job.document
+        assert len(src_job.document) == 1
+        src_job.data[key] = d
+        assert key in src_job.data
+        assert len(src_job.data) == 1
+        # Clear the project's state point cache to force lazy load
+        self.project._sp_cache.clear()
+        src_job_by_id = self.open_job(id=src_job.id)
+        # Check that the state point will be instantiated lazily during the
+        # call to reset_statepoint
+        assert src_job_by_id._statepoint_requires_init
+        src_job_by_id.reset_statepoint(dst)
         src_job = self.open_job(src)
         dst_job = self.open_job(dst)
         assert key in dst_job.document

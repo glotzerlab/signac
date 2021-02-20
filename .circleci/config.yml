@@ -46,6 +46,8 @@ jobs:
   linux-python-39: &linux-template
     docker:
       - image: circleci/python:3.9
+      - image: circleci/mongo:latest
+      - image: circleci/redis:latest
 
     environment:
       BENCHMARKS: "RUN"
@@ -138,16 +140,22 @@ jobs:
     <<: *linux-template
     docker:
       - image: circleci/python:3.8
+      - image: circleci/mongo:latest
+      - image: circleci/redis:latest
 
   linux-python-37:
     <<: *linux-template
     docker:
       - image: circleci/python:3.7
+      - image: circleci/mongo:latest
+      - image: circleci/redis:latest
 
   linux-python-36-oldest:
     <<: *linux-template
     docker:
       - image: circleci/python:3.6
+      - image: circleci/mongo:latest
+      - image: circleci/redis:latest
     environment:
       BENCHMARKS: "SKIP"
       DEPENDENCIES: "OLDEST"
@@ -180,7 +188,12 @@ jobs:
             ${PYTHON} -m pip install --progress-bar off -U pip>=20.3
             ${PYTHON} -m pip install --progress-bar off -U codecov
             ${PYTHON} -m pip install --progress-bar off -U -r requirements/requirements-test.txt
-            ${PYTHON} -m pip install --progress-bar off -U -r requirements/requirements-test-optional.txt
+
+            # For some reason Zarr doesn't install correctly on Windows (runs
+            # into pip SSL errors), so we skip that test.
+            grep -v zarr requirements-test-optional.txt > requirements-test-optional-windows.txt
+            ${PYTHON} -m pip install --progress-bar off -U -r requirements-test-optional-windows.txt
+
             ${PYTHON} -m pip install --progress-bar off -U -e .
       - run:
           name: Run tests

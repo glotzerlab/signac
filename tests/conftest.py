@@ -1,3 +1,4 @@
+import uuid
 from contextlib import contextmanager
 
 import pytest
@@ -13,3 +14,8 @@ def deprecated_in_version(version_string):
             yield
     else:
         yield
+
+
+@pytest.fixture
+def testdata():
+    return str(uuid.uuid4())

@@ -5,6 +5,10 @@
 
 from .synceddict import _SyncedDict
 
+"""
+THIS MODULE IS DEPRECATED!
+"""
+
 
 class SyncedAttrDict(_SyncedDict):
     """A synced dictionary where (nested) values can be accessed as attributes.
