@@ -180,8 +180,8 @@ class SyncedCollection(Collection):
         if parent is not None:
             root = parent._root if parent._root is not None else parent
             self._root = root
-            self._suspend_sync = self._root._suspend_sync
-            self._load_and_save = self._root._load_and_save
+            self._suspend_sync = root._suspend_sync
+            self._load_and_save = root._load_and_save
         else:
             self._root = None
             self._suspend_sync = _CounterContext()
