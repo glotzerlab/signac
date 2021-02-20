@@ -1016,6 +1016,7 @@ class TestJobDocument(TestJobBase):
         with pytest.raises(DestinationExistsError):
             src_job.reset_statepoint(dst)
 
+    @pytest.mark.skipif(not H5PY, reason="test requires the h5py package")
     def test_reset_statepoint_job_lazy_access(self):
         key = "move_job"
         d = testdata()
