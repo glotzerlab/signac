@@ -964,7 +964,11 @@ class Project:
 
         Returns
         -------
-        The ids of all indexed jobs matching both filters.
+        Collection or list
+            The ids of all indexed jobs matching both filters. If no arguments
+            are provided to this method, the ids are returned as a list. If
+            any of the arguments are provided, a :class:`Collection` containing
+            all the ids is returned.
 
         Raises
         ------
@@ -974,6 +978,16 @@ class Project:
             If the filters are invalid.
         RuntimeError
             If the filters are not supported by the index.
+
+        Notes
+        -----
+        If all arguments are ``None``, this method skips indexing the data
+        space and instead simply iterates over all job directories. This
+        code path can be much faster for certain use cases since it defers
+        all work that would be required to construct an index, so in
+        performance-critical applications where no filtering of the data space
+        is required, passing no arguments to this method (as opposed to empty
+        dict filters) is recommended.
 
         """
         if not filter and not doc_filter and index is None:
@@ -2439,6 +2453,15 @@ class JobsCursor:
     filter : Mapping
         A mapping of key-value pairs that all indexed job state points are
         compared against (Default value = None).
+
+    Notes
+    -----
+    Iteration is performed by acquiring job ids from the project using
+    :meth:`Project._find_job_ids`. When no filter (``filter = None``) is
+    provided, that method can take a much faster execution path, so not passing
+    a filter (or passing ``None`` explicitly) to this constructor is strongly
+    recommended over passing an empty filter (``filter = {}``) when iterating
+    over the entire data space.
 
     """
 
