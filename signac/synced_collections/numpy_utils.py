@@ -32,7 +32,10 @@ def _convert_numpy(data):
     primitive types, while other numpy arrays are converted to lists. If ``data``
     is not a numpy data type, this function is a no-op.
     """
-    if NUMPY:
+    # Initially performing one isinstance check is faster since most of the
+    # time the inputs are not numpy arrays, preventing additional function
+    # calls inside the if statement.
+    if NUMPY and isinstance(data, (numpy.ndarray, numpy.number, numpy.bool_)):
         if isinstance(data, numpy.ndarray):
             # tolist will return a scalar for 0d arrays, so there's no need to
             # special-case that check. 1-element 1d arrays should remain
