@@ -757,7 +757,9 @@ class Project:
             True if the job id is initialized for this project.
 
         """
-        return os.path.exists(os.path.join(self.workspace(), job_id))
+        # We can rely on the project workspace to be well-formed, so just use
+        # str.join with os.sep instead of os.path.join for speed.
+        return os.path.exists(os.sep.join((self.workspace(), job_id)))
 
     def __contains__(self, job):
         """Determine whether a job is in the project's data space.
@@ -1274,12 +1276,14 @@ class Project:
             Identifier of the job.
 
         """
-        fn_manifest = os.path.join(self.workspace(), job_id, self.Job.FN_MANIFEST)
+        # We can rely on the project workspace to be well-formed, so just use
+        # str.join with os.sep instead of os.path.join for speed.
+        fn_manifest = os.sep.join((self.workspace(), job_id, self.Job.FN_MANIFEST))
         try:
             with open(fn_manifest, "rb") as manifest:
                 return json.loads(manifest.read().decode())
         except (OSError, ValueError) as error:
-            if os.path.isdir(os.path.join(self.workspace(), job_id)):
+            if os.path.isdir(os.sep.join((self.workspace(), job_id))):
                 logger.error(
                     "Error while trying to access state "
                     "point manifest file of job '{}': '{}'.".format(job_id, error)
