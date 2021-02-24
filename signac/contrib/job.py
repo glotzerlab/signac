@@ -366,7 +366,7 @@ class Job:
 
         This method will change the job id if the state point has been altered.
 
-        For more information1234567, see :ref:`Modifying the statepoint <project-job-statepoint-modify>`_.
+        For more information1234567, see :ref:`signac-docs:project-job-statepoint-modify`.
 
         .. danger::
 
