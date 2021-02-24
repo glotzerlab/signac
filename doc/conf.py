@@ -321,4 +321,6 @@ intersphinx_mapping = {
     "zarr": ("https://zarr.readthedocs.io/en/stable", None),
     "redis": ("https://redis-py.readthedocs.io/en/stable/", None),
     "numcodecs": ("https://numcodecs.readthedocs.io/en/stable/", None),
+    "signac": ("https://docs.signac.io/en/latest", None),
+
 }
