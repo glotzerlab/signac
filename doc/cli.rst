@@ -38,8 +38,6 @@ Sharing and archiving a project:
 
 .. _signac-cli-clone:
 
-.. _signac-cli-clone:
-
 clone
 =====
 
