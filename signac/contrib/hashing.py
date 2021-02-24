@@ -6,6 +6,8 @@
 import hashlib
 import json
 
+from ..synced_collections.utils import SyncedCollectionJSONEncoder
+
 # We must use the standard library json for exact consistency in formatting
 
 
@@ -27,7 +29,7 @@ def calc_id(spec):
         Encoded hash in hexadecimal format.
 
     """
-    blob = json.dumps(spec, sort_keys=True)
+    blob = json.dumps(spec, cls=SyncedCollectionJSONEncoder, sort_keys=True)
     m = hashlib.md5()
     m.update(blob.encode())
     return m.hexdigest()

@@ -7,6 +7,10 @@ from json import JSONEncoder, load, loads
 from json.decoder import JSONDecodeError
 from typing import Any, Dict, Optional
 
+from deprecation import deprecated
+
+from ..version import __version__
+
 logger = logging.getLogger(__name__)
 
 try:
@@ -16,7 +20,12 @@ try:
 except ImportError:
     NUMPY = False
 
+"""
+THIS MODULE IS DEPRECATED!
+"""
 
+
+# this class is deprecated
 class CustomJSONEncoder(JSONEncoder):
     """Attempt to JSON-encode objects beyond the default supported types.
 
@@ -25,6 +34,12 @@ class CustomJSONEncoder(JSONEncoder):
     `_as_dict()` method.
     """
 
+    @deprecated(
+        deprecated_in="1.7",
+        removed_in="2.0",
+        current_version=__version__,
+        details="The core.json module bundled with signac is deprecated.",
+    )
     def default(self, o: Any) -> Dict[str, Any]:
         if NUMPY:
             if isinstance(o, numpy.number):
@@ -39,6 +54,12 @@ class CustomJSONEncoder(JSONEncoder):
             return super().default(o)
 
 
+@deprecated(
+    deprecated_in="1.7",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The core.json module bundled with signac is deprecated.",
+)
 def dumps(o: Any, sort_keys: bool = False, indent: Optional[int] = None) -> str:
     """Convert a JSON-compatible mapping into a string."""
     return CustomJSONEncoder(sort_keys=sort_keys, indent=indent).encode(o)

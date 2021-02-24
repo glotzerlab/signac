@@ -5,6 +5,7 @@
 
 import errno
 import gzip
+import json
 import logging
 import os
 import re
@@ -24,10 +25,9 @@ from deprecation import deprecated
 from packaging import version
 
 from ..common.config import Config, get_config, load_config
-from ..core import json
 from ..core.h5store import H5StoreManager
-from ..core.jsondict import JSONDict
 from ..sync import sync_projects
+from ..synced_collections.backends.collection_json import BufferedJSONAttrDict
 from ..version import SCHEMA_VERSION, __version__
 from .collection import Collection
 from .errors import (
@@ -507,13 +507,13 @@ class Project:
 
         Returns
         -------
-        :class:`~signac.JSONDict`
+        :class:`~signac.synced_collections.backends.collection_json.BufferedJSONAttrDict`
             The project document.
 
         """
         if self._document is None:
             fn_doc = os.path.join(self.root_directory(), self.FN_DOCUMENT)
-            self._document = JSONDict(filename=fn_doc, write_concern=True)
+            self._document = BufferedJSONAttrDict(filename=fn_doc, write_concern=True)
         return self._document
 
     @document.setter
@@ -536,7 +536,7 @@ class Project:
 
         Returns
         -------
-        :class:`~signac.JSONDict`
+        :class:`~signac.synced_collections.backends.collection_json.BufferedJSONAttrDict`
             The project document.
 
         """
@@ -757,7 +757,9 @@ class Project:
             True if the job id is initialized for this project.
 
         """
-        return os.path.exists(os.path.join(self.workspace(), job_id))
+        # We can rely on the project workspace to be well-formed, so just use
+        # str.join with os.sep instead of os.path.join for speed.
+        return os.path.exists(os.sep.join((self.workspace(), job_id)))
 
     def __contains__(self, job):
         """Determine whether a job is in the project's data space.
@@ -914,19 +916,19 @@ class Project:
 
         Parameters
         ----------
-        filter : dict
-            A mapping of key-value pairs that all
-            indexed job state points are compared against (Default value = None).
-        doc_filter : dict
-            A mapping of key-value pairs that all
-            indexed job documents are compared against (Default value = None).
+        filter : Mapping
+            A mapping of key-value pairs that all indexed job state points
+            are compared against (Default value = None).
+        doc_filter : Mapping
+            A mapping of key-value pairs that all indexed job documents are
+            compared against (Default value = None).
         index :
-             A document index. If not provided, an index will be computed
+            A document index. If not provided, an index will be computed
             (Default value = None).
 
         Returns
         -------
-        The ids of all indexed jobs matching both filter(s).
+        The ids of all indexed jobs matching both filters.
 
         Raises
         ------
@@ -953,9 +955,9 @@ class Project:
         Parameters
         ----------
         filter : Mapping
-            A mapping of key-value pairs that all indexed job state points are
-            compared against (Default value = None).
-        doc_filter :
+            A mapping of key-value pairs that all indexed job state points
+            are compared against (Default value = None).
+        doc_filter : Mapping
             A mapping of key-value pairs that all indexed job documents are
             compared against (Default value = None).
         index :
@@ -964,7 +966,11 @@ class Project:
 
         Returns
         -------
-        The ids of all indexed jobs matching both filters.
+        Collection or list
+            The ids of all indexed jobs matching both filters. If no arguments
+            are provided to this method, the ids are returned as a list. If
+            any of the arguments are provided, a :class:`Collection` containing
+            all the ids is returned.
 
         Raises
         ------
@@ -975,8 +981,18 @@ class Project:
         RuntimeError
             If the filters are not supported by the index.
 
+        Notes
+        -----
+        If all arguments are ``None``, this method skips indexing the data
+        space and instead simply iterates over all job directories. This
+        code path can be much faster for certain use cases since it defers
+        all work that would be required to construct an index, so in
+        performance-critical applications where no filtering of the data space
+        is required, passing no arguments to this method (as opposed to empty
+        dict filters) is recommended.
+
         """
-        if filter is None and doc_filter is None and index is None:
+        if not filter and not doc_filter and index is None:
             return list(self._job_dirs())
         if index is None:
             filter = dict(parse_filter(_add_prefix("sp.", filter)))
@@ -1260,12 +1276,14 @@ class Project:
             Identifier of the job.
 
         """
-        fn_manifest = os.path.join(self.workspace(), job_id, self.Job.FN_MANIFEST)
+        # We can rely on the project workspace to be well-formed, so just use
+        # str.join with os.sep instead of os.path.join for speed.
+        fn_manifest = os.sep.join((self.workspace(), job_id, self.Job.FN_MANIFEST))
         try:
             with open(fn_manifest, "rb") as manifest:
                 return json.loads(manifest.read().decode())
         except (OSError, ValueError) as error:
-            if os.path.isdir(os.path.join(self.workspace(), job_id)):
+            if os.path.isdir(os.sep.join((self.workspace(), job_id))):
                 logger.error(
                     "Error while trying to access state "
                     "point manifest file of job '{}': '{}'.".format(job_id, error)
@@ -2436,15 +2454,24 @@ class JobsCursor:
     ----------
     project : :class:`~signac.Project`
         Project handle.
-    filter : dict
+    filter : Mapping
         A mapping of key-value pairs that all indexed job state points are
         compared against (Default value = None).
+
+    Notes
+    -----
+    Iteration is performed by acquiring job ids from the project using
+    :meth:`Project._find_job_ids`. When no filter (``filter = None``) is
+    provided, that method can take a much faster execution path, so not passing
+    a filter (or passing ``None`` explicitly) to this constructor is strongly
+    recommended over passing an empty filter (``filter = {}``) when iterating
+    over the entire data space.
 
     """
 
     _use_pandas_for_html_repr = True  # toggle use of pandas for html repr
 
-    def __init__(self, project, filter, doc_filter=None):
+    def __init__(self, project, filter=None, doc_filter=None):
         self._project = project
         self._filter = filter
 
@@ -2452,7 +2479,15 @@ class JobsCursor:
         # removed after signac 2.0 is released and once signac-flow drops
         # support for signac < 2.0.
         if doc_filter:
-            filter.update(parse_filter(_add_prefix("doc.", doc_filter)))
+            doc_filter = parse_filter(_add_prefix("doc.", doc_filter))
+            if self._filter:
+                self._filter.update(doc_filter)
+            else:
+                self._filter = doc_filter
+
+        # Replace empty filters with None for performance
+        if self._filter == {}:
+            self._filter = None
 
         # This private attribute allows us to implement the deprecated
         # next() method for this class.

@@ -3,10 +3,9 @@
 # This software is licensed under the BSD 3-Clause License.
 """Parse the filter arguments."""
 
+import json
 import sys
 from collections.abc import Mapping
-
-from ..core import json
 
 
 def _print_err(msg=None):
