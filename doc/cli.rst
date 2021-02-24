@@ -4,42 +4,52 @@
 Command Line Interface
 ======================
 
-.. rubric:: Overview
-
-The following core **signac** functions are---in addition to the Python interface---accessible
+The following core **signac** functions are --- in addition to the Python interface --- accessible
 directly via the ``$ signac`` command.
 
 
-.. _signac-cli-init:
-
-init
-====
-
-.. program-output:: signac init --help
+The commands can be roughly grouped by task, ordered by frequency of use:
 
 
-.. _signac-cli-project:
+Using a project:
+    * `statepoint`_
+    * `document`_
+    * `find`_
+    * `shell`_
+    * `schema`_
+    * `diff`_
 
-project
-=======
+Modifying a project:
+    * `init`_
+    * `config`_
+    * `project`_
+    * `job`_
+    * `rm`_
+    * `update-cache`_
 
-.. program-output:: signac project --help
+Sharing and archiving a project:
+    * `view`_
+    * `export`_
+    * `import`_
+    * `move`_
+    * `clone`_
+    * `sync`_
+    * `index`_
+
+.. _signac-cli-clone:
+
+clone
+=====
+
+.. program-output:: signac clone --help
 
 
-.. _signac-cli-job:
+.. _signac-cli-config:
 
-job
-===
+config
+======
 
-.. program-output:: signac job --help
-
-
-.. _signac-cli-statepoint:
-
-statepoint
-==========
-
-.. program-output:: signac statepoint --help
+.. program-output:: signac config --help
 
 
 .. _signac-cli-diff:
@@ -58,36 +68,12 @@ document
 .. program-output:: signac document --help
 
 
-.. _signac-cli-rm:
+.. _signac-cli-export:
 
-rm
-===========
+export
+======
 
-.. program-output:: signac rm --help
-
-
-.. _signac-cli-move:
-
-move
-====
-
-.. program-output:: signac move --help
-
-
-.. _signac-cli-clone:
-
-clone
-=====
-
-.. program-output:: signac clone --help
-
-
-.. _signac-cli-index:
-
-index
-=====
-
-.. program-output:: signac index --help
+.. program-output:: signac export --help
 
 
 .. _signac-cli-find:
@@ -98,12 +84,60 @@ find
 .. program-output:: signac find --help
 
 
-.. _signac-cli-view:
+.. _signac-cli-import:
 
-view
+import
+======
+
+.. program-output:: signac import --help
+
+
+.. _signac-cli-index:
+
+index
+=====
+
+.. program-output:: signac index --help
+
+
+.. _signac-cli-init:
+
+init
 ====
 
-.. program-output:: signac view --help
+.. program-output:: signac init --help
+
+
+.. _signac-cli-job:
+
+job
+===
+
+.. program-output:: signac job --help
+
+
+.. _signac-cli-move:
+
+move
+====
+
+.. program-output:: signac move --help
+
+
+.. _signac-cli-project:
+
+project
+=======
+
+.. program-output:: signac project --help
+
+
+.. _signac-cli-rm:
+
+rm
+==
+
+.. program-output:: signac rm --help
 
 
 .. _signac-cli-schema:
@@ -122,6 +156,14 @@ shell
 .. program-output:: signac shell --help
 
 
+.. _signac-cli-statepoint:
+
+statepoint
+==========
+
+.. program-output:: signac statepoint --help
+
+
 .. _signac-cli-sync:
 
 sync
@@ -130,25 +172,17 @@ sync
 .. program-output:: signac sync --help
 
 
-.. _signac-cli-import:
+.. _signac-cli-update-cache:
 
-import
-======
+update-cache
+============
 
-.. program-output:: signac import --help
-
-
-.. _signac-cli-export:
-
-export
-======
-
-.. program-output:: signac export --help
+.. program-output:: signac update-cache --help
 
 
-.. _signac-cli-config:
+.. _signac-cli-view:
 
-config
-======
+view
+====
 
-.. program-output:: signac config --help
+.. program-output:: signac view --help
