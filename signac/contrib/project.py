@@ -2012,7 +2012,7 @@ class Project:
         """Remove the persistent cache file (if it exists)."""
         for fn in (self.FN_CACHE, self._OLD_FN_CACHE):
             try:
-                os.remove(self.fn())
+                os.remove(self.fn(fn))
             except OSError as error:
                 if error.errno != errno.ENOENT:
                     raise error
