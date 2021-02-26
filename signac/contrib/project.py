@@ -2037,6 +2037,7 @@ class Project:
             fn_cache = self.fn(self.FN_CACHE)
             fn_cache_tmp = fn_cache + "~"
             try:
+                _mkdir_p(self.fn(".signac"))
                 with gzip.open(fn_cache_tmp, "wb") as cachefile:
                     cachefile.write(json.dumps(self._sp_cache).encode())
             except OSError:  # clean-up
