@@ -65,6 +65,19 @@ if __name__ == '__main__':
         signac.export(signac.index(), index, update=True)
 """
 
+# The warning used for doc filter deprecation everywhere. Don't use
+# triple-quoted multi-line string to avoid inserting newlines.
+# TODO: In signac 2.0, remove all docstrings for doc_filter parameters. The
+# doc_filter parameters will only be preserved for backwards compatibility but
+# not advertised as part of the API in signac 2.0.
+DOC_FILTER_WARNING = (
+    "The doc_filter argument was deprecated in version 1.7 and will be removed "
+    "in version 3.0. Users should instead use a filter with a 'doc.' prefix. For "
+    "example, `doc_filter={'foo': 'bar'}` is equivalent to `filter={'doc.foo': 'bar'}`. "
+    "See https://docs.signac.io/en/latest/query.html#query-namespaces for more "
+    "information."
+)
+
 
 class JobSearchIndex:
     """Search for specific jobs with filters.
@@ -146,6 +159,7 @@ class JobSearchIndex:
             if doc_filter:
                 filter.update(doc_filter)
         elif doc_filter:
+            warnings.warn(DOC_FILTER_WARNING, DeprecationWarning)
             filter = doc_filter
         return self._collection._find(filter)
 
@@ -997,6 +1011,7 @@ class Project:
         if index is None:
             filter = dict(parse_filter(_add_prefix("sp.", filter)))
             if doc_filter:
+                warnings.warn(DOC_FILTER_WARNING, DeprecationWarning)
                 filter.update(parse_filter(_add_prefix("doc.", doc_filter)))
                 index = self.index(include_job_document=True)
             elif "doc" in _root_keys(filter):
@@ -1041,6 +1056,7 @@ class Project:
         """
         filter = dict(parse_filter(_add_prefix("sp.", filter)))
         if doc_filter:
+            warnings.warn(DOC_FILTER_WARNING, DeprecationWarning)
             filter.update(parse_filter(_add_prefix("doc.", doc_filter)))
         return JobsCursor(self, filter)
 
@@ -1104,6 +1120,15 @@ class Project:
         """
         return self.find_jobs().groupby(key, default=default)
 
+    @deprecated(
+        deprecated_in="1.7",
+        removed_in="2.0",
+        current_version=__version__,
+        details=(
+            "Use groupby with a 'doc.' filter instead, see "
+            "https://docs.signac.io/en/latest/query.html#query-namespaces."
+        ),
+    )
     def groupbydoc(self, key=None, default=None):
         """Group jobs according to one or more document values.
 
@@ -2477,7 +2502,9 @@ class JobsCursor:
 
         # TODO: This is a compatibility layer for signac-flow. It should be
         # removed after signac 2.0 is released and once signac-flow drops
-        # support for signac < 2.0.
+        # support for signac < 2.0. At that point the JobsCursor constructor
+        # will require a 'doc.' namespaced filter to perform document-based
+        # filtering.
         if doc_filter:
             doc_filter = parse_filter(_add_prefix("doc.", doc_filter))
             if self._filter:
@@ -2703,6 +2730,15 @@ class JobsCursor:
             key=keyfunction,
         )
 
+    @deprecated(
+        deprecated_in="1.7",
+        removed_in="2.0",
+        current_version=__version__,
+        details=(
+            "Use groupby with a 'doc.' filter instead, see "
+            "https://docs.signac.io/en/latest/query.html#query-namespaces."
+        ),
+    )
     def groupbydoc(self, key=None, default=None):
         """Group jobs according to one or more document values.
 

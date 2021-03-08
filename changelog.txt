@@ -21,6 +21,11 @@ Changed
 
  - Optimized internal path joins to speed up project iteration (#515).
 
+Deprecated
+++++++++++
+
+ - ``doc_filter`` arguments, which are replaced by namespaced filters. Due to their long history, ``doc_filter`` arguments will still be accepted in signac 2.0 and will only be removed in 3.0.
+
 
 [1.6.0] -- 2020-01-24
 ---------------------
