@@ -9,6 +9,7 @@ import os
 import shutil
 from copy import deepcopy
 from json import JSONDecodeError
+from threading import RLock
 from typing import FrozenSet
 
 from deprecation import deprecated
@@ -256,6 +257,7 @@ class Job:
 
     def __init__(self, project, statepoint=None, _id=None):
         self._project = project
+        self._lock = RLock()
         self._initialize_lazy_properties()
 
         if statepoint is None and _id is None:
@@ -279,10 +281,11 @@ class Job:
 
     def _initialize_lazy_properties(self):
         """Initialize all properties that are designed to be loaded lazily."""
-        self._wd = None
-        self._document = None
-        self._stores = None
-        self._cwd = []
+        with self._lock:
+            self._wd = None
+            self._document = None
+            self._stores = None
+            self._cwd = []
 
     @deprecated(
         deprecated_in="1.3",
@@ -382,14 +385,15 @@ class Job:
             The job's new state point.
 
         """
-        if self._statepoint_requires_init:
-            # Instantiate state point data lazily - no load is required, since
-            # we are provided with the new state point data.
-            self._statepoint = _StatePointDict(
-                jobs=[self], filename=self._statepoint_filename
-            )
-            self._statepoint_requires_init = False
-        self.statepoint.reset(new_statepoint)
+        with self._lock:
+            if self._statepoint_requires_init:
+                # Instantiate state point data lazily - no load is required, since
+                # we are provided with the new state point data.
+                self._statepoint = _StatePointDict(
+                    jobs=[self], filename=self._statepoint_filename
+                )
+                self._statepoint_requires_init = False
+            self.statepoint.reset(new_statepoint)
 
         # Update the project's state point cache when loaded lazily
         self._project._register(self.id, new_statepoint)
@@ -466,16 +470,17 @@ class Job:
             Returns the job's state point.
 
         """
-        if self._statepoint_requires_init:
-            # Load state point data lazily (on access).
-            self._statepoint = _StatePointDict(
-                jobs=[self], filename=self._statepoint_filename
-            )
-            statepoint = self._statepoint.load(self.id)
+        with self._lock:
+            if self._statepoint_requires_init:
+                # Load state point data lazily (on access).
+                self._statepoint = _StatePointDict(
+                    jobs=[self], filename=self._statepoint_filename
+                )
+                statepoint = self._statepoint.load(self.id)
 
-            # Update the project's state point cache when loaded lazily
-            self._project._register(self.id, statepoint)
-            self._statepoint_requires_init = False
+                # Update the project's state point cache when loaded lazily
+                self._project._register(self.id, statepoint)
+                self._statepoint_requires_init = False
 
         return self._statepoint
 
@@ -523,10 +528,13 @@ class Job:
             The job document handle.
 
         """
-        if self._document is None:
-            self.init()
-            fn_doc = os.path.join(self.workspace(), self.FN_DOCUMENT)
-            self._document = BufferedJSONAttrDict(filename=fn_doc, write_concern=True)
+        with self._lock:
+            if self._document is None:
+                self.init()
+                fn_doc = os.path.join(self.workspace(), self.FN_DOCUMENT)
+                self._document = BufferedJSONAttrDict(
+                    filename=fn_doc, write_concern=True
+                )
         return self._document
 
     @document.setter
@@ -601,9 +609,10 @@ class Job:
             The HDF5-Store manager for this job.
 
         """
-        if self._stores is None:
-            self.init()
-            self._stores = H5StoreManager(self.workspace())
+        with self._lock:
+            if self._stores is None:
+                self.init()
+                self._stores = H5StoreManager(self.workspace())
         return self.init()._stores
 
     @property
@@ -669,36 +678,37 @@ class Job:
         JobsCorruptedError
             If the job state point on disk is corrupted.
         """
-        try:
-            # Attempt early exit if the state point file exists and is valid.
+        with self._lock:
             try:
-                statepoint = self.statepoint.load(self.id)
-            except Exception:
-                # Any exception means this method cannot exit early.
-
-                # Create the workspace directory if it does not exist.
+                # Attempt early exit if the state point file exists and is valid.
                 try:
-                    _mkdir_p(self.workspace())
-                except OSError:
-                    logger.error(
-                        "Error occurred while trying to create "
-                        "workspace directory for job '{}'.".format(self.id)
-                    )
-                    raise
+                    statepoint = self.statepoint.load(self.id)
+                except Exception:
+                    # Any exception means this method cannot exit early.
 
-                # The state point save will not overwrite an existing file on
-                # disk unless force is True, so the subsequent load will catch
-                # when a preexisting invalid file was present.
-                self.statepoint.save(force=force)
-                statepoint = self.statepoint.load(self.id)
+                    # Create the workspace directory if it does not exist.
+                    try:
+                        _mkdir_p(self.workspace())
+                    except OSError:
+                        logger.error(
+                            "Error occurred while trying to create "
+                            "workspace directory for job '{}'.".format(self.id)
+                        )
+                        raise
 
-                # Update the project's state point cache if the saved file is valid.
-                self._project._register(self.id, statepoint)
-        except Exception:
-            logger.error(
-                f"State point file of job '{self.id}' appears to be corrupted."
-            )
-            raise
+                    # The state point save will not overwrite an existing file on
+                    # disk unless force is True, so the subsequent load will catch
+                    # when a preexisting invalid file was present.
+                    self.statepoint.save(force=force)
+                    statepoint = self.statepoint.load(self.id)
+
+                    # Update the project's state point cache if the saved file is valid.
+                    self._project._register(self.id, statepoint)
+            except Exception:
+                logger.error(
+                    f"State point file of job '{self.id}' appears to be corrupted."
+                )
+                raise
         return self
 
     def clear(self):
@@ -743,20 +753,21 @@ class Job:
         See :ref:`signac rm <signac-cli-rm>` for the command line equivalent.
 
         """
-        try:
-            shutil.rmtree(self.workspace())
-        except OSError as error:
-            if error.errno != errno.ENOENT:
-                raise
-        else:
-            if self._document is not None:
-                try:
-                    self._document.clear()
-                except OSError as error:
-                    if not error.errno == errno.ENOENT:
-                        raise error
-                self._document = None
-            self._stores = None
+        with self._lock:
+            try:
+                shutil.rmtree(self.workspace())
+            except OSError as error:
+                if error.errno != errno.ENOENT:
+                    raise
+            else:
+                if self._document is not None:
+                    try:
+                        self._document.clear()
+                    except OSError as error:
+                        if not error.errno == errno.ENOENT:
+                            raise error
+                    self._document = None
+                self._stores = None
 
     def move(self, project):
         """Move this job to project.
@@ -772,28 +783,29 @@ class Job:
             The project to move this job to.
 
         """
-        statepoint = self.statepoint()
-        dst = project.open_job(statepoint)
-        _mkdir_p(project.workspace())
-        try:
-            os.replace(self.workspace(), dst.workspace())
-        except OSError as error:
-            if error.errno == errno.ENOENT:
-                raise RuntimeError(
-                    f"Cannot move job '{self}', because it is not initialized!"
-                )
-            elif error.errno in (errno.EEXIST, errno.ENOTEMPTY, errno.EACCES):
-                raise DestinationExistsError(dst)
-            elif error.errno == errno.EXDEV:
-                raise RuntimeError(
-                    "Cannot move jobs across different devices (file systems)."
-                )
-            else:
-                raise error
-        self.__dict__.update(dst.__dict__)
+        with self._lock:
+            statepoint = self.statepoint()
+            dst = project.open_job(statepoint)
+            _mkdir_p(project.workspace())
+            try:
+                os.replace(self.workspace(), dst.workspace())
+            except OSError as error:
+                if error.errno == errno.ENOENT:
+                    raise RuntimeError(
+                        f"Cannot move job '{self}', because it is not initialized!"
+                    )
+                elif error.errno in (errno.EEXIST, errno.ENOTEMPTY, errno.EACCES):
+                    raise DestinationExistsError(dst)
+                elif error.errno == errno.EXDEV:
+                    raise RuntimeError(
+                        "Cannot move jobs across different devices (file systems)."
+                    )
+                else:
+                    raise error
+            self.__dict__.update(dst.__dict__)
 
-        # Update the destination project's state point cache
-        project._register(self.id, statepoint)
+            # Update the destination project's state point cache
+            project._register(self.id, statepoint)
 
     def sync(self, other, strategy=None, exclude=None, doc_sync=None, **kwargs):
         r"""Perform a one-way synchronization of this job with the other job.

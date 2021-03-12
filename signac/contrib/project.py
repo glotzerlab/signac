@@ -20,6 +20,7 @@ from functools import partial
 from itertools import groupby
 from multiprocessing.pool import ThreadPool
 from tempfile import TemporaryDirectory
+from threading import RLock
 
 from deprecation import deprecated
 from packaging import version
@@ -246,6 +247,7 @@ class Project:
         self._config = _ProjectConfig(
             config, _mutate_hook=partial(_invalidate_config_cache, self)
         )
+        self._lock = RLock()
 
         # Prepare cached properties derived from the project config.
         self._id = None
@@ -513,7 +515,8 @@ class Project:
             The new project document.
 
         """
-        self.document.reset(new_doc)
+        with self._lock:
+            self.document.reset(new_doc)
 
     @property
     def document(self):
@@ -525,9 +528,12 @@ class Project:
             The project document.
 
         """
-        if self._document is None:
-            fn_doc = os.path.join(self.root_directory(), self.FN_DOCUMENT)
-            self._document = BufferedJSONAttrDict(filename=fn_doc, write_concern=True)
+        with self._lock:
+            if self._document is None:
+                fn_doc = os.path.join(self.root_directory(), self.FN_DOCUMENT)
+                self._document = BufferedJSONAttrDict(
+                    filename=fn_doc, write_concern=True
+                )
         return self._document
 
     @document.setter
@@ -601,8 +607,9 @@ class Project:
             The HDF5-Store manager for this project.
 
         """
-        if self._stores is None:
-            self._stores = H5StoreManager(self.root_directory())
+        with self._lock:
+            if self._stores is None:
+                self._stores = H5StoreManager(self.root_directory())
         return self._stores
 
     @property
