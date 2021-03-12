@@ -927,7 +927,15 @@ class Job:
         self.close()
         return False
 
+    def __getstate__(self):
+        state = dict(self.__dict__)
+        # Locks are not pickleable and must be removed from the state
+        del state["_lock"]
+        return state
+
     def __setstate__(self, state):
+        # Locks are not pickleable and must be added back to the state
+        state["_lock"] = RLock()
         self.__dict__.update(state)
         # We append to a list of jobs rather than replacing to support
         # transparent id updates between shallow copies of a job.
@@ -937,6 +945,10 @@ class Job:
         cls = self.__class__
         result = cls.__new__(cls)
         memo[id(self)] = result
-        for key, value in self.__dict__.items():
+        state = dict(self.__dict__)
+        # Locks are not pickleable and must be removed/added back
+        del state["_lock"]
+        for key, value in state.items():
             setattr(result, key, deepcopy(value, memo))
+        result._lock = RLock()
         return result

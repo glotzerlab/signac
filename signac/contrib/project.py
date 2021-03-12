@@ -2396,6 +2396,17 @@ class Project:
         # Return the matched job id from the found project
         return project.open_job(id=job_id)
 
+    def __getstate__(self):
+        state = dict(self.__dict__)
+        # Locks are not pickleable and must be removed from the state
+        del state["_lock"]
+        return state
+
+    def __setstate__(self, state):
+        # Locks are not pickleable and must be added back to the state
+        state["_lock"] = RLock()
+        self.__dict__.update(state)
+
 
 @contextmanager
 def TemporaryProject(name=None, cls=None, **kwargs):
