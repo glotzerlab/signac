@@ -13,7 +13,7 @@ next
 Added
 +++++
 
- - New ``SyncedCollection`` class and subclasses to replace ``JSONDict`` with more general support for different types of resources (such as MongoDB collections or Redis databases) and more complete support for different data types synchronized with files (#196, #234, #249, #316, #383, #397, #465, #484). This change introduces a minor-backwards incompatible change; for users making direct use of signac buffering, the ``force_write`` parameter is no longer respected. If the argument is passed, a warning will now be raised to indicate that it is ignored and will be removed in signac 2.0.
+ - New ``SyncedCollection`` class and subclasses to replace ``JSONDict`` with more general support for different types of resources (such as MongoDB collections or Redis databases) and more complete support for different data types synchronized with files (#196, #234, #249, #316, #383, #397, #465, #484, #529, #530). This change introduces a minor-backwards incompatible change; for users making direct use of signac buffering, the ``force_write`` parameter is no longer respected. If the argument is passed, a warning will now be raised to indicate that it is ignored and will be removed in signac 2.0.
  - Unified querying for state point and document filters using 'sp' and 'doc' as prefixes (#332, #514). This change introduces a minor backwards-incompatible change to the ``Collection`` index schema ('statepoint'->'sp'), but this does not affect any APIs, only indexes saved to file using a previous version of signac. Indexing APIs will be removed in signac 2.0.
 
 Changed
