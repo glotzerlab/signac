@@ -281,11 +281,10 @@ class Job:
 
     def _initialize_lazy_properties(self):
         """Initialize all properties that are designed to be loaded lazily."""
-        with self._lock:
-            self._wd = None
-            self._document = None
-            self._stores = None
-            self._cwd = []
+        self._wd = None
+        self._document = None
+        self._stores = None
+        self._cwd = []
 
     @deprecated(
         deprecated_in="1.3",
@@ -395,7 +394,6 @@ class Job:
                 self._statepoint_requires_init = False
             self.statepoint.reset(new_statepoint)
 
-        # Update the project's state point cache when loaded lazily
         self._project._register(self.id, new_statepoint)
 
     def update_statepoint(self, update, overwrite=False):
