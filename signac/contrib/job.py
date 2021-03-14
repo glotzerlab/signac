@@ -281,10 +281,11 @@ class Job:
 
     def _initialize_lazy_properties(self):
         """Initialize all properties that are designed to be loaded lazily."""
-        self._wd = None
-        self._document = None
-        self._stores = None
-        self._cwd = []
+        with self._lock:
+            self._wd = None
+            self._document = None
+            self._stores = None
+            self._cwd = []
 
     @deprecated(
         deprecated_in="1.3",
