@@ -188,7 +188,9 @@ class SyncedCollection(Collection):
             self._load_and_save = self._LoadSaveType(self)
 
         if self._supports_threading:
-            self._locks[self._lock_id] = RLock()
+            with self._cls_lock:
+                if self._lock_id not in self._locks:
+                    self._locks[self._lock_id] = RLock()
 
     @classmethod
     def _register_validators(cls):
@@ -235,6 +237,7 @@ class SyncedCollection(Collection):
 
         # Monkey-patch subclasses that support locking.
         if cls._supports_threading:
+            cls._cls_lock = RLock()
             cls._locks = {}
             cls.enable_multithreading()
         else:
