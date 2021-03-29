@@ -1,2 +1,5 @@
 # Request one committer and one contributor per PR.
 * @glotzerlab/signac-committers @glotzerlab/signac-contributors
+# Request maintainers for dependabot PRs
+requirements/* @glotzerlab/signac-maintainers
+requirements.txt @glotzerlab/signac-maintainers
