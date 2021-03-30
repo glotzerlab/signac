@@ -1,6 +1,6 @@
 h5py==3.1.0; implementation_name=='cpython'
 numpy==1.20.1
-pandas==1.2.2; implementation_name=='cpython'
+pandas==1.2.3; implementation_name=='cpython'
 pymongo==3.11.3; implementation_name=='cpython'
 redis==3.5.3
 ruamel.yaml==0.16.12
