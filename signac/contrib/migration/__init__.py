@@ -58,28 +58,28 @@ def _lock_for_migration(project):
 def _collect_migrations(project):
     schema_version = version.parse(SCHEMA_VERSION)
 
-    def config_schema_version():
+    def get_config_schema_version():
         return version.parse(project._config["schema_version"])
 
-    if config_schema_version() > schema_version:
+    if get_config_schema_version() > schema_version:
         # Project config schema version is newer and therefore not supported.
         raise RuntimeError(
             "The signac schema version used by this project is {}, but signac {} "
             "only supports up to schema version {}. Try updating signac.".format(
-                config_schema_version, __version__, SCHEMA_VERSION
+                get_config_schema_version(), __version__, SCHEMA_VERSION
             )
         )
 
-    while config_schema_version() < schema_version:
+    while get_config_schema_version() < schema_version:
         for (origin, destination), migration in MIGRATIONS.items():
-            if version.parse(origin) == config_schema_version():
+            if version.parse(origin) == get_config_schema_version():
                 yield (origin, destination), migration
                 break
         else:
             raise RuntimeError(
                 "The signac schema version used by this project is {}, but signac {} "
                 "uses schema version {} and does not know how to migrate.".format(
-                    config_schema_version(), __version__, schema_version
+                    get_config_schema_version(), __version__, schema_version
                 )
             )
 
