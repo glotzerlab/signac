@@ -36,7 +36,7 @@ def _with_message(query, file):
         Filter arguments.
 
     """
-    print("Interpreted filter arguments as '{}'.".format(json.dumps(query)), file=file)
+    print(f"Interpreted filter arguments as '{json.dumps(query)}'.", file=file)
     return query
 
 
@@ -147,7 +147,7 @@ def _cast(x):
     """
     try:
         if x in CAST_MAPPING_WARNING:
-            print("Did you mean {}?".format(CAST_MAPPING_WARNING[x]), file=sys.stderr)
+            print(f"Did you mean {CAST_MAPPING_WARNING[x]}?", file=sys.stderr)
         return CAST_MAPPING[x]
     except KeyError:
         try:

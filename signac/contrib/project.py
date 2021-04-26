@@ -321,7 +321,7 @@ class Project:
             + f"<strong>Project:</strong> {self.id}<br>"
             + f"<strong>Root:</strong> {self.root_directory()}<br>"
             + f"<strong>Workspace:</strong> {self.workspace()}<br>"
-            + "<strong>Size:</strong> {}".format(len(self))
+            + f"<strong>Size:</strong> {len(self)}"
             + "</p>"
             + self.find_jobs()._repr_html_jobs()
         )
@@ -1282,7 +1282,7 @@ class Project:
             _cache = {calc_id(sp): sp for sp in statepoints}
 
         tmp.update(_cache)
-        logger.debug("Writing state points file with {} entries.".format(len(tmp)))
+        logger.debug(f"Writing state points file with {len(tmp)} entries.")
         with open(fn, "w") as file:
             file.write(json.dumps(tmp, indent=indent))
 

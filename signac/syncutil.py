@@ -112,10 +112,10 @@ class _DocProxy:
         self.dry_run = dry_run
 
     def __str__(self):
-        return "_DocProxy({})".format(str(self.doc))
+        return f"_DocProxy({str(self.doc)})"
 
     def __repr__(self):
-        return "_DocProxy({})".format(repr(self.doc))
+        return f"_DocProxy({repr(self.doc)})"
 
     def __getitem__(self, key):
         return self.doc[key]
@@ -227,7 +227,7 @@ class _FileModifyProxy:
 
     def remove(self, path):
         """Remove path."""
-        logger.more("Remove path '{}'.".format(os.path.relpath(path)))
+        logger.more(f"Remove path '{os.path.relpath(path)}'.")
         self._remove(path)
 
     def copy(self, src, dst):
@@ -280,15 +280,13 @@ class _FileModifyProxy:
 
     def copytree(self, src, dst, **kwargs):
         """Copy tree src to dst."""
-        logger.more(
-            "Copy tree '{}' -> '{}'.".format(os.path.relpath(src), os.path.relpath(dst))
-        )
+        logger.more(f"Copy tree '{os.path.relpath(src)}' -> '{os.path.relpath(dst)}'.")
         copytree(src, dst, copy_function=self.copy, **kwargs)
 
     @contextmanager
     def create_backup(self, path):
         """Create a backup of path."""
-        logger.debug("Create backup of '{}'.".format(os.path.relpath(path)))
+        logger.debug(f"Create backup of '{os.path.relpath(path)}'.")
         path_backup = path + "~"
         if os.path.isfile(path_backup):
             raise RuntimeError(
@@ -304,7 +302,7 @@ class _FileModifyProxy:
             self._copy2(path_backup, path)
             raise
         finally:
-            logger.debug("Remove backup of '{}'.".format(os.path.relpath(path)))
+            logger.debug(f"Remove backup of '{os.path.relpath(path)}'.")
             self._remove(path_backup)
 
     @contextmanager

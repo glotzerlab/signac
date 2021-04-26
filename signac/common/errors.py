@@ -17,7 +17,7 @@ class AuthenticationError(Error, RuntimeError):
 
     def __str__(self):
         if len(self.args) > 0:
-            return "Failed to authenticate with host '{}'.".format(self.args[0])
+            return f"Failed to authenticate with host '{self.args[0]}'."
         else:
             return "Failed to authenticate with host."
 

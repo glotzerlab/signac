@@ -462,9 +462,7 @@ class Collection:
 
     def _assert_open(self):
         if self._docs is None:
-            raise RuntimeError(
-                "Trying to access closed {}.".format(type(self).__name__)
-            )
+            raise RuntimeError(f"Trying to access closed {type(self).__name__}.")
 
     def _next_default_id(self):
         """Return next default id.
@@ -593,15 +591,13 @@ class Collection:
         return self._indexes[key]
 
     def __str__(self):
-        return "<{} file={}>".format(type(self).__name__, self._file)
+        return f"<{type(self).__name__} file={self._file}>"
 
     def __iter__(self):
         try:
             return iter(self._docs.values())
         except AttributeError:
-            raise RuntimeError(
-                "Trying to access closed {}.".format(type(self).__name__)
-            )
+            raise RuntimeError(f"Trying to access closed {type(self).__name__}.")
 
     @property
     def ids(self):
