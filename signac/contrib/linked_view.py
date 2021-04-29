@@ -135,7 +135,7 @@ def _update_view(prefix, links, leaf="job"):
     else:
         logger.info(f"View in '{prefix}' is up to date.")
         return
-    logger.debug("Removing {} obsolete links.".format(len(obsolete)))
+    logger.debug(f"Removing {len(obsolete)} obsolete links.")
     for path in obsolete:
         p = os.path.join(prefix, path)
         try:
