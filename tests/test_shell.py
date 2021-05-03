@@ -698,13 +698,13 @@ class TestBasicShell:
             "print(str(project), job, len(list(jobs))); exit()",
             shell=True,
         )
-        assert out.strip() == ">>> {} None {}".format(project, len(project))
+        assert out.strip() == f">>> {project} None {len(project)}"
 
         cmd = "python -m signac shell -c".split() + [
             "print(str(project), len(list(jobs)))"
         ]
         out = self.call(cmd)
-        assert out.strip() == "{} {}".format(project, len(project))
+        assert out.strip() == f"{project} {len(project)}"
 
     def test_shell_with_jobs(self):
         out = self.call("python -m signac shell", shell=True)
@@ -720,7 +720,7 @@ class TestBasicShell:
             "print(str(project), job, len(list(jobs))); exit()",
             shell=True,
         )
-        assert out.strip() == ">>> {} None {}".format(project, len(project))
+        assert out.strip() == f">>> {project} None {len(project)}"
 
     def test_shell_with_jobs_and_selection(self):
         self.call("python -m signac init my_project".split())

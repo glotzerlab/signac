@@ -86,7 +86,7 @@ def make_uri(hostcfg):
 
 def _request_credentials(hostcfg):
     pwcfg = hostcfg.get("password_config")
-    pw = getpass.getpass("Enter password for {}: ".format(make_uri(hostcfg)))
+    pw = getpass.getpass(f"Enter password for {make_uri(hostcfg)}: ")
     if pwcfg and "salt" in pwcfg and "rounds" in pwcfg:
         logger.debug("Using password configuration for hashing.")
         return get_crypt_context().encrypt(pw, **pwcfg)
