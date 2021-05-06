@@ -772,6 +772,8 @@ def main_update_cache(args):
 # def main_migrate(args):
 #     "Migrate the project's schema to the current schema version."
 #     from .contrib.migration import apply_migrations
+#     from packaging import version
+#     from .version import SCHEMA_VERSION
 #     project = get_project(_ignore_schema_version=True)
 #
 #     schema_version = version.parse(SCHEMA_VERSION)
