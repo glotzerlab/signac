@@ -126,7 +126,7 @@ class _SyncedDict(MutableMapping):
             from ..errors import KeyTypeError
 
             raise KeyTypeError(
-                "keys must be str, int, bool or None, not {}".format(type(key).__name__)
+                f"keys must be str, int, bool or None, not {type(key).__name__}"
             )
 
     def _dfs_convert(self, root):

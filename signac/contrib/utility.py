@@ -323,13 +323,13 @@ def split_and_print_progress(iterable, num_chunks=10, write=None, desc="Progress
         show_est = False
         for i in range(num_chunks - 1):
             if i:
-                msg = "{}{:3.0f}%".format(desc, 100 * i / num_chunks)
+                msg = f"{desc}{100 * i / num_chunks:3.0f}%"
                 if intervals:
                     mean_interval = sum(intervals) / len(intervals)
                     est_remaining = int(mean_interval * (num_chunks - i))
                     if est_remaining > 10 or show_est:
                         show_est = True
-                        msg += " (ETR: {}h)".format(timedelta(seconds=est_remaining))
+                        msg += f" (ETR: {timedelta(seconds=est_remaining)}h)"
                 write(msg)
             start = time()
             yield iterable[i * len_chunk : (i + 1) * len_chunk]

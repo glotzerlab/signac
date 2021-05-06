@@ -177,7 +177,7 @@ class DocSync:
             self.skipped_keys = set()
 
         def __str__(self):
-            return "{}({})".format(type(self).__name__, self.key_strategy)
+            return f"{type(self).__name__}({self.key_strategy})"
 
         def __call__(self, src, dst, root=""):
             """Synchronize src and dst."""
@@ -252,7 +252,7 @@ def _sync_job_workspaces(
                 subdir=os.path.join(subdir, _subdir),
             )
         else:
-            logger.warning("Skip directory '{}'.".format(os.path.join(subdir, _subdir)))
+            logger.warning(f"Skip directory '{os.path.join(subdir, _subdir)}'.")
 
 
 def _identical_path(a, b):
@@ -592,11 +592,11 @@ def sync_projects(
         with ThreadPool(None if parallel is True else parallel) as pool:
             for i, ret in enumerate(pool.imap(_clone_or_sync, jobs_to_sync)):
                 count[ret] += 1
-                logger.info("Project sync progress: {}/{}".format(i + 1, N))
+                logger.info(f"Project sync progress: {i + 1}/{N}")
     else:
         for i, src_job in enumerate(jobs_to_sync):
             count[_clone_or_sync(src_job)] += 1
-            logger.info("Project sync progress: {}/{}".format(i + 1, N))
+            logger.info(f"Project sync progress: {i + 1}/{N}")
 
     num_cloned, num_synchronized = count[1], count[2]
     logger.info(f"Cloned {num_cloned} and synchronized {num_synchronized} job(s).")

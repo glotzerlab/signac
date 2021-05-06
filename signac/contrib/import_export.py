@@ -555,7 +555,7 @@ def _convert_schema_path_to_regex(schema_path):
             types[key] = m.groupdict()["type"] or "str"
             start, stop = m.span()
             schema_regex += schema_path[index : index + start].replace(".", r"\.")
-            schema_regex += r"(?P<{}>{})".format(key, RE_TYPES[types[key]])
+            schema_regex += fr"(?P<{key}>{RE_TYPES[types[key]]})"
             index += stop
             continue
         break
@@ -567,7 +567,7 @@ def _convert_schema_path_to_regex(schema_path):
         elif types[key] == "bool":
             types[key] = _convert_bool
         else:
-            raise ValueError("Invalid type '{}'.".format(types[key]))
+            raise ValueError(f"Invalid type '{types[key]}'.")
     return schema_regex, types
 
 
@@ -882,7 +882,7 @@ class _CopyFromZipFileExecutor:
         return self.job.workspace()
 
     def __str__(self):
-        return "{}({} -> {})".format(type(self).__name__, self.root, self.job)
+        return f"{type(self).__name__}({self.root} -> {self.job})"
 
 
 def _analyze_zipfile_for_import(zipfile, project, schema):

@@ -75,7 +75,7 @@ class TestCollection:
             assert doc["_id"] in self.c
 
     def test_init_with_list_with_ids_non_sequential(self):
-        docs = [{"a": i, "_id": "{:032d}".format(i ** 3)} for i in range(10)]
+        docs = [{"a": i, "_id": f"{i ** 3:032d}"} for i in range(10)]
         self.c = Collection(docs)
         assert len(self.c) == len(docs)
         for doc in docs:
