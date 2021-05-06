@@ -117,9 +117,7 @@ class BaseCrawler:
         for dirpath, dirnames, filenames in walkdepth(self.root, depth):
             for fn in filenames:
                 for doc in self.docs_from_file(dirpath, fn):
-                    logger.debug(
-                        "doc from file: '{}'.".format(os.path.join(dirpath, fn))
-                    )
+                    logger.debug(f"doc from file: '{os.path.join(dirpath, fn)}'.")
                     doc.setdefault(KEY_PAYLOAD, None)
                     doc.setdefault("_id", self._calculate_hash(doc, dirpath, fn))
                     yield doc
@@ -399,7 +397,7 @@ def _index_signac_project_workspace(
                     raise
         yield doc
     if job_ids:
-        logger.debug("Indexed workspace '{}', {} entries.".format(root, i + 1))
+        logger.debug(f"Indexed workspace '{root}', {i + 1} entries.")
 
 
 # this class is deprecated
@@ -613,9 +611,7 @@ class MainCrawler(BaseCrawler):
                 if self.raise_on_error:
                     raise
             else:
-                logger.debug(
-                    "Completed indexing from '{}'.".format(os.path.join(dirpath, fn))
-                )
+                logger.debug(f"Completed indexing from '{os.path.join(dirpath, fn)}'.")
 
 
 # Deprecated API
@@ -862,7 +858,7 @@ def export(docs, index, mirrors=None, update=False, num_tries=3, timeout=60, **k
                 docs_ = index.find({"root": root})
                 all_ = {doc["_id"] for doc in docs_}
                 stale.update(all_.difference(ids[root]))
-            logger.info("Removing {} stale documents.".format(len(stale)))
+            logger.info(f"Removing {len(stale)} stale documents.")
             for _id in set(stale):
                 index.delete_one(dict(_id=_id))
         else:
@@ -954,7 +950,7 @@ def export_pymongo(
                 docs_ = index.find({"root": root})
                 all_ = {doc["_id"] for doc in docs_}
                 stale.update(all_.difference(ids[root]))
-            logger.info("Removing {} stale documents.".format(len(stale)))
+            logger.info(f"Removing {len(stale)} stale documents.")
             for _id in set(stale):
                 index.delete_one(dict(_id=_id))
         else:

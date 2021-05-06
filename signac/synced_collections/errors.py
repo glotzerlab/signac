@@ -23,7 +23,7 @@ class BufferedError(BufferException):
         self.files = files
 
     def __str__(self):
-        return "{}({})".format(type(self).__name__, self.files)
+        return f"{type(self).__name__}({self.files})"
 
 
 class MetadataError(BufferException):

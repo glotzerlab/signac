@@ -159,7 +159,7 @@ def _hide_password(line):
 def _prompt_for_new_password(attempts=3):
     for i in range(attempts):
         if i > 0:
-            _print_err("Attempt {}:".format(i + 1))
+            _print_err(f"Attempt {i + 1}:")
         new_pw = prompt_password("New password: ")
         new_pw2 = prompt_password("New password (repeat): ")
         if new_pw == new_pw2:
@@ -206,7 +206,7 @@ def _open_job_by_id(project, job_id):
         )
         msg = f"Did not find job corresponding to id '{job_id}'."
         if len(close_matches) == 1:
-            msg += " Did you mean '{}'?".format(close_matches[0])
+            msg += f" Did you mean '{close_matches[0]}'?"
         elif len(close_matches) > 1:
             msg += " Did you mean any of [{}]?".format("|".join(close_matches))
         raise KeyError(msg)
@@ -359,9 +359,7 @@ def main_clone(args):
 
 def main_index(args):
     """Handle index subcommand."""
-    _print_err(
-        "Compiling main index for path '{}'...".format(os.path.realpath(args.root))
-    )
+    _print_err(f"Compiling main index for path '{os.path.realpath(args.root)}'...")
     if args.tags:
         args.tags = set(args.tags)
         _print_err("Provided tags: {}".format(", ".join(sorted(args.tags))))
@@ -724,7 +722,7 @@ def main_import(args):
     if paths is None:
         _print_err("Import failed.")
     elif len(paths):
-        _print_err("Imported {} job(s).".format(len(paths)))
+        _print_err(f"Imported {len(paths)} job(s).")
     elif paths is not None:
         _print_err("Nothing to import.")
 
@@ -754,7 +752,7 @@ def main_export(args):
             )
 
     if paths:
-        _print_err("Exported {} job(s).".format(len(paths)))
+        _print_err(f"Exported {len(paths)} job(s).")
     else:
         _print_err("No jobs to export.")
 
@@ -929,7 +927,7 @@ def main_config_set(args):
         _print_err(f"Updated value '{args.key}'='{args.value}'.")
     except TypeError:
         raise KeyError(args.key)
-    _print_err("Writing configuration to '{}'.".format(os.path.abspath(fn_config)))
+    _print_err(f"Writing configuration to '{os.path.abspath(fn_config)}'.")
     cfg.write()
 
 
@@ -1030,7 +1028,7 @@ def main_config_host(args):
                     del cfg["hosts"][args.hostname][k]
                     store = True
             elif k not in hostcfg() or v != hostcfg()[k]:
-                logging.info("Setting {}={}".format(k, hide_password(k, v)))
+                logging.info(f"Setting {k}={hide_password(k, v)}")
                 cfg["hosts"][args.hostname][k] = v
                 store = True
         if store:

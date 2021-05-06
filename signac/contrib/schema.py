@@ -247,7 +247,7 @@ class ProjectSchema:
             for key in sorted(self._schema):
                 values = self._schema[key]
                 if values:
-                    ret.append(" '{}': '{}',".format(key, _fmt_values(values)))
+                    ret.append(f" '{key}': '{_fmt_values(values)}',")
             ret.append("}")
             return "\n".join(ret)
 
@@ -258,7 +258,7 @@ class ProjectSchema:
         return self.format()
 
     def __repr__(self):
-        return "{}(<len={}>)".format(type(self).__name__, len(self))
+        return f"{type(self).__name__}(<len={len(self)}>)"
 
     def _repr_html_(self):
         import html
