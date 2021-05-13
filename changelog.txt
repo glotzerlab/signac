@@ -156,7 +156,7 @@ Added
 
  - Official support for Python 3.8 (#258).
  - Add properties ``Project.id`` and ``Job.id`` (#250).
- - Add ``signac.diff_jobs`` function to compare two or more state points (#248, #247).
+ - Add ``signac.diff_jobs`` function and ``$ signac diff`` CLI command to compare two or more state points (#248, #247).
  - Add function to initialize a sample data space for testing purposes (#215).
  - Add schema version to ensure compatibility and enable migrations in future package versions (#165, #253).
 
