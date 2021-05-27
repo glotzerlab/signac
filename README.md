@@ -7,7 +7,7 @@
 [![RTD](https://img.shields.io/readthedocs/signac.svg?style=flat)](https://docs.signac.io)
 [![License](https://img.shields.io/github/license/glotzerlab/signac.svg)](https://github.com/glotzerlab/signac/blob/master/LICENSE.txt)
 [![PyPI-downloads](https://img.shields.io/pypi/dm/signac.svg?style=flat)](https://pypistats.org/packages/signac)
-[![Gitter](https://img.shields.io/gitter/room/signac/Lobby.svg?style=flat)](https://gitter.im/signac/Lobby)
+[![Slack](https://img.shields.io/badge/Slack-chat%20support-brightgreen.svg?style=flat&logo=slack)](https://signac.io/slack-invite/)
 [![Twitter](https://img.shields.io/twitter/follow/signacdata?style=social)](https://twitter.com/signacdata)
 [![GitHub Stars](https://img.shields.io/github/stars/glotzerlab/signac?style=social)](https://github.com/glotzerlab/signac/)
 
@@ -20,8 +20,10 @@ This makes it easier to operate on large data spaces, streamlines post-processin
 
 - [Framework documentation](https://docs.signac.io/):
   Examples, tutorials, topic guides, and package Python APIs.
-- [Chat Support](https://gitter.im/signac/Lobby):
-  Get help and ask questions on the **signac** gitter channel.
+- [Package documentation](https://docs.signac.io/projects/core/):
+  API reference for the **signac** package.
+- [Slack Chat Support](https://signac.io/slack-invite/):
+  Get help and ask questions on the **signac** Slack workspace.
 - [**signac** website](https://signac.io/):
   Framework overview and news.
 
