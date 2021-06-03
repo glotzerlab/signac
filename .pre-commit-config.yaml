@@ -1,3 +1,8 @@
+ci:
+  autoupdate_schedule: quarterly
+
+exclude: '(?:^signac/common/configobj/)'
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: 'v4.0.1'
@@ -13,13 +18,12 @@ repos:
       - id: debug-statements
       - id: requirements-txt-fixer
   - repo: https://github.com/asottile/pyupgrade
-    rev: 'v2.19.0'
+    rev: 'v2.19.1'
     hooks:
       - id: pyupgrade
-        exclude: '(?:configobj/.*)'
         args:
           - --py36-plus
-  - repo: https://github.com/pycqa/isort
+  - repo: https://github.com/PyCQA/isort
     rev: '5.8.0'
     hooks:
       - id: isort
@@ -27,17 +31,21 @@ repos:
     rev: '21.5b2'
     hooks:
       - id: black
-        exclude: '(?:configobj/.*)'
   - repo: https://github.com/PyCQA/flake8
     rev: '3.9.2'
     hooks:
       - id: flake8
-        exclude: '(?:configobj/.*)'
-  - repo: https://github.com/pycqa/pydocstyle
+  - repo: https://github.com/PyCQA/pydocstyle
     rev: '6.1.1'
     hooks:
       - id: pydocstyle
-        files: ^((?!doc|tests|configobj|db).)*$
+        exclude: |
+          (?x)^(
+            ^doc/|
+            ^tests/|
+            ^signac/common/configobj/|
+            ^signac/db/
+          )
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: 'v0.812'
     hooks:
