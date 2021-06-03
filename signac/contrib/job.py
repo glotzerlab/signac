@@ -410,25 +410,25 @@ class Job:
 
         .. warning::
 
-            While appending to a job's state point is generally safe,
-            modifying existing parameters may lead to data
-            inconsistency. Use the overwrite argument with caution!
+            While appending to a job's state point is generally safe, modifying
+            existing parameters may lead to data inconsistency. Use the
+            ``overwrite`` argument with caution!
 
         Parameters
         ----------
         update : dict
             A mapping used for the state point update.
         overwrite : bool, optional
-            If True, this method will set all existing and new parameters
-            to a job's statepoint, making it equivalent to
-            :meth:`~.reset_statepoint`. Use with caution!
-            (Default value = False).
+            If False, an error will be raised if the update modifies the values
+            of existing keys in the state point. If True, any existing keys will
+            be overwritten in the same way as :meth:`dict.update`. Use with
+            caution! (Default value = False).
 
         Raises
         ------
         KeyError
-            If the update contains keys, which are already part of the job's
-            state point and overwrite is False.
+            If the update contains keys which are already part of the job's
+            state point and ``overwrite`` is False.
         :class:`~signac.errors.DestinationExistsError`
             If a job associated with the new state point is already initialized.
         OSError
