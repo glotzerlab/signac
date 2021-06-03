@@ -81,7 +81,7 @@ class TestH5StoreBase:
     def get_testdata(self, size=None):
         if size is None:
             size = 1024
-        return "".join([random.choice(string.ascii_lowercase) for i in range(size)])
+        return "".join(random.choice(string.ascii_lowercase) for i in range(size))
 
     def assertEqual(self, a, b):
         if hasattr(a, "shape"):
