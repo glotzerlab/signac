@@ -77,7 +77,7 @@ class LocalFS:
 
     def _fn(self, _id, n=2, suffix=".dat"):
         fn = (
-            os.path.join(self.root, *[_id[i : i + n] for i in range(0, len(_id), n)])
+            os.path.join(self.root, *(_id[i : i + n] for i in range(0, len(_id), n)))
             + suffix
         )
         return fn

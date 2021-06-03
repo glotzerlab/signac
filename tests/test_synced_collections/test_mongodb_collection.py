@@ -38,12 +38,10 @@ try:
     # BSON does not support >8-byte ints. We remove larger types since some are
     # architecture-dependent.
     NUMPY_INT_TYPES = tuple(
-        [
-            dtype
-            for dtype in NUMPY_INT_TYPES
-            if issubclass(dtype, numpy.number)
-            and numpy.log2(numpy.iinfo(dtype).max) / 8 < 8
-        ]
+        dtype
+        for dtype in NUMPY_INT_TYPES
+        if issubclass(dtype, numpy.number)
+        and numpy.log2(numpy.iinfo(dtype).max) / 8 < 8
     )
 except ImportError:
     NUMPY = False

@@ -323,7 +323,7 @@ def strip_complexity(cat):
 def normalize(data, N):
     for cat, x in data.items():
         cplx, cat_ = strip_complexity(cat)
-        x_mean = min([(y / n) for n, y in x])
+        x_mean = min((y / n) for n, y in x)
         if cplx is not None:
             x_mean /= eval(cplx)
         yield cat, 1e3 * x_mean
