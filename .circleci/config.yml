@@ -10,39 +10,12 @@ orbs:
 references:
   restore_keys: &restore_keys
     keys:
-      - python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements/requirements-test.txt" }}-{{ checksum "requirements/requirements-test-optional.txt" }}-{{ checksum "requirements/requirements-precommit.txt" }}-{{ checksum ".circleci/ci-oldest-reqs.txt" }}-{{ checksum ".pre-commit-config.yaml" }}
+      - python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements/requirements-test.txt" }}-{{ checksum "requirements/requirements-test-optional.txt" }}-{{ checksum ".circleci/ci-oldest-reqs.txt" }}
 
   save_key: &save_key
-    key: python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements/requirements-test.txt" }}-{{ checksum "requirements/requirements-test-optional.txt" }}-{{ checksum "requirements/requirements-precommit.txt" }}-{{ checksum ".circleci/ci-oldest-reqs.txt" }}-{{ checksum ".pre-commit-config.yaml" }}
+    key: python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements/requirements-test.txt" }}-{{ checksum "requirements/requirements-test-optional.txt" }}-{{ checksum ".circleci/ci-oldest-reqs.txt" }}
 
 jobs:
-  pre-checks:
-    docker:
-      - image: circleci/python:3.9
-
-    working_directory: ~/repo
-
-    steps:
-      - checkout
-
-      - restore_cache:
-          <<: *restore_keys
-
-      - run:
-          name: Install pre-check dependencies
-          command: |
-            pip install --progress-bar off --user -U -r requirements/requirements-precommit.txt
-
-      - run:
-          name: Run pre-checks
-          command: |
-            PRE_COMMIT_HOME=.pre-commit-cache pre-commit run --all-files --show-diff-on-failure
-
-      - save_cache:
-          <<: *save_key
-          paths:
-            - ".pre-commit-cache"
-
   linux-python-39: &linux-template
     docker:
       - image: circleci/python:3.9
@@ -268,7 +241,6 @@ workflows:
   version: 2
   test:
     jobs:
-#     - pre-checks
       - linux-python-39
       - linux-python-39-minimal
       - linux-python-38
