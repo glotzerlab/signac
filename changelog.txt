@@ -7,8 +7,8 @@ The **signac** package follows `semantic versioning <https://semver.org/>`_.
 Version 1
 =========
 
-next
-----
+[1.7.0] -- 2021-06-08
+---------------------
 
 Added
 +++++
@@ -24,7 +24,8 @@ Changed
 Deprecated
 ++++++++++
 
- - ``doc_filter`` arguments, which are replaced by namespaced filters. Due to their long history, ``doc_filter`` arguments will still be accepted in signac 2.0 and will only be removed in 3.0.
+ - ``doc_filter`` arguments, which are replaced by namespaced filters. Due to their long history, ``doc_filter`` arguments will still be accepted in signac 2.0 and will only be removed in 3.0 (#516).
+ - The modules ``signac.core.attrdict``, ``signac.core.json``, ``signac.core.jsondict``, and ``signac.core.synceddict.py`` are deprecated in favor of the new ``SyncedCollection`` classes and will be removed in signac 2.0 (#483).
 
 Fixed
 +++++
@@ -32,7 +33,7 @@ Fixed
  - Corrected docstrings for ``Job.update_statepoint`` and ``Project.update_statepoint`` (#506, #563).
 
 
-[1.6.0] -- 2020-01-24
+[1.6.0] -- 2021-01-24
 ---------------------
 
 Added
