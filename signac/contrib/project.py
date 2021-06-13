@@ -378,10 +378,9 @@ class Project:
         """
         if self._wd is None:
             wd = os.path.expandvars(self.config.get("workspace_dir", "workspace"))
-            if os.path.isabs(wd):
-                self._wd = wd
-            else:
-                self._wd = os.path.join(self.root_directory(), wd)
+            self._wd = (
+                wd if os.path.isabs(wd) else os.path.join(self.root_directory(), wd)
+            )
         return self._wd
 
     @deprecated(
@@ -1272,7 +1271,7 @@ class Project:
         try:
             tmp = self.read_statepoints(fn=fn)
         except OSError as error:
-            if not error.errno == errno.ENOENT:
+            if error.errno != errno.ENOENT:
                 raise
             tmp = {}
         if statepoints is None:
@@ -1815,12 +1814,11 @@ class Project:
                     self.sync(other=tmp_project, **sync)
                 return ret
 
-        paths = dict(
+        return dict(
             import_into_project(
                 origin=origin, project=self, schema=schema, copytree=copytree
             )
         )
-        return paths
 
     def check(self):
         """Check the project's workspace for corruption.
@@ -2066,7 +2064,7 @@ class Project:
                 cache = json.loads(cachefile.read().decode())
             self._sp_cache.update(cache)
         except OSError as error:
-            if not error.errno == errno.ENOENT:
+            if error.errno != errno.ENOENT:
                 raise
             logger.debug("No cache file found.")
         else:
@@ -2384,7 +2382,7 @@ class Project:
 
         # Find the last match instance of a job id
         results = list(re.finditer(JOB_ID_REGEX, root))
-        if len(results) == 0:
+        if not results:
             raise LookupError(f"Could not find a job id in path '{root}'.")
         match = results[-1]
         job_id = match.group(0)
