@@ -2382,7 +2382,7 @@ class Project:
 
         # Find the last match instance of a job id
         results = list(re.finditer(JOB_ID_REGEX, root))
-        if not results:
+        if len(results) == 0:
             raise LookupError(f"Could not find a job id in path '{root}'.")
         match = results[-1]
         job_id = match.group(0)
