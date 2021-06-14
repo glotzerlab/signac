@@ -763,7 +763,7 @@ class Job:
                     try:
                         self._document.clear()
                     except OSError as error:
-                        if not error.errno == errno.ENOENT:
+                        if error.errno != errno.ENOENT:
                             raise error
                     self._document = None
                 self._stores = None

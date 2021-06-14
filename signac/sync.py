@@ -390,7 +390,7 @@ def sync_jobs(
             deep=deep,
         )
 
-    if not (doc_sync is DocSync.NO_SYNC or doc_sync == DocSync.COPY):
+    if doc_sync not in (DocSync.NO_SYNC, DocSync.COPY):
         if src.document != dst.document:
             with proxy.create_doc_backup(dst.document) as dst_proxy:
                 doc_sync(src.document, dst_proxy)
@@ -546,7 +546,7 @@ def sync_projects(
     logger.more(f"Doc sync strategy: '{doc_sync}'")
 
     # Sync the Project document.
-    if not (doc_sync is DocSync.NO_SYNC or doc_sync == DocSync.COPY):
+    if doc_sync not in (DocSync.NO_SYNC, DocSync.COPY):
         if source.document != destination.document:
             with proxy.create_doc_backup(destination.document) as dst_proxy:
                 doc_sync(source.document, dst_proxy)
