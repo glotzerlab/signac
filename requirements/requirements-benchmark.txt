@@ -2,5 +2,5 @@ click==8.0.1
 gitdb2==4.0.2
 GitPython==3.1.18
 numpy==1.20.3
-pandas==1.2.4; implementation_name=='cpython' --no-binary :none:
+pandas==1.2.5; implementation_name=='cpython' --no-binary :none:
 psutil==5.8.0
