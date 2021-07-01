@@ -3,6 +3,6 @@ numpy==1.21.0
 pandas==1.2.5; implementation_name=='cpython'
 pymongo==3.11.4; implementation_name=='cpython'
 redis==3.5.3
-ruamel.yaml==0.17.7
+ruamel.yaml==0.17.10
 tables==3.6.1; implementation_name=='cpython'
 zarr==2.8.3; platform_system!='Windows'
