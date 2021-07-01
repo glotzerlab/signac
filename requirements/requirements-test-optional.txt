@@ -1,5 +1,5 @@
 h5py==3.3.0; implementation_name=='cpython'
-numpy==1.20.3
+numpy==1.21.0
 pandas==1.2.5; implementation_name=='cpython'
 pymongo==3.11.4; implementation_name=='cpython'
 redis==3.5.3
