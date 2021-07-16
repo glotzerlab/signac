@@ -50,6 +50,6 @@ repos:
     rev: 'v0.910'
     hooks:
       - id: mypy
-        args:
-          - --install-types
-          - --non-interactive
+        additional_dependencies:
+          - types-filelock
+          - types-redis
