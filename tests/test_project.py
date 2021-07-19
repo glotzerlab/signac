@@ -295,11 +295,21 @@ class TestProject(TestProjectBase):
         assert 0 == len([job.id for job in self.project.find_jobs(doc_filter={"b": 5})])
         assert 1 == len([job.id for job in self.project.find_jobs({"doc.b": 0})])
         assert 0 == len([job.id for job in self.project.find_jobs({"doc.b": 5})])
-        assert 1 == len([job.id for job in self.project.find_jobs({"a": 0, "doc.b": 0})])
-        assert 1 == len([job.id for job in self.project.find_jobs({"sp.a": 0, "doc.b": 0})])
-        assert 0 == len([job.id for job in self.project.find_jobs({"sp.a": 0, "doc.b": 5})])
-        assert 0 == len([job.id for job in self.project.find_jobs({"sp.a": 5, "doc.b": 0})])
-        assert 0 == len([job.id for job in self.project.find_jobs({"sp.a": 5, "doc.b": 5})])
+        assert 1 == len(
+            [job.id for job in self.project.find_jobs({"a": 0, "doc.b": 0})]
+        )
+        assert 1 == len(
+            [job.id for job in self.project.find_jobs({"sp.a": 0, "doc.b": 0})]
+        )
+        assert 0 == len(
+            [job.id for job in self.project.find_jobs({"sp.a": 0, "doc.b": 5})]
+        )
+        assert 0 == len(
+            [job.id for job in self.project.find_jobs({"sp.a": 5, "doc.b": 0})]
+        )
+        assert 0 == len(
+            [job.id for job in self.project.find_jobs({"sp.a": 5, "doc.b": 5})]
+        )
         for job_id in self.project.find_job_ids():
             assert self.project.open_job(id=job_id).id == job_id
         index = list(self.project.index())
