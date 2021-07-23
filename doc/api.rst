@@ -17,8 +17,6 @@ The Project
 
 .. autosummary::
 
-    Project.build_job_search_index
-    Project.build_job_statepoint_index
     Project.check
     Project.clone
     Project.config
