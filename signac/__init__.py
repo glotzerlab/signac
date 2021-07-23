@@ -23,8 +23,12 @@ from .contrib import (
     export_pymongo,
     export_to_mirror,
     fetch,
+    get_job,
+    get_project,
+    index,
+    index_files,
+    init_project,
 )
-from .contrib import get_job, get_project, index, index_files, init_project
 from .core.h5store import H5Store, H5StoreManager
 from .core.jsondict import flush_all as flush
 from .db import get_database
