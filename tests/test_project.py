@@ -88,10 +88,9 @@ class TestProject(TestProjectBase):
     def test_get(self):
         pass
 
-    def test_get_id(self):
-        with pytest.deprecated_call():
-            assert self.project.get_id() == "testing_test_project"
-            assert str(self.project) == self.project.get_id()
+    def test_project_id(self):
+        assert self.project.id == "testing_test_project"
+        assert str(self.project) == self.project.id
 
     def test_property_id(self):
         assert self.project.id == "testing_test_project"
@@ -2284,8 +2283,7 @@ class TestProjectInit:
             signac.get_project(root=root)
         project_name = "testproject" + string.printable
         project = signac.init_project(name=project_name, root=root)
-        with pytest.deprecated_call():
-            assert project.get_id() == project_name
+        assert project.id == project_name
 
     def test_get_project_non_local(self):
         root = self._tmp_dir.name
