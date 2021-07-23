@@ -109,6 +109,7 @@ class SyncedCollection(Collection):
     inheritance, validators may be inherited by subclasses. There are two attributes
     that subclasses of :class:`SyncedCollection` can define to control the
     validators used:
+
         - ``_validators``: A list of callables that will be inherited by all
           subclasses.
         - ``_all_validators``: A list of callables that will be used to
