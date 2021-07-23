@@ -655,7 +655,7 @@ def _main_import_interactive(project, origin, args):
                 banner=SHELL_BANNER_INTERACTIVE_IMPORT.format(
                     python_version=sys.version,
                     signac_version=__version__,
-                    project_id=project.get_id(),
+                    project_id=project.id,
                     job_banner="",
                     root_path=project.root_directory(),
                     workspace_path=project.workspace(),

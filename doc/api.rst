@@ -30,10 +30,8 @@ The Project
     Project.document
     Project.dump_statepoints
     Project.export_to
-    Project.find_job_ids
     Project.find_jobs
     Project.fn
-    Project.get_id
     Project.get_statepoint
     Project.groupby
     Project.groupbydoc

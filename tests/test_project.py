@@ -287,31 +287,6 @@ class TestProject(TestProjectBase):
         assert not os.path.isdir(self._tmp_wd)
         assert not os.path.isdir(self.project.workspace())
 
-    def test_find_job_ids(self):
-        statepoints = [{"a": i} for i in range(5)]
-        for sp in statepoints:
-            self.project.open_job(sp).document["b"] = sp["a"]
-        with pytest.deprecated_call():
-            assert len(statepoints) == len(list(self.project.find_job_ids()))
-            assert 1 == len(list(self.project.find_job_ids({"a": 0})))
-            assert 0 == len(list(self.project.find_job_ids({"a": 5})))
-            assert 1 == len(list(self.project.find_job_ids({"sp.a": 0})))
-            assert 0 == len(list(self.project.find_job_ids({"sp.a": 5})))
-            assert 1 == len(list(self.project.find_job_ids(doc_filter={"b": 0})))
-            assert 0 == len(list(self.project.find_job_ids(doc_filter={"b": 5})))
-            assert 1 == len(list(self.project.find_job_ids({"doc.b": 0})))
-            assert 0 == len(list(self.project.find_job_ids({"doc.b": 5})))
-            assert 1 == len(list(self.project.find_job_ids({"a": 0, "doc.b": 0})))
-            assert 1 == len(list(self.project.find_job_ids({"sp.a": 0, "doc.b": 0})))
-            assert 0 == len(list(self.project.find_job_ids({"sp.a": 0, "doc.b": 5})))
-            assert 0 == len(list(self.project.find_job_ids({"sp.a": 5, "doc.b": 0})))
-            assert 0 == len(list(self.project.find_job_ids({"sp.a": 5, "doc.b": 5})))
-            for job_id in self.project.find_job_ids():
-                assert self.project.open_job(id=job_id).get_id() == job_id
-            index = list(self.project.index())
-            for job_id in self.project.find_job_ids(index=index):
-                assert self.project.open_job(id=job_id).get_id() == job_id
-
     def test_find_jobs(self):
         statepoints = [{"a": i} for i in range(5)]
         for sp in statepoints:

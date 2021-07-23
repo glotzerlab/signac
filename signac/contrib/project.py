@@ -897,54 +897,6 @@ class Project:
         )
         return ProjectSchema.detect(statepoint_index)
 
-    @deprecated(
-        deprecated_in="1.3",
-        removed_in="2.0",
-        current_version=__version__,
-        details=(
-            "Use find_jobs() instead, then access ids with job.id."
-            "Replicate the original behavior with "
-            "[job.id for job in project.find_jobs()]"
-        ),
-    )
-    def find_job_ids(self, filter=None, doc_filter=None, index=None):
-        """Find the job_ids of all jobs matching the filters.
-
-        The optional filter arguments must be a Mapping of key-value
-        pairs and JSON serializable.
-
-        .. note::
-            Providing a pre-calculated index may vastly increase the
-            performance of this function.
-
-        Parameters
-        ----------
-        filter : Mapping
-            A mapping of key-value pairs that all indexed job state points
-            are compared against (Default value = None).
-        doc_filter : Mapping
-            A mapping of key-value pairs that all indexed job documents are
-            compared against (Default value = None).
-        index :
-            A document index. If not provided, an index will be computed
-            (Default value = None).
-
-        Returns
-        -------
-        The ids of all indexed jobs matching both filters.
-
-        Raises
-        ------
-        TypeError
-            If the filters are not JSON serializable.
-        ValueError
-            If the filters are invalid.
-        RuntimeError
-            If the filters are not supported by the index.
-
-        """
-        return self._find_job_ids(filter, doc_filter, index)
-
     def _find_job_ids(self, filter=None, doc_filter=None, index=None):
         """Find the job_ids of all jobs matching the filters.
 
