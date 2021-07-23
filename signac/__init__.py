@@ -24,7 +24,6 @@ from .contrib import (
     export_to_mirror,
     fetch,
 )
-from .contrib import filesystems as fs
 from .contrib import get_job, get_project, index, index_files, init_project
 from .core.h5store import H5Store, H5StoreManager
 from .core.jsondict import flush_all as flush
