@@ -1064,8 +1064,7 @@ class TestJobDocument(TestJobBase):
         src_job.data[key] = d
         assert key in src_job.data
         assert len(src_job.data) == 1
-        with pytest.deprecated_call():
-            self.project.reset_statepoint(src_job, dst)
+        src_job.reset_statepoint(dst)
         src_job = self.open_job(src)
         dst_job = self.open_job(dst)
         assert key in dst_job.document
@@ -1074,11 +1073,10 @@ class TestJobDocument(TestJobBase):
         assert key in dst_job.data
         assert len(dst_job.data) == 1
         assert key not in src_job.data
-        with pytest.deprecated_call():
-            with pytest.raises(RuntimeError):
-                self.project.reset_statepoint(src_job, dst)
-            with pytest.raises(DestinationExistsError):
-                self.project.reset_statepoint(src_job, dst)
+        with pytest.raises(RuntimeError):
+            src_job.reset_statepoint(dst)
+        with pytest.raises(DestinationExistsError):
+            src_job.reset_statepoint(dst)
 
     @pytest.mark.skipif(not H5PY, reason="test requires the h5py package")
     def test_update_statepoint(self):
@@ -1098,8 +1096,7 @@ class TestJobDocument(TestJobBase):
         src_job.data[key] = d
         assert key in src_job.data
         assert len(src_job.data) == 1
-        with pytest.deprecated_call():
-            self.project.update_statepoint(src_job, extension)
+        src_job.update_statepoint(extension)
         src_job = self.open_job(src)
         dst_job = self.open_job(dst)
         assert dst_job.statepoint() == dst
@@ -1109,14 +1106,13 @@ class TestJobDocument(TestJobBase):
         assert key in dst_job.data
         assert len(dst_job.data) == 1
         assert key not in src_job.data
-        with pytest.deprecated_call():
-            with pytest.raises(RuntimeError):
-                self.project.reset_statepoint(src_job, dst)
-            with pytest.raises(DestinationExistsError):
-                self.project.reset_statepoint(src_job, dst)
-            with pytest.raises(KeyError):
-                self.project.update_statepoint(dst_job, extension2)
-            self.project.update_statepoint(dst_job, extension2, overwrite=True)
+        with pytest.raises(RuntimeError):
+            src_job.reset_statepoint(dst)
+        with pytest.raises(DestinationExistsError):
+            src_job.reset_statepoint(dst)
+        with pytest.raises(KeyError):
+            dst_job.update_statepoint(extension2)
+        dst_job.update_statepoint(extension2, overwrite=True)
         dst2_job = self.open_job(dst2)
         assert dst2_job.statepoint() == dst2
         assert key in dst2_job.document
@@ -1535,8 +1531,7 @@ class TestJobOpenData(TestJobBase):
             src_job.data[key] = d
             assert key in src_job.data
             assert len(src_job.data) == 1
-        with pytest.deprecated_call():
-            self.project.reset_statepoint(src_job, dst)
+        src_job.reset_statepoint(dst)
         src_job = self.open_job(src)
         dst_job = self.open_job(dst)
         with self.open_data(dst_job):
@@ -1544,11 +1539,10 @@ class TestJobOpenData(TestJobBase):
             assert len(dst_job.data) == 1
         with self.open_data(src_job):
             assert key not in src_job.data
-        with pytest.deprecated_call():
-            with pytest.raises(RuntimeError):
-                self.project.reset_statepoint(src_job, dst)
-            with pytest.raises(DestinationExistsError):
-                self.project.reset_statepoint(src_job, dst)
+        with pytest.raises(RuntimeError):
+            src_job.reset_statepoint(dst)
+        with pytest.raises(DestinationExistsError):
+            src_job.reset_statepoint(dst)
 
     def test_update_statepoint(self):
         key = "move_job"
@@ -1565,8 +1559,7 @@ class TestJobOpenData(TestJobBase):
             src_job.data[key] = d
             assert key in src_job.data
             assert len(src_job.data) == 1
-        with pytest.deprecated_call():
-            self.project.update_statepoint(src_job, extension)
+        src_job.update_statepoint(extension)
         src_job = self.open_job(src)
         dst_job = self.open_job(dst)
         assert dst_job.statepoint() == dst
@@ -1575,15 +1568,13 @@ class TestJobOpenData(TestJobBase):
             assert len(dst_job.data) == 1
         with self.open_data(src_job):
             assert key not in src_job.data
-        with pytest.deprecated_call():
-            with pytest.raises(RuntimeError):
-                self.project.reset_statepoint(src_job, dst)
-            with pytest.raises(DestinationExistsError):
-                self.project.reset_statepoint(src_job, dst)
-        with pytest.deprecated_call():
-            with pytest.raises(KeyError):
-                self.project.update_statepoint(dst_job, extension2)
-            self.project.update_statepoint(dst_job, extension2, overwrite=True)
+        with pytest.raises(RuntimeError):
+            src_job.reset_statepoint(dst)
+        with pytest.raises(DestinationExistsError):
+            src_job.reset_statepoint(dst)
+        with pytest.raises(KeyError):
+            dst_job.update_statepoint(extension2)
+        dst_job.update_statepoint(extension2, overwrite=True)
         dst2_job = self.open_job(dst2)
         assert dst2_job.statepoint() == dst2
         with self.open_data(dst2_job):

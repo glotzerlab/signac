@@ -10,7 +10,6 @@ import logging
 import os
 import re
 import shutil
-import stat
 import time
 import uuid
 import warnings
@@ -39,7 +38,7 @@ from .errors import (
 )
 from .filterparse import _add_prefix, _root_keys, parse_filter
 from .hashing import calc_id
-from .indexing import MainCrawler, SignacProjectCrawler
+from .indexing import SignacProjectCrawler
 from .job import Job
 from .schema import ProjectSchema
 from .utility import _mkdir_p, _nested_dicts_to_dotted_keys, split_and_print_progress
@@ -1346,85 +1345,6 @@ class Project:
 
         return create_linked_view(self, prefix, job_ids, index, path)
 
-    @deprecated(
-        deprecated_in="1.3",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Use job.reset_statepoint() instead.",
-    )
-    def reset_statepoint(self, job, new_statepoint):
-        """Overwrite the state point of this job while preserving job data.
-
-        This method will change the job id if the state point has been altered.
-
-        .. danger::
-
-            Use this function with caution! Resetting a job's state point,
-            may sometimes be necessary, but can possibly lead to incoherent
-            data spaces.
-
-        Parameters
-        ----------
-        job : :class:`~signac.contrib.job.Job`
-            The job that should be reset to a new state point.
-        new_statepoint : mapping
-            The job's new state point.
-
-        Raises
-        ------
-        :class:`~signac.errors.DestinationExistsError`
-            If a job associated with the new state point is already initialized.
-        OSError
-            If the move failed due to an unknown system related error.
-
-        """
-        job.reset_statepoint(new_statepoint=new_statepoint)
-
-    @deprecated(
-        deprecated_in="1.3",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Use job.update_statepoint() instead.",
-    )
-    def update_statepoint(self, job, update, overwrite=False):
-        """Change the state point of this job while preserving job data.
-
-        By default, this method will not change existing parameters of the
-        state point of the job.
-
-        This method will change the job id if the state point has been altered.
-
-        .. warning::
-
-            While appending to a job's state point is generally safe, modifying
-            existing parameters may lead to data inconsistency. Use the
-            ``overwrite`` argument with caution!
-
-        Parameters
-        ----------
-        job : :class:`~signac.contrib.job.Job`
-            The job whose state point shall be updated.
-        update : mapping
-            A mapping used for the state point update.
-        overwrite : bool, optional
-            If False, an error will be raised if the update modifies the values
-            of existing keys in the state point. If True, any existing keys will
-            be overwritten in the same way as :meth:`dict.update`. Use with
-            caution! (Default value = False).
-
-        Raises
-        ------
-        KeyError
-            If the update contains keys which are already part of the job's
-            state point and ``overwrite`` is False.
-        :class:`~signac.errors.DestinationExistsError`
-            If a job associated with the new state point is already initialized.
-        OSError
-            If the move failed due to an unknown system related error.
-
-        """
-        job.update_statepoint(update=update, overwrite=overwrite)
-
     def clone(self, job, copytree=shutil.copytree):
         """Clone job into this project.
 
@@ -2001,54 +1921,6 @@ class Project:
             docs = _skip_errors(docs, logger.critical)
         for doc in docs:
             yield doc
-
-    @deprecated(
-        deprecated_in="1.5",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Access modules are deprecated.",
-    )
-    def create_access_module(self, filename=None, main=True, master=None):
-        """Create the access module for indexing.
-
-        This method generates the access module required to make
-        this project's index part of a main index.
-
-        Parameters
-        ----------
-        filename : str
-            The name of the access module file. Defaults to the standard name
-            and should usually not be changed.
-        main : bool
-            If True, add directives for the compilation of a master index
-            when executing the module (Default value = True).
-        master : bool
-            Deprecated parameter. Replaced by main.
-
-        Returns
-        -------
-        str
-            Access module name.
-
-        """
-        if master is not None:
-            warnings.warn(
-                "The parameter master has been renamed to main.", DeprecationWarning
-            )
-            main = master
-
-        if filename is None:
-            filename = os.path.join(self.root_directory(), MainCrawler.FN_ACCESS_MODULE)
-        with open(filename, "x") as file:
-            if main:
-                file.write(ACCESS_MODULE_MAIN)
-            else:
-                file.write(ACCESS_MODULE_MINIMAL)
-        if main:
-            mode = os.stat(filename).st_mode | stat.S_IEXEC
-            os.chmod(filename, mode)
-        logger.info(f"Created access module file '{filename}'.")
-        return filename
 
     @contextmanager
     def temporary_project(self, name=None, dir=None):

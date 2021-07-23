@@ -249,10 +249,6 @@ def find_with_filter(args):
 def main_project(args):
     """Handle project subcommand."""
     project = get_project()
-    if args.access:
-        fn = project.create_access_module()
-        _print_err(f"Created access module '{fn}'.")
-        return
     if args.index:
         for doc in project.index():
             print(json.dumps(doc))
@@ -1222,9 +1218,6 @@ def main():
         "--index",
         action="store_true",
         help="Generate and print an index for the project.",
-    )
-    parser_project.add_argument(
-        "-a", "--access", action="store_true", help="Create access module for indexing."
     )
     parser_project.set_defaults(func=main_project)
 

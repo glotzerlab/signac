@@ -20,7 +20,6 @@ The Project
     Project.check
     Project.clone
     Project.config
-    Project.create_access_module
     Project.create_linked_view
     Project.detect_schema
     Project.data
@@ -42,7 +41,6 @@ The Project
     Project.open_job
     Project.read_statepoints
     Project.repair
-    Project.reset_statepoint
     Project.root_directory
     Project.stores
     Project.sync
