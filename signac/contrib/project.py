@@ -383,23 +383,6 @@ class Project:
             )
         return self._wd
 
-    @deprecated(
-        deprecated_in="1.3",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Use project.id instead.",
-    )
-    def get_id(self):
-        """Get the project identifier.
-
-        Returns
-        -------
-        str
-            The project id.
-
-        """
-        return self.id
-
     @property
     def id(self):
         """Get the project identifier.
