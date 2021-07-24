@@ -218,8 +218,7 @@ def benchmark_project(project, keys=None):
         "search_lean_filter",
         Timer(
             stmt="len(project.find_jobs(f))",
-            setup=setup + "sp = project.open_job(id=random.choice("
-            "[job.id for job in project.find_jobs()])).statepoint(); "
+            setup=setup + "sp = random.choice(list(project.find_jobs())).statepoint(); "
             "k, v = sp.popitem(); f = {k: v}",
         ),
     )
@@ -228,8 +227,7 @@ def benchmark_project(project, keys=None):
         "search_rich_filter",
         Timer(
             stmt="len(project.find_jobs(f))",
-            setup=setup + "f = project.open_job(id=random.choice("
-            "[job.id for job in project.find_jobs()])).statepoint()",
+            setup=setup + "f = random.choice(list(project.find_jobs())).statepoint()",
         ),
     )
 
