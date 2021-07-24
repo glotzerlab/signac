@@ -87,10 +87,6 @@ class TestProject(TestProjectBase):
     def test_get(self):
         pass
 
-    def test_project_id(self):
-        assert self.project.id == "testing_test_project"
-        assert str(self.project) == self.project.id
-
     def test_property_id(self):
         assert self.project.id == "testing_test_project"
         assert str(self.project) == self.project.id

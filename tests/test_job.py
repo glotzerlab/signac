@@ -1051,34 +1051,6 @@ class TestJobDocument(TestJobBase):
             src_job.reset_statepoint(dst)
 
     @pytest.mark.skipif(not H5PY, reason="test requires the h5py package")
-    def test_reset_statepoint_project(self):
-        key = "move_job"
-        d = testdata()
-        src = test_token
-        dst = dict(test_token)
-        dst["dst"] = True
-        src_job = self.open_job(src)
-        src_job.document[key] = d
-        assert key in src_job.document
-        assert len(src_job.document) == 1
-        src_job.data[key] = d
-        assert key in src_job.data
-        assert len(src_job.data) == 1
-        src_job.reset_statepoint(dst)
-        src_job = self.open_job(src)
-        dst_job = self.open_job(dst)
-        assert key in dst_job.document
-        assert len(dst_job.document) == 1
-        assert key not in src_job.document
-        assert key in dst_job.data
-        assert len(dst_job.data) == 1
-        assert key not in src_job.data
-        with pytest.raises(RuntimeError):
-            src_job.reset_statepoint(dst)
-        with pytest.raises(DestinationExistsError):
-            src_job.reset_statepoint(dst)
-
-    @pytest.mark.skipif(not H5PY, reason="test requires the h5py package")
     def test_update_statepoint(self):
         key = "move_job"
         d = testdata()
@@ -1497,30 +1469,6 @@ class TestJobOpenData(TestJobBase):
             check_content(key, d4)
 
     def test_reset_statepoint_job(self):
-        key = "move_job"
-        d = testdata()
-        src = test_token
-        dst = dict(test_token)
-        dst["dst"] = True
-        src_job = self.open_job(src)
-        with self.open_data(src_job):
-            src_job.data[key] = d
-            assert key in src_job.data
-            assert len(src_job.data) == 1
-        src_job.reset_statepoint(dst)
-        src_job = self.open_job(src)
-        dst_job = self.open_job(dst)
-        with self.open_data(dst_job):
-            assert key in dst_job.data
-            assert len(dst_job.data) == 1
-        with self.open_data(src_job):
-            assert key not in src_job.data
-        with pytest.raises(RuntimeError):
-            src_job.reset_statepoint(dst)
-        with pytest.raises(DestinationExistsError):
-            src_job.reset_statepoint(dst)
-
-    def test_reset_statepoint_project(self):
         key = "move_job"
         d = testdata()
         src = test_token
