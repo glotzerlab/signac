@@ -285,15 +285,25 @@ class TestProject(TestProjectBase):
     def test_find_jobs(self):
         statepoints = [{"a": i} for i in range(5)]
         for sp in statepoints:
-            self.project.open_job(sp).document["test"] = True
-        assert len(self.project) == len(self.project.find_jobs())
-        assert len(self.project) == len(self.project.find_jobs({}))
+            self.project.open_job(sp).document["b"] = sp["a"]
+        assert len(statepoints) == len(self.project)
+        assert len(statepoints) == len(list(self.project.find_jobs()))
+        assert len(statepoints) == len(list(self.project.find_jobs({})))
         assert 1 == len(list(self.project.find_jobs({"a": 0})))
         assert 0 == len(list(self.project.find_jobs({"a": 5})))
         assert 1 == len(list(self.project.find_jobs({"sp.a": 0})))
         assert 0 == len(list(self.project.find_jobs({"sp.a": 5})))
-        assert 1 == len(list(self.project.find_jobs({"a": 0})))
-        assert 0 == len(list(self.project.find_jobs({"a": 5})))
+        assert 1 == len(list(self.project.find_jobs(doc_filter={"b": 0})))
+        assert 0 == len(list(self.project.find_jobs(doc_filter={"b": 5})))
+        assert 1 == len(list(self.project.find_jobs({"doc.b": 0})))
+        assert 0 == len(list(self.project.find_jobs({"doc.b": 5})))
+        assert 1 == len(list(self.project.find_jobs({"a": 0, "doc.b": 0})))
+        assert 1 == len(list(self.project.find_jobs({"sp.a": 0, "doc.b": 0})))
+        assert 0 == len(list(self.project.find_jobs({"sp.a": 0, "doc.b": 5})))
+        assert 0 == len(list(self.project.find_jobs({"sp.a": 5, "doc.b": 0})))
+        assert 0 == len(list(self.project.find_jobs({"sp.a": 5, "doc.b": 5})))
+        for job in self.project.find_jobs():
+            assert self.project.open_job(id=job.id).id == job.id
 
     def test_find_jobs_JobsCursor_contains(self):
         statepoints = [{"a": i} for i in range(5)]
