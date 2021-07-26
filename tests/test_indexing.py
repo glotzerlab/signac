@@ -137,7 +137,7 @@ class TestIndexingBase:
         return Mock(spec=c, wraps=c)
 
     def test_base_crawler(self):
-        crawler = indexing.BaseCrawler(root=self._tmp_dir.name)
+        crawler = indexing._BaseCrawler(root=self._tmp_dir.name)
         assert len(list(crawler.crawl())) == 0
         doc = dict(a=0)
         with pytest.raises(errors.FetchError):
@@ -150,7 +150,7 @@ class TestIndexingBase:
     def test_regex_file_crawler_pre_compiled(self):
         self.setup_project()
 
-        class Crawler(indexing.RegexFileCrawler):
+        class Crawler(indexing._RegexFileCrawler):
             pass
 
         regex = re.compile(r".*a_(?P<a>\d)\.txt")
@@ -173,7 +173,7 @@ class TestIndexingBase:
     def test_regex_file_crawler(self):
         self.setup_project()
 
-        class Crawler(indexing.RegexFileCrawler):
+        class Crawler(indexing._RegexFileCrawler):
             pass
 
         # First test without pattern
@@ -208,10 +208,10 @@ class TestIndexingBase:
     def test_regex_file_crawler_inheritance(self):
         self.setup_project()
 
-        class CrawlerA(indexing.RegexFileCrawler):
+        class CrawlerA(indexing._RegexFileCrawler):
             pass
 
-        class CrawlerB(indexing.RegexFileCrawler):
+        class CrawlerB(indexing._RegexFileCrawler):
             pass
 
         with pytest.deprecated_call():

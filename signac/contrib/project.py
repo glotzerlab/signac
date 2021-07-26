@@ -38,7 +38,7 @@ from .errors import (
 )
 from .filterparse import _add_prefix, _root_keys, parse_filter
 from .hashing import calc_id
-from .indexing import SignacProjectCrawler
+from .indexing import _SignacProjectCrawler
 from .job import Job
 from .schema import ProjectSchema
 from .utility import _mkdir_p, _nested_dicts_to_dotted_keys, split_and_print_progress
@@ -1910,7 +1910,7 @@ class Project:
             if isinstance(formats, str):
                 formats = {formats: "File"}
 
-            class Crawler(SignacProjectCrawler):
+            class Crawler(_SignacProjectCrawler):
                 pass
 
             for pattern, fmt in formats.items():
