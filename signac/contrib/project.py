@@ -233,6 +233,8 @@ class Project:
     KEY_DATA = "signac_data"
     "The project's datastore key."
 
+    # Remove in signac 2.0.
+    # State point backup files are being removed in favor of Project.update_cache().
     FN_STATEPOINTS = "signac_statepoints.json"
     "The default filename to read from and write state points to."
 
@@ -1394,6 +1396,10 @@ class Project:
             except KeyError as error:
                 # Fall back to a file containing all state points because the state
                 # point could not be read from the job workspace.
+                #
+                # In signac 2.0, Project.read_statepoints will be removed.
+                # Update this code path to "raise error" and update the method
+                # documentation accordingly.
                 try:
                     statepoints = self.read_statepoints(fn=fn)
                     # Update the project's state point cache
@@ -1865,6 +1871,9 @@ class Project:
             )
             raise JobsCorruptedError(corrupted)
 
+    # State point backup files are being removed in favor of Project.update_cache().
+    # Change this method in signac 2.0 to use the state point cache by default
+    # instead of FN_STATEPOINTS.
     def repair(self, fn_statepoints=None, index=None, job_ids=None):
         """Attempt to repair the workspace after it got corrupted.
 
@@ -1894,6 +1903,10 @@ class Project:
         self._read_cache()
         try:
             # Updates the state point cache from the provided file
+            #
+            # In signac 2.0, Project.read_statepoints will be removed.
+            # Remove this code path (only use "self._read_cache()" above) and
+            # update the method signature and docs to remove "fn_statepoints."
             self._sp_cache.update(self.read_statepoints(fn=fn_statepoints))
         except OSError as error:
             if error.errno != errno.ENOENT or fn_statepoints is not None:
