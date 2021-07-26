@@ -1195,6 +1195,12 @@ class Project:
         """
         return self.find_jobs().to_dataframe(*args, **kwargs)
 
+    @deprecated(
+        deprecated_in="1.8",
+        removed_in="2.0",
+        current_version=__version__,
+        details="State point backup files are being removed in favor of Project.update_cache().",
+    )
     def read_statepoints(self, fn=None):
         """Read all state points from a file.
 
@@ -1221,6 +1227,12 @@ class Project:
         with open(fn) as file:
             return json.loads(file.read())
 
+    @deprecated(
+        deprecated_in="1.8",
+        removed_in="2.0",
+        current_version=__version__,
+        details="State point backup files are being removed in favor of Project.update_cache().",
+    )
     def dump_statepoints(self, statepoints):
         """Dump the state points and associated job ids.
 
@@ -1244,6 +1256,12 @@ class Project:
         """
         return {calc_id(sp): sp for sp in statepoints}
 
+    @deprecated(
+        deprecated_in="1.8",
+        removed_in="2.0",
+        current_version=__version__,
+        details="State point backup files are being removed in favor of Project.update_cache().",
+    )
     def write_statepoints(self, statepoints=None, fn=None, indent=2):
         """Dump state points to a file.
 
