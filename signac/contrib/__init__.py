@@ -51,13 +51,3 @@ __all__ = [
     "index",
     "Collection",
 ]
-
-
-try:
-    import mpi4py  # noqa
-except ImportError:
-    logger.debug("Failed to import mpi4py. MPIPool will not be available.")
-else:
-    from .mpipool import MPIPool  # noqa
-
-    __all__.extend(["MPIPool"])
