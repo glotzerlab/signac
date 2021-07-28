@@ -94,7 +94,6 @@ The Job class
     Job.doc
     Job.document
     Job.fn
-    Job.get_id
     Job.id
     Job.init
     Job.isfile

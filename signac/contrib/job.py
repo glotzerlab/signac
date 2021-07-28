@@ -12,8 +12,6 @@ from json import JSONDecodeError
 from threading import RLock
 from typing import FrozenSet
 
-from deprecation import deprecated
-
 from ..core.h5store import H5StoreManager
 from ..sync import sync_jobs
 from ..synced_collections.backends.collection_json import (
@@ -22,7 +20,6 @@ from ..synced_collections.backends.collection_json import (
     json_attr_dict_validator,
 )
 from ..synced_collections.errors import KeyTypeError
-from ..version import __version__
 from .errors import DestinationExistsError, JobsCorruptedError
 from .hashing import calc_id
 from .utility import _mkdir_p
@@ -286,23 +283,6 @@ class Job:
             self._document = None
             self._stores = None
             self._cwd = []
-
-    @deprecated(
-        deprecated_in="1.3",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Use job.id instead.",
-    )
-    def get_id(self):
-        """Job's state point unique identifier.
-
-        Returns
-        -------
-        str
-            The job id.
-
-        """
-        return self._id
 
     @property
     def id(self):
