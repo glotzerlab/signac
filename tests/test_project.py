@@ -20,7 +20,6 @@ from zipfile import ZipFile
 
 import pytest
 import test_h5store
-from conftest import deprecated_in_version
 from packaging import version
 from test_job import TestJobBase
 
@@ -87,11 +86,6 @@ class TestProjectBase(TestJobBase):
 class TestProject(TestProjectBase):
     def test_get(self):
         pass
-
-    def test_get_id(self):
-        with pytest.deprecated_call():
-            assert self.project.get_id() == "testing_test_project"
-            assert str(self.project) == self.project.get_id()
 
     def test_property_id(self):
         assert self.project.id == "testing_test_project"
@@ -288,43 +282,28 @@ class TestProject(TestProjectBase):
         assert not os.path.isdir(self._tmp_wd)
         assert not os.path.isdir(self.project.workspace())
 
-    def test_find_job_ids(self):
-        statepoints = [{"a": i} for i in range(5)]
-        for sp in statepoints:
-            self.project.open_job(sp).document["b"] = sp["a"]
-        with pytest.deprecated_call():
-            assert len(statepoints) == len(list(self.project.find_job_ids()))
-            assert 1 == len(list(self.project.find_job_ids({"a": 0})))
-            assert 0 == len(list(self.project.find_job_ids({"a": 5})))
-            assert 1 == len(list(self.project.find_job_ids({"sp.a": 0})))
-            assert 0 == len(list(self.project.find_job_ids({"sp.a": 5})))
-            assert 1 == len(list(self.project.find_job_ids(doc_filter={"b": 0})))
-            assert 0 == len(list(self.project.find_job_ids(doc_filter={"b": 5})))
-            assert 1 == len(list(self.project.find_job_ids({"doc.b": 0})))
-            assert 0 == len(list(self.project.find_job_ids({"doc.b": 5})))
-            assert 1 == len(list(self.project.find_job_ids({"a": 0, "doc.b": 0})))
-            assert 1 == len(list(self.project.find_job_ids({"sp.a": 0, "doc.b": 0})))
-            assert 0 == len(list(self.project.find_job_ids({"sp.a": 0, "doc.b": 5})))
-            assert 0 == len(list(self.project.find_job_ids({"sp.a": 5, "doc.b": 0})))
-            assert 0 == len(list(self.project.find_job_ids({"sp.a": 5, "doc.b": 5})))
-            for job_id in self.project.find_job_ids():
-                assert self.project.open_job(id=job_id).get_id() == job_id
-            index = list(self.project.index())
-            for job_id in self.project.find_job_ids(index=index):
-                assert self.project.open_job(id=job_id).get_id() == job_id
-
     def test_find_jobs(self):
         statepoints = [{"a": i} for i in range(5)]
         for sp in statepoints:
-            self.project.open_job(sp).document["test"] = True
-        assert len(self.project) == len(self.project.find_jobs())
-        assert len(self.project) == len(self.project.find_jobs({}))
+            self.project.open_job(sp).document["b"] = sp["a"]
+        assert len(statepoints) == len(self.project)
+        assert len(statepoints) == len(list(self.project.find_jobs()))
+        assert len(statepoints) == len(list(self.project.find_jobs({})))
         assert 1 == len(list(self.project.find_jobs({"a": 0})))
         assert 0 == len(list(self.project.find_jobs({"a": 5})))
         assert 1 == len(list(self.project.find_jobs({"sp.a": 0})))
         assert 0 == len(list(self.project.find_jobs({"sp.a": 5})))
-        assert 1 == len(list(self.project.find_jobs({"a": 0})))
-        assert 0 == len(list(self.project.find_jobs({"a": 5})))
+        assert 1 == len(list(self.project.find_jobs(doc_filter={"b": 0})))
+        assert 0 == len(list(self.project.find_jobs(doc_filter={"b": 5})))
+        assert 1 == len(list(self.project.find_jobs({"doc.b": 0})))
+        assert 0 == len(list(self.project.find_jobs({"doc.b": 5})))
+        assert 1 == len(list(self.project.find_jobs({"a": 0, "doc.b": 0})))
+        assert 1 == len(list(self.project.find_jobs({"sp.a": 0, "doc.b": 0})))
+        assert 0 == len(list(self.project.find_jobs({"sp.a": 0, "doc.b": 5})))
+        assert 0 == len(list(self.project.find_jobs({"sp.a": 5, "doc.b": 0})))
+        assert 0 == len(list(self.project.find_jobs({"sp.a": 5, "doc.b": 5})))
+        for job in self.project.find_jobs():
+            assert self.project.open_job(id=job.id).id == job.id
 
     def test_find_jobs_JobsCursor_contains(self):
         statepoints = [{"a": i} for i in range(5)]
@@ -1097,10 +1076,6 @@ class TestProject(TestProjectBase):
                 tmp_project.open_job(dict(a=i)).init()
             assert len(tmp_project) == 10
         assert not os.path.isdir(tmp_root_dir)
-
-    def test_access_module(self):
-        with deprecated_in_version("1.5"):
-            self.project.create_access_module()
 
 
 class TestProjectExportImport(TestProjectBase):
@@ -2284,8 +2259,7 @@ class TestProjectInit:
             signac.get_project(root=root)
         project_name = "testproject" + string.printable
         project = signac.init_project(name=project_name, root=root)
-        with pytest.deprecated_call():
-            assert project.get_id() == project_name
+        assert project.id == project_name
 
     def test_get_project_non_local(self):
         root = self._tmp_dir.name

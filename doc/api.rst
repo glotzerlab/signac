@@ -17,12 +17,9 @@ The Project
 
 .. autosummary::
 
-    Project.build_job_search_index
-    Project.build_job_statepoint_index
     Project.check
     Project.clone
     Project.config
-    Project.create_access_module
     Project.create_linked_view
     Project.detect_schema
     Project.data
@@ -30,10 +27,8 @@ The Project
     Project.document
     Project.dump_statepoints
     Project.export_to
-    Project.find_job_ids
     Project.find_jobs
     Project.fn
-    Project.get_id
     Project.get_statepoint
     Project.groupby
     Project.groupbydoc
@@ -46,7 +41,6 @@ The Project
     Project.open_job
     Project.read_statepoints
     Project.repair
-    Project.reset_statepoint
     Project.root_directory
     Project.stores
     Project.sync
