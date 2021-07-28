@@ -286,23 +286,6 @@ class Job:
             self._stores = None
             self._cwd = []
 
-    @deprecated(
-        deprecated_in="1.3",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Use job.id instead.",
-    )
-    def get_id(self):
-        """Job's state point unique identifier.
-
-        Returns
-        -------
-        str
-            The job id.
-
-        """
-        return self._id
-
     @property
     def id(self):
         """Get the unique identifier for the job's state point.
