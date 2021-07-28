@@ -22,7 +22,7 @@ collections of that backend that they should enter buffered mode. These context
 managers may be nested freely, and buffer flushes will occur when all such
 managers have been exited.
 
-.. code-block::
+.. code-block:: python
 
     with collection1.buffered:
         with type(collection1).buffer_backend:
