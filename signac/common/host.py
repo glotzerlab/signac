@@ -2,11 +2,11 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import getpass
+import json
 import logging
 import warnings
 
 from ..common.deprecation import deprecated
-from ..core import json
 from ..version import __version__
 from .config import load_config
 from .connection import DBClientConnector
