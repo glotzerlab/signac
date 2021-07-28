@@ -311,23 +311,21 @@ class TestBasicShell:
                 == next(iter(project.find_jobs({"a": i}))).id
             )
 
-        with pytest.warns(FutureWarning):
-            for i in range(3):
-                assert (
-                    self.call(
-                        "python -m signac find ".split() + ['{"doc.a": ' + str(i) + "}"]
-                    ).strip()
-                    == list(project.find_job_ids(doc_filter={"a": i}))[0]
-                )
+        for i in range(3):
+            assert (
+                self.call(
+                    "python -m signac find ".split() + ['{"doc.a": ' + str(i) + "}"]
+                ).strip()
+                == [job.id for job in project.find_jobs(doc_filter={"a": i})][0]
+            )
 
-        with pytest.warns(FutureWarning):
-            for i in range(1, 4):
-                assert (
-                    self.call(
-                        "python -m signac find ".split() + ['{"doc.b": ' + str(i) + "}"]
-                    ).strip()
-                    == list(project.find_job_ids(doc_filter={"b": i}))[0]
-                )
+        for i in range(1, 4):
+            assert (
+                self.call(
+                    "python -m signac find ".split() + ['{"doc.b": ' + str(i) + "}"]
+                ).strip()
+                == [job.id for job in project.find_jobs(doc_filter={"b": i})][0]
+            )
 
     def test_diff(self):
         self.call("python -m signac init ProjectA".split())
