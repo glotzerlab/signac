@@ -4,6 +4,7 @@
 import errno
 import hashlib
 import importlib.machinery
+import json
 import logging
 import math
 import os
@@ -15,7 +16,6 @@ from time import sleep
 from deprecation import deprecated
 
 from ..common import errors
-from ..core import json
 from ..version import __version__
 from .hashing import calc_id
 from .utility import walkdepth
