@@ -249,10 +249,6 @@ def find_with_filter(args):
 def main_project(args):
     """Handle project subcommand."""
     project = get_project()
-    if args.access:
-        fn = project.create_access_module()
-        _print_err(f"Created access module '{fn}'.")
-        return
     if args.index:
         for doc in project.index():
             print(json.dumps(doc))
@@ -655,7 +651,7 @@ def _main_import_interactive(project, origin, args):
                 banner=SHELL_BANNER_INTERACTIVE_IMPORT.format(
                     python_version=sys.version,
                     signac_version=__version__,
-                    project_id=project.get_id(),
+                    project_id=project.id,
                     job_banner="",
                     root_path=project.root_directory(),
                     workspace_path=project.workspace(),
@@ -1222,9 +1218,6 @@ def main():
         "--index",
         action="store_true",
         help="Generate and print an index for the project.",
-    )
-    parser_project.add_argument(
-        "-a", "--access", action="store_true", help="Create access module for indexing."
     )
     parser_project.set_defaults(func=main_project)
 

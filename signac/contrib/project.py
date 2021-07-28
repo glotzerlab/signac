@@ -10,7 +10,6 @@ import logging
 import os
 import re
 import shutil
-import stat
 import time
 import uuid
 import warnings
@@ -39,7 +38,7 @@ from .errors import (
 )
 from .filterparse import _add_prefix, _root_keys, parse_filter
 from .hashing import calc_id
-from .indexing import MainCrawler, SignacProjectCrawler
+from .indexing import SignacProjectCrawler
 from .job import Job
 from .schema import ProjectSchema
 from .utility import _mkdir_p, _nested_dicts_to_dotted_keys, split_and_print_progress
@@ -382,23 +381,6 @@ class Project:
                 wd if os.path.isabs(wd) else os.path.join(self.root_directory(), wd)
             )
         return self._wd
-
-    @deprecated(
-        deprecated_in="1.3",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Use project.id instead.",
-    )
-    def get_id(self):
-        """Get the project identifier.
-
-        Returns
-        -------
-        str
-            The project id.
-
-        """
-        return self.id
 
     @property
     def id(self):
@@ -797,89 +779,6 @@ class Project:
         """
         return self._contains_job_id(job.id)
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__)
-    def build_job_search_index(self, index, _trust=False):
-        """Build a job search index.
-
-        Parameters
-        ----------
-        index : list
-            A document index.
-        _trust :
-            (Default value = False).
-
-        Returns
-        -------
-        :class:`~signac.contrib.project.JobSearchIndex`
-            A job search index based on the provided index.
-
-        """
-        return JobSearchIndex(index=index, _trust=_trust)
-
-    @deprecated(
-        deprecated_in="1.3",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Use the detect_schema() function instead.",
-    )
-    def build_job_statepoint_index(self, exclude_const=False, index=None):
-        """Build a state point index to identify jobs with specific parameters.
-
-        This method generates pairs of state point keys and mappings of
-        values to a set of all corresponding job ids. The pairs are ordered
-        by the number of different values. Since state point keys may be
-        nested, they are represented as a tuple.
-        For example:
-
-        .. code-block:: python
-
-            >>> for i in range(4):
-            ...     project.open_job({'a': i, 'b': {'c': i % 2}}).init()
-            ...
-            >>> for key, value in project.build_job_statepoint_index():
-            ...     print(key)
-            ...     pprint.pprint(value)
-            ...
-            ('b', 'c')
-            defaultdict(<class 'set'>,
-                        {0: {'3a530c13bfaf57517b4e81ecab6aec7f',
-                             '4e9a45a922eae6bb5d144b36d82526e4'},
-                         1: {'d49c6609da84251ab096654971115d0c',
-                             '5c2658722218d48a5eb1e0ef7c26240b'}})
-            ('a',)
-            defaultdict(<class 'set'>,
-                        {0: {'4e9a45a922eae6bb5d144b36d82526e4'},
-                         1: {'d49c6609da84251ab096654971115d0c'},
-                         2: {'3a530c13bfaf57517b4e81ecab6aec7f'},
-                         3: {'5c2658722218d48a5eb1e0ef7c26240b'}})
-
-        Values that are constant over the complete data space can be optionally
-        ignored with the `exclude_const` argument set to True.
-
-        Parameters
-        ----------
-        exclude_const : bool
-            Exclude entries that are shared by all jobs
-            that are part of the index (Default value = False).
-        index :
-            A document index.
-
-        Yields
-        ------
-        tuple
-            Pairs of state point keys and mappings of values to a set of all
-            corresponding job ids (Default value = None).
-
-        """
-        from .schema import _build_job_statepoint_index
-
-        if index is None:
-            index = [{"_id": job.id, "sp": job.sp()} for job in self]
-        for x, y in _build_job_statepoint_index(
-            exclude_const=exclude_const, index=index
-        ):
-            yield tuple(x.split(".")), y
-
     def detect_schema(self, exclude_const=False, subset=None, index=None):
         """Detect the project's state point schema.
 
@@ -913,54 +812,6 @@ class Project:
             exclude_const=exclude_const, index=index
         )
         return ProjectSchema.detect(statepoint_index)
-
-    @deprecated(
-        deprecated_in="1.3",
-        removed_in="2.0",
-        current_version=__version__,
-        details=(
-            "Use find_jobs() instead, then access ids with job.id."
-            "Replicate the original behavior with "
-            "[job.id for job in project.find_jobs()]"
-        ),
-    )
-    def find_job_ids(self, filter=None, doc_filter=None, index=None):
-        """Find the job_ids of all jobs matching the filters.
-
-        The optional filter arguments must be a Mapping of key-value
-        pairs and JSON serializable.
-
-        .. note::
-            Providing a pre-calculated index may vastly increase the
-            performance of this function.
-
-        Parameters
-        ----------
-        filter : Mapping
-            A mapping of key-value pairs that all indexed job state points
-            are compared against (Default value = None).
-        doc_filter : Mapping
-            A mapping of key-value pairs that all indexed job documents are
-            compared against (Default value = None).
-        index :
-            A document index. If not provided, an index will be computed
-            (Default value = None).
-
-        Returns
-        -------
-        The ids of all indexed jobs matching both filters.
-
-        Raises
-        ------
-        TypeError
-            If the filters are not JSON serializable.
-        ValueError
-            If the filters are invalid.
-        RuntimeError
-            If the filters are not supported by the index.
-
-        """
-        return self._find_job_ids(filter, doc_filter, index)
 
     def _find_job_ids(self, filter=None, doc_filter=None, index=None):
         """Find the job_ids of all jobs matching the filters.
@@ -1493,85 +1344,6 @@ class Project:
         from .linked_view import create_linked_view
 
         return create_linked_view(self, prefix, job_ids, index, path)
-
-    @deprecated(
-        deprecated_in="1.3",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Use job.reset_statepoint() instead.",
-    )
-    def reset_statepoint(self, job, new_statepoint):
-        """Overwrite the state point of this job while preserving job data.
-
-        This method will change the job id if the state point has been altered.
-
-        .. danger::
-
-            Use this function with caution! Resetting a job's state point,
-            may sometimes be necessary, but can possibly lead to incoherent
-            data spaces.
-
-        Parameters
-        ----------
-        job : :class:`~signac.contrib.job.Job`
-            The job that should be reset to a new state point.
-        new_statepoint : mapping
-            The job's new state point.
-
-        Raises
-        ------
-        :class:`~signac.errors.DestinationExistsError`
-            If a job associated with the new state point is already initialized.
-        OSError
-            If the move failed due to an unknown system related error.
-
-        """
-        job.reset_statepoint(new_statepoint=new_statepoint)
-
-    @deprecated(
-        deprecated_in="1.3",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Use job.update_statepoint() instead.",
-    )
-    def update_statepoint(self, job, update, overwrite=False):
-        """Change the state point of this job while preserving job data.
-
-        By default, this method will not change existing parameters of the
-        state point of the job.
-
-        This method will change the job id if the state point has been altered.
-
-        .. warning::
-
-            While appending to a job's state point is generally safe, modifying
-            existing parameters may lead to data inconsistency. Use the
-            ``overwrite`` argument with caution!
-
-        Parameters
-        ----------
-        job : :class:`~signac.contrib.job.Job`
-            The job whose state point shall be updated.
-        update : mapping
-            A mapping used for the state point update.
-        overwrite : bool, optional
-            If False, an error will be raised if the update modifies the values
-            of existing keys in the state point. If True, any existing keys will
-            be overwritten in the same way as :meth:`dict.update`. Use with
-            caution! (Default value = False).
-
-        Raises
-        ------
-        KeyError
-            If the update contains keys which are already part of the job's
-            state point and ``overwrite`` is False.
-        :class:`~signac.errors.DestinationExistsError`
-            If a job associated with the new state point is already initialized.
-        OSError
-            If the move failed due to an unknown system related error.
-
-        """
-        job.update_statepoint(update=update, overwrite=overwrite)
 
     def clone(self, job, copytree=shutil.copytree):
         """Clone job into this project.
@@ -2149,54 +1921,6 @@ class Project:
             docs = _skip_errors(docs, logger.critical)
         for doc in docs:
             yield doc
-
-    @deprecated(
-        deprecated_in="1.5",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Access modules are deprecated.",
-    )
-    def create_access_module(self, filename=None, main=True, master=None):
-        """Create the access module for indexing.
-
-        This method generates the access module required to make
-        this project's index part of a main index.
-
-        Parameters
-        ----------
-        filename : str
-            The name of the access module file. Defaults to the standard name
-            and should usually not be changed.
-        main : bool
-            If True, add directives for the compilation of a master index
-            when executing the module (Default value = True).
-        master : bool
-            Deprecated parameter. Replaced by main.
-
-        Returns
-        -------
-        str
-            Access module name.
-
-        """
-        if master is not None:
-            warnings.warn(
-                "The parameter master has been renamed to main.", DeprecationWarning
-            )
-            main = master
-
-        if filename is None:
-            filename = os.path.join(self.root_directory(), MainCrawler.FN_ACCESS_MODULE)
-        with open(filename, "x") as file:
-            if main:
-                file.write(ACCESS_MODULE_MAIN)
-            else:
-                file.write(ACCESS_MODULE_MINIMAL)
-        if main:
-            mode = os.stat(filename).st_mode | stat.S_IEXEC
-            os.chmod(filename, mode)
-        logger.info(f"Created access module file '{filename}'.")
-        return filename
 
     @contextmanager
     def temporary_project(self, name=None, dir=None):
