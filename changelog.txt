@@ -15,6 +15,7 @@ Removed
 
  - Removed the pre-SyncedCollection synchronized dictionary classes, including SyncedDict, SyncedAttrDict, and JSONDict (#577).
  - Removed the old custom JSON encoder and dumps wrapper (#577).
+ - Removed the MPIPool and the filesystems.py module (#575).
 
 Version 1
 =========
