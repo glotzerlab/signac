@@ -2,7 +2,6 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import json
-import logging
 import os
 import platform
 from stat import S_IREAD
@@ -13,7 +12,6 @@ import pytest
 from test_project import TestProjectBase
 
 import signac
-from signac.errors import BufferedFileError, Error
 from signac.synced_collections.errors import BufferedError
 
 PYPY = "PyPy" in platform.python_implementation()
@@ -72,81 +70,6 @@ class TestBufferedMode(TestProjectBase):
                 assert job.doc.a == 2
             assert job.doc.a == 2
         assert job.doc.a == 2
-
-    # Remove this test in signac 2.0.
-    @pytest.mark.xfail(
-        reason="The new SyncedCollection does not implement force_write."
-    )
-    def test_buffered_mode_force_write(self):
-        with signac.buffered(force_write=False):
-            with signac.buffered(force_write=False):
-                pass
-        assert not signac.is_buffered()
-
-        with signac.buffered(force_write=True):
-            with signac.buffered(force_write=True):
-                pass
-
-        with pytest.raises(Error):
-            with signac.buffered():
-                with signac.buffered(force_write=True):
-                    pass
-        assert not signac.is_buffered()
-
-    # Remove this test in signac 2.0.
-    @pytest.mark.xfail(
-        reason="The new SyncedCollection does not implement force_write."
-    )
-    def test_buffered_mode_force_write_with_file_modification(self):
-        job = self.project.open_job(dict(a=0))
-        job.init()
-        job.doc.a = True
-        x = job.doc.a
-        assert job.doc.a == x
-        with pytest.raises(BufferedFileError):
-            with signac.buffered():
-                assert job.doc.a == x
-                job.doc.a = not x
-                assert job.doc.a == (not x)
-                sleep(1.0)
-                with open(job.doc._filename, "wb") as file:
-                    file.write(json.dumps({"a": x}).encode())
-        assert not signac.is_buffered()
-        assert job.doc.a == x
-
-        with signac.buffered(force_write=True):
-            assert job.doc.a == x
-            job.doc.a = not x
-            assert job.doc.a == (not x)
-            sleep(1.0)
-            with open(job.doc._filename, "wb") as file:
-                file.write(json.dumps({"a": x}).encode())
-        assert job.doc.a == (not x)
-
-    # Remove this test in signac 2.0.
-    @pytest.mark.xfail(
-        reason="The new SyncedCollection does not implement force_write."
-    )
-    def test_force_write_mode_with_permission_error(self):
-        job = self.project.open_job(dict(a=0))
-        job.init()
-        job.doc.a = True
-        x = job.doc.a
-        path = os.path.dirname(job.doc._filename)
-        mode = os.stat(path).st_mode
-        logging.disable(logging.CRITICAL)
-        try:
-            assert job.doc.a == x
-            with pytest.raises(BufferedFileError):
-                with signac.buffered():
-                    assert job.doc.a == x
-                    job.doc.a = not x
-                    assert job.doc.a == (not x)
-                    os.chmod(path, S_IREAD)  # Trigger permissions error
-        finally:
-            logging.disable(logging.NOTSET)
-            os.chmod(path, mode)
-        assert job.doc.a == x
 
     def test_buffered_mode_change_buffer_size(self):
         assert not signac.is_buffered()
