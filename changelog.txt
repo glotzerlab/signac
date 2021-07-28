@@ -4,6 +4,18 @@ Changelog
 
 The **signac** package follows `semantic versioning <https://semver.org/>`_.
 
+Version 2
+=========
+
+[2.0.0] -- 2021-xx-xx
+---------------------
+
+Removed
++++++++
+
+ - Removed the pre-SyncedCollection synchronized dictionary classes, including SyncedDict, SyncedAttrDict, and JSONDict (#577).
+ - Removed the old custom JSON encoder and dumps wrapper (#577).
+
 Version 1
 =========
 
