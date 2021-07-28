@@ -99,13 +99,11 @@ class TestBufferedMode(TestProjectBase):
                 assert job.sp.a > 0
                 job.sp.a = -job.sp.a
                 assert job.sp.a < 0
-                with pytest.deprecated_call():
-                    job2 = self.project.open_job(id=job.get_id())
+                job2 = self.project.open_job(id=job.id)
                 assert job2.sp.a < 0
                 job.sp.a = -job.sp.a
                 assert job.sp.a > 0
-                with pytest.deprecated_call():
-                    job2 = self.project.open_job(id=job.get_id())
+                job2 = self.project.open_job(id=job.id)
                 assert job2.sp.a > 0
 
             for job in self.project:
@@ -131,8 +129,7 @@ class TestBufferedMode(TestProjectBase):
                 assert signac.get_buffer_load() > 0
                 job.doc.a = not job.doc.a
                 assert job.doc.a == (not x)
-                with pytest.deprecated_call():
-                    job2 = self.project.open_job(id=job.get_id())
+                job2 = self.project.open_job(id=job.id)
                 assert job2.doc.a == (not x)
             assert signac.get_buffer_load() == 0
             assert job.doc.a == (not x)
