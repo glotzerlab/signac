@@ -10,9 +10,8 @@ import pytest
 from test_job import TestJobBase
 
 import signac
-from signac import sync
+from signac import JSONDict, sync
 from signac.contrib.utility import _mkdir_p
-from signac.core.jsondict import JSONDict
 from signac.errors import DocumentSyncConflict, FileSyncConflict, SchemaSyncConflict
 from signac.sync import _FileModifyProxy
 from signac.syncutil import _DocProxy
