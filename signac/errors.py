@@ -16,7 +16,6 @@ from .contrib.errors import (
     WorkspaceError,
 )
 from .core.errors import Error
-from .core.jsondict import BufferedFileError, BufferException
 from .synced_collections.errors import InvalidKeyError, KeyTypeError
 
 
@@ -61,8 +60,6 @@ class SchemaSyncConflict(SyncConflict):
 
 __all__ = [
     "AuthenticationError",
-    "BufferException",
-    "BufferedFileError",
     "ConfigError",
     "DestinationExistsError",
     "DocumentSyncConflict",
