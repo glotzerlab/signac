@@ -11,10 +11,6 @@ from contextlib import contextmanager
 from copy import deepcopy
 from filecmp import dircmp
 
-from deprecation import deprecated
-
-from .version import __version__
-
 LEVEL_MORE = logging.INFO - 5
 
 logger = logging.getLogger("sync")
@@ -28,53 +24,6 @@ def log_more(msg, *args, **kwargs):
 
 
 logger.more = log_more  # type: ignore
-
-
-@deprecated(
-    deprecated_in="1.6.0",
-    removed_in="2.0.0",
-    current_version=__version__,
-    details="Use shutil.copytree instead.",
-)
-def copytree(src, dst, copy_function=shutil.copy2, symlinks=False):
-    """Recursively copy a directory tree from src to dst, using a custom copy function.
-
-    Implementation adapted from https://docs.python.org/3/library/shutil.html#copytree-example.
-
-    Parameters
-    ----------
-    src : str
-        Source directory tree.
-    dst : str
-        Destination directory tree.
-    copy_function :
-        Function used to copy (Default value = ``shutil.copy2``).
-    symlinks : bool
-        Whether to copy symlinks (Default value = False).
-
-    """
-    os.makedirs(dst)
-    names = os.listdir(src)
-    errors = []
-    for name in names:
-        srcname = os.path.join(src, name)
-        dstname = os.path.join(dst, name)
-        try:
-            if symlinks and os.path.islink(srcname):
-                linkto = os.readlink(srcname)
-                os.symlink(linkto, dstname)
-            elif os.path.isdir(srcname):
-                copytree(srcname, dstname, copy_function, symlinks)
-            else:
-                copy_function(srcname, dstname)
-        except OSError as why:
-            errors.append((srcname, dstname, str(why)))
-        # catch the Error from the recursive copytree so that we can
-        # continue with other files
-        except shutil.Error as err:
-            errors.extend(err.args[0])
-    if errors:
-        raise shutil.Error(errors)
 
 
 class dircmp_deep(dircmp):
@@ -281,7 +230,7 @@ class _FileModifyProxy:
     def copytree(self, src, dst, **kwargs):
         """Copy tree src to dst."""
         logger.more(f"Copy tree '{os.path.relpath(src)}' -> '{os.path.relpath(dst)}'.")
-        copytree(src, dst, copy_function=self.copy, **kwargs)
+        shutil.copytree(src, dst, copy_function=self.copy, **kwargs)
 
     @contextmanager
     def create_backup(self, path):
