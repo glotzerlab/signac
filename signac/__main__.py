@@ -8,7 +8,6 @@ import atexit
 import code
 import difflib
 import errno
-import getpass
 import importlib
 import json
 import logging
@@ -33,10 +32,9 @@ else:
 from . import Project, get_project, index, init_project
 from .common import config
 from .common.configobj import Section, flatten_errors
-from .common.crypt import get_crypt_context, get_keyring, parse_pwhash
 from .contrib.filterparse import parse_filter_arg
 from .contrib.import_export import _SchemaPathEvaluationError, export_jobs
-from .contrib.utility import add_verbosity_argument, prompt_password, query_yes_no
+from .contrib.utility import add_verbosity_argument, query_yes_no
 from .diff import diff_jobs
 from .errors import (
     DestinationExistsError,
@@ -47,31 +45,6 @@ from .errors import (
 )
 from .sync import DocSync, FileSync
 from .version import __version__
-
-try:
-    from .common.host import get_client, get_credentials, get_database, make_uri
-except ImportError:
-    HOST = False
-else:
-    HOST = True
-
-PW_ENCRYPTION_SCHEMES = ["None"]
-DEFAULT_PW_ENCRYPTION_SCHEME = PW_ENCRYPTION_SCHEMES[0]
-if get_crypt_context() is not None:
-    PW_ENCRYPTION_SCHEMES.extend(get_crypt_context().schemes())
-    DEFAULT_PW_ENCRYPTION_SCHEME = get_crypt_context().default_scheme()
-
-
-CONFIG_HOST_DEFAULTS = {
-    "url": "mongodb://localhost",
-    "username": getpass.getuser(),
-    "auth_mechanism": "none",
-    "ssl_cert_reqs": "required",
-}
-
-
-CONFIG_HOST_CHOICES = {"auth_mechanism": ("none", "SCRAM-SHA-1", "SSL-x509")}
-
 
 MSG_SYNC_SPECIFY_KEY = """
 Synchronization conflict occurred, no strategy defined to synchronize keys:
@@ -138,55 +111,6 @@ def _fmt_bytes(nbytes, suffix="B"):
             return f"{nbytes:3.1f} {unit}{suffix}"
         nbytes /= 1024.0
     return "{:.1f} {}{}".format(nbytes, "Yi", suffix)
-
-
-def _passlib_available():
-    try:
-        import passlib  # noqa
-    except ImportError:
-        return False
-    else:
-        return True
-
-
-def _hide_password(line):
-    if line.strip().startswith("password"):
-        return " " * line.index("password") + "password = ***"
-    else:
-        return line
-
-
-def _prompt_for_new_password(attempts=3):
-    for i in range(attempts):
-        if i > 0:
-            _print_err(f"Attempt {i + 1}:")
-        new_pw = prompt_password("New password: ")
-        new_pw2 = prompt_password("New password (repeat): ")
-        if new_pw == new_pw2:
-            return new_pw
-        else:
-            _print_err("Passwords do not match!")
-    else:
-        raise ValueError("Too many failed attempts.")
-
-
-def _update_password(config, hostname, scheme=None, new_pw=None):
-    def hashpw(pw):
-        if scheme is None:
-            return pw
-        else:
-            return get_crypt_context().encrypt(pw, scheme=scheme)
-
-    hostcfg = config["hosts"][hostname]
-    hostcfg["password"] = get_credentials(hostcfg)
-    db_auth = get_database(
-        hostcfg.get("db_auth", "admin"), hostname=hostname, config=config
-    )
-    if new_pw is None:
-        new_pw = _prompt_for_new_password()
-    pwhash = hashpw(new_pw)
-    db_auth.add_user(hostcfg["username"], pwhash)
-    return pwhash
 
 
 def _read_index(project, fn_index=None):
@@ -848,7 +772,7 @@ def main_config_show(args):
         print(cfg)
     else:
         for line in config.Config(cfg).write():
-            print(_hide_password(line))
+            print(line)
 
 
 def main_config_verify(args):
@@ -905,16 +829,10 @@ def main_config_set(args):
     except OSError:
         cfg = config.get_config(fn_config)
     keys = args.key.split(".")
-    if keys[-1].endswith("password"):
-        raise RuntimeError(
-            "Passwords need to be set with `{} config host "
-            "HOSTNAME -p`!".format(os.path.basename(sys.argv[0]))
-        )
-    else:
-        if len(args.value) == 0:
-            raise ValueError("No value argument provided!")
-        elif len(args.value) == 1:
-            args.value = args.value[0]
+    if len(args.value) == 0:
+        raise ValueError("No value argument provided!")
+    elif len(args.value) == 1:
+        args.value = args.value[0]
     sec = cfg
     for key in keys[:-1]:
         sec = sec.setdefault(key, {})
@@ -925,154 +843,6 @@ def main_config_set(args):
         raise KeyError(args.key)
     _print_err(f"Writing configuration to '{os.path.abspath(fn_config)}'.")
     cfg.write()
-
-
-def main_config_host(args):
-    """Handle config host subcommand."""
-    if args.update_pw is True:
-        args.update_pw = DEFAULT_PW_ENCRYPTION_SCHEME
-    if not HOST:
-        raise ImportError("pymongo is required for host configuration!")
-    from pymongo.uri_parser import parse_uri
-
-    if not (args.local or args.globalcfg):
-        args.globalcfg = True
-    fn_config = None
-    if args.local and args.globalcfg:
-        raise ValueError("You can specify either -l/--local or -g/--global, not both.")
-    elif args.local:
-        for fn_config in config.CONFIG_FILENAMES:
-            if os.path.isfile(fn_config):
-                break
-    elif args.globalcfg:
-        fn_config = config.FN_CONFIG
-    else:
-        raise ValueError(
-            "You need to specify either -l/--local or -g/--global "
-            "to specify which configuration to modify."
-        )
-    try:
-        cfg = config.read_config_file(fn_config)
-    except OSError:
-        cfg = config.get_config(fn_config)
-
-    def hostcfg():
-        return cfg.setdefault("hosts", {}).setdefault(args.hostname, {})
-
-    if sum((args.test, args.remove, args.show_pw)) > 1:
-        raise ValueError(
-            "Please select only one of the following options: "
-            "[--test | -r/--remove | --show-pw]."
-        )
-
-    if args.test:
-        if hostcfg():
-            _print_err(f"Trying to connect to host '{args.hostname}'...")
-            try:
-                client = get_client(hostcfg())
-                client.address
-            except Exception:
-                _print_err(
-                    "Encountered error while trying to "
-                    "connect to host '{}'.".format(args.hostname)
-                )
-                raise
-            else:
-                print(f"Successfully connected to host '{args.hostname}'.")
-        else:
-            _print_err(f"Host '{args.hostname}' is not configured.")
-        return
-
-    if args.remove:
-        if hostcfg():
-            q = "Are you sure you want to remove host '{}'."
-            if args.yes or query_yes_no(q.format(args.hostname), "no"):
-                kr = get_keyring()
-                if kr:
-                    if kr.get_password("signac", make_uri(hostcfg())):
-                        kr.delete_password("signac", make_uri(hostcfg()))
-                del cfg["hosts"][args.hostname]
-                cfg.write()
-        else:
-            _print_err("Nothing to remove.")
-        return
-
-    if args.show_pw:
-        pw = get_credentials(hostcfg(), ask=False)
-        if pw is None:
-            raise RuntimeError("Did not find stored password!")
-        else:
-            print(pw)
-            return
-
-    if hostcfg():
-        _print_err(f"Configuring host '{args.hostname}'.")
-    else:
-        _print_err(f"Configuring new host '{args.hostname}'.")
-
-    def hide_password(k, v):
-        """Hide all fields containing sensitive information."""
-        return "***" if k.endswith("password") else v
-
-    def update_hostcfg(**update):
-        """Update the host configuration."""
-        store = False
-        for k, v in update.items():
-            if v is None:
-                if k in hostcfg():
-                    logging.info(f"Deleting key {k}")
-                    del cfg["hosts"][args.hostname][k]
-                    store = True
-            elif k not in hostcfg() or v != hostcfg()[k]:
-                logging.info(f"Setting {k}={hide_password(k, v)}")
-                cfg["hosts"][args.hostname][k] = v
-                store = True
-        if store:
-            cfg.write()
-
-    def requires_username():
-        if "username" not in hostcfg():
-            raise ValueError("Please specify a username!")
-
-    if args.uri:
-        parse_uri(args.uri)
-        update_hostcfg(url=args.uri)
-    elif "url" not in hostcfg():
-        update_hostcfg(url="mongodb://localhost")
-
-    if args.username:
-        update_hostcfg(username=args.username, auth_mechanism="SCRAM-SHA-1")
-
-    if args.update_pw:
-        requires_username()
-        if not _passlib_available():
-            _print_err(
-                "WARNING: It is highly recommended to install passlib to encrypt your password!"
-            )
-        pwhash = _update_password(
-            cfg,
-            args.hostname,
-            scheme=None if args.update_pw == "None" else args.update_pw,
-            new_pw=None if args.password is True else args.password,
-        )
-        if args.password:
-            update_hostcfg(password=pwhash, password_config=None)
-        elif args.update_pw == "None":
-            update_hostcfg(password=None, password_config=None)
-        else:
-            update_hostcfg(password=None, password_config=parse_pwhash(pwhash))
-    elif args.password:
-        requires_username()
-        if args.password is True:
-            new_pw = prompt_password()
-        else:
-            new_pw = args.password
-        update_hostcfg(password=new_pw, password_config=None)
-
-    _print_err(f"Configured host '{args.hostname}':")
-    print("[hosts]")
-    for line in config.Config({args.hostname: hostcfg()}).write():
-        print(_hide_password(line))
 
 
 def main_shell(args):
@@ -1959,56 +1729,6 @@ This feature is still experimental and may be removed in future versions.""",
         "-f", "--force", action="store_true", help="Override any validation warnings."
     )
     parser_set.set_defaults(func=main_config_set)
-
-    parser_host = config_subparsers.add_parser("host")
-    parser_host.add_argument(
-        "hostname",
-        type=str,
-        help="The name of the specified resource. Note: The name can be arbitrarily chosen.",
-    )
-    parser_host.add_argument(
-        "uri",
-        type=str,
-        nargs="?",
-        help="Set the URI of the specified resource, for example: 'mongodb://localhost'.",
-    )
-    parser_host.add_argument(
-        "-u", "--username", type=str, help="Set the username for this resource."
-    )
-    parser_host.add_argument(
-        "-p",
-        "--password",
-        type=str,
-        nargs="?",
-        const=True,
-        help="Store a password for the specified resource.",
-    )
-    parser_host.add_argument(
-        "--update-pw",
-        type=str,
-        nargs="?",
-        const=True,
-        choices=PW_ENCRYPTION_SCHEMES,
-        help="Update the password of the specified resource. "
-        "Use in combination with -p/--password to store the "
-        "new password. You can optionally specify the hashing "
-        "algorithm used for the password encryption. Anything "
-        "else but 'None' requires passlib! (default={})".format(
-            DEFAULT_PW_ENCRYPTION_SCHEME
-        ),
-    )
-    parser_host.add_argument(
-        "--show-pw",
-        action="store_true",
-        help="Show the password if it was stored and exit.",
-    )
-    parser_host.add_argument(
-        "-r", "--remove", action="store_true", help="Remove the specified resource."
-    )
-    parser_host.add_argument(
-        "--test", action="store_true", help="Attempt connecting to the specified host."
-    )
-    parser_host.set_defaults(func=main_config_host)
 
     parser_verify = config_subparsers.add_parser("verify")
     parser_verify.set_defaults(func=main_config_verify)
