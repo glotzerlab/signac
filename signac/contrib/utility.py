@@ -4,7 +4,6 @@
 """Utilities for signac."""
 
 import argparse
-import getpass
 import logging
 import os
 import sys
@@ -70,23 +69,6 @@ def query_yes_no(question, default="yes"):
             return valid[choice]
         else:
             sys.stdout.write("Please respond with 'yes' or 'no' (or 'y' or 'n').\n")
-
-
-def prompt_password(prompt="Password: "):
-    """Prompt password for user.
-
-    Parameters
-    ----------
-    prompt : str
-        String to prompt (Default value = 'Password: ').
-
-    Returns
-    -------
-    str
-        Password input by the user.
-
-    """
-    return getpass.getpass(prompt)
 
 
 def add_verbosity_argument(parser, default=0):

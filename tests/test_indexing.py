@@ -5,28 +5,16 @@ import io
 import json
 import os
 import re
+from tempfile import TemporaryDirectory
 from typing import Dict
+from unittest.mock import Mock
 
 import pytest
 
 import signac
-import signac.db
 from signac import Collection
 from signac.common import errors
 from signac.contrib import indexing
-
-try:
-    with pytest.deprecated_call():
-        signac.db.get_database("testing", hostname="testing")
-except signac.common.errors.ConfigError:
-    SKIP_REASON = "No 'testing' host configured."
-except ImportError:
-    SKIP_REASON = "pymongo not available"
-else:
-    SKIP_REASON = "None"
-
-from tempfile import TemporaryDirectory
-from unittest.mock import Mock
 
 SIGNAC_ACCESS_MODULE_LEGACY = r"""import os
 import re
@@ -449,14 +437,6 @@ class TestIndexingBase:
             assert 2 == len(list(crawler.crawl()))
             crawler.tags = {"test1", "test2", "non-existent-key"}
             assert 2 == len(list(crawler.crawl()))
-
-
-@pytest.mark.skipif(SKIP_REASON != "None", reason=SKIP_REASON)
-class TestIndexingPyMongo(TestIndexingBase):
-    def get_index_collection(self):
-        db = signac.db.get_database("testing", hostname="testing")
-        db.test_index.drop()
-        return Mock(spec=db.test_index, wraps=db.test_index)
 
 
 class TestIndexingBaseGetCrawlers(TestIndexingBase):
