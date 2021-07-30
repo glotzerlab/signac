@@ -48,12 +48,7 @@ To upgrade the package, simply execute the same command with the ``--upgrade`` o
 
     $ pip install signac --user --upgrade
 
-Consider installing optional dependencies:
-
-.. code:: bash
-
-    $ pip install pymongo passlib bcrypt --user
-
+Consider installing :ref:`optional dependencies <optional_dependencies>`.
 
 Source Code Installation
 ========================
@@ -79,11 +74,6 @@ In case you want to use extra features that require external packages, you need 
 Extra features with dependencies:
 
 .. glossary::
-
-    MongoDB database backend
-      required: ``pymongo``
-
-      recommended: ``passlib``, ``bcrypt``
 
     HDF5 integration
       required: ``h5py``
