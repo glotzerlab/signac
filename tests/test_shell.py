@@ -12,14 +12,6 @@ import pytest
 import signac
 from signac.common import config
 
-try:
-    import pymongo  # noqa
-except ImportError:
-    PYMONGO = False
-else:
-    PYMONGO = True
-
-
 # Skip linked view tests on Windows
 WINDOWS = sys.platform == "win32"
 
@@ -789,59 +781,6 @@ class TestBasicShell:
         cfg = self.call("python -m signac config --global show".split())
         assert "b" in cfg
         assert "b = c" in cfg.split(os.linesep)
-
-        # setting password with config set should fail
-        with pytest.raises(ExitCodeError):
-            self.call("python -m signac config --global set a.password b".split())
-
-    @pytest.mark.skipif(
-        not PYMONGO, reason="pymongo is required for host configuration"
-    )
-    def test_config_host(self):
-        self.call("python -m signac init my_project".split())
-        self.call("python -m signac config --local host Mongo -u abc -p 123".split())
-        cfg = self.call("python -m signac config --local show".split())
-        assert "Mongo" in cfg
-        assert "username = abc" in cfg
-        assert "password = ***" in cfg
-
-        self.call("python -m signac config --local host Mongo -u abcd".split())
-        cfg = self.call("python -m signac config --local show".split())
-        assert "Mongo" in cfg
-        assert "username = abcd" in cfg
-        assert "password = ***" in cfg
-
-        out = self.call("python -m signac config --local host Mongo --show-pw".split())
-        assert "123" in out
-
-        self.call(
-            "python -m signac config --local host Mongo --remove".split(), input="y"
-        )
-        cfg = self.call("python -m signac config --local show".split())
-        assert "Mongo" not in cfg
-
-    @pytest.mark.skipif(
-        not PYMONGO, reason="pymongo is required for host configuration"
-    )
-    def test_config_verify(self):
-        # no config file
-        with pytest.raises(ExitCodeError):
-            err = self.call(
-                "python -m signac config --local verify".split(), error=True
-            )
-        err = self.call(
-            "python -m signac config --local verify".split(),
-            error=True,
-            raise_error=False,
-        )
-        assert "Did not find a local configuration file" in err
-        self.call("python -m signac init my_project".split())
-        err = self.call("python -m signac config --local verify".split(), error=True)
-        assert "Passed" in err
-
-        self.call("python -m signac config --local host Mongo -u abc -p 123".split())
-        err = self.call("python -m signac config --local verify".split(), error=True)
-        assert "hosts.Mongo.password_config.[missing section]" in err
 
     def test_update_cache(self):
         self.call("python -m signac init ProjectA".split())

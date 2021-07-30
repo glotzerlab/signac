@@ -9,7 +9,7 @@ data spaces, streamlines post-processing and analysis, and makes data
 collectively accessible.
 """
 
-from . import cite, contrib, db, errors, sync, testing, warnings
+from . import cite, contrib, errors, sync, testing, warnings
 from .contrib import (
     Collection,
     MainCrawler,
@@ -30,7 +30,6 @@ from .contrib import (
     init_project,
 )
 from .core.h5store import H5Store, H5StoreManager
-from .db import get_database
 from .diff import diff_jobs
 from .synced_collections.backends.collection_json import (
     BufferedJSONAttrDict as JSONDict,
@@ -47,7 +46,6 @@ set_buffer_size = JSONDict.set_buffer_capacity
 __all__ = [
     "__version__",
     "contrib",
-    "db",
     "errors",
     "warnings",
     "sync",
@@ -58,7 +56,6 @@ __all__ = [
     "init_project",
     "get_job",
     "diff_jobs",
-    "get_database",
     "fetch",
     "export_one",
     "export",
