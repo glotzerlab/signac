@@ -1,6 +1,8 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+"""Indexing features."""
+
 import errno
 import hashlib
 import json
@@ -23,7 +25,7 @@ KEY_PAYLOAD = "format"
 
 
 def _compute_file_md5(file):
-    "Calculate and return the md5 hash value for the file data."
+    """Calculate and return the md5 hash value for the file data."""
     m = hashlib.md5()
     for chunk in iter(lambda: file.read(4096), b""):
         m.update(chunk)
@@ -31,18 +33,22 @@ def _compute_file_md5(file):
 
 
 class _BaseCrawler:
-    """Crawl through `root` and index all files.
+    """Crawl through ``root`` and index all files.
 
-    The crawler creates an index on data, which can be exported
-    to a database for easier access."""
+    The crawler creates an index on data, which can be exported to a database
+    for easier access.
+    """
 
     tags = None
 
     def __init__(self, root):
         """Initialize a _BaseCrawler instance.
 
-        :param root: The path to the root directory to crawl through.
-        :type root: str
+        Parameters
+        ----------
+        root : str
+            The path to the root directory to crawl through.
+
         """
         self.root = os.path.expanduser(root)
         self.tags = set() if self.tags is None else set(self.tags)
@@ -50,20 +56,23 @@ class _BaseCrawler:
     def docs_from_file(self, dirpath, fn):
         """Implement this method to generate documents from files.
 
-        :param dirpath: The path of the file, relative to `root`.
-        :type dirpath: str
-        :param fn: The filename.
-        :type fn: str
-        :yields: Index documents.
+        Parameters
+        ----------
+        dirpath : str
+            The path of the file, relative to ``root``.
+        fn : str
+            The filename.
+
+        Yields
+        ------
+        dict
+            Index documents.
+
         """
         raise NotImplementedError()
-        yield
 
     def fetch(self, doc, mode="r"):
-        """Implement this generator method to associate data with a document.
-
-        :returns: object associated with doc
-        """
+        """Implement this generator method to associate data with a document."""
         raise errors.FetchError(f"Unable to fetch object for '{doc}'.")
 
     @classmethod
@@ -76,16 +85,22 @@ class _BaseCrawler:
         return m.hexdigest()
 
     def crawl(self, depth=0):
-        """Crawl through the `root` directory.
+        """Crawl through the ``root`` directory.
 
         The crawler will inspect every file and directory up
-        until the specified `depth` and call the
+        until the specified ``depth`` and call the
         :meth:`docs_from_file` method.
 
-        :param depth: Crawl through the directory for the specified depth.
-                      A value of 0 specifies no limit.
-        :type depth: int
-        :yields: (id, doc)-tuples
+        Parameters
+        ----------
+        depth : int
+            Maximum directory depth to crawl. A value of 0 specifies no limit.
+
+        Yields
+        ------
+        dict
+            Document.
+
         """
         logger.info(f"Crawling '{self.root}' (depth={depth})...")
         for dirpath, dirnames, filenames in walkdepth(self.root, depth):
@@ -98,16 +113,22 @@ class _BaseCrawler:
         logger.info(f"Crawl of '{self.root}' done.")
 
     def process(self, doc, dirpath, fn):
-        """Implement this method for additional processing of generated docs.
+        """Implement this method for processing generated documents.
 
-        The default implementation will return the unmodified `doc`.
+        The default implementation will return the unmodified ``doc``.
 
-        :param dirpath: The path of the file, relative to `root`.
-        :type dirpath: str
-        :param fn: The filename.
-        :type fn: str
-        :returns: A document, that means an instance of mapping.
-        :rtype: mapping
+        Parameters
+        ----------
+        dirpath : str
+            The path of the file, relative to `root`.
+        fn : str
+            The filename.
+
+        Returns
+        -------
+        dict
+            A document.
+
         """
         return doc
 
@@ -115,13 +136,13 @@ class _BaseCrawler:
 class _RegexFileCrawler(_BaseCrawler):
     r"""Generate documents from filenames and associate each file with a data type.
 
-    The `_RegexFileCrawler` uses regular expressions to generate
-    data from files. This is a particular easy method to retrieve meta data
+    The :py:class:`_RegexFileCrawler` uses regular expressions to generate
+    data from files. This is a particular easy method to retrieve metadata
     associated with files. Inherit from this class to configure a crawler
-    for your data structre.
+    for your data structure.
 
     Let's assume we want to index text files, with a naming pattern, that
-    specifies a parameter `a` through the filename, e.g.:
+    specifies a parameter ``a`` through the filename, e.g.:
 
     .. code-block:: python
 
@@ -138,6 +159,7 @@ class _RegexFileCrawler(_BaseCrawler):
             pass
 
         MyCrawler.define('.*\/a_(?P<a>\d+)\.txt', 'TextFile')
+
     """
 
     "Mapping of compiled regex objects and associated formats."
@@ -147,11 +169,13 @@ class _RegexFileCrawler(_BaseCrawler):
     def define(cls, regex, format_=None):
         """Define a format for a particular regular expression.
 
-        :param regex: All files of the specified format
-            must match this regular expression.
-        :type regex: :class:`str`
-        :param format_: The format associated with all matching files.
-        :type format_: :class:`object`
+        Parameters
+        ----------
+        regex : str
+            A regular expression used to match files of the specified format.
+        format_ : object
+            The format associated with all matching files.
+
         """
         if isinstance(regex, str):
             regex = re.compile(regex)
@@ -163,9 +187,20 @@ class _RegexFileCrawler(_BaseCrawler):
     def compute_file_id(cls, doc, file):
         """Compute the file id for a given doc and the associated file.
 
-        :param doc: The index document
-        :param file: The associated file
-        :returns: The file id.
+        The resulting id is assigned to ``doc["md5"]``.
+
+        Parameters
+        ----------
+        doc : dict
+            The index document.
+        file : file-like object
+            The associated file
+
+        Returns
+        -------
+        str
+            The file id.
+
         """
         file_id = doc["md5"] = _compute_file_md5(file)
         return file_id
@@ -174,17 +209,27 @@ class _RegexFileCrawler(_BaseCrawler):
         """Generate documents from filenames.
 
         This method implements the abstract
-        :py:meth:~._BaseCrawler.docs_from_file` and yields index
+        :py:meth:`~._BaseCrawler.docs_from_file` and yields index
         documents associated with files.
 
-        .. note::
-            It is not recommended to reimplement this method to modify
-            documents generated from filenames.
-            See :meth:`~_RegexFileCrawler.process` instead.
+        Notes
+        -----
+        It is not recommended to reimplement this method to modify
+        documents generated from filenames.
+        See :py:meth:`~_RegexFileCrawler.process` instead.
 
-        :param dirpath: The path of the file relative to root.
-        :param fn: The filename of the file.
-        :yields: Index documents.
+        Parameters
+        ----------
+        dirpath : str
+            The path of the file relative to root.
+        fn : str
+            The filename of the file.
+
+        Yields
+        ------
+        dict
+            Index document.
+
         """
         for regex, format_ in self.definitions.items():
             m = regex.match(os.path.join(dirpath, fn))
@@ -200,12 +245,20 @@ class _RegexFileCrawler(_BaseCrawler):
                 yield doc
 
     def fetch(self, doc, mode="r"):
-        """Fetch the data associated with `doc`.
+        """Fetch the data associated with ``doc``.
 
-        :param doc: A index document.
-        :type doc: :class:`dict`
-        :returns: The file associated with the index document.
-        :rtype: A file-like object
+        Parameters
+        ----------
+        doc : dict
+            An index document.
+        mode : str
+            Mode used to open file object.
+
+        Returns
+        -------
+        file-like object
+            The file associated with the index document.
+
         """
         fn = doc.get(KEY_FILENAME)
         if fn:
@@ -226,13 +279,13 @@ class _RegexFileCrawler(_BaseCrawler):
                     f"Unable to match file path of doc '{doc}' to format definition."
                 )
         else:
-            raise errors.FetchError(f"Insufficient meta data in doc '{doc}'.")
+            raise errors.FetchError(f"Insufficient metadata in doc '{doc}'.")
 
     def process(self, doc, dirpath, fn):
         """Post-process documents generated from filenames.
 
-        Example:
-
+        Examples
+        --------
         .. code-block:: python
 
             MyCrawler(signac.indexing._RegexFileCrawler):
@@ -240,12 +293,18 @@ class _RegexFileCrawler(_BaseCrawler):
                     doc['long_name_for_a'] = doc['a']
                     return super(MyCrawler, self).process(doc, dirpath, fn)
 
-        :param dirpath: The path of the file, relative to `root`.
-        :type dirpath: str
-        :param fn: The filename.
-        :type fn: str
-        :returns: An index document, that means an instance of mapping.
-        :rtype: mapping
+        Parameters
+        ----------
+        dirpath : str
+            The path of the file, relative to ``root``.
+        fn : str
+            The filename.
+
+        Returns
+        -------
+        dict
+            An index document.
+
         """
         result = {}
         for key, value in doc.items():
@@ -281,7 +340,7 @@ def _index_signac_project_workspace(
     encoding="utf-8",
     statepoint_dict=None,
 ):
-    "Yields standard index documents for a signac project workspace."
+    """Yield standard index documents for a signac project workspace."""
     logger.debug(f"Indexing workspace '{root}'...")
     m = re.compile(r"[a-f0-9]{32}")
     try:
@@ -322,13 +381,18 @@ def _index_signac_project_workspace(
 class _SignacProjectCrawler(_RegexFileCrawler):
     """Index a signac project workspace.
 
-    Without any file format definitions, this crawler yields index documents for
-    each job, including the state point and the job document.
+    Without any file format definitions, this crawler yields index documents
+    for each job, including the state point and the job document.
 
-    See also: :py:class:`~._RegexFileCrawler`
+    See Also
+    --------
+    :py:class:`~._RegexFileCrawler`
 
-    :param root: The path to the project's root directory.
-    :type root: str
+    Parameters
+    ----------
+    root : str
+        The path to the project's root directory.
+
     """
 
     encoding = "utf-8"
