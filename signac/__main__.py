@@ -1464,7 +1464,7 @@ job documents."
         "--ignore-times",
         action="store_true",
         dest="deep",
-        help="Never rely on file meta data such as the size or the modification time "
+        help="Never rely on file metadata such as the size or the modification time "
         "when determining file differences.",
     )
     sync_group.add_argument(
