@@ -3,7 +3,6 @@
 # This software is licensed under the BSD 3-Clause License.
 """Utilities for signac."""
 
-import argparse
 import logging
 import os
 import sys
@@ -14,10 +13,6 @@ from contextlib import contextmanager
 from datetime import timedelta
 from tempfile import TemporaryDirectory
 from time import time
-
-from deprecation import deprecated
-
-from ..version import __version__
 
 logger = logging.getLogger(__name__)
 
@@ -95,122 +90,6 @@ def add_verbosity_argument(parser, default=0):
         action="count",
         default=default,
     )
-
-
-@deprecated(
-    deprecated_in="1.3",
-    removed_in="2.0",
-    current_version=__version__,
-    details="This function is obsolete.",
-)
-def add_verbosity_action_argument(parser, default=0):
-    """Add a verbosity argument to parser.
-
-    Parameters
-    ----------
-    parser : :class:`argparse.ArgumentParser`
-        The parser to which to add a verbosity argument.
-    default :
-        The default level, defaults to 0.
-
-    Notes
-    -----
-    The argument is '-v'.
-    Add multiple '-v' arguments, e.g. '-vv' or '-vvv' to
-    increase the level of verbosity.
-
-    """
-    parser.add_argument(
-        "-v",
-        default=0,
-        nargs="?",
-        action=VerbosityLoggingConfigAction,
-        dest="verbosity",
-    )
-
-
-@deprecated(
-    deprecated_in="1.3",
-    removed_in="2.0",
-    current_version=__version__,
-    details="This function is obsolete.",
-)
-def set_verbosity_level(verbosity, default=None, increment=10):
-    """Set the verbosity level as a function of an integer level.
-
-    Parameters
-    ----------
-    verbosity :
-        The verbosity level as integer.
-    default :
-        The default verbosity level, defaults to logging.ERROR.
-    increment :
-        (Default value = 10).
-
-    """
-    if default is None:
-        default = logging.ERROR
-    logging.basicConfig(level=default - increment * verbosity)
-
-
-# this class is deprecated
-class VerbosityAction(argparse.Action):  # noqa: D101, E261
-    @deprecated(
-        deprecated_in="1.3",
-        removed_in="2.0",
-        current_version=__version__,
-        details="This class is obsolete",
-    )
-    def __call__(self, parser, args, values, option_string=None):  # noqa: D102, E261
-        if values is None:
-            values = "1"
-        try:
-            values = int(values)
-        except ValueError:
-            values = values.count("v") + 1
-        setattr(args, self.dest, values)
-
-
-@deprecated(
-    deprecated_in="1.3",
-    removed_in="2.0",
-    current_version=__version__,
-    details="The VerbosityLoggingConfigAction class is obsolete.",
-)
-class VerbosityLoggingConfigAction(VerbosityAction):  # noqa: D101, E261
-    def __call__(self, parser, args, values, option_string=None):  # noqa:D102, E261
-        super().__call__(parser, args, values, option_string)
-        v_level = getattr(args, self.dest)
-        set_verbosity_level(v_level)
-
-
-@deprecated(
-    deprecated_in="1.3",
-    removed_in="2.0",
-    current_version=__version__,
-    details="The EmptyIsTrue class is obsolete.",
-)
-class EmptyIsTrue(argparse.Action):  # noqa: D101, E261
-    def __call__(
-        self, parser, namespace, values, option_string=None
-    ):  # noqa: D102, E261
-        if values is None:
-            values = True
-        setattr(namespace, self.dest, values)
-
-
-@deprecated(
-    deprecated_in="1.3",
-    removed_in="2.0",
-    current_version=__version__,
-    details="The SmartFormatter class is obsolete.",
-)
-class SmartFormatter(argparse.HelpFormatter):  # noqa: D101, E261
-    def _split_lines(self, text, width):
-
-        if text.startswith("R|"):
-            return text[2:].splitlines()
-        return argparse.HelpFormatter._split_lines(self, text, width)
 
 
 def walkdepth(path, depth=0):
