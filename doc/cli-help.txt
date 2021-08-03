@@ -1,12 +1,12 @@
 usage: signac [-h] [--debug] [--version] [-v] [-y]
-              {init,project,job,statepoint,diff,document,rm,move,clone,index,find,view,schema,shell,sync,import,export,update-cache,config}
+              {init,project,job,statepoint,diff,document,rm,move,clone,find,view,schema,shell,sync,import,export,update-cache,config}
               ...
 
 signac aids in the management, access and analysis of large-scale
 computational investigations.
 
 positional arguments:
-  {init,project,job,statepoint,diff,document,rm,move,clone,index,find,view,schema,shell,sync,import,export,update-cache,config}
+  {init,project,job,statepoint,diff,document,rm,move,clone,find,view,schema,shell,sync,import,export,update-cache,config}
 
 optional arguments:
   -h, --help            show this help message and exit

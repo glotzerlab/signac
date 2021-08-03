@@ -152,30 +152,6 @@ class TestBasicShell:
         assert "{'a': 0}" in sp
         assert len(project) == 1
 
-    # Index schema is changed
-    @pytest.mark.xfail()
-    def test_index(self):
-        self.call("python -m signac init my_project".split())
-        self.call("python -m signac project --access".split())
-        project = signac.Project()
-        project.open_job({"a": 0}).init()
-        assert len(project) == 1
-        with pytest.deprecated_call():
-            assert len(list(project.index())) == 1
-            assert len(list(signac.index())) == 1
-        doc = json.loads(self.call("python -m signac index".split()))
-        assert "statepoint" in doc
-        assert doc["statepoint"] == {"a": 0}
-        doc = json.loads(self.call("python -m signac project --index".split()))
-        assert "statepoint" in doc
-        assert doc["statepoint"] == {"a": 0}
-        project.open_job({"a": 0}).document["b"] = 0
-        doc = json.loads(self.call("python -m signac index".split()))
-        assert "statepoint" in doc
-        assert doc["statepoint"] == {"a": 0}
-        assert "b" in doc
-        assert doc["b"] == 0
-
     def test_document(self):
         self.call("python -m signac init my_project".split())
         project = signac.Project()
