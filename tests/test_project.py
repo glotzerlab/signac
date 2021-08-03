@@ -677,7 +677,7 @@ class TestProject(TestProjectBase):
             index[doc["_id"]] = doc
         assert len(index) == len(job_ids)
         assert set(index.keys()) == set(job_ids)
-        crawler = signac.contrib.SignacProjectCrawler(self.project.path)
+        crawler = signac.contrib._SignacProjectCrawler(self.project.path)
         index2 = {}
         for doc in crawler.crawl():
             index2[doc["_id"]] = doc
@@ -694,7 +694,7 @@ class TestProject(TestProjectBase):
             index[doc["_id"]] = doc
         assert len(index) == 2 * len(job_ids)
 
-        class Crawler(signac.contrib.SignacProjectCrawler):
+        class Crawler(signac.contrib._SignacProjectCrawler):
             called = False
 
             def process(self_, doc, dirpath, fn):
