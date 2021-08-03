@@ -29,7 +29,7 @@ except ImportError:
 else:
     READLINE = True
 
-from . import Project, get_project, index, init_project
+from . import Project, get_project, init_project
 from .common import config
 from .common.configobj import Section, flatten_errors
 from .contrib.filterparse import parse_filter_arg
@@ -275,16 +275,6 @@ def main_clone(args):
             _print_err(f"Destination already exists: '{job}' in '{dst_project}'.")
         else:
             _print_err(f"Cloned '{job}' to '{dst_project}'.")
-
-
-def main_index(args):
-    """Handle index subcommand."""
-    _print_err(f"Compiling main index for path '{os.path.realpath(args.root)}'...")
-    if args.tags:
-        args.tags = set(args.tags)
-        _print_err("Provided tags: {}".format(", ".join(sorted(args.tags))))
-    for doc in index(root=args.root, tags=args.tags, raise_on_error=args.debug):
-        print(json.dumps(doc))
 
 
 def main_find(args):
@@ -1197,18 +1187,6 @@ def main():
     )
     parser_clone.set_defaults(func=main_clone)
 
-    parser_index = subparsers.add_parser("index")
-    parser_index.add_argument(
-        "root",
-        nargs="?",
-        default=".",
-        help="Specify the root path from where the main index is to be compiled.",
-    )
-    parser_index.add_argument(
-        "-t", "--tags", nargs="+", help="Specify tags for this main index compilation."
-    )
-    parser_index.set_defaults(func=main_index)
-
     parser_find = subparsers.add_parser(
         "find",
         description="""All filter arguments may be provided either directly in JSON
@@ -1486,7 +1464,7 @@ job documents."
         "--ignore-times",
         action="store_true",
         dest="deep",
-        help="Never rely on file meta data such as the size or the modification time "
+        help="Never rely on file metadata such as the size or the modification time "
         "when determining file differences.",
     )
     sync_group.add_argument(
