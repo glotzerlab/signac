@@ -38,7 +38,6 @@ Sharing and archiving a project:
     * `move`_
     * `clone`_
     * `sync`_
-    * `index`_
 
 .. _signac-cli-clone:
 
@@ -94,14 +93,6 @@ import
 ======
 
 .. command-output:: signac import --help
-
-
-.. _signac-cli-index:
-
-index
-=====
-
-.. command-output:: signac index --help
 
 
 .. _signac-cli-init:
