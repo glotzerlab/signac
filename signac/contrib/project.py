@@ -2072,6 +2072,11 @@ class Project:
             logger.debug(f"Read cache in {delta:.3f} seconds.")
             return cache
 
+    @deprecated(
+        deprecated_in="1.8",
+        removed_in="2.0",
+        current_version=__version__,
+    )
     def index(
         self, formats=None, depth=0, skip_errors=False, include_job_document=True
     ):
