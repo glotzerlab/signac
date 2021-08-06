@@ -105,7 +105,7 @@ class TestJSONFormatValidator:
     @pytest.mark.skipif(not NUMPY, reason="test requires the numpy package")
     def test_numpy_invalid_data(self):
         # complex data
-        data = numpy.complex(1 + 2j)
+        data = numpy.complex128(1 + 2j)
         with pytest.raises(TypeError):
             json_format_validator(data)
         # complex data in ndarray
