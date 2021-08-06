@@ -762,7 +762,7 @@ class Project:
         """
         return self._contains_job_id(job.id)
 
-    def detect_schema(self, exclude_const=False, subset=None, index=None):
+    def detect_schema(self, exclude_const=False, subset=None):
         """Detect the project's state point schema.
 
         See :ref:`signac schema <signac-cli-schema>` for the command line equivalent.
@@ -775,8 +775,6 @@ class Project:
         subset :
             A sequence of jobs or job ids specifying a subset over which the state point
             schema should be detected (Default value = None).
-        index :
-            A document index (Default value = None).
 
         Returns
         -------
@@ -786,8 +784,7 @@ class Project:
         """
         from .schema import _build_job_statepoint_index
 
-        if index is None:
-            index = self._index(include_job_document=False)
+        index = self._index(include_job_document=False)
         if subset is not None:
             subset = {str(s) for s in subset}
             index = [doc for doc in index if doc["_id"] in subset]
