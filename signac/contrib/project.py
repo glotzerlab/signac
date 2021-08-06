@@ -41,7 +41,7 @@ from .hashing import calc_id
 from .indexing import _SignacProjectCrawler
 from .job import Job
 from .schema import ProjectSchema
-from .utility import _mkdir_p, _nested_dicts_to_dotted_keys, split_and_print_progress
+from .utility import _mkdir_p, _nested_dicts_to_dotted_keys, _split_and_print_progress
 
 logger = logging.getLogger(__name__)
 
@@ -1806,7 +1806,7 @@ class Project:
             def _add(_id):
                 self._sp_cache[_id] = self._get_statepoint_from_workspace(_id)
 
-            to_add_chunks = split_and_print_progress(
+            to_add_chunks = _split_and_print_progress(
                 iterable=list(to_add),
                 num_chunks=max(1, min(100, int(len(to_add) / 1000))),
                 write=logger.info,
