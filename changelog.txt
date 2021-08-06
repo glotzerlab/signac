@@ -16,7 +16,7 @@ Removed
  - The pre-SyncedCollection synchronized dictionary classes, including SyncedDict, SyncedAttrDict, and JSONDict (#577).
  - The old custom JSON encoder and dumps wrapper (#577).
  - The MPIPool and the filesystems.py module (#575).
- - The following Project methods: ``get_id``, ``build_job_search_index``, ``build_job_statepoint_index``, ``find_job_ids``, ``reset_statepoint``, ``update_statepoint``, ``create_access_module`` (#574).
+ - The following Project methods: ``get_id``, ``build_job_search_index``, ``build_job_statepoint_index``, ``find_job_ids``, ``reset_statepoint``, ``update_statepoint``, ``create_access_module``, ``index`` (#574, #593).
  - The following Job methods: ``get_id`` (#578).
  - The ``syncutil.copytree`` method (#581).
  - All Crawlers, including ``RegexFileCrawler``, ``MainCrawler``, ``MasterCrawler``, ``SignacProjectCrawler``, and ``BaseCrawler``, in addition to all associated functionality in indexing.py (#580).

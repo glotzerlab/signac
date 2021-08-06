@@ -38,7 +38,6 @@ from .errors import (
 )
 from .filterparse import _add_prefix, _root_keys, parse_filter
 from .hashing import calc_id
-from .indexing import _SignacProjectCrawler
 from .job import Job
 from .schema import ProjectSchema, _collect_by_type
 from .utility import _mkdir_p, _nested_dicts_to_dotted_keys, _split_and_print_progress
@@ -1887,53 +1886,6 @@ class Project:
             logger.debug(f"Read cache in {delta:.3f} seconds.")
             return cache
 
-    @deprecated(
-        deprecated_in="1.8",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Indexing is deprecated.",
-    )
-    def index(
-        self, formats=None, depth=0, skip_errors=False, include_job_document=True
-    ):
-        r"""Generate an index of the project's workspace.
-
-        This generator function indexes every file in the project's
-        workspace until the specified `depth`.
-        The job document if it exists, is always indexed, other
-        files need to be specified with the formats argument.
-
-        See :ref:`signac project -i <signac-cli-project>` for the command line equivalent.
-
-        .. code-block:: python
-
-            for doc in project.index({r'.*\.txt', 'TextFile'}):
-                print(doc)
-
-        Parameters
-        ----------
-        formats : str, dict
-            The format definitions as a pattern string (e.g. ``r'.*\.txt'``)
-            or a mapping from pattern strings to formats (e.g.
-            ``'TextFile'``). If None, only the job document is indexed
-            (Default value = None).
-        depth : int
-            Specifies the crawling depth. A value of 0 means no limit
-            (Default value = 0).
-        skip_errors : bool
-            Skip all errors which occur during indexing. This is useful when
-            trying to repair a broken workspace (Default value = False).
-        include_job_document : bool
-            Include the contents of job documents (Default value = True).
-
-        Yields
-        ------
-        dict
-            Index document.
-
-        """
-        yield from self._index(formats, depth, skip_errors, include_job_document)
-
     def _index(
         self, formats=None, depth=0, skip_errors=False, include_job_document=True
     ):
@@ -1973,42 +1925,28 @@ class Project:
             Index document.
 
         """
-        if formats is None:
-            root = self.workspace
+        root = self.workspace
 
-            def _full_doc(doc):
-                """Add `signac_id` and `root` to the index document.
+        def _full_doc(doc):
+            """Add `signac_id` and `root` to the index document.
 
-                Parameters
-                ----------
-                doc : dict
-                    Index document.
+            Parameters
+            ----------
+            doc : dict
+                Index document.
 
-                Returns
-                -------
-                dict
-                    Modified index document.
+            Returns
+            -------
+            dict
+                Modified index document.
 
-                """
-                doc["signac_id"] = doc["_id"]
-                doc["root"] = root
-                return doc
+            """
+            doc["signac_id"] = doc["_id"]
+            doc["root"] = root
+            return doc
 
-            docs = self._build_index(include_job_document=include_job_document)
-            docs = map(_full_doc, docs)
-        else:
-            if isinstance(formats, str):
-                formats = {formats: "File"}
-
-            class Crawler(_SignacProjectCrawler):
-                pass
-
-            for pattern, fmt in formats.items():
-                Crawler.define(pattern, fmt)
-            crawler = Crawler(self.path)
-            docs = crawler.crawl(depth=depth)
-        if skip_errors:
-            docs = _skip_errors(docs, logger.critical)
+        docs = self._build_index(include_job_document=include_job_document)
+        docs = map(_full_doc, docs)
         for doc in docs:
             yield doc
 
