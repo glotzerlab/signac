@@ -9,7 +9,7 @@ data spaces, streamlines post-processing and analysis, and makes data
 collectively accessible.
 """
 
-from . import cite, contrib, errors, sync, testing, warnings
+from . import contrib, errors, sync, testing, warnings
 from .contrib import (
     Collection,
     Project,
@@ -38,7 +38,6 @@ __all__ = [
     "errors",
     "warnings",
     "sync",
-    "cite",
     "Project",
     "TemporaryProject",
     "get_project",
