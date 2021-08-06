@@ -630,77 +630,18 @@ class TestProject(TestProjectBase):
             logging.disable(logging.NOTSET)
 
     def test_index(self):
-        docs = list(self.project.index(include_job_document=True))
+        docs = list(self.project._index(include_job_document=True))
         assert len(docs) == 0
-        docs = list(self.project.index(include_job_document=False))
+        docs = list(self.project._index(include_job_document=False))
         assert len(docs) == 0
         statepoints = [{"a": i} for i in range(5)]
         for sp in statepoints:
             self.project.open_job(sp).document["test"] = True
         job_ids = {job.id for job in self.project.find_jobs()}
-        docs = list(self.project.index())
+        docs = list(self.project._index())
         job_ids_cmp = {doc["_id"] for doc in docs}
         assert job_ids == job_ids_cmp
         assert len(docs) == len(statepoints)
-        for sp in statepoints:
-            with self.project.open_job(sp):
-                with open("test.txt", "w"):
-                    pass
-        docs = list(
-            self.project.index(
-                {".*" + re.escape(os.path.sep) + r"test\.txt": "TextFile"}
-            )
-        )
-        assert len(docs) == 2 * len(statepoints)
-        assert len({doc["_id"] for doc in docs}) == len(docs)
-
-    # Index schema is changed
-    @pytest.mark.xfail()
-    def test_signac_project_crawler(self):
-        statepoints = [{"a": i} for i in range(5)]
-        for sp in statepoints:
-            self.project.open_job(sp).document["test"] = True
-        job_ids = {job.id for job in self.project.find_jobs()}
-        index = {}
-        for doc in self.project.index():
-            index[doc["_id"]] = doc
-        assert len(index) == len(job_ids)
-        assert set(index.keys()) == set(job_ids)
-        crawler = signac.contrib._SignacProjectCrawler(self.project.root_directory())
-        index2 = {}
-        for doc in crawler.crawl():
-            index2[doc["_id"]] = doc
-        for _id, _id2 in zip(index, index2):
-            assert _id == _id2
-            assert index[_id] == index2[_id]
-        assert index == index2
-        for job in self.project.find_jobs():
-            with open(job.fn("test.txt"), "w") as file:
-                file.write("test\n")
-        formats = {r".*" + re.escape(os.path.sep) + r"test\.txt": "TextFile"}
-        index = {}
-        for doc in self.project.index(formats):
-            index[doc["_id"]] = doc
-        assert len(index) == 2 * len(job_ids)
-
-        class Crawler(signac.contrib._SignacProjectCrawler):
-            called = False
-
-            def process(self_, doc, dirpath, fn):
-                Crawler.called = True
-                doc = super().process(doc=doc, dirpath=dirpath, fn=fn)
-                if "format" in doc and doc["format"] is None:
-                    assert doc["_id"] == doc["signac_id"]
-                return doc
-
-        for p, fmt in formats.items():
-            with pytest.deprecated_call():
-                Crawler.define(p, fmt)
-        index2 = {}
-        for doc in Crawler(root=self.project.root_directory()).crawl():
-            index2[doc["_id"]] = doc
-        assert index == index2
-        assert Crawler.called
 
     def test_custom_project(self):
         class CustomProject(signac.Project):

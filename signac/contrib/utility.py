@@ -88,47 +88,6 @@ def add_verbosity_argument(parser, default=0):
     )
 
 
-def walkdepth(path, depth=0):
-    """Transverse the directory starting from path.
-
-    Parameters
-    ----------
-    path :str
-        Directory passed to walk (transverse from).
-    depth : int
-        (Default value = 0)
-
-    Yields
-    ------
-    str
-        When depth==0.
-    tuple
-        When depth>0.
-
-    Raises
-    ------
-    ValueError
-        When the value of depth is negative.
-    OSError
-        When path is not name of a directory.
-
-    """
-    if depth == 0:
-        yield from os.walk(path)
-    elif depth > 0:
-        path = path.rstrip(os.path.sep)
-        if not os.path.isdir(path):
-            raise OSError(f"Not a directory: '{path}'.")
-        num_sep = path.count(os.path.sep)
-        for root, dirs, files in os.walk(path):
-            yield root, dirs, files
-            num_sep_this = root.count(os.path.sep)
-            if num_sep + depth <= num_sep_this:
-                del dirs[:]
-    else:
-        raise ValueError("The value of depth must be non-negative.")
-
-
 def _mkdir_p(path):
     """Make a new directory, or do nothing if the directory already exists.
 
