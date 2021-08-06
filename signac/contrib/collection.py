@@ -284,8 +284,10 @@ def _find_with_index_operator(index, op, argument):
             elif len(argument) == 3:
                 argument, rel_tol, abs_tol = argument
             else:
-                err_msg = "The argument of the $near operator must be a float "
-                err_msg += "or a list of floats with length 1, 2, or 3."
+                err_msg = (
+                    "The argument of the $near operator must be a float or a list of floats with "
+                    "length 1, 2, or 3."
+                )
                 raise ValueError(err_msg)
         argument = float(argument)
         rel_tol = float(rel_tol)
