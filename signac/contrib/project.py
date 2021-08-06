@@ -46,24 +46,6 @@ logger = logging.getLogger(__name__)
 
 JOB_ID_REGEX = re.compile("[a-f0-9]{32}")
 
-ACCESS_MODULE_MINIMAL = """import signac
-
-def get_indexes(root):
-    yield signac.get_project(root).index()
-"""
-
-ACCESS_MODULE_MAIN = """#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-import signac
-
-def get_indexes(root):
-    yield signac.get_project(root).index()
-
-if __name__ == '__main__':
-    with signac.Collection.open('index.txt') as index:
-        signac.export(signac.index(), index, update=True)
-"""
-
 # The warning used for doc filter deprecation everywhere. Don't use
 # triple-quoted multi-line string to avoid inserting newlines.
 # TODO: In signac 2.0, remove all docstrings for doc_filter parameters. The
