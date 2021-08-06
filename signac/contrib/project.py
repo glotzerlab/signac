@@ -853,8 +853,8 @@ class Project:
         """Find all jobs in the project's workspace.
 
         The optional filter arguments must be a Mapping of key-value pairs and
-        JSON serializable. The `filter` argument is used to search against job
-        state points, whereas the `doc_filter` argument compares against job
+        JSON serializable. The ``filter`` argument is used to search against job
+        state points, whereas the ``doc_filter`` argument compares against job
         document keys.
 
         See :ref:`signac find <signac-cli-find>` for the command line equivalent.
@@ -862,10 +862,10 @@ class Project:
         Parameters
         ----------
         filter : Mapping
-            A mapping of key-value pairs that all indexed job state points are
+            A mapping of key-value pairs that job state points are
             compared against (Default value = None).
         doc_filter : Mapping
-            A mapping of key-value pairs that all indexed job documents are
+            A mapping of key-value pairs that job documents are
             compared against (Default value = None).
 
         Returns
@@ -1720,7 +1720,7 @@ class Project:
 
         Parameters
         ----------
-        include_job_document :
+        include_job_document : bool
             Whether to include the job document in the index (Default value =
             False).
 
