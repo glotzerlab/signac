@@ -38,7 +38,6 @@ from .errors import (
 )
 from .filterparse import _add_prefix, _root_keys, parse_filter
 from .hashing import calc_id
-from .indexing import _SignacProjectCrawler
 from .job import Job
 from .schema import ProjectSchema
 from .utility import _mkdir_p, _nested_dicts_to_dotted_keys, _split_and_print_progress
@@ -816,9 +815,7 @@ class Project:
         from .schema import _build_job_statepoint_index
 
         if index is None:
-            index = self.index(include_job_document=False)
-        else:
-            warnings.warn(INDEX_DEPRECATION_WARNING, DeprecationWarning)
+            index = self._index(include_job_document=False)
         if subset is not None:
             subset = {str(s) for s in subset}
             index = [doc for doc in index if doc["_id"] in subset]
@@ -884,9 +881,9 @@ class Project:
             if doc_filter:
                 warnings.warn(DOC_FILTER_WARNING, DeprecationWarning)
                 filter.update(parse_filter(_add_prefix("doc.", doc_filter)))
-                index = self.index(include_job_document=True)
+                index = self._index(include_job_document=True)
             elif "doc" in _root_keys(filter):
-                index = self.index(include_job_document=True)
+                index = self._index(include_job_document=True)
             else:
                 index = self._sp_index()
         else:
@@ -1883,15 +1880,7 @@ class Project:
             logger.debug(f"Read cache in {delta:.3f} seconds.")
             return cache
 
-    @deprecated(
-        deprecated_in="1.8",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Indexing is deprecated.",
-    )
-    def index(
-        self, formats=None, depth=0, skip_errors=False, include_job_document=True
-    ):
+    def _index(self, *, include_job_document=True):
         r"""Generate an index of the project's workspace.
 
         This generator function indexes every file in the project's
@@ -1900,11 +1889,6 @@ class Project:
         files need to be specified with the formats argument.
 
         See :ref:`signac project -i <signac-cli-project>` for the command line equivalent.
-
-        .. code-block:: python
-
-            for doc in project.index({r'.*\.txt', 'TextFile'}):
-                print(doc)
 
         Parameters
         ----------
@@ -1928,42 +1912,28 @@ class Project:
             Index document.
 
         """
-        if formats is None:
-            root = self.workspace()
+        root = self.workspace()
 
-            def _full_doc(doc):
-                """Add `signac_id` and `root` to the index document.
+        def _full_doc(doc):
+            """Add `signac_id` and `root` to the index document.
 
-                Parameters
-                ----------
-                doc : dict
-                    Index document.
+            Parameters
+            ----------
+            doc : dict
+                Index document.
 
-                Returns
-                -------
-                dict
-                    Modified index document.
+            Returns
+            -------
+            dict
+                Modified index document.
 
-                """
-                doc["signac_id"] = doc["_id"]
-                doc["root"] = root
-                return doc
+            """
+            doc["signac_id"] = doc["_id"]
+            doc["root"] = root
+            return doc
 
-            docs = self._build_index(include_job_document=include_job_document)
-            docs = map(_full_doc, docs)
-        else:
-            if isinstance(formats, str):
-                formats = {formats: "File"}
-
-            class Crawler(_SignacProjectCrawler):
-                pass
-
-            for pattern, fmt in formats.items():
-                Crawler.define(pattern, fmt)
-            crawler = Crawler(self.root_directory())
-            docs = crawler.crawl(depth=depth)
-        if skip_errors:
-            docs = _skip_errors(docs, logger.critical)
+        docs = self._build_index(include_job_document=include_job_document)
+        docs = map(_full_doc, docs)
         for doc in docs:
             yield doc
 
