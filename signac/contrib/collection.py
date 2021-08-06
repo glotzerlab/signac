@@ -59,26 +59,6 @@ _TYPES = {
 MAX_DEFAULT_ID = int("F" * 32, 16)
 
 
-def _flatten(container):
-    """Yield elements from the container.
-
-    Parameters
-    ----------
-    container : sequence
-        List or tuple of elements.
-
-    Yields
-    ------
-    Elements of container, recursively flattening sub-sequences.
-
-    """
-    for i in container:
-        if isinstance(i, (list, tuple)):
-            yield from _flatten(i)
-        else:
-            yield i
-
-
 class _DictPlaceholder:
     pass
 
