@@ -814,34 +814,27 @@ class Project:
         )
         return ProjectSchema.detect(statepoint_index)
 
-    def _find_job_ids(self, filter=None, doc_filter=None, index=None):
+    def _find_job_ids(self, filter=None, doc_filter=None):
         """Find the job_ids of all jobs matching the filters.
 
         The optional filter arguments must be a JSON serializable mapping of
         key-value pairs.
 
-        .. note::
-            Providing a pre-calculated index may vastly increase the
-            performance of this function.
-
         Parameters
         ----------
         filter : Mapping
-            A mapping of key-value pairs that all indexed job state points
-            are compared against (Default value = None).
-        doc_filter : Mapping
-            A mapping of key-value pairs that all indexed job documents are
+            A mapping of key-value pairs that all job state points are
             compared against (Default value = None).
-        index :
-            A document index. If not provided, an index will be computed
-            (Default value = None).
+        doc_filter : Mapping
+            A mapping of key-value pairs that all job documents are compared
+            against (Default value = None).
 
         Returns
         -------
         Collection or list
-            The ids of all indexed jobs matching both filters. If no arguments
-            are provided to this method, the ids are returned as a list. If
-            any of the arguments are provided, a :class:`Collection` containing
+            The ids of all jobs matching both filters. If no arguments are
+            provided to this method, the ids are returned as a list. If any
+            of the arguments are provided, a :class:`Collection` containing
             all the ids is returned.
 
         Raises
@@ -864,18 +857,17 @@ class Project:
         dict filters) is recommended.
 
         """
-        if not filter and not doc_filter and index is None:
+        if not filter and not doc_filter:
             return list(self._job_dirs())
-        if index is None:
-            filter = dict(parse_filter(_add_prefix("sp.", filter)))
-            if doc_filter:
-                warnings.warn(DOC_FILTER_WARNING, DeprecationWarning)
-                filter.update(parse_filter(_add_prefix("doc.", doc_filter)))
-                index = self._index(include_job_document=True)
-            elif "doc" in _root_keys(filter):
-                index = self._index(include_job_document=True)
-            else:
-                index = self._sp_index()
+        filter = dict(parse_filter(_add_prefix("sp.", filter)))
+        if doc_filter:
+            warnings.warn(DOC_FILTER_WARNING, DeprecationWarning)
+            filter.update(parse_filter(_add_prefix("doc.", doc_filter)))
+            index = self._index(include_job_document=True)
+        elif "doc" in _root_keys(filter):
+            index = self._index(include_job_document=True)
+        else:
+            index = self._sp_index()
         return Collection(index, _trust=True)._find(filter)
 
     def find_jobs(self, filter=None, doc_filter=None):
