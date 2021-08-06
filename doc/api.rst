@@ -34,7 +34,6 @@ The Project
     Project.groupbydoc
     Project.import_from
     Project.id
-    Project.index
     Project.isfile
     Project.min_len_unique_id
     Project.num_jobs
