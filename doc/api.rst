@@ -168,14 +168,6 @@ Top-level functions
 Submodules
 ==========
 
-signac.cite module
-------------------
-
-.. automodule:: signac.cite
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 signac.sync module
 ------------------
 
