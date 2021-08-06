@@ -13,7 +13,7 @@ from time import time
 logger = logging.getLogger(__name__)
 
 
-def query_yes_no(question, default="yes"):
+def query_yes_no(question, default="yes"):  # pragma: no cover
     """Ask a yes/no question via input() and return their answer.
 
     "question" is a string that is presented to the user.
@@ -146,7 +146,7 @@ def _mkdir_p(path):
         os.makedirs(path, exist_ok=True)
 
 
-def split_and_print_progress(iterable, num_chunks=10, write=None, desc="Progress: "):
+def _split_and_print_progress(iterable, num_chunks=10, write=None, desc="Progress: "):
     """Split the progress and prints it.
 
     Parameters
