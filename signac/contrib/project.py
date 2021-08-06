@@ -1290,7 +1290,7 @@ class Project:
         """
         return self._get_statepoint(job_id=jobid, fn=fn)
 
-    def create_linked_view(self, prefix=None, job_ids=None, index=None, path=None):
+    def create_linked_view(self, prefix=None, job_ids=None, path=None):
         """Create or update a persistent linked view of the selected data space.
 
         Similar to :meth:`~signac.Project.export_to`, this function expands the data space
@@ -1335,8 +1335,6 @@ class Project:
         job_ids : iterable
             If None (the default), create the view for the complete data space,
             otherwise only for this iterable of job ids.
-        index :
-            A document index (Default value = None).
         path :
             The path (function) used to structure the linked data space (Default value = None).
 
@@ -1347,18 +1345,9 @@ class Project:
             directory paths.
 
         """
-        if index is not None:
-            warnings.warn(
-                (
-                    "The `index` argument is deprecated as of version 1.3 and will be "
-                    "removed in version 2.0."
-                ),
-                DeprecationWarning,
-            )
-
         from .linked_view import create_linked_view
 
-        return create_linked_view(self, prefix, job_ids, index, path)
+        return create_linked_view(self, prefix, job_ids, path)
 
     def clone(self, job, copytree=shutil.copytree):
         """Clone job into this project.

@@ -1692,12 +1692,6 @@ class TestLinkedViewProject(TestProjectBase):
         job_subset = self.project.find_jobs({"b": 0})
         id_subset = [job.id for job in job_subset]
 
-        bad_index = [dict(_id=i) for i in range(3)]
-        with pytest.raises(ValueError):
-            self.project.create_linked_view(
-                prefix=view_prefix, job_ids=id_subset, index=bad_index
-            )
-
         self.project.create_linked_view(prefix=view_prefix, job_ids=id_subset)
         all_links = list(_find_all_links(view_prefix))
         assert len(all_links) == len(id_subset)
