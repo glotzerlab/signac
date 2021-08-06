@@ -1665,8 +1665,7 @@ job documents."
 
     parser_update_cache = subparsers.add_parser(
         "update-cache",
-        description="""Use this command to update the project's persistent state point cache.
-This feature is still experimental and may be removed in future versions.""",
+        description="Use this command to update the project's persistent state point cache.",
     )
     parser_update_cache.set_defaults(func=main_update_cache)
 

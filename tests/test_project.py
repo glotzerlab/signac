@@ -805,8 +805,9 @@ class TestProject(TestProjectBase):
         for i in range(10):
             self.project.open_job(
                 {
-                    "const": 0,
+                    "const1": 0,
                     "const2": {"const3": 0},
+                    "const4": {},
                     "a": i,
                     "b": {"b2": i},
                     "c": [i if i % 2 else None, 0, 0],
@@ -817,8 +818,18 @@ class TestProject(TestProjectBase):
             ).init()
 
         s = self.project.detect_schema()
-        assert len(s) == 9
-        for k in "const", "const2.const3", "a", "b.b2", "c", "d", "e.e2", "f.f2":
+        assert len(s) == 10
+        for k in (
+            "const1",
+            "const2.const3",
+            "const4",
+            "a",
+            "b.b2",
+            "c",
+            "d",
+            "e.e2",
+            "f.f2",
+        ):
             assert k in s
             assert k.split(".") in s
             # The following calls should not error out.
@@ -828,9 +839,10 @@ class TestProject(TestProjectBase):
         assert s.format() == str(s)
         s = self.project.detect_schema(exclude_const=True)
         assert len(s) == 7
-        assert "const" not in s
+        assert "const1" not in s
         assert ("const2", "const3") not in s
         assert "const2.const3" not in s
+        assert "const4" not in s
         assert type not in s["e"]
 
     def test_schema_subset(self):
