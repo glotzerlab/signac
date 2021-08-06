@@ -180,7 +180,7 @@ def main_project(args):
     )
     project = get_project()
     if args.index:
-        for doc in project.index():
+        for doc in project._index():
             print(json.dumps(doc))
         return
     if args.workspace:
