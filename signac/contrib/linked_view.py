@@ -297,35 +297,6 @@ def _build_tree(paths):
     return root
 
 
-def _get_branches(root, branch=None):
-    """Get all branches from the root node.
-
-    Parameters
-    ----------
-    root : :class:`~signac.contrib.linked_view._Node`
-        Root node.
-    branch : list
-        The current list of branches that has been collected,
-        used in recursive calls to build up the branches starting
-        at the root (Default value = None).
-
-    Yields
-    ------
-    list
-        Branches for the root node.
-
-    """
-    if branch is None:
-        branch = []
-    else:
-        branch = list(branch) + [root]
-    if root.children:
-        for child in root.children.values():
-            yield from _get_branches(child, branch)
-    else:
-        yield branch
-
-
 def _color_path(root, path):
     """Color the path from root by setting value to True.
 
