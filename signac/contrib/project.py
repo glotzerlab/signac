@@ -823,17 +823,16 @@ class Project:
         ValueError
             If the filters are invalid.
         RuntimeError
-            If the filters are not supported by the index.
+            If the filters are not supported.
 
         Notes
         -----
-        If all arguments are ``None``, this method skips indexing the data
-        space and instead simply iterates over all job directories. This
-        code path can be much faster for certain use cases since it defers
-        all work that would be required to construct an index, so in
-        performance-critical applications where no filtering of the data space
-        is required, passing no arguments to this method (as opposed to empty
-        dict filters) is recommended.
+        If all arguments are ``None``, this method simply returns a list of all
+        job directories. This code path can be much faster for certain use cases
+        since it defers all work that would be required to construct an index,
+        so in performance-critical applications where no filtering of the data
+        space is required, passing no arguments to this method (as opposed to
+        empty dict filters) is recommended.
 
         """
         if not filter and not doc_filter:
