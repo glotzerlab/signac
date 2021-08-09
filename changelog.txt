@@ -7,6 +7,14 @@ The **signac** package follows `semantic versioning <https://semver.org/>`_.
 Version 1
 =========
 
+[1.8.0] -- 2021-xx-xx
+---------------------
+
+Deprecated
+++++++++++
+
+ - ``Project`` methods ``read_statepoints``, ``write_statepoints``, and ``dump_statepoints`` are deprecated (#579, #197).
+
 [1.7.0] -- 2021-06-08
 ---------------------
 
