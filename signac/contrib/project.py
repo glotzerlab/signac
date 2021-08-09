@@ -1605,7 +1605,7 @@ class Project:
     # State point backup files are being removed in favor of Project.update_cache().
     # Change this method in signac 2.0 to use the state point cache by default
     # instead of FN_STATEPOINTS.
-    def repair(self, fn_statepoints=None, index=None, job_ids=None):
+    def repair(self, fn_statepoints=None, job_ids=None):
         """Attempt to repair the workspace after it got corrupted.
 
         This method will attempt to repair lost or corrupted job state point
@@ -1616,8 +1616,6 @@ class Project:
         fn_statepoints : str
             The filename of the file containing the state points, defaults
             to :attr:`~signac.Project.FN_STATEPOINTS`.
-        index :
-            A document index (Default value = None).
         job_ids :
             An iterable of job ids that should get repaired. Defaults to all jobs.
 
@@ -1642,9 +1640,6 @@ class Project:
         except OSError as error:
             if error.errno != errno.ENOENT or fn_statepoints is not None:
                 raise
-        if index is not None:
-            for doc in index:
-                self._sp_cache[doc["signac_id"]] = doc["sp"]
 
         corrupted = []
         for job_id in job_ids:
