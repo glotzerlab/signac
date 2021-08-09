@@ -7,7 +7,7 @@
 # exceptions that are relevant beyond a single module. This top-level errors
 # module is used to expose user-facing exception classes.
 
-from .common.errors import AuthenticationError, ConfigError, ExportError, FetchError
+from .common.errors import ConfigError
 from .contrib.errors import (
     DestinationExistsError,
     IncompatibleSchemaVersion,
@@ -59,13 +59,10 @@ class SchemaSyncConflict(SyncConflict):
 
 
 __all__ = [
-    "AuthenticationError",
     "ConfigError",
     "DestinationExistsError",
     "DocumentSyncConflict",
     "Error",
-    "ExportError",
-    "FetchError",
     "FileSyncConflict",
     "IncompatibleSchemaVersion",
     "InvalidKeyError",
