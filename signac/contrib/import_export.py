@@ -63,10 +63,12 @@ def _make_schema_based_path_function(jobs, exclude_keys=None, delimiter_nested="
         return lambda job, sep=None: ""
 
     index = [{"_id": job.id, "sp": job.sp()} for job in jobs]
-    sp_index = OrderedDict(_build_job_statepoint_index(exclude_const=True, index=index))
+    statepoint_index = OrderedDict(
+        _build_job_statepoint_index(exclude_const=True, index=index)
+    )
 
     paths = {}
-    for key_tokens, values in sp_index.items():
+    for key_tokens, values in statepoint_index.items():
         key = key_tokens.replace(".", delimiter_nested)
         if exclude_keys and key in exclude_keys:
             continue
