@@ -596,18 +596,20 @@ class TestProject(TestProjectBase):
             # Iterating through the jobs should now result in an error.
             with pytest.raises(JobsCorruptedError):
                 for job in self.project:
-                    # Accessing the job state point triggers validation of the
-                    # state point manifest file
-                    job.statepoint()
+                    # Validate the state point.
+                    sp = job.statepoint()
+                    assert len(sp) == 1
+                    assert sp["a"] in range(5)
 
             self.project.repair()
 
             self.project._sp_cache.clear()
             self.project._remove_persistent_cache_file()
             for job in self.project:
-                # Accessing the job state point triggers validation of the
-                # state point manifest file
-                job.statepoint()
+                # Validate the state point.
+                sp = job.statepoint()
+                assert len(sp) == 1
+                assert sp["a"] in range(5)
         finally:
             logging.disable(logging.NOTSET)
 
