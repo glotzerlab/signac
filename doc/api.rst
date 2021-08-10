@@ -25,11 +25,9 @@ The Project
     Project.data
     Project.doc
     Project.document
-    Project.dump_statepoints
     Project.export_to
     Project.find_jobs
     Project.fn
-    Project.get_statepoint
     Project.groupby
     Project.groupbydoc
     Project.import_from
@@ -38,7 +36,6 @@ The Project
     Project.min_len_unique_id
     Project.num_jobs
     Project.open_job
-    Project.read_statepoints
     Project.repair
     Project.root_directory
     Project.stores
@@ -46,7 +43,6 @@ The Project
     Project.update_cache
     Project.update_statepoint
     Project.workspace
-    Project.write_statepoints
 
 .. autoclass:: Project
     :members:
