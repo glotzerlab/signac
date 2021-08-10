@@ -114,13 +114,6 @@ def _fmt_bytes(nbytes, suffix="B"):
     return "{:.1f} {}{}".format(nbytes, "Yi", suffix)
 
 
-def _read_index(project, fn_index=None):
-    if fn_index is not None:
-        _print_err(f"Reading index from file '{fn_index}'...")
-        with open(fn_index) as file_descriptor:
-            return [json.loads(line) for line in file_descriptor]
-
-
 def _open_job_by_id(project, job_id):
     """Attempt to open a job by id and provide user feedback on error."""
     try:
@@ -161,14 +154,9 @@ def find_with_filter(args):
             return args.job_id
 
     project = get_project()
-    if hasattr(args, "index"):
-        index = _read_index(project, args.index)
-    else:
-        index = None
-
     f = parse_filter_arg(args.filter)
     df = parse_filter_arg(args.doc_filter)
-    return get_project()._find_job_ids(index=index, filter=f, doc_filter=df)
+    return project._find_job_ids(filter=f, doc_filter=df)
 
 
 def main_project(args):
@@ -179,10 +167,6 @@ def main_project(args):
         FutureWarning,
     )
     project = get_project()
-    if args.index:
-        for doc in project._index():
-            print(json.dumps(doc))
-        return
     if args.workspace:
         print(project.workspace)
     else:
@@ -363,7 +347,6 @@ def main_view(args):
         prefix=args.prefix,
         path=args.path,
         job_ids=find_with_filter(args),
-        index=_read_index(args.index),
     )
 
 
@@ -988,12 +971,6 @@ def main():
         action="store_true",
         help="Print the project's workspace path instead of the project id.",
     )
-    parser_project.add_argument(
-        "-i",
-        "--index",
-        action="store_true",
-        help="Generate and print an index for the project.",
-    )
     parser_project.set_defaults(func=main_project)
 
     parser_job = subparsers.add_parser("job")
@@ -1151,9 +1128,6 @@ def main():
         nargs="+",
         help="Show documents of job matching this document filter.",
     )
-    parser_document.add_argument(
-        "--index", type=str, help="The filename of an index file."
-    )
     parser_document.set_defaults(func=main_document)
 
     parser_remove = subparsers.add_parser("rm")
@@ -1227,9 +1201,6 @@ def main():
     )
     parser_find.add_argument(
         "-d", "--doc-filter", type=str, nargs="+", help="A document filter."
-    )
-    parser_find.add_argument(
-        "-i", "--index", type=str, help="The filename of an index file."
     )
     parser_find.add_argument(
         "-s",
@@ -1326,9 +1297,6 @@ def main():
         type=str,
         nargs="+",
         help="Limit the view to jobs with these job ids.",
-    )
-    selection_group.add_argument(
-        "-i", "--index", type=str, help="The filename of an index file."
     )
     parser_view.set_defaults(func=main_view)
 
