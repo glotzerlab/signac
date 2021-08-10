@@ -97,6 +97,12 @@ class JobSearchIndex:
 
     """
 
+    @deprecated(
+        deprecated_in="1.8",
+        removed_in="2.0",
+        current_version=__version__,
+        details="The JobSearchIndex class is deprecated.",
+    )
     def __init__(self, index, _trust=False):
         self._collection = Collection(index, _trust=_trust)
 
