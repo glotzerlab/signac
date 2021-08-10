@@ -23,6 +23,7 @@ Removed
  - The cite.py module (#594).
  - The following types of exceptions: ``AuthenticationError``, ``ExportError`, ``FetchError``, ``PermissionsError`` (#595, #596).
  - All MongoDB database functionality, including the ``db`` subpackage, the ``connection``, ``crypt``, and ``host`` submodules in the ``common`` subpackage, and all associated configuration information (#576, #596).
+ - The ``JobSearchIndex`` class (#587).
 
 Version 1
 =========
