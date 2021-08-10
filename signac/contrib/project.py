@@ -213,11 +213,6 @@ class Project:
     KEY_DATA = "signac_data"
     "The project's datastore key."
 
-    # Remove in signac 2.0.
-    # State point backup files are being removed in favor of Project.update_cache().
-    FN_STATEPOINTS = "signac_statepoints.json"
-    "The default filename to read from and write state points to."
-
     FN_CACHE = ".signac_sp_cache.json.gz"
     "The default filename for the state point cache file."
 
@@ -1017,114 +1012,6 @@ class Project:
         """
         return self.find_jobs().to_dataframe(*args, **kwargs)
 
-    @deprecated(
-        deprecated_in="1.8",
-        removed_in="2.0",
-        current_version=__version__,
-        details="State point backup files are being removed in favor of Project.update_cache().",
-    )
-    def read_statepoints(self, fn=None):
-        """Read all state points from a file.
-
-        See Also
-        --------
-        dump_statepoints : Dump the state points and associated job ids.
-        write_statepoints : Dump state points to a file.
-
-        Parameters
-        ----------
-        fn : str
-            The filename of the file containing the state points,
-            defaults to :attr:`~signac.Project.FN_STATEPOINTS`.
-
-        Returns
-        -------
-        dict
-            State points.
-
-        """
-        if fn is None:
-            fn = self.fn(self.FN_STATEPOINTS)
-        # See comment in write state points.
-        with open(fn) as file:
-            return json.loads(file.read())
-
-    @deprecated(
-        deprecated_in="1.8",
-        removed_in="2.0",
-        current_version=__version__,
-        details="State point backup files are being removed in favor of Project.update_cache().",
-    )
-    def dump_statepoints(self, statepoints):
-        """Dump the state points and associated job ids.
-
-        Equivalent to:
-
-        .. code-block:: python
-
-            {project.open_job(sp).id: sp for sp in statepoints}
-
-        Parameters
-        ----------
-        statepoints : iterable
-            A list of state points.
-
-        Returns
-        -------
-        dict
-            A mapping, where the key is the job id and the value is the
-            state point.
-
-        """
-        return {calc_id(sp): sp for sp in statepoints}
-
-    @deprecated(
-        deprecated_in="1.8",
-        removed_in="2.0",
-        current_version=__version__,
-        details="State point backup files are being removed in favor of Project.update_cache().",
-    )
-    def write_statepoints(self, statepoints=None, fn=None, indent=2):
-        """Dump state points to a file.
-
-        If the file already contains state points, all new state points
-        will be appended, while the old ones are preserved.
-
-        See Also
-        --------
-        dump_statepoints : Dump the state points and associated job ids.
-
-        Parameters
-        ----------
-        statepoints : iterable
-            A list of state points, defaults to all state points which are
-            defined in the workspace.
-        fn : str
-            The filename of the file containing the state points, defaults to
-            :attr:`~signac.Project.FN_STATEPOINTS`.
-        indent : int
-            Specify the indentation of the JSON file (Default value = 2).
-
-        """
-        if fn is None:
-            fn = self.fn(self.FN_STATEPOINTS)
-        try:
-            tmp = self.read_statepoints(fn=fn)
-        except OSError as error:
-            if error.errno != errno.ENOENT:
-                raise
-            tmp = {}
-        if statepoints is None:
-            job_ids = self._job_dirs()
-            _cache = {_id: self._get_statepoint(_id) for _id in job_ids}
-        else:
-            _cache = {calc_id(sp): sp for sp in statepoints}
-
-        tmp.update(_cache)
-        logger.debug(f"Writing state points file with {len(tmp)} entries.")
-        with open(fn, "w") as file:
-            file.write(json.dumps(tmp, indent=indent))
-
     def _register(self, _id, statepoint):
         """Register the job state point in the project state point cache.
 
@@ -1209,27 +1096,9 @@ class Project:
                     "to update cache with the Project.update_cache() method."
                 )
                 self._sp_cache_warned = True
-            try:
-                statepoint = self._get_statepoint_from_workspace(job_id)
-                # Update the project's state point cache from this cache miss
-                self._sp_cache[job_id] = statepoint
-            except KeyError as error:
-                # Fall back to a file containing all state points because the state
-                # point could not be read from the job workspace.
-                #
-                # In signac 2.0, Project.read_statepoints will be removed.
-                # Update this code path to "raise error" and update the method
-                # documentation accordingly.
-                try:
-                    statepoints = self.read_statepoints(fn=fn)
-                    # Update the project's state point cache
-                    self._sp_cache.update(statepoints)
-                    statepoint = statepoints[job_id]
-                except OSError as io_error:
-                    if io_error.errno != errno.ENOENT:
-                        raise io_error
-                    else:
-                        raise error
+            statepoint = self._get_statepoint_from_workspace(job_id)
+            # Update the project's state point cache from this cache miss
+            self._sp_cache[job_id] = statepoint
         return statepoint
 
     @deprecated(
@@ -1601,20 +1470,14 @@ class Project:
             )
             raise JobsCorruptedError(corrupted)
 
-    # State point backup files are being removed in favor of Project.update_cache().
-    # Change this method in signac 2.0 to use the state point cache by default
-    # instead of FN_STATEPOINTS.
-    def repair(self, fn_statepoints=None, job_ids=None):
+    def repair(self, job_ids=None):
         """Attempt to repair the workspace after it got corrupted.
 
         This method will attempt to repair lost or corrupted job state point
-        manifest files using a state points file.
+        manifest files using a state point cache.
 
         Parameters
         ----------
-        fn_statepoints : str
-            The filename of the file containing the state points, defaults
-            to :attr:`~signac.Project.FN_STATEPOINTS`.
         job_ids :
             An iterable of job ids that should get repaired. Defaults to all jobs.
 
@@ -1629,16 +1492,6 @@ class Project:
 
         # Load internal cache from all available external sources.
         self._read_cache()
-        try:
-            # Updates the state point cache from the provided file
-            #
-            # In signac 2.0, Project.read_statepoints will be removed.
-            # Remove this code path (only use "self._read_cache()" above) and
-            # update the method signature and docs to remove "fn_statepoints."
-            self._sp_cache.update(self.read_statepoints(fn=fn_statepoints))
-        except OSError as error:
-            if error.errno != errno.ENOENT or fn_statepoints is not None:
-                raise
 
         corrupted = []
         for job_id in job_ids:
