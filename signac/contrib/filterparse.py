@@ -40,28 +40,6 @@ def _with_message(query, file):
     return query
 
 
-def _read_index(project, fn_index=None):
-    """Read index from the file passed.
-
-    Parameters
-    ----------
-    project : :class:`~signac.Project`
-        Project handle.
-    fn_index : str
-        File name of the index (Default value = None).
-
-    Returns
-    -------
-    generator
-        Returns the file contents, parsed as JSON-encoded lines.
-
-    """
-    if fn_index is not None:
-        _print_err(f"Reading index from file '{fn_index}'...")
-        fd = open(fn_index)
-        return (json.loads(line) for line in fd)
-
-
 def _is_json_like(q):
     """Check if q is JSON like.
 
