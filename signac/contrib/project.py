@@ -50,24 +50,6 @@ INDEX_DEPRECATION_WARNING = (
 
 JOB_ID_REGEX = re.compile("[a-f0-9]{32}")
 
-ACCESS_MODULE_MINIMAL = """import signac
-
-def get_indexes(root):
-    yield signac.get_project(root).index()
-"""
-
-ACCESS_MODULE_MAIN = """#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-import signac
-
-def get_indexes(root):
-    yield signac.get_project(root).index()
-
-if __name__ == '__main__':
-    with signac.Collection.open('index.txt') as index:
-        signac.export(signac.index(), index, update=True)
-"""
-
 # The warning used for doc filter deprecation everywhere. Don't use
 # triple-quoted multi-line string to avoid inserting newlines.
 # TODO: In signac 2.0, remove all docstrings for doc_filter parameters. The
@@ -149,11 +131,6 @@ class Project:
 
     KEY_DATA = "signac_data"
     "The project's datastore key."
-
-    # Remove in signac 2.0.
-    # State point backup files are being removed in favor of Project.update_cache().
-    FN_STATEPOINTS = "signac_statepoints.json"
-    "The default filename to read from and write state points to."
 
     FN_CACHE = ".signac_sp_cache.json.gz"
     "The default filename for the state point cache file."
@@ -699,7 +676,7 @@ class Project:
         """
         return self._contains_job_id(job.id)
 
-    def detect_schema(self, exclude_const=False, subset=None, index=None):
+    def detect_schema(self, exclude_const=False, subset=None):
         """Detect the project's state point schema.
 
         See :ref:`signac schema <signac-cli-schema>` for the command line equivalent.
@@ -712,8 +689,6 @@ class Project:
         subset :
             A sequence of jobs or job ids specifying a subset over which the state point
             schema should be detected (Default value = None).
-        index :
-            A document index (Default value = None).
 
         Returns
         -------
@@ -723,8 +698,7 @@ class Project:
         """
         from .schema import _build_job_statepoint_index
 
-        if index is None:
-            index = self._index(include_job_document=False)
+        index = self._index(include_job_document=False)
         if subset is not None:
             subset = {str(s) for s in subset}
             index = [doc for doc in index if doc["_id"] in subset]
@@ -733,34 +707,27 @@ class Project:
         )
         return ProjectSchema.detect(statepoint_index)
 
-    def _find_job_ids(self, filter=None, doc_filter=None, index=None):
+    def _find_job_ids(self, filter=None, doc_filter=None):
         """Find the job_ids of all jobs matching the filters.
 
         The optional filter arguments must be a JSON serializable mapping of
         key-value pairs.
 
-        .. note::
-            Providing a pre-calculated index may vastly increase the
-            performance of this function.
-
         Parameters
         ----------
         filter : Mapping
-            A mapping of key-value pairs that all indexed job state points
-            are compared against (Default value = None).
-        doc_filter : Mapping
-            A mapping of key-value pairs that all indexed job documents are
+            A mapping of key-value pairs that all job state points are
             compared against (Default value = None).
-        index :
-            A document index. If not provided, an index will be computed
-            (Default value = None).
+        doc_filter : Mapping
+            A mapping of key-value pairs that all job documents are compared
+            against (Default value = None).
 
         Returns
         -------
         Collection or list
-            The ids of all indexed jobs matching both filters. If no arguments
-            are provided to this method, the ids are returned as a list. If
-            any of the arguments are provided, a :class:`Collection` containing
+            The ids of all jobs matching both filters. If no arguments are
+            provided to this method, the ids are returned as a list. If any
+            of the arguments are provided, a :class:`Collection` containing
             all the ids is returned.
 
         Raises
@@ -769,43 +736,36 @@ class Project:
             If the filters are not JSON serializable.
         ValueError
             If the filters are invalid.
-        RuntimeError
-            If the filters are not supported by the index.
 
         Notes
         -----
-        If all arguments are ``None``, this method skips indexing the data
-        space and instead simply iterates over all job directories. This
-        code path can be much faster for certain use cases since it defers
-        all work that would be required to construct an index, so in
-        performance-critical applications where no filtering of the data space
-        is required, passing no arguments to this method (as opposed to empty
-        dict filters) is recommended.
+        If all filter arguments are empty or ``None``, this method simply
+        returns a list of all job directories. This code path can be much faster
+        for certain use cases since it defers all work that would be required to
+        construct an index. In performance-critical applications where no
+        filtering of the data space is required, passing empty filters (or
+        ``None``) to this method is recommended.
 
         """
-        if not filter and not doc_filter and index is None:
+        if not filter and not doc_filter:
             return list(self._job_dirs())
-        if index is None:
-            filter = dict(parse_filter(_add_prefix("sp.", filter)))
-            if doc_filter:
-                warnings.warn(DOC_FILTER_WARNING, DeprecationWarning)
-                filter.update(parse_filter(_add_prefix("doc.", doc_filter)))
-                index = self._index(include_job_document=True)
-            elif "doc" in _root_keys(filter):
-                index = self._index(include_job_document=True)
-            else:
-                index = self._sp_index()
+        filter = dict(parse_filter(_add_prefix("sp.", filter)))
+        if doc_filter:
+            warnings.warn(DOC_FILTER_WARNING, DeprecationWarning)
+            filter.update(parse_filter(_add_prefix("doc.", doc_filter)))
+            index = self._index(include_job_document=True)
+        elif "doc" in _root_keys(filter):
+            index = self._index(include_job_document=True)
         else:
-            warnings.warn(INDEX_DEPRECATION_WARNING, DeprecationWarning)
-
+            index = self._sp_index()
         return Collection(index, _trust=True)._find(filter)
 
     def find_jobs(self, filter=None, doc_filter=None):
         """Find all jobs in the project's workspace.
 
         The optional filter arguments must be a Mapping of key-value pairs and
-        JSON serializable. The `filter` argument is used to search against job
-        state points, whereas the `doc_filter` argument compares against job
+        JSON serializable. The ``filter`` argument is used to search against job
+        state points, whereas the ``doc_filter`` argument compares against job
         document keys.
 
         See :ref:`signac find <signac-cli-find>` for the command line equivalent.
@@ -813,10 +773,10 @@ class Project:
         Parameters
         ----------
         filter : Mapping
-            A mapping of key-value pairs that all indexed job state points are
+            A mapping of key-value pairs that job state points are
             compared against (Default value = None).
         doc_filter : Mapping
-            A mapping of key-value pairs that all indexed job documents are
+            A mapping of key-value pairs that job documents are
             compared against (Default value = None).
 
         Returns
@@ -969,114 +929,6 @@ class Project:
         """
         return self.find_jobs().to_dataframe(*args, **kwargs)
 
-    @deprecated(
-        deprecated_in="1.8",
-        removed_in="2.0",
-        current_version=__version__,
-        details="State point backup files are being removed in favor of Project.update_cache().",
-    )
-    def read_statepoints(self, fn=None):
-        """Read all state points from a file.
-
-        See Also
-        --------
-        dump_statepoints : Dump the state points and associated job ids.
-        write_statepoints : Dump state points to a file.
-
-        Parameters
-        ----------
-        fn : str
-            The filename of the file containing the state points,
-            defaults to :attr:`~signac.Project.FN_STATEPOINTS`.
-
-        Returns
-        -------
-        dict
-            State points.
-
-        """
-        if fn is None:
-            fn = self.fn(self.FN_STATEPOINTS)
-        # See comment in write state points.
-        with open(fn) as file:
-            return json.loads(file.read())
-
-    @deprecated(
-        deprecated_in="1.8",
-        removed_in="2.0",
-        current_version=__version__,
-        details="State point backup files are being removed in favor of Project.update_cache().",
-    )
-    def dump_statepoints(self, statepoints):
-        """Dump the state points and associated job ids.
-
-        Equivalent to:
-
-        .. code-block:: python
-
-            {project.open_job(sp).id: sp for sp in statepoints}
-
-        Parameters
-        ----------
-        statepoints : iterable
-            A list of state points.
-
-        Returns
-        -------
-        dict
-            A mapping, where the key is the job id and the value is the
-            state point.
-
-        """
-        return {calc_id(sp): sp for sp in statepoints}
-
-    @deprecated(
-        deprecated_in="1.8",
-        removed_in="2.0",
-        current_version=__version__,
-        details="State point backup files are being removed in favor of Project.update_cache().",
-    )
-    def write_statepoints(self, statepoints=None, fn=None, indent=2):
-        """Dump state points to a file.
-
-        If the file already contains state points, all new state points
-        will be appended, while the old ones are preserved.
-
-        See Also
-        --------
-        dump_statepoints : Dump the state points and associated job ids.
-
-        Parameters
-        ----------
-        statepoints : iterable
-            A list of state points, defaults to all state points which are
-            defined in the workspace.
-        fn : str
-            The filename of the file containing the state points, defaults to
-            :attr:`~signac.Project.FN_STATEPOINTS`.
-        indent : int
-            Specify the indentation of the JSON file (Default value = 2).
-
-        """
-        if fn is None:
-            fn = self.fn(self.FN_STATEPOINTS)
-        try:
-            tmp = self.read_statepoints(fn=fn)
-        except OSError as error:
-            if error.errno != errno.ENOENT:
-                raise
-            tmp = {}
-        if statepoints is None:
-            job_ids = self._job_dirs()
-            _cache = {_id: self._get_statepoint(_id) for _id in job_ids}
-        else:
-            _cache = {calc_id(sp): sp for sp in statepoints}
-
-        tmp.update(_cache)
-        logger.debug(f"Writing state points file with {len(tmp)} entries.")
-        with open(fn, "w") as file:
-            file.write(json.dumps(tmp, indent=indent))
-
     def _register(self, _id, statepoint):
         """Register the job state point in the project state point cache.
 
@@ -1114,7 +966,7 @@ class Project:
                 raise JobsCorruptedError([job_id])
             raise KeyError(job_id)
 
-    def _get_statepoint(self, job_id, fn=None):
+    def _get_statepoint(self, job_id):
         """Get the state point associated with a job id.
 
         The state point is retrieved from the internal cache, from
@@ -1124,9 +976,6 @@ class Project:
         ----------
         job_id : str
             A job id to get the state point for.
-        fn : str
-            The filename of the file containing the state points, defaults
-            to :attr:`~signac.Project.FN_STATEPOINTS`.
 
         Returns
         -------
@@ -1161,66 +1010,12 @@ class Project:
                     "to update cache with the Project.update_cache() method."
                 )
                 self._sp_cache_warned = True
-            try:
-                statepoint = self._get_statepoint_from_workspace(job_id)
-                # Update the project's state point cache from this cache miss
-                self._sp_cache[job_id] = statepoint
-            except KeyError as error:
-                # Fall back to a file containing all state points because the state
-                # point could not be read from the job workspace.
-                #
-                # In signac 2.0, Project.read_statepoints will be removed.
-                # Update this code path to "raise error" and update the method
-                # documentation accordingly.
-                try:
-                    statepoints = self.read_statepoints(fn=fn)
-                    # Update the project's state point cache
-                    self._sp_cache.update(statepoints)
-                    statepoint = statepoints[job_id]
-                except OSError as io_error:
-                    if io_error.errno != errno.ENOENT:
-                        raise io_error
-                    else:
-                        raise error
+            statepoint = self._get_statepoint_from_workspace(job_id)
+            # Update the project's state point cache from this cache miss
+            self._sp_cache[job_id] = statepoint
         return statepoint
 
-    @deprecated(
-        deprecated_in="1.3",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Use open_job(id=jobid).statepoint() function instead.",
-    )
-    def get_statepoint(self, jobid, fn=None):
-        """Get the state point associated with a job id.
-
-        The state point is retrieved from the internal cache, from
-        the workspace or from a state points file.
-
-        Parameters
-        ----------
-        jobid : str
-            A job id to get the state point for.
-        fn : str
-            The filename of the file containing the state points, defaults
-            to :attr:`~signac.Project.FN_STATEPOINTS`.
-
-        Returns
-        -------
-        dict
-            The state point corresponding to jobid.
-
-        Raises
-        ------
-        KeyError
-            If the state point associated with jobid could not be found.
-        :class:`signac.errors.JobsCorruptedError`
-            If the state point manifest file corresponding to jobid is
-            inaccessible or corrupted.
-
-        """
-        return self._get_statepoint(job_id=jobid, fn=fn)
-
-    def create_linked_view(self, prefix=None, job_ids=None, index=None, path=None):
+    def create_linked_view(self, prefix=None, job_ids=None, path=None):
         """Create or update a persistent linked view of the selected data space.
 
         Similar to :meth:`~signac.Project.export_to`, this function expands the data space
@@ -1265,8 +1060,6 @@ class Project:
         job_ids : iterable
             If None (the default), create the view for the complete data space,
             otherwise only for this iterable of job ids.
-        index :
-            A document index (Default value = None).
         path :
             The path (function) used to structure the linked data space (Default value = None).
 
@@ -1277,11 +1070,9 @@ class Project:
             directory paths.
 
         """
-        if index is not None:
-            warnings.warn(INDEX_DEPRECATION_WARNING, DeprecationWarning)
         from .linked_view import create_linked_view
 
-        return create_linked_view(self, prefix, job_ids, index, path)
+        return create_linked_view(self, prefix, job_ids, path)
 
     def clone(self, job, copytree=shutil.copytree):
         """Clone job into this project.
@@ -1557,22 +1348,14 @@ class Project:
             )
             raise JobsCorruptedError(corrupted)
 
-    # State point backup files are being removed in favor of Project.update_cache().
-    # Change this method in signac 2.0 to use the state point cache by default
-    # instead of FN_STATEPOINTS.
-    def repair(self, fn_statepoints=None, index=None, job_ids=None):
+    def repair(self, job_ids=None):
         """Attempt to repair the workspace after it got corrupted.
 
         This method will attempt to repair lost or corrupted job state point
-        manifest files using a state points file or a document index or both.
+        manifest files using a state point cache.
 
         Parameters
         ----------
-        fn_statepoints : str
-            The filename of the file containing the state points, defaults
-            to :attr:`~signac.Project.FN_STATEPOINTS`.
-        index :
-            A document index (Default value = None).
         job_ids :
             An iterable of job ids that should get repaired. Defaults to all jobs.
 
@@ -1587,20 +1370,6 @@ class Project:
 
         # Load internal cache from all available external sources.
         self._read_cache()
-        try:
-            # Updates the state point cache from the provided file
-            #
-            # In signac 2.0, Project.read_statepoints will be removed.
-            # Remove this code path (only use "self._read_cache()" above) and
-            # update the method signature and docs to remove "fn_statepoints."
-            self._sp_cache.update(self.read_statepoints(fn=fn_statepoints))
-        except OSError as error:
-            if error.errno != errno.ENOENT or fn_statepoints is not None:
-                raise
-        if index is not None:
-            for doc in index:
-                self._sp_cache[doc["signac_id"]] = doc["sp"]
-            warnings.warn(INDEX_DEPRECATION_WARNING, DeprecationWarning)
         corrupted = []
         for job_id in job_ids:
             try:
@@ -1675,7 +1444,7 @@ class Project:
 
         Parameters
         ----------
-        include_job_document :
+        include_job_document : bool
             Whether to include the job document in the index (Default value =
             False).
 
