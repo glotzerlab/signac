@@ -29,7 +29,6 @@ The Project
     Project.find_jobs
     Project.fn
     Project.groupby
-    Project.groupbydoc
     Project.import_from
     Project.id
     Project.isfile
@@ -62,7 +61,6 @@ The JobsCursor class
 .. autosummary::
     JobsCursor.export_to
     JobsCursor.groupby
-    JobsCursor.groupbydoc
     JobsCursor.to_dataframe
 
 
