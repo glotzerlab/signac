@@ -817,8 +817,6 @@ class Project:
             If the filters are not JSON serializable.
         ValueError
             If the filters are invalid.
-        RuntimeError
-            If the filters are not supported.
 
         Notes
         -----
