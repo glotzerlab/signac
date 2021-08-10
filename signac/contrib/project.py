@@ -820,12 +820,12 @@ class Project:
 
         Notes
         -----
-        If all arguments are ``None``, this method simply returns a list of all
-        job directories. This code path can be much faster for certain use cases
-        since it defers all work that would be required to construct an index,
-        so in performance-critical applications where no filtering of the data
-        space is required, passing no arguments to this method (as opposed to
-        empty dict filters) is recommended.
+        If all filter arguments are empty or ``None``, this method simply
+        returns a list of all job directories. This code path can be much faster
+        for certain use cases since it defers all work that would be required to
+        construct an index. In performance-critical applications where no
+        filtering of the data space is required, passing empty filters (or
+        ``None``) to this method is recommended.
 
         """
         if not filter and not doc_filter:
