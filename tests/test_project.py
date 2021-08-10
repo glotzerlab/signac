@@ -206,20 +206,6 @@ class TestProject(TestProjectBase):
         self.project.data = {"a": {"b": 45}}
         assert self.project.data == {"a": {"b": 45}}
 
-    def test_write_read_statepoint(self):
-        statepoints = [{"a": i} for i in range(5)]
-        self.project.dump_statepoints(statepoints)
-        self.project.write_statepoints(statepoints)
-        read = list(self.project.read_statepoints().values())
-        assert len(read) == len(statepoints)
-        more_statepoints = [{"b": i} for i in range(5, 10)]
-        self.project.write_statepoints(more_statepoints)
-        read2 = list(self.project.read_statepoints())
-        assert len(read2) == len(statepoints) + len(more_statepoints)
-        for id_ in self.project.read_statepoints().keys():
-            with pytest.deprecated_call():
-                self.project.get_statepoint(id_)
-
     def test_workspace_path_normalization(self):
         def norm_path(p):
             return os.path.abspath(os.path.expandvars(p))
@@ -590,6 +576,8 @@ class TestProject(TestProjectBase):
             pass
         assert i == 4
 
+        self.project.update_cache()
+
         # no manifest file
         with self.project.open_job(statepoints[0]) as job:
             os.remove(job.FN_MANIFEST)
@@ -598,12 +586,8 @@ class TestProject(TestProjectBase):
             with open(job.FN_MANIFEST, "w"):
                 pass
 
-        # Need to clear internal and persistent cache to encounter error.
+        # Need to clear internal cache to encounter error.
         self.project._sp_cache.clear()
-        self.project._remove_persistent_cache_file()
-
-        # Ensure that state point hash table does not exist.
-        assert not os.path.isfile(self.project.fn(self.project.FN_STATEPOINTS))
 
         # disable logging temporarily
         try:
@@ -612,20 +596,20 @@ class TestProject(TestProjectBase):
             # Iterating through the jobs should now result in an error.
             with pytest.raises(JobsCorruptedError):
                 for job in self.project:
-                    # Accessing the job state point triggers validation of the
-                    # state point manifest file
-                    job.statepoint
+                    # Validate the state point.
+                    sp = job.statepoint()
+                    assert len(sp) == 1
+                    assert sp["a"] in range(5)
 
-            with pytest.raises(JobsCorruptedError):
-                self.project.repair()
-
-            self.project.write_statepoints(statepoints)
             self.project.repair()
 
-            os.remove(self.project.fn(self.project.FN_STATEPOINTS))
             self.project._sp_cache.clear()
+            self.project._remove_persistent_cache_file()
             for job in self.project:
-                pass
+                # Validate the state point.
+                sp = job.statepoint()
+                assert len(sp) == 1
+                assert sp["a"] in range(5)
         finally:
             logging.disable(logging.NOTSET)
 
@@ -1691,12 +1675,6 @@ class TestLinkedViewProject(TestProjectBase):
         # update with subset
         job_subset = self.project.find_jobs({"b": 0})
         id_subset = [job.id for job in job_subset]
-
-        bad_index = [dict(_id=i) for i in range(3)]
-        with pytest.raises(ValueError):
-            self.project.create_linked_view(
-                prefix=view_prefix, job_ids=id_subset, index=bad_index
-            )
 
         self.project.create_linked_view(prefix=view_prefix, job_ids=id_subset)
         all_links = list(_find_all_links(view_prefix))
