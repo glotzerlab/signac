@@ -1049,7 +1049,7 @@ class Project:
                 raise JobsCorruptedError([job_id])
             raise KeyError(job_id)
 
-    def _get_statepoint(self, job_id, fn=None):
+    def _get_statepoint(self, job_id):
         """Get the state point associated with a job id.
 
         The state point is retrieved from the internal cache, from
@@ -1059,9 +1059,6 @@ class Project:
         ----------
         job_id : str
             A job id to get the state point for.
-        fn : str
-            The filename of the file containing the state points, defaults
-            to :attr:`~signac.Project.FN_STATEPOINTS`.
 
         Returns
         -------
@@ -1100,42 +1097,6 @@ class Project:
             # Update the project's state point cache from this cache miss
             self._sp_cache[job_id] = statepoint
         return statepoint
-
-    @deprecated(
-        deprecated_in="1.3",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Use open_job(id=jobid).statepoint() function instead.",
-    )
-    def get_statepoint(self, jobid, fn=None):
-        """Get the state point associated with a job id.
-
-        The state point is retrieved from the internal cache, from
-        the workspace or from a state points file.
-
-        Parameters
-        ----------
-        jobid : str
-            A job id to get the state point for.
-        fn : str
-            The filename of the file containing the state points, defaults
-            to :attr:`~signac.Project.FN_STATEPOINTS`.
-
-        Returns
-        -------
-        dict
-            The state point corresponding to jobid.
-
-        Raises
-        ------
-        KeyError
-            If the state point associated with jobid could not be found.
-        :class:`signac.errors.JobsCorruptedError`
-            If the state point manifest file corresponding to jobid is
-            inaccessible or corrupted.
-
-        """
-        return self._get_statepoint(job_id=jobid, fn=fn)
 
     def create_linked_view(self, prefix=None, job_ids=None, path=None):
         """Create or update a persistent linked view of the selected data space.

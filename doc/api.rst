@@ -28,7 +28,6 @@ The Project
     Project.export_to
     Project.find_jobs
     Project.fn
-    Project.get_statepoint
     Project.groupby
     Project.groupbydoc
     Project.import_from
