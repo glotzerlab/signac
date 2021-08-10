@@ -1608,7 +1608,7 @@ class Project:
         """Attempt to repair the workspace after it got corrupted.
 
         This method will attempt to repair lost or corrupted job state point
-        manifest files using a state points file or a document index or both.
+        manifest files using a state points file.
 
         Parameters
         ----------
