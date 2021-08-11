@@ -11,7 +11,6 @@ import re
 import string
 import sys
 import uuid
-import warnings
 from contextlib import contextmanager, redirect_stderr
 from tarfile import TarFile
 from tempfile import TemporaryDirectory
@@ -106,6 +105,10 @@ class TestProject(TestProjectBase):
     def test_workspace_directory(self):
         assert self._tmp_wd == self.project.workspace()
 
+    @pytest.mark.filterwarnings(
+        "ignore:Modifying the project configuration after project initialization "
+        "is deprecated"
+    )
     def test_config_modification(self):
         # In-memory modification of the project configuration is
         # deprecated as of 1.3, and will be removed in version 2.0.
@@ -113,6 +116,10 @@ class TestProject(TestProjectBase):
         # and check that the project configuration is immutable.
         self.project.config["foo"] = "bar"
 
+    @pytest.mark.filterwarnings(
+        "ignore:Modifying the project configuration after project initialization "
+        "is deprecated"
+    )
     def test_workspace_directory_with_env_variable(self):
         os.environ["SIGNAC_ENV_DIR_TEST"] = self._tmp_wd
         self.project.config["workspace_dir"] = "${SIGNAC_ENV_DIR_TEST}"
@@ -206,6 +213,10 @@ class TestProject(TestProjectBase):
         self.project.data = {"a": {"b": 45}}
         assert self.project.data == {"a": {"b": 45}}
 
+    @pytest.mark.filterwarnings(
+        "ignore:Modifying the project configuration after project initialization "
+        "is deprecated"
+    )
     def test_workspace_path_normalization(self):
         def norm_path(p):
             return os.path.abspath(os.path.expandvars(p))
@@ -238,6 +249,10 @@ class TestProject(TestProjectBase):
             assert len(caplog.records) in (2, 3)
 
     @pytest.mark.skipif(WINDOWS, reason="Symbolic links are unsupported on Windows.")
+    @pytest.mark.filterwarnings(
+        "ignore:Modifying the project configuration after project initialization "
+        "is deprecated"
+    )
     def test_workspace_broken_link_error_on_find(self):
         wd = self.project.workspace()
         os.symlink(wd + "~", self.project.fn("workspace-link"))
@@ -268,6 +283,7 @@ class TestProject(TestProjectBase):
         assert not os.path.isdir(self._tmp_wd)
         assert not os.path.isdir(self.project.workspace())
 
+    @pytest.mark.filterwarnings("ignore:The doc_filter argument is deprecated")
     def test_find_jobs(self):
         statepoints = [{"a": i} for i in range(5)]
         for sp in statepoints:
@@ -308,6 +324,9 @@ class TestProject(TestProjectBase):
         for sp in statepoints:
             assert self.project.open_job(sp) in cursor_doc
 
+    @pytest.mark.filterwarnings(
+        r"ignore:Calling next\(\) directly on a JobsCursor is deprecated!"
+    )
     def test_find_jobs_next(self):
         statepoints = [{"a": i} for i in range(5)]
         for sp in statepoints:
@@ -961,6 +980,7 @@ class TestProject(TestProjectBase):
                 assert job.sp["b"] == k[0]
                 assert job.sp["c"] == k[1]
 
+    @pytest.mark.filterwarnings("ignore:groupbydoc is deprecated")
     def test_jobs_groupbydoc(self):
         def get_doc(i):
             return {"a": i, "b": i % 2, "c": i % 3}
@@ -2372,6 +2392,10 @@ class TestProjectSchema(TestProjectBase):
                 name=str(self.project), root=self.project.root_directory()
             )
 
+    @pytest.mark.filterwarnings(
+        "ignore:Modifying the project configuration after project initialization "
+        "is deprecated"
+    )
     def test_project_schema_version_migration(self):
         from signac.contrib.migration import apply_migrations
 
@@ -2455,7 +2479,6 @@ class TestProjectStoreBase(test_h5store.TestH5StoreBase):
             name="testing_test_project", root=self._tmp_pr, workspace=self._tmp_wd
         )
 
-        warnings.filterwarnings("ignore", category=DeprecationWarning, module="signac")
         self._fn_store = os.path.join(self._tmp_dir.name, "signac_data.h5")
         self._fn_store_other = os.path.join(self._tmp_dir.name, "other.h5")
 
