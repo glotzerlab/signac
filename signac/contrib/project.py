@@ -101,6 +101,12 @@ class JobSearchIndex:
 
     """
 
+    @deprecated(
+        deprecated_in="1.8",
+        removed_in="2.0",
+        current_version=__version__,
+        details="The JobSearchIndex class is deprecated.",
+    )
     def __init__(self, index, _trust=False):
         self._collection = Collection(index, _trust=_trust)
 
@@ -237,6 +243,8 @@ class Project:
     KEY_DATA = "signac_data"
     "The project's datastore key."
 
+    # Remove in signac 2.0.
+    # State point backup files are being removed in favor of Project.update_cache().
     FN_STATEPOINTS = "signac_statepoints.json"
     "The default filename to read from and write state points to."
 
@@ -1204,6 +1212,12 @@ class Project:
         """
         return self.find_jobs().to_dataframe(*args, **kwargs)
 
+    @deprecated(
+        deprecated_in="1.8",
+        removed_in="2.0",
+        current_version=__version__,
+        details="State point backup files are being removed in favor of Project.update_cache().",
+    )
     def read_statepoints(self, fn=None):
         """Read all state points from a file.
 
@@ -1230,6 +1244,12 @@ class Project:
         with open(fn) as file:
             return json.loads(file.read())
 
+    @deprecated(
+        deprecated_in="1.8",
+        removed_in="2.0",
+        current_version=__version__,
+        details="State point backup files are being removed in favor of Project.update_cache().",
+    )
     def dump_statepoints(self, statepoints):
         """Dump the state points and associated job ids.
 
@@ -1253,6 +1273,12 @@ class Project:
         """
         return {calc_id(sp): sp for sp in statepoints}
 
+    @deprecated(
+        deprecated_in="1.8",
+        removed_in="2.0",
+        current_version=__version__,
+        details="State point backup files are being removed in favor of Project.update_cache().",
+    )
     def write_statepoints(self, statepoints=None, fn=None, indent=2):
         """Dump state points to a file.
 
@@ -1385,6 +1411,10 @@ class Project:
             except KeyError as error:
                 # Fall back to a file containing all state points because the state
                 # point could not be read from the job workspace.
+                #
+                # In signac 2.0, Project.read_statepoints will be removed.
+                # Update this code path to "raise error" and update the method
+                # documentation accordingly.
                 try:
                     statepoints = self.read_statepoints(fn=fn)
                     # Update the project's state point cache
@@ -1849,6 +1879,9 @@ class Project:
             )
             raise JobsCorruptedError(corrupted)
 
+    # State point backup files are being removed in favor of Project.update_cache().
+    # Change this method in signac 2.0 to use the state point cache by default
+    # instead of FN_STATEPOINTS.
     def repair(self, fn_statepoints=None, index=None, job_ids=None):
         """Attempt to repair the workspace after it got corrupted.
 
@@ -1878,6 +1911,10 @@ class Project:
         self._read_cache()
         try:
             # Updates the state point cache from the provided file
+            #
+            # In signac 2.0, Project.read_statepoints will be removed.
+            # Remove this code path (only use "self._read_cache()" above) and
+            # update the method signature and docs to remove "fn_statepoints."
             self._sp_cache.update(self.read_statepoints(fn=fn_statepoints))
         except OSError as error:
             if error.errno != errno.ENOENT or fn_statepoints is not None:
@@ -2074,6 +2111,12 @@ class Project:
             logger.debug(f"Read cache in {delta:.3f} seconds.")
             return cache
 
+    @deprecated(
+        deprecated_in="1.8",
+        removed_in="2.0",
+        current_version=__version__,
+        details="Indexing is deprecated.",
+    )
     def index(
         self, formats=None, depth=0, skip_errors=False, include_job_document=True
     ):
