@@ -46,6 +46,8 @@ from .utility import _mkdir_p, _nested_dicts_to_dotted_keys, split_and_print_pro
 
 logger = logging.getLogger(__name__)
 
+INDEX_DEPRECATION_WARNING = "The index argument is deprecated and will be removed in signac 2.0."
+
 JOB_ID_REGEX = re.compile("[a-f0-9]{32}")
 
 ACCESS_MODULE_MINIMAL = """import signac
@@ -880,12 +882,6 @@ class Project:
         ):
             yield tuple(x.split(".")), y
 
-    @deprecated(
-        deprecated_in="1.8",
-        removed_in="2.0",
-        current_version=__version__,
-        details="The index argument will be removed in version 2.0.",
-    )
     def detect_schema(self, exclude_const=False, subset=None, index=None):
         """Detect the project's state point schema.
 
@@ -912,6 +908,8 @@ class Project:
 
         if index is None:
             index = self.index(include_job_document=False)
+        else:
+            warnings.warn(INDEX_DEPRECATION_WARNING, DeprecationWarning)
         if subset is not None:
             subset = {str(s) for s in subset}
             index = [doc for doc in index if doc["_id"] in subset]
@@ -1030,6 +1028,9 @@ class Project:
                 index = self.index(include_job_document=True)
             else:
                 index = self._sp_index()
+        else:
+            warnings.warn(INDEX_DEPRECATION_WARNING, DeprecationWarning)
+
         return Collection(index, _trust=True)._find(filter)
 
     def find_jobs(self, filter=None, doc_filter=None):
@@ -1430,12 +1431,6 @@ class Project:
         """
         return self._get_statepoint(job_id=jobid, fn=fn)
 
-    @deprecated(
-        deprecated_in="1.8",
-        removed_in="2.0",
-        current_version=__version__,
-        details="The index argument will be removed in version 2.0.",
-    )
     def create_linked_view(self, prefix=None, job_ids=None, index=None, path=None):
         """Create or update a persistent linked view of the selected data space.
 
@@ -1494,14 +1489,7 @@ class Project:
 
         """
         if index is not None:
-            warnings.warn(
-                (
-                    "The `index` argument is deprecated as of version 1.3 and will be "
-                    "removed in version 2.0."
-                ),
-                DeprecationWarning,
-            )
-
+            warnings.warn(INDEX_DEPRECATION_WARNING, DeprecationWarning)
         from .linked_view import create_linked_view
 
         return create_linked_view(self, prefix, job_ids, index, path)
@@ -1859,12 +1847,6 @@ class Project:
             )
             raise JobsCorruptedError(corrupted)
 
-    @deprecated(
-        deprecated_in="1.8",
-        removed_in="2.0",
-        current_version=__version__,
-        details="The index argument will be removed in version 2.0.",
-    )
     def repair(self, fn_statepoints=None, index=None, job_ids=None):
         """Attempt to repair the workspace after it got corrupted.
 
@@ -1901,7 +1883,7 @@ class Project:
         if index is not None:
             for doc in index:
                 self._sp_cache[doc["signac_id"]] = doc["sp"]
-
+            warnings.warn(INDEX_DEPRECATION_WARNING, DeprecationWarning)
         corrupted = []
         for job_id in job_ids:
             try:
