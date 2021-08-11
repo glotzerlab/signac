@@ -880,6 +880,12 @@ class Project:
         ):
             yield tuple(x.split(".")), y
 
+    @deprecated(
+        deprecated_in="1.8",
+        removed_in="2.0",
+        current_version=__version__,
+        details="The index argument will be removed in version 2.0.",
+    )
     def detect_schema(self, exclude_const=False, subset=None, index=None):
         """Detect the project's state point schema.
 
@@ -1424,6 +1430,12 @@ class Project:
         """
         return self._get_statepoint(job_id=jobid, fn=fn)
 
+    @deprecated(
+        deprecated_in="1.8",
+        removed_in="2.0",
+        current_version=__version__,
+        details="The index argument will be removed in version 2.0.",
+    )
     def create_linked_view(self, prefix=None, job_ids=None, index=None, path=None):
         """Create or update a persistent linked view of the selected data space.
 
@@ -1847,6 +1859,12 @@ class Project:
             )
             raise JobsCorruptedError(corrupted)
 
+    @deprecated(
+        deprecated_in="1.8",
+        removed_in="2.0",
+        current_version=__version__,
+        details="The index argument will be removed in version 2.0.",
+    )
     def repair(self, fn_statepoints=None, index=None, job_ids=None):
         """Attempt to repair the workspace after it got corrupted.
 
