@@ -297,13 +297,30 @@ class TestProject(TestProjectBase):
         assert 0 == len(list(self.project.find_jobs({"sp.a": 5})))
         assert 1 == len(list(self.project.find_jobs(doc_filter={"b": 0})))
         assert 0 == len(list(self.project.find_jobs(doc_filter={"b": 5})))
+        assert 1 == len(list(self.project.find_jobs(None, {"b": 0})))
+        assert 0 == len(list(self.project.find_jobs(None, {"b": 5})))
         assert 1 == len(list(self.project.find_jobs({"doc.b": 0})))
         assert 0 == len(list(self.project.find_jobs({"doc.b": 5})))
         assert 1 == len(list(self.project.find_jobs({"a": 0, "doc.b": 0})))
+        assert 1 == len(list(self.project.find_jobs({"a": 0}, {"b": 0})))
+        assert 1 == len(
+            list(self.project.find_jobs(filter={"a": 0}, doc_filter={"b": 0}))
+        )
+        assert 1 == len(list(self.project.find_jobs({"a": 0}, doc_filter={"b": 0})))
         assert 1 == len(list(self.project.find_jobs({"sp.a": 0, "doc.b": 0})))
+        assert 0 == len(list(self.project.find_jobs({"a": 0, "doc.b": 5})))
+        assert 0 == len(list(self.project.find_jobs({"a": 0}, {"b": 5})))
+        assert 0 == len(
+            list(self.project.find_jobs(filter={"a": 0}, doc_filter={"b": 5}))
+        )
+        assert 0 == len(list(self.project.find_jobs({"a": 0}, doc_filter={"b": 5})))
         assert 0 == len(list(self.project.find_jobs({"sp.a": 0, "doc.b": 5})))
         assert 0 == len(list(self.project.find_jobs({"sp.a": 5, "doc.b": 0})))
         assert 0 == len(list(self.project.find_jobs({"sp.a": 5, "doc.b": 5})))
+        with pytest.raises(ValueError):
+            self.project.find_jobs({"a": 0}, {"b": 5}, "invalid positional arg")
+        with pytest.raises(ValueError):
+            self.project.find_jobs({"a": 0}, invalid_kwarg="invalid argument")
         for job in self.project.find_jobs():
             assert self.project.open_job(id=job.id).id == job.id
 
@@ -321,7 +338,7 @@ class TestProject(TestProjectBase):
                 assert self.project.open_job(sp) in cursor_first
             else:
                 assert self.project.open_job(sp) not in cursor_first
-        cursor_doc = self.project.find_jobs(doc_filter={"test": True})
+        cursor_doc = self.project.find_jobs({"doc.test": True})
         for sp in statepoints:
             assert self.project.open_job(sp) in cursor_doc
 

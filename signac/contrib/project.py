@@ -755,29 +755,27 @@ class Project:
             index = self._sp_index()
         return Collection(index, _trust=True)._find(filter)
 
-    def find_jobs(self, filter=None, doc_filter=None):
+    def find_jobs(self, filter=None, *args, **kwargs):
         """Find all jobs in the project's workspace.
 
-        The optional filter arguments must be a Mapping of key-value pairs and
-        JSON serializable. The ``filter`` argument is used to search against job
-        state points, whereas the ``doc_filter`` argument compares against job
-        document keys.
+        The filter argument must be a JSON-serializable Mapping of key-value
+        pairs. The ``filter`` argument can search against both job state points
+        and job documents. See
+        https://docs.signac.io/en/latest/query.html#query-namespaces
+        for a description of supported queries.
 
         See :ref:`signac find <signac-cli-find>` for the command line equivalent.
 
         Parameters
         ----------
         filter : Mapping
-            A mapping of key-value pairs that job state points are
-            compared against (Default value = None).
-        doc_filter : Mapping
-            A mapping of key-value pairs that job documents are
-            compared against (Default value = None).
+            A mapping of key-value pairs used for the query (Default value =
+            None).
 
         Returns
         -------
         :class:`~signac.contrib.project.JobsCursor`
-            JobsCursor of jobs matching the provided filter(s).
+            JobsCursor of jobs matching the provided filter.
 
         Raises
         ------
@@ -785,10 +783,11 @@ class Project:
             If the filters are not JSON serializable.
         ValueError
             If the filters are invalid.
-        RuntimeError
-            If the filters are not supported by the index.
 
         """
+        doc_filter = next(iter(args), None) or kwargs.pop("doc_filter", None)
+        if len(args) > 1 or len(kwargs):
+            raise ValueError("Unsupported arguments were provided.")
         filter = dict(parse_filter(_add_prefix("sp.", filter)))
         if doc_filter:
             warnings.warn(DOC_FILTER_WARNING, DeprecationWarning)
