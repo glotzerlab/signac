@@ -46,7 +46,9 @@ from .utility import _mkdir_p, _nested_dicts_to_dotted_keys, split_and_print_pro
 
 logger = logging.getLogger(__name__)
 
-INDEX_DEPRECATION_WARNING = "The index argument is deprecated and will be removed in signac 2.0."
+INDEX_DEPRECATION_WARNING = (
+    "The index argument is deprecated and will be removed in signac 2.0."
+)
 
 JOB_ID_REGEX = re.compile("[a-f0-9]{32}")
 
