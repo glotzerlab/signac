@@ -702,28 +702,25 @@ class Project:
         )
         return ProjectSchema.detect(statepoint_index)
 
-    def _find_job_ids(self, filter=None, doc_filter=None):
-        """Find the job_ids of all jobs matching the filters.
+    def _find_job_ids(self, filter=None):
+        """Find the job ids of all jobs matching the filter.
 
-        The optional filter arguments must be a JSON serializable mapping of
-        key-value pairs.
+        The filter argument must be a JSON-serializable Mapping of key-value
+        pairs. The ``filter`` argument can search against both job state points
+        and job documents. See
+        https://docs.signac.io/en/latest/query.html#query-namespaces
+        for a description of supported queries.
 
         Parameters
         ----------
         filter : Mapping
-            A mapping of key-value pairs that all job state points are
-            compared against (Default value = None).
-        doc_filter : Mapping
-            A mapping of key-value pairs that all job documents are compared
-            against (Default value = None).
+            A mapping of key-value pairs used for the query (Default value =
+            None).
 
         Returns
         -------
-        Collection or list
-            The ids of all jobs matching both filters. If no arguments are
-            provided to this method, the ids are returned as a list. If any
-            of the arguments are provided, a :class:`Collection` containing
-            all the ids is returned.
+        list
+            The ids of all jobs matching the filter.
 
         Raises
         ------
@@ -732,28 +729,15 @@ class Project:
         ValueError
             If the filters are invalid.
 
-        Notes
-        -----
-        If all filter arguments are empty or ``None``, this method simply
-        returns a list of all job directories. This code path can be much faster
-        for certain use cases since it defers all work that would be required to
-        construct an index. In performance-critical applications where no
-        filtering of the data space is required, passing empty filters (or
-        ``None``) to this method is recommended.
-
         """
-        if not filter and not doc_filter:
+        if not filter:
             return list(self._job_dirs())
         filter = dict(parse_filter(_add_prefix("sp.", filter)))
-        if doc_filter:
-            warnings.warn(DOC_FILTER_WARNING, DeprecationWarning)
-            filter.update(parse_filter(_add_prefix("doc.", doc_filter)))
-            index = self._index(include_job_document=True)
-        elif "doc" in _root_keys(filter):
+        if "doc" in _root_keys(filter):
             index = self._index(include_job_document=True)
         else:
             index = self._sp_index()
-        return Collection(index, _trust=True)._find(filter)
+        return list(Collection(index, _trust=True)._find(filter))
 
     def find_jobs(self, filter=None, *args, **kwargs):
         """Find all jobs in the project's workspace.
@@ -1859,26 +1843,19 @@ class JobsCursor:
     project : :class:`~signac.Project`
         Project handle.
     filter : Mapping
-        A mapping of key-value pairs that all indexed job state points are
-        compared against (Default value = None).
-
-    Notes
-    -----
-    Iteration is performed by acquiring job ids from the project using
-    :meth:`Project._find_job_ids`. When no filter (``filter = None``) is
-    provided, that method can take a much faster execution path, so not passing
-    a filter (or passing ``None`` explicitly) to this constructor is strongly
-    recommended over passing an empty filter (``filter = {}``) when iterating
-    over the entire data space.
+        A mapping of key-value pairs used for the query (Default value = None).
 
     """
 
     _use_pandas_for_html_repr = True  # toggle use of pandas for html repr
 
-    def __init__(self, project, filter=None, doc_filter=None):
+    def __init__(self, project, filter=None, *args, **kwargs):
         self._project = project
         self._filter = filter
 
+        doc_filter = next(iter(args), None) or kwargs.pop("doc_filter", None)
+        if len(args) > 1 or len(kwargs):
+            raise ValueError("Unsupported arguments were provided.")
         # TODO: This is a compatibility layer for signac-flow. It should be
         # removed after signac 2.0 is released and once signac-flow drops
         # support for signac < 2.0. At that point the JobsCursor constructor

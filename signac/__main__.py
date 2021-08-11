@@ -32,7 +32,7 @@ else:
 from . import Project, get_project, init_project
 from .common import config
 from .common.configobj import Section, flatten_errors
-from .contrib.filterparse import parse_filter_arg
+from .contrib.filterparse import _add_prefix, parse_filter_arg
 from .contrib.import_export import _SchemaPathEvaluationError, export_jobs
 from .contrib.utility import add_verbosity_argument, query_yes_no
 from .diff import diff_jobs
@@ -153,9 +153,12 @@ def find_with_filter(args):
             return args.job_id
 
     project = get_project()
-    f = parse_filter_arg(args.filter)
-    df = parse_filter_arg(args.doc_filter)
-    return project._find_job_ids(filter=f, doc_filter=df)
+    filter_ = parse_filter_arg(args.filter) or {}
+    if args.doc_filter:
+        filter_.update(_add_prefix("doc.", parse_filter_arg(args.doc_filter)))
+    if not filter_:
+        filter_ = None
+    return project._find_job_ids(filter=filter_)
 
 
 def main_project(args):
