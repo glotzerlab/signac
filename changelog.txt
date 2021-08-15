@@ -16,6 +16,7 @@ Deprecated
  - ``Project`` methods ``read_statepoints``, ``write_statepoints``, and ``dump_statepoints`` are deprecated (#579, #197).
  - ``Project.index`` method is deprecated (#591, #588).
  - ``JobSearchIndex`` class is deprecated (#600).
+ - ``index`` argument is deprecated in ``Project`` methods (#602, #588).
 
 [1.7.0] -- 2021-06-08
 ---------------------
