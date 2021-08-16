@@ -21,7 +21,6 @@ from multiprocessing.pool import ThreadPool
 from tempfile import TemporaryDirectory
 from threading import RLock
 
-from deprecation import deprecated
 from packaging import version
 
 from ..common.config import Config, get_config, load_config
@@ -850,64 +849,15 @@ class Project:
             present. The value must be sortable and is only used if not None
             (Default value = None).
 
-        Returns
-        -------
-        key : str
-            Grouped key.
+        Yields
+        ------
+        key :
+            Key identifying this group.
         group : iterable of Jobs
-            Iterable of `Job` instances matching this group key.
+            Iterable of `Job` instances matching this group.
 
         """
         return self.find_jobs().groupby(key, default=default)
-
-    @deprecated(
-        deprecated_in="1.7",
-        removed_in="2.0",
-        current_version=__version__,
-        details=(
-            "Use groupby with a 'doc.' filter instead, see "
-            "https://docs.signac.io/en/latest/query.html#query-namespaces."
-        ),
-    )
-    def groupbydoc(self, key=None, default=None):
-        """Group jobs according to one or more document values.
-
-        This method can be called on any :class:`~signac.contrib.project.JobsCursor` such as
-        the one returned by :meth:`~signac.Project.find_jobs` or by iterating over a
-        project.
-
-        Examples
-        --------
-        .. code-block:: python
-
-            # Group jobs by document value 'a'.
-            for key, group in project.groupbydoc('a'):
-                print(key, list(group))
-
-            # Find jobs where job.sp['a'] is 1 and group them
-            # by job.document['b'] and job.document['c'].
-            for key, group in project.find_jobs({'a': 1}).groupbydoc(('b', 'c')):
-                print(key, list(group))
-
-            # Group by whether 'd' is a field in the job.document using a lambda.
-            for key, group in project.groupbydoc(lambda doc: 'd' in doc):
-                print(key, list(group))
-
-        If `key` is None, jobs are grouped by id, placing one job into each group.
-
-        Parameters
-        ----------
-        key : str, iterable, or callable
-            The document grouping parameter(s) passed as a string, iterable
-            of strings, or a callable that will be passed one argument,
-            :attr:`~signac.contrib.job.Job.document` (Default value = None).
-        default :
-            A default value to be used when a given document key is not
-            present. The value must be sortable and is only used if not None
-            (Default value = None).
-
-        """
-        return self.find_jobs().groupbydoc(key, default=default)
 
     def to_dataframe(self, *args, **kwargs):
         r"""Export the project metadata to a pandas :class:`~pandas.DataFrame`.
@@ -2066,6 +2016,13 @@ class JobsCursor:
             present. The value must be sortable and is only used if not None
             (Default value = None).
 
+        Yields
+        ------
+        key :
+            Key identifying this group.
+        group : iterable of Jobs
+            Iterable of `Job` instances matching this group.
+
         """
         _filter = self._filter
 
@@ -2162,87 +2119,6 @@ class JobsCursor:
             ),
             key=keyfunction,
         )
-
-    @deprecated(
-        deprecated_in="1.7",
-        removed_in="2.0",
-        current_version=__version__,
-        details=(
-            "Use groupby with a 'doc.' filter instead, see "
-            "https://docs.signac.io/en/latest/query.html#query-namespaces."
-        ),
-    )
-    def groupbydoc(self, key=None, default=None):
-        """Group jobs according to one or more document values.
-
-        This method can be called on any :class:`~signac.contrib.project.JobsCursor` such as
-        the one returned by :meth:`~signac.Project.find_jobs` or by iterating over a
-        project.
-
-        Examples
-        --------
-        .. code-block:: python
-
-            # Group jobs by document value 'a'.
-            for key, group in project.groupbydoc('a'):
-                print(key, list(group))
-
-            # Find jobs where job.sp['a'] is 1 and group them
-            # by job.document['b'] and job.document['c'].
-            for key, group in project.find_jobs({'a': 1}).groupbydoc(('b', 'c')):
-                print(key, list(group))
-
-            # Group by whether 'd' is a field in the job.document using a lambda.
-            for key, group in project.groupbydoc(lambda doc: 'd' in doc):
-                print(key, list(group))
-
-        If `key` is None, jobs are grouped by id, placing one job into each group.
-
-        Parameters
-        ----------
-        key : str, iterable, or callable
-            The document grouping parameter(s) passed as a string, iterable
-            of strings, or a callable that will be passed one argument,
-            :attr:`~signac.contrib.job.Job.document` (Default value = None).
-        default :
-            A default value to be used when a given document key is not
-            present. The value must be sortable and is only used if not None
-            (Default value = None).
-
-        """
-        if isinstance(key, str):
-            if default is None:
-
-                def keyfunction(job):
-                    return job.document[key]
-
-            else:
-
-                def keyfunction(job):
-                    return job.document.get(key, default)
-
-        elif isinstance(key, Iterable):
-            if default is None:
-
-                def keyfunction(job):
-                    return tuple(job.document[k] for k in key)
-
-            else:
-
-                def keyfunction(job):
-                    return tuple(job.document.get(k, default) for k in key)
-
-        elif key is None:
-            # Must return a type that can be ordered with <, >
-            def keyfunction(job):
-                return str(job)
-
-        else:
-            # Pass the job document to a callable
-            def keyfunction(job):
-                return key(job.document)
-
-        return groupby(sorted(iter(self), key=keyfunction), key=keyfunction)
 
     def export_to(self, target, path=None, copytree=None):
         """Export all jobs to a target location, such as a directory or a (zipped) archive file.
