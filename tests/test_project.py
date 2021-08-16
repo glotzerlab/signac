@@ -307,6 +307,7 @@ class TestProject(TestProjectBase):
         for job in self.project.find_jobs():
             assert self.project.open_job(id=job.id).id == job.id
 
+    @pytest.mark.filterwarnings("ignore:The doc_filter argument is deprecated")
     def test_find_jobs_JobsCursor_contains(self):
         statepoints = [{"a": i} for i in range(5)]
         for sp in statepoints:
