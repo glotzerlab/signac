@@ -223,6 +223,7 @@ class TestBasicShell:
         )
         assert "duplicate paths" in err
 
+    @pytest.mark.filterwarnings("ignore:The doc_filter argument is deprecated")
     def test_find(self):
         self.call("python -m signac init my_project".split())
         project = signac.Project()
