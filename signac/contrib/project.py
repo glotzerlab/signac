@@ -55,7 +55,7 @@ JOB_ID_REGEX = re.compile("[a-f0-9]{32}")
 # doc_filter parameters will only be preserved for backwards compatibility but
 # not advertised as part of the API in signac 2.0.
 DOC_FILTER_WARNING = (
-    "The doc_filter argument was deprecated in version 1.7 and will be removed "
+    "The doc_filter argument is deprecated as of version 1.7 and will be removed "
     "in version 3.0. Users should instead use a filter with a 'doc.' prefix. For "
     "example, `doc_filter={'foo': 'bar'}` is equivalent to `filter={'doc.foo': 'bar'}`. "
     "See https://docs.signac.io/en/latest/query.html#query-namespaces for more "

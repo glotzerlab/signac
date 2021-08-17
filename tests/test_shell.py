@@ -203,6 +203,7 @@ class TestBasicShell:
                 "view/a/{}/job".format(sp["a"])
             ) == os.path.realpath(project.open_job(sp).workspace())
 
+    @pytest.mark.filterwarnings("ignore:The doc_filter argument is deprecated")
     def test_find(self):
         self.call("python -m signac init my_project".split())
         project = signac.Project()
