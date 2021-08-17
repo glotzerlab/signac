@@ -110,6 +110,10 @@ class TestProject(TestProjectBase):
             ws = self.project.workspace()
         assert ws == self.project.workspace
 
+    @pytest.mark.filterwarnings(
+        "ignore:Modifying the project configuration after project initialization "
+        "is deprecated"
+    )
     def test_config_modification(self):
         # In-memory modification of the project configuration is
         # deprecated as of 1.3, and will be removed in version 2.0.
@@ -117,6 +121,10 @@ class TestProject(TestProjectBase):
         # and check that the project configuration is immutable.
         self.project.config["foo"] = "bar"
 
+    @pytest.mark.filterwarnings(
+        "ignore:Modifying the project configuration after project initialization "
+        "is deprecated"
+    )
     def test_workspace_directory_with_env_variable(self):
         os.environ["SIGNAC_ENV_DIR_TEST"] = self._tmp_wd
         self.project.config["workspace_dir"] = "${SIGNAC_ENV_DIR_TEST}"
@@ -210,6 +218,10 @@ class TestProject(TestProjectBase):
         self.project.data = {"a": {"b": 45}}
         assert self.project.data == {"a": {"b": 45}}
 
+    @pytest.mark.filterwarnings(
+        "ignore:Modifying the project configuration after project initialization "
+        "is deprecated"
+    )
     def test_workspace_path_normalization(self):
         def norm_path(p):
             return os.path.abspath(os.path.expandvars(p))
@@ -242,6 +254,10 @@ class TestProject(TestProjectBase):
             assert len(caplog.records) in (2, 3)
 
     @pytest.mark.skipif(WINDOWS, reason="Symbolic links are unsupported on Windows.")
+    @pytest.mark.filterwarnings(
+        "ignore:Modifying the project configuration after project initialization "
+        "is deprecated"
+    )
     def test_workspace_broken_link_error_on_find(self):
         wd = self.project.workspace
         os.symlink(wd + "~", self.project.fn("workspace-link"))
@@ -272,6 +288,7 @@ class TestProject(TestProjectBase):
         assert not os.path.isdir(self._tmp_wd)
         assert not os.path.isdir(self.project.workspace)
 
+    @pytest.mark.filterwarnings("ignore:The doc_filter argument is deprecated")
     def test_find_jobs(self):
         statepoints = [{"a": i} for i in range(5)]
         for sp in statepoints:
@@ -295,6 +312,7 @@ class TestProject(TestProjectBase):
         for job in self.project.find_jobs():
             assert self.project.open_job(id=job.id).id == job.id
 
+    @pytest.mark.filterwarnings("ignore:The doc_filter argument is deprecated")
     def test_find_jobs_JobsCursor_contains(self):
         statepoints = [{"a": i} for i in range(5)]
         for sp in statepoints:
@@ -312,6 +330,9 @@ class TestProject(TestProjectBase):
         for sp in statepoints:
             assert self.project.open_job(sp) in cursor_doc
 
+    @pytest.mark.filterwarnings(
+        r"ignore:Calling next\(\) directly on a JobsCursor is deprecated!"
+    )
     def test_find_jobs_next(self):
         statepoints = [{"a": i} for i in range(5)]
         for sp in statepoints:
@@ -2390,6 +2411,10 @@ class TestProjectSchema(TestProjectBase):
         with pytest.raises(RuntimeError):
             apply_migrations(self.project.root_directory())
 
+    @pytest.mark.filterwarnings(
+        "ignore:Modifying the project configuration after project initialization "
+        "is deprecated"
+    )
     @pytest.mark.parametrize("implicit_version", [True, False])
     def test_project_schema_version_migration(self, implicit_version):
         from signac.contrib.migration import apply_migrations
