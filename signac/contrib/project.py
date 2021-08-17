@@ -43,7 +43,8 @@ from .utility import _mkdir_p, _nested_dicts_to_dotted_keys, _split_and_print_pr
 
 logger = logging.getLogger(__name__)
 
-JOB_ID_REGEX = re.compile("[a-f0-9]{32}")
+JOB_ID_LENGTH = 32
+JOB_ID_REGEX = re.compile(f"[a-f0-9]{{{JOB_ID_LENGTH}}}")
 
 # The warning used for doc filter deprecation everywhere. Don't use
 # triple-quoted multi-line string to avoid inserting newlines.
@@ -336,7 +337,7 @@ class Project:
         """
         job_ids = list(self._find_job_ids())
         tmp = set()
-        for i in range(32):
+        for i in range(JOB_ID_LENGTH):
             tmp.clear()
             for _id in job_ids:
                 if _id[:i] in tmp:
@@ -567,7 +568,7 @@ class Project:
             # Worst case: no state point was provided and the state point cache
             # missed. The Job will register itself in self._sp_cache when the
             # state point is accessed.
-            if len(id) < 32:
+            if len(id) < JOB_ID_LENGTH:
                 # Resolve partial job ids (first few characters) into a full job id
                 job_ids = self._find_job_ids()
                 matches = [_id for _id in job_ids if _id.startswith(id)]
