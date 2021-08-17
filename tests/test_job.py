@@ -8,7 +8,6 @@ import logging
 import os
 import random
 import uuid
-import warnings
 from contextlib import contextmanager
 from tempfile import TemporaryDirectory
 
@@ -77,8 +76,6 @@ class TestJobBase:
         self.project = self.project_class.init_project(
             name="testing_test_project", root=self._tmp_pr, workspace=self._tmp_wd
         )
-
-        warnings.filterwarnings("ignore", category=DeprecationWarning, module="signac")
 
     def tearDown(self):
         pass
@@ -435,6 +432,9 @@ class TestJobSpInterface(TestJobBase):
             assert job.sp == job2.sp
             assert job.id == job2.id
 
+    @pytest.mark.filterwarnings("ignore:Use of int as key is deprecated")
+    @pytest.mark.filterwarnings("ignore:Use of NoneType as key is deprecated")
+    @pytest.mark.filterwarnings("ignore:Use of bool as key is deprecated")
     def test_valid_sp_key_types(self):
         job = self.open_job(dict(invalid_key=True)).init()
 
@@ -465,6 +465,9 @@ class TestJobSpInterface(TestJobBase):
             with pytest.raises(TypeError):
                 job.sp = {key: "test"}
 
+    @pytest.mark.filterwarnings("ignore:Use of int as key is deprecated")
+    @pytest.mark.filterwarnings("ignore:Use of NoneType as key is deprecated")
+    @pytest.mark.filterwarnings("ignore:Use of bool as key is deprecated")
     def test_valid_doc_key_types(self):
         job = self.open_job(dict(invalid_key=True)).init()
 
@@ -494,6 +497,10 @@ class TestJobSpInterface(TestJobBase):
 
 
 class TestConfig(TestJobBase):
+    @pytest.mark.filterwarnings(
+        "ignore:Modifying the project configuration after project initialization "
+        "is deprecated"
+    )
     def test_set_get_delete(self):
         key, value = list(test_token.items())[0]
         key, value = "author_name", list(test_token.values())[0]
@@ -504,6 +511,10 @@ class TestConfig(TestJobBase):
         del config[key]
         assert key not in config
 
+    @pytest.mark.filterwarnings(
+        "ignore:Modifying the project configuration after project initialization "
+        "is deprecated"
+    )
     def test_update(self):
         key, value = "author_name", list(test_token.values())[0]
         config = copy.deepcopy(self.project.config)
@@ -511,6 +522,10 @@ class TestConfig(TestJobBase):
         assert config[key] == value
         assert key in config
 
+    @pytest.mark.filterwarnings(
+        "ignore:Modifying the project configuration after project initialization "
+        "is deprecated"
+    )
     def test_set_and_retrieve_version(self):
         fake_version = 0, 0, 0
         self.project.config["signac_version"] = fake_version
