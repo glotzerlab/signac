@@ -1053,7 +1053,7 @@ class Project:
             if error.errno == errno.EEXIST:
                 raise DestinationExistsError(dst)
             elif error.errno == errno.ENOENT:
-                raise ValueError("Source job not initalized.")
+                raise ValueError("Source job not initialized.")
             else:
                 raise
         return dst
