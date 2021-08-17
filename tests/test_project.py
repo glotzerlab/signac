@@ -947,6 +947,11 @@ class TestProject(TestProjectBase):
             for job in list(g):
                 assert job.document["a"] == k
 
+        for k, g in self.project.groupby("doc.b"):
+            assert len(list(g)) == 6
+            for job in list(g):
+                assert job.document["b"] == k
+
         assert len(list(self.project.groupby("doc.d"))) == 0
         for k, g in self.project.groupby("doc.d", default=-1):
             assert k == -1
@@ -970,6 +975,17 @@ class TestProject(TestProjectBase):
                 assert job.sp["b"] == k[0]
                 assert job.document["c"] == k[1]
 
+        for k, g in self.project.groupby(lambda job: job.doc["a"] % 4):
+            assert len(list(g)) == 3
+            for job in list(g):
+                assert job.document["a"] % 4 == k
+
+        for k, g in self.project.groupby(lambda job: str(job.doc)):
+            assert len(list(g)) == 1
+            for job in list(g):
+                assert str(job.document) == k
+
+        # Make the schema heterogeneous
         self.project.open_job({"a": 20}).init()
         for k, g in self.project.groupby("b"):
             assert len(list(g)) == 6
@@ -981,46 +997,10 @@ class TestProject(TestProjectBase):
                 assert job.sp["b"] == k[0]
                 assert job.sp["c"] == k[1]
 
-    @pytest.mark.filterwarnings("ignore:groupbydoc is deprecated")
-    def test_jobs_groupbydoc(self):
-        def get_doc(i):
-            return {"a": i, "b": i % 2, "c": i % 3}
-
-        for i in range(12):
-            job = self.project.open_job({"i": i}).init()
-            job.document = get_doc(i)
-
-        for k, g in self.project.groupbydoc("a"):
-            assert len(list(g)) == 1
-            for job in list(g):
-                assert job.document["a"] == k
-        for k, g in self.project.groupbydoc("b"):
-            assert len(list(g)) == 6
-            for job in list(g):
-                assert job.document["b"] == k
-        with pytest.raises(KeyError):
-            for k, g in self.project.groupbydoc("d"):
-                pass
-        for k, g in self.project.groupbydoc("d", default=-1):
-            assert k == -1
-            assert len(list(g)) == len(self.project)
-        for k, g in self.project.groupbydoc(("b", "c")):
-            assert len(list(g)) == 2
-            for job in list(g):
-                assert job.document["b"] == k[0]
-                assert job.document["c"] == k[1]
-        for k, g in self.project.groupbydoc(lambda doc: doc["a"] % 4):
-            assert len(list(g)) == 3
-            for job in list(g):
-                assert job.document["a"] % 4 == k
-        for k, g in self.project.groupbydoc(lambda doc: str(doc)):
-            assert len(list(g)) == 1
-            for job in list(g):
-                assert str(job.document) == k
         group_count = 0
-        for k, g in self.project.groupbydoc():
+        for k, g in self.project.groupby(lambda job: job.id):
             assert len(list(g)) == 1
-            group_count = group_count + 1
+            group_count += 1
             for job in list(g):
                 assert str(job) == k
         assert group_count == len(list(self.project.find_jobs()))
