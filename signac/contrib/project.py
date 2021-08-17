@@ -1862,6 +1862,7 @@ class JobsCursor:
         # will require a 'doc.' namespaced filter to perform document-based
         # filtering.
         if doc_filter:
+            warnings.warn(DOC_FILTER_WARNING, DeprecationWarning)
             doc_filter = parse_filter(_add_prefix("doc.", doc_filter))
             if self._filter:
                 self._filter.update(doc_filter)
