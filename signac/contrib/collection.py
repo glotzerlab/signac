@@ -936,9 +936,9 @@ class Collection:
             if not _valid_filter(filter):
                 raise ValueError(filter)
             result = self._find_result(filter)
-            return set(islice(result, limit if limit else None))
         else:
-            return set(islice(self._docs.keys(), limit if limit else None))
+            result = self._docs.keys()
+        return set(islice(result, limit if limit else None))
 
     def find(self, filter=None, limit=0):
         """Find all documents matching filter, but not more than limit.
