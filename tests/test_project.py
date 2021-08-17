@@ -571,7 +571,7 @@ class TestProject(TestProjectBase):
             os.replace(wd, wd_invalid)
             with pytest.raises(JobsCorruptedError):
                 self.project.check()
-            #  ... we reinitalize the initial job, ...
+            #  ... we reinitialize the initial job, ...
             job.init()
             with pytest.raises(JobsCorruptedError):
                 # ... which means the repair attempt must fail.
