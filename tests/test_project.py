@@ -283,7 +283,6 @@ class TestProject(TestProjectBase):
         assert not os.path.isdir(self._tmp_wd)
         assert not os.path.isdir(self.project.workspace())
 
-    @pytest.mark.filterwarnings("ignore:The doc_filter argument is deprecated")
     def test_find_jobs(self):
         statepoints = [{"a": i} for i in range(5)]
         for sp in statepoints:
@@ -295,25 +294,31 @@ class TestProject(TestProjectBase):
         assert 0 == len(list(self.project.find_jobs({"a": 5})))
         assert 1 == len(list(self.project.find_jobs({"sp.a": 0})))
         assert 0 == len(list(self.project.find_jobs({"sp.a": 5})))
-        assert 1 == len(list(self.project.find_jobs(doc_filter={"b": 0})))
-        assert 0 == len(list(self.project.find_jobs(doc_filter={"b": 5})))
+        with pytest.deprecated_call():
+            assert 1 == len(list(self.project.find_jobs(doc_filter={"b": 0})))
+        with pytest.deprecated_call():
+            assert 0 == len(list(self.project.find_jobs(doc_filter={"b": 5})))
         assert 1 == len(list(self.project.find_jobs(None, {"b": 0})))
         assert 0 == len(list(self.project.find_jobs(None, {"b": 5})))
         assert 1 == len(list(self.project.find_jobs({"doc.b": 0})))
         assert 0 == len(list(self.project.find_jobs({"doc.b": 5})))
         assert 1 == len(list(self.project.find_jobs({"a": 0, "doc.b": 0})))
         assert 1 == len(list(self.project.find_jobs({"a": 0}, {"b": 0})))
-        assert 1 == len(
-            list(self.project.find_jobs(filter={"a": 0}, doc_filter={"b": 0}))
-        )
-        assert 1 == len(list(self.project.find_jobs({"a": 0}, doc_filter={"b": 0})))
+        with pytest.deprecated_call():
+            assert 1 == len(
+                list(self.project.find_jobs(filter={"a": 0}, doc_filter={"b": 0}))
+            )
+        with pytest.deprecated_call():
+            assert 1 == len(list(self.project.find_jobs({"a": 0}, doc_filter={"b": 0})))
         assert 1 == len(list(self.project.find_jobs({"sp.a": 0, "doc.b": 0})))
         assert 0 == len(list(self.project.find_jobs({"a": 0, "doc.b": 5})))
         assert 0 == len(list(self.project.find_jobs({"a": 0}, {"b": 5})))
-        assert 0 == len(
-            list(self.project.find_jobs(filter={"a": 0}, doc_filter={"b": 5}))
-        )
-        assert 0 == len(list(self.project.find_jobs({"a": 0}, doc_filter={"b": 5})))
+        with pytest.deprecated_call():
+            assert 0 == len(
+                list(self.project.find_jobs(filter={"a": 0}, doc_filter={"b": 5}))
+            )
+        with pytest.deprecated_call():
+            assert 0 == len(list(self.project.find_jobs({"a": 0}, doc_filter={"b": 5})))
         assert 0 == len(list(self.project.find_jobs({"sp.a": 0, "doc.b": 5})))
         assert 0 == len(list(self.project.find_jobs({"sp.a": 5, "doc.b": 0})))
         assert 0 == len(list(self.project.find_jobs({"sp.a": 5, "doc.b": 5})))
@@ -324,7 +329,6 @@ class TestProject(TestProjectBase):
         for job in self.project.find_jobs():
             assert self.project.open_job(id=job.id).id == job.id
 
-    @pytest.mark.filterwarnings("ignore:The doc_filter argument is deprecated")
     def test_find_jobs_JobsCursor_contains(self):
         statepoints = [{"a": i} for i in range(5)]
         for sp in statepoints:
@@ -341,6 +345,11 @@ class TestProject(TestProjectBase):
         cursor_doc = self.project.find_jobs({"doc.test": True})
         for sp in statepoints:
             assert self.project.open_job(sp) in cursor_doc
+
+        with pytest.deprecated_call():
+            cursor_doc = self.project.find_jobs(doc_filter={"test": True})
+            for sp in statepoints:
+                assert self.project.open_job(sp) in cursor_doc
 
     def test_find_jobs_arithmetic_operators(self):
         for i in range(10):
