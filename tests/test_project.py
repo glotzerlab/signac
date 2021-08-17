@@ -322,9 +322,9 @@ class TestProject(TestProjectBase):
         assert 0 == len(list(self.project.find_jobs({"sp.a": 0, "doc.b": 5})))
         assert 0 == len(list(self.project.find_jobs({"sp.a": 5, "doc.b": 0})))
         assert 0 == len(list(self.project.find_jobs({"sp.a": 5, "doc.b": 5})))
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             self.project.find_jobs({"a": 0}, {"b": 5}, "invalid positional arg")
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             self.project.find_jobs({"a": 0}, invalid_kwarg="invalid argument")
         for job in self.project.find_jobs():
             assert self.project.open_job(id=job.id).id == job.id

@@ -771,7 +771,7 @@ class Project:
         """
         doc_filter = next(iter(args), None) or kwargs.pop("doc_filter", None)
         if len(args) > 1 or len(kwargs):
-            raise ValueError("Unsupported arguments were provided.")
+            raise TypeError("Unsupported arguments were provided.")
         filter = dict(parse_filter(_add_prefix("sp.", filter)))
         if doc_filter:
             warnings.warn(DOC_FILTER_WARNING, DeprecationWarning)
@@ -1855,7 +1855,7 @@ class JobsCursor:
 
         doc_filter = next(iter(args), None) or kwargs.pop("doc_filter", None)
         if len(args) > 1 or len(kwargs):
-            raise ValueError("Unsupported arguments were provided.")
+            raise TypeError("Unsupported arguments were provided.")
         # TODO: This is a compatibility layer for signac-flow. It should be
         # removed after signac 2.0 is released and once signac-flow drops
         # support for signac < 2.0. At that point the JobsCursor constructor
