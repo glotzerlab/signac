@@ -298,12 +298,15 @@ class TestProject(TestProjectBase):
             assert 1 == len(list(self.project.find_jobs(doc_filter={"b": 0})))
         with pytest.deprecated_call():
             assert 0 == len(list(self.project.find_jobs(doc_filter={"b": 5})))
-        assert 1 == len(list(self.project.find_jobs(None, {"b": 0})))
-        assert 0 == len(list(self.project.find_jobs(None, {"b": 5})))
+        with pytest.deprecated_call():
+            assert 1 == len(list(self.project.find_jobs(None, {"b": 0})))
+        with pytest.deprecated_call():
+            assert 0 == len(list(self.project.find_jobs(None, {"b": 5})))
         assert 1 == len(list(self.project.find_jobs({"doc.b": 0})))
         assert 0 == len(list(self.project.find_jobs({"doc.b": 5})))
         assert 1 == len(list(self.project.find_jobs({"a": 0, "doc.b": 0})))
-        assert 1 == len(list(self.project.find_jobs({"a": 0}, {"b": 0})))
+        with pytest.deprecated_call():
+            assert 1 == len(list(self.project.find_jobs({"a": 0}, {"b": 0})))
         with pytest.deprecated_call():
             assert 1 == len(
                 list(self.project.find_jobs(filter={"a": 0}, doc_filter={"b": 0}))
@@ -312,7 +315,8 @@ class TestProject(TestProjectBase):
             assert 1 == len(list(self.project.find_jobs({"a": 0}, doc_filter={"b": 0})))
         assert 1 == len(list(self.project.find_jobs({"sp.a": 0, "doc.b": 0})))
         assert 0 == len(list(self.project.find_jobs({"a": 0, "doc.b": 5})))
-        assert 0 == len(list(self.project.find_jobs({"a": 0}, {"b": 5})))
+        with pytest.deprecated_call():
+            assert 0 == len(list(self.project.find_jobs({"a": 0}, {"b": 5})))
         with pytest.deprecated_call():
             assert 0 == len(
                 list(self.project.find_jobs(filter={"a": 0}, doc_filter={"b": 5}))
