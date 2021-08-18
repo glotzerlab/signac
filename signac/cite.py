@@ -4,6 +4,10 @@
 """Functions to support citing this software."""
 import sys
 
+from deprecation import deprecated
+
+from .version import __version__
+
 ARXIV_BIBTEX = """@online{signac,
     author      = {Carl S. Adorf and Paul M. Dodd and Sharon C. Glotzer},
     title       = {signac - A Simple Data Management Framework},
@@ -22,6 +26,12 @@ ARXIV_REFERENCE = (
 )
 
 
+@deprecated(
+    deprecated_in="1.8",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The cite module is deprecated.",
+)
 def bibtex(file=None):
     """Generate bibtex entries for signac.
 
@@ -45,6 +55,12 @@ def bibtex(file=None):
     file.write(ARXIV_BIBTEX)
 
 
+@deprecated(
+    deprecated_in="1.8",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The cite module is deprecated.",
+)
 def reference(file=None):
     """Generate formatted reference entries for signac.
 
