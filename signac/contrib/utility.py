@@ -13,7 +13,7 @@ from time import time
 logger = logging.getLogger(__name__)
 
 
-def query_yes_no(question, default="yes"):  # pragma: no cover
+def _query_yes_no(question, default="yes"):  # pragma: no cover
     """Ask a yes/no question via input() and return their answer.
 
     "question" is a string that is presented to the user.
@@ -62,7 +62,7 @@ def query_yes_no(question, default="yes"):  # pragma: no cover
             sys.stdout.write("Please respond with 'yes' or 'no' (or 'y' or 'n').\n")
 
 
-def add_verbosity_argument(parser, default=0):
+def _add_verbosity_argument(parser, default=0):
     """Add a verbosity argument to parser.
 
     Parameters
