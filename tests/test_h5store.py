@@ -103,11 +103,13 @@ class TestH5StoreOpen(TestH5StoreBase):
             h5s["foo"] = "bar"
 
         with self.open_h5store(mode="r") as h5s:
+            assert h5s.mode == "r"
             assert "foo" in h5s
             self.assertEqual(h5s["foo"], "bar")
 
     def test_open_write_only(self):
         with self.open_h5store(mode="w") as h5s:
+            assert h5s.mode == "r+"
             h5s["foo"] = "bar"
             assert "foo" in h5s
             self.assertEqual(h5s["foo"], "bar")
@@ -115,6 +117,8 @@ class TestH5StoreOpen(TestH5StoreBase):
     def test_open_write_and_read_only(self):
         with self.open_h5store(mode="w") as h5s_w:
             with self.open_h5store(mode="r") as h5s_r:
+                assert h5s_w.mode == "r+"
+                assert h5s_r.mode == "r"
                 assert "foo" not in h5s_r
                 assert "foo" not in h5s_w
 
