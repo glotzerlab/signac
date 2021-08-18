@@ -18,6 +18,11 @@ Deprecated
  - ``JobSearchIndex`` class is deprecated (#600).
  - ``index`` argument is deprecated in ``Project`` methods (#602, #588).
 
+Fixed
++++++
+
+ - ``H5Store.mode`` returns the file mode (#607).
+
 [1.7.0] -- 2021-06-08
 ---------------------
 
