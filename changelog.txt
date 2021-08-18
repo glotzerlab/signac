@@ -13,7 +13,7 @@ Version 2
 Removed
 +++++++
 
- - ``Project.config`` is no longer mutable. Use the command line ``$ signac config`` to modify configuration (#608, #246, #244).
+ - The ``Project.config`` property is no longer mutable. Use the command line ``$ signac config`` to modify configuration (#608, #246, #244).
 
 Version 1
 =========
