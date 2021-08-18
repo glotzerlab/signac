@@ -1972,27 +1972,6 @@ class JobsCursor:
             self._project, self._project._find_job_ids(self._filter)
         )
 
-    @deprecated(
-        deprecated_in="0.9.6",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Use next(iter(...)) instead.",
-    )
-    def next(self):
-        """Return the next element.
-
-        This function is deprecated. Users should use ``next(iter(...))`` instead.
-        .. deprecated:: 0.9.6
-
-        """
-        if self._next_iter is None:
-            self._next_iter = iter(self)
-        try:
-            return next(self._next_iter)
-        except StopIteration:
-            self._next_iter = None
-            raise
-
     def groupby(self, key=None, default=None):
         """Group jobs according to one or more state point or document parameters.
 
