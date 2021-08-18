@@ -207,6 +207,12 @@ class Project:
     def config(self):
         """Get project's configuration.
 
+        The configuration is immutable once the Project is constructed. To
+        modify a project configuration, use the command line or edit the
+        configuration file directly.
+
+        See :ref:`signac config <signac-cli-config>` for related command line tools.
+
         Returns
         -------
         :class:`~signac.contrib.project._ProjectConfig`
