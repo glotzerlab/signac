@@ -292,22 +292,12 @@ class TestProject(TestProjectBase):
         assert len(statepoints) == len(list(self.project.find_jobs({})))
         assert 1 == len(list(self.project.find_jobs({"a": 0})))
         assert 0 == len(list(self.project.find_jobs({"a": 5})))
-        with pytest.deprecated_call():
-            assert 1 == len(list(self.project.find_jobs({"a": 0}, None)))
-        with pytest.deprecated_call():
-            assert 0 == len(list(self.project.find_jobs({"a": 5}, None)))
-        with pytest.deprecated_call():
-            assert 1 == len(list(self.project.find_jobs({"a": 0}, doc_filter=None)))
-        with pytest.deprecated_call():
-            assert 0 == len(list(self.project.find_jobs({"a": 5}, doc_filter=None)))
-        with pytest.deprecated_call():
-            assert 1 == len(
-                list(self.project.find_jobs(filter={"a": 0}, doc_filter=None))
-            )
-        with pytest.deprecated_call():
-            assert 0 == len(
-                list(self.project.find_jobs(filter={"a": 5}, doc_filter=None))
-            )
+        assert 1 == len(list(self.project.find_jobs({"a": 0}, None)))
+        assert 0 == len(list(self.project.find_jobs({"a": 5}, None)))
+        assert 1 == len(list(self.project.find_jobs({"a": 0}, doc_filter=None)))
+        assert 0 == len(list(self.project.find_jobs({"a": 5}, doc_filter=None)))
+        assert 1 == len(list(self.project.find_jobs(filter={"a": 0}, doc_filter=None)))
+        assert 0 == len(list(self.project.find_jobs(filter={"a": 5}, doc_filter=None)))
         assert 1 == len(list(self.project.find_jobs({"sp.a": 0})))
         assert 0 == len(list(self.project.find_jobs({"sp.a": 5})))
         with pytest.deprecated_call():
@@ -358,6 +348,8 @@ class TestProject(TestProjectBase):
             self.project.find_jobs({"a": 0}, {"b": 5}, "invalid positional arg")
         with pytest.raises(TypeError):
             self.project.find_jobs({"a": 0}, invalid_kwarg="invalid argument")
+        with pytest.raises(TypeError):
+            self.project.find_jobs({"a": 0}, {"b": 0}, doc_filter={"b": 0})
         for job in self.project.find_jobs():
             assert self.project.open_job(id=job.id).id == job.id
 
