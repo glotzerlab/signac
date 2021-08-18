@@ -325,24 +325,6 @@ class TestProject(TestProjectBase):
         for sp in statepoints:
             assert self.project.open_job(sp) in cursor_doc
 
-    @pytest.mark.filterwarnings(
-        r"ignore:Calling next\(\) directly on a JobsCursor is deprecated!"
-    )
-    def test_find_jobs_next(self):
-        statepoints = [{"a": i} for i in range(5)]
-        for sp in statepoints:
-            self.project.open_job(sp).init()
-        jobs = self.project.find_jobs()
-        for i in range(2):  # run this twice
-            jobs_ = set()
-            for i in range(len(self.project)):
-                job = jobs.next()
-                assert job in self.project
-                jobs_.add(job)
-            with pytest.raises(StopIteration):
-                job = jobs.next()
-            assert jobs_ == set(self.project)
-
     def test_find_jobs_arithmetic_operators(self):
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
