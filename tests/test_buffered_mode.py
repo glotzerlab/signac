@@ -71,21 +71,21 @@ class TestBufferedMode(TestProjectBase):
             assert job.doc.a == 2
         assert job.doc.a == 2
 
-    def test_buffered_mode_change_buffer_size(self):
+    def test_buffered_mode_change_buffer_capacity(self):
         assert not signac.is_buffered()
-        with signac.buffered(buffer_size=12):
+        with signac.buffered(buffer_capacity=12):
             assert signac.buffered()
-            assert signac.get_buffer_size() == 12
+            assert signac.get_buffer_capacity() == 12
 
         assert not signac.is_buffered()
 
         assert not signac.is_buffered()
-        with signac.buffered(buffer_size=12):
+        with signac.buffered(buffer_capacity=12):
             assert signac.buffered()
-            assert signac.get_buffer_size() == 12
+            assert signac.get_buffer_capacity() == 12
             with signac.buffered():
                 assert signac.buffered()
-                assert signac.get_buffer_size() == 12
+                assert signac.get_buffer_capacity() == 12
 
         assert not signac.is_buffered()
 
@@ -114,24 +114,24 @@ class TestBufferedMode(TestProjectBase):
                 assert job.doc.a
 
         routine()
-        assert signac.get_buffer_load() == 0
+        assert signac.get_current_buffer_size() == 0
         with signac.buffered():
             assert signac.is_buffered()
             routine()
-            assert signac.get_buffer_load() > 0
-        assert signac.get_buffer_load() == 0
+            assert signac.get_current_buffer_size() > 0
+        assert signac.get_current_buffer_size() == 0
 
         for job in self.project:
             x = job.doc.a
             with signac.buffered():
-                assert signac.get_buffer_load() == 0
+                assert signac.get_current_buffer_size() == 0
                 assert job.doc.a == x
-                assert signac.get_buffer_load() > 0
+                assert signac.get_current_buffer_size() > 0
                 job.doc.a = not job.doc.a
                 assert job.doc.a == (not x)
                 job2 = self.project.open_job(id=job.id)
                 assert job2.doc.a == (not x)
-            assert signac.get_buffer_load() == 0
+            assert signac.get_current_buffer_size() == 0
             assert job.doc.a == (not x)
             assert job2.doc.a == (not x)
 
