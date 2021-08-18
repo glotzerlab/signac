@@ -81,13 +81,6 @@ class _ProjectConfig(Config):
         return super().__setitem__(key, value)
 
 
-def _invalidate_config_cache(project):
-    """Invalidate cached properties derived from a project config."""
-    project._id = None
-    project._rd = None
-    project._wd = None
-
-
 class Project:
     """The handle on a signac project.
 
@@ -125,19 +118,35 @@ class Project:
         self._config = _ProjectConfig(config)
         self._lock = RLock()
 
-        # Prepare cached properties derived from the project config.
-        self._id = None
-        self._rd = None
-        self._wd = None
-
         # Ensure that the project id is configured.
-        if self.id is None:
+        try:
+            self._id = str(self.config["project"])
+        except KeyError:
             raise LookupError(
                 "Unable to determine project id. "
                 "Please verify that '{}' is a signac project path.".format(
                     os.path.abspath(self.config.get("project_dir", os.getcwd()))
                 )
             )
+
+        # Prepare root directory and workspace paths.
+        self._root_directory = self.config["project_dir"]
+        self._workspace = os.path.expandvars(
+            self.config.get("workspace_dir", "workspace")
+        )
+        if not os.path.isabs(self._workspace):
+            self._workspace = os.path.join(self._root_directory, self._workspace)
+
+        # Prepare workspace directory.
+        if not os.path.isdir(self.workspace()):
+            try:
+                _mkdir_p(self.workspace())
+            except OSError:
+                logger.error(
+                    "Error occurred while trying to create "
+                    "workspace directory for project {}.".format(self.id)
+                )
+                raise
 
         # Ensure that the project's data schema is supported.
         if not _ignore_schema_version:
@@ -148,17 +157,6 @@ class Project:
 
         # Prepare project H5StoreManager
         self._stores = None
-
-        # Prepare Workspace Directory
-        if not os.path.isdir(self.workspace()):
-            try:
-                _mkdir_p(self.workspace())
-            except OSError:
-                logger.error(
-                    "Error occurred while trying to create "
-                    "workspace directory for project {}.".format(self.id)
-                )
-                raise
 
         # Internal caches
         self._index_cache = {}
@@ -226,19 +224,15 @@ class Project:
             Path of project directory.
 
         """
-        if self._rd is None:
-            self._rd = self.config["project_dir"]
-        return self._rd
+        return self._root_directory
 
     def workspace(self):
         """Return the project's workspace directory.
 
-        The workspace defaults to `project_root/workspace`.
-        Configure this directory with the 'workspace_dir'
-        attribute.
-        If the specified directory is a relative path,
-        the absolute path is relative from the project's
-        root directory.
+        The workspace defaults to `project_root/workspace`. Configure this
+        directory with the ``'workspace_dir'`` configuration option. If the
+        specified directory is a relative path, the absolute path is relative
+        from the project's root directory.
 
         .. note::
             The configuration will respect environment variables,
@@ -252,12 +246,7 @@ class Project:
             Path of workspace directory.
 
         """
-        if self._wd is None:
-            wd = os.path.expandvars(self.config.get("workspace_dir", "workspace"))
-            self._wd = (
-                wd if os.path.isabs(wd) else os.path.join(self.root_directory(), wd)
-            )
-        return self._wd
+        return self._workspace
 
     @property
     def id(self):
@@ -269,11 +258,6 @@ class Project:
             The project id.
 
         """
-        if self._id is None:
-            try:
-                self._id = str(self.config["project"])
-            except KeyError:
-                return None
         return self._id
 
     def _check_schema_compatibility(self):
