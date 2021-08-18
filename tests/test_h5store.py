@@ -118,7 +118,7 @@ class TestH5StoreOpen(TestH5StoreBase):
         with self.open_h5store(mode="w") as h5s_w:
             with self.open_h5store(mode="r") as h5s_r:
                 assert h5s_w.mode == "r+"
-                assert h5s_r.mode == "r"
+                assert h5s_r.mode == "r+"
                 assert "foo" not in h5s_r
                 assert "foo" not in h5s_w
 
