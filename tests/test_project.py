@@ -105,25 +105,27 @@ class TestProject(TestProjectBase):
     def test_workspace_directory(self):
         assert self._tmp_wd == self.project.workspace()
 
-    @pytest.mark.filterwarnings(
-        "ignore:Modifying the project configuration after project initialization "
-        "is deprecated"
-    )
     def test_config_modification(self):
         # In-memory modification of the project configuration is
         # deprecated as of 1.3, and will be removed in version 2.0.
         # This unit test should reflect that change beginning 2.0,
         # and check that the project configuration is immutable.
-        self.project.config["foo"] = "bar"
+        with pytest.raises(ValueError):
+            self.project.config["foo"] = "bar"
 
-    @pytest.mark.filterwarnings(
-        "ignore:Modifying the project configuration after project initialization "
-        "is deprecated"
-    )
     def test_workspace_directory_with_env_variable(self):
-        os.environ["SIGNAC_ENV_DIR_TEST"] = self._tmp_wd
-        self.project.config["workspace_dir"] = "${SIGNAC_ENV_DIR_TEST}"
-        assert self._tmp_wd == self.project.workspace()
+        try:
+            with TemporaryDirectory() as tmp_dir:
+                os.environ["SIGNAC_ENV_DIR_TEST"] = os.path.join(tmp_dir, "work_here")
+                project = self.project_class.init_project(
+                    name="testing_test_project",
+                    root=tmp_dir,
+                    workspace="${SIGNAC_ENV_DIR_TEST}",
+                )
+                assert project.workspace() == os.environ["SIGNAC_ENV_DIR_TEST"]
+        finally:
+            if "SIGNAC_ENV_DIR_TEST" in os.environ:
+                del os.environ["SIGNAC_ENV_DIR_TEST"]
 
     def test_workspace_directory_exists(self):
         assert os.path.exists(self.project.workspace())
@@ -213,29 +215,27 @@ class TestProject(TestProjectBase):
         self.project.data = {"a": {"b": 45}}
         assert self.project.data == {"a": {"b": 45}}
 
-    @pytest.mark.filterwarnings(
-        "ignore:Modifying the project configuration after project initialization "
-        "is deprecated"
-    )
     def test_workspace_path_normalization(self):
         def norm_path(p):
             return os.path.abspath(os.path.expandvars(p))
 
-        def root_path():
-            # Returns 'C:\\' on Windows, '/' on other platforms
-            return os.path.abspath(os.sep)
-
         assert self.project.workspace() == norm_path(self._tmp_wd)
 
-        abs_path = os.path.join(root_path(), "path", "to", "workspace")
-        self.project.config["workspace_dir"] = abs_path
-        assert self.project.workspace() == norm_path(abs_path)
+        with TemporaryDirectory() as tmp_dir:
+            abs_path = os.path.join(tmp_dir, "path", "to", "workspace")
+            project = self.project_class.init_project(
+                name="testing_test_project", root=tmp_dir, workspace=abs_path
+            )
+            assert project.workspace() == norm_path(abs_path)
 
-        rel_path = norm_path(os.path.join("path", "to", "workspace"))
-        self.project.config["workspace_dir"] = rel_path
-        assert self.project.workspace() == norm_path(
-            os.path.join(self.project.root_directory(), self.project.workspace())
-        )
+        with TemporaryDirectory() as tmp_dir:
+            rel_path = norm_path(os.path.join("path", "to", "workspace"))
+            project = self.project_class.init_project(
+                name="testing_test_project", root=tmp_dir, workspace=rel_path
+            )
+            assert project.workspace() == norm_path(
+                os.path.join(project.root_directory(), rel_path)
+            )
 
     def test_no_workspace_warn_on_find(self, caplog):
         if os.path.exists(self.project.workspace()):
@@ -249,16 +249,18 @@ class TestProject(TestProjectBase):
             assert len(caplog.records) in (2, 3)
 
     @pytest.mark.skipif(WINDOWS, reason="Symbolic links are unsupported on Windows.")
-    @pytest.mark.filterwarnings(
-        "ignore:Modifying the project configuration after project initialization "
-        "is deprecated"
-    )
     def test_workspace_broken_link_error_on_find(self):
-        wd = self.project.workspace()
-        os.symlink(wd + "~", self.project.fn("workspace-link"))
-        self.project.config["workspace_dir"] = "workspace-link"
-        with pytest.raises(WorkspaceError):
-            list(self.project.find_jobs())
+        with TemporaryDirectory() as tmp_dir:
+            project = self.project_class.init_project(
+                name="testing_test_project", root=tmp_dir, workspace="workspace-link"
+            )
+            os.rmdir(os.path.join(tmp_dir, "workspace-link"))
+            os.symlink(
+                os.path.join(tmp_dir, "workspace~"),
+                os.path.join(tmp_dir, "workspace-link"),
+            )
+            with pytest.raises(WorkspaceError):
+                list(project.find_jobs())
 
     def test_workspace_read_only_path(self):
         # Create file where workspace would be, thus preventing the creation
@@ -2373,9 +2375,8 @@ class TestProjectSchema(TestProjectBase):
                 name=str(self.project), root=self.project.root_directory()
             )
 
-    @pytest.mark.filterwarnings(
-        "ignore:Modifying the project configuration after project initialization "
-        "is deprecated"
+    @pytest.mark.xfail(
+        reason="Modifying the project configuration is not supported in signac 2.0."
     )
     def test_project_schema_version_migration(self):
         from signac.contrib.migration import apply_migrations

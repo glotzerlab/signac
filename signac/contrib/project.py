@@ -81,14 +81,7 @@ class _ProjectConfig(Config):
 
     def __setitem__(self, key, value):
         if not self._mutable:
-            warnings.warn(
-                "Modifying the project configuration after project "
-                "initialization is deprecated as of version 1.3 and "
-                "will be removed in version 2.0.",
-                DeprecationWarning,
-            )
-
-            assert version.parse(__version__) < version.parse("2.0")
+            raise ValueError("The project configuration is immutable.")
         if self._mutate_hook is not None:
             self._mutate_hook()
         return super().__setitem__(key, value)
