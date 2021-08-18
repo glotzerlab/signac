@@ -23,7 +23,7 @@ from packaging import version
 from test_job import TestJobBase
 
 import signac
-from signac.common.config import get_config
+from signac.common.config import get_config, load_config
 from signac.contrib.errors import (
     IncompatibleSchemaVersion,
     JobsCorruptedError,
@@ -2375,22 +2375,21 @@ class TestProjectSchema(TestProjectBase):
                 name=str(self.project), root=self.project.root_directory()
             )
 
-    @pytest.mark.xfail(
-        reason="Modifying the project configuration is not supported in signac 2.0."
-    )
     def test_project_schema_version_migration(self):
         from signac.contrib.migration import apply_migrations
 
         apply_migrations(self.project)
-        self.project._config["schema_version"] = "0"
-        assert self.project._config["schema_version"] == "0"
+        config = load_config(self.project.root_directory())
+        config["schema_version"] = "0"
+        self.project = self.project_class(config=config, _ignore_schema_version=True)
+        assert self.project.config["schema_version"] == "0"
         err = io.StringIO()
         with redirect_stderr(err):
             for origin, destination in apply_migrations(self.project):
-                assert self.project._config["schema_version"] == destination
+                assert self.project.config["schema_version"] == destination
                 project = signac.get_project(root=self.project.root_directory())
                 assert project._config["schema_version"] == destination
-        assert self.project._config["schema_version"] == "1"
+        assert self.project.config["schema_version"] == "1"
         assert "OK" in err.getvalue()
         assert "0 to 1" in err.getvalue()
 

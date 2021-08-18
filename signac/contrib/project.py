@@ -15,7 +15,6 @@ import uuid
 import warnings
 from collections.abc import Iterable
 from contextlib import contextmanager
-from functools import partial
 from itertools import groupby
 from multiprocessing.pool import ThreadPool
 from tempfile import TemporaryDirectory
@@ -66,15 +65,12 @@ class _ProjectConfig(Config):
     ----------
     \*args :
         Forwarded to :class:`~signac.common.config.Config` constructor.
-    _mutate_hook : callable
-        Callable that is triggered if the config is mutated.
     \*\*kwargs :
         Forwarded to :class:`~signac.common.config.Config` constructor.
 
     """
 
-    def __init__(self, *args, _mutate_hook=None, **kwargs):
-        self._mutate_hook = _mutate_hook
+    def __init__(self, *args, **kwargs):
         self._mutable = True
         super().__init__(*args, **kwargs)
         self._mutable = False
@@ -82,8 +78,6 @@ class _ProjectConfig(Config):
     def __setitem__(self, key, value):
         if not self._mutable:
             raise ValueError("The project configuration is immutable.")
-        if self._mutate_hook is not None:
-            self._mutate_hook()
         return super().__setitem__(key, value)
 
 
@@ -128,9 +122,7 @@ class Project:
     def __init__(self, config=None, _ignore_schema_version=False):
         if config is None:
             config = load_config()
-        self._config = _ProjectConfig(
-            config, _mutate_hook=partial(_invalidate_config_cache, self)
-        )
+        self._config = _ProjectConfig(config)
         self._lock = RLock()
 
         # Prepare cached properties derived from the project config.
