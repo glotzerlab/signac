@@ -292,12 +292,40 @@ class TestProject(TestProjectBase):
         assert len(statepoints) == len(list(self.project.find_jobs({})))
         assert 1 == len(list(self.project.find_jobs({"a": 0})))
         assert 0 == len(list(self.project.find_jobs({"a": 5})))
+        with pytest.deprecated_call():
+            assert 1 == len(list(self.project.find_jobs({"a": 0}, None)))
+        with pytest.deprecated_call():
+            assert 0 == len(list(self.project.find_jobs({"a": 5}, None)))
+        with pytest.deprecated_call():
+            assert 1 == len(list(self.project.find_jobs({"a": 0}, doc_filter=None)))
+        with pytest.deprecated_call():
+            assert 0 == len(list(self.project.find_jobs({"a": 5}, doc_filter=None)))
+        with pytest.deprecated_call():
+            assert 1 == len(
+                list(self.project.find_jobs(filter={"a": 0}, doc_filter=None))
+            )
+        with pytest.deprecated_call():
+            assert 0 == len(
+                list(self.project.find_jobs(filter={"a": 5}, doc_filter=None))
+            )
         assert 1 == len(list(self.project.find_jobs({"sp.a": 0})))
         assert 0 == len(list(self.project.find_jobs({"sp.a": 5})))
         with pytest.deprecated_call():
             assert 1 == len(list(self.project.find_jobs(doc_filter={"b": 0})))
         with pytest.deprecated_call():
             assert 0 == len(list(self.project.find_jobs(doc_filter={"b": 5})))
+        with pytest.deprecated_call():
+            assert 1 == len(list(self.project.find_jobs(None, doc_filter={"b": 0})))
+        with pytest.deprecated_call():
+            assert 0 == len(list(self.project.find_jobs(None, doc_filter={"b": 5})))
+        with pytest.deprecated_call():
+            assert 1 == len(
+                list(self.project.find_jobs(filter=None, doc_filter={"b": 0}))
+            )
+        with pytest.deprecated_call():
+            assert 0 == len(
+                list(self.project.find_jobs(filter=None, doc_filter={"b": 5}))
+            )
         with pytest.deprecated_call():
             assert 1 == len(list(self.project.find_jobs(None, {"b": 0})))
         with pytest.deprecated_call():
