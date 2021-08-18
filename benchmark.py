@@ -68,7 +68,12 @@ def calc_project_metadata_size(project):
     sp_size = []
     doc_size = []
     for job in tqdm(project, "determine metadata size"):
-        sp_size.append(size(job.fn(job.FN_STATE_POINT)))
+        try:
+            statepoint_filename = job.FN_STATE_POINT
+        except AttributeError:
+            # Backwards compatibility with signac < 2.0
+            statepoint_filename = job.FN_MANIFEST
+        sp_size.append(size(job.fn(statepoint_filename)))
         doc_size.append(size(job.fn(job.FN_DOCUMENT)))
     return sp_size, doc_size
 
