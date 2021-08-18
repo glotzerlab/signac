@@ -40,7 +40,6 @@ The Project
     Project.stores
     Project.sync
     Project.update_cache
-    Project.update_statepoint
     Project.workspace
 
 .. autoclass:: Project
