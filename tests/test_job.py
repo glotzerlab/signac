@@ -543,7 +543,7 @@ class TestJobOpenAndClosing(TestJobBase):
         assert job.workspace() == job.ws
         assert os.path.isdir(job.workspace())
         assert os.path.isdir(job.ws)
-        assert os.path.exists(os.path.join(job.workspace(), job.FN_MANIFEST))
+        assert os.path.exists(os.path.join(job.workspace(), job.FN_STATE_POINT))
 
     def test_chained_init(self):
         job = self.open_job(test_token)
@@ -552,7 +552,7 @@ class TestJobOpenAndClosing(TestJobBase):
         assert job.workspace() == job.ws
         assert os.path.isdir(job.workspace())
         assert os.path.isdir(job.ws)
-        assert os.path.exists(os.path.join(job.workspace(), job.FN_MANIFEST))
+        assert os.path.exists(os.path.join(job.workspace(), job.FN_STATE_POINT))
 
     def test_construction(self):
         from signac import Project  # noqa: F401
@@ -642,8 +642,8 @@ class TestJobOpenAndClosing(TestJobBase):
     def test_corrupt_workspace(self):
         job = self.open_job(test_token)
         job.init()
-        fn_manifest = os.path.join(job.workspace(), job.FN_MANIFEST)
-        with open(fn_manifest, "w") as file:
+        fn_statepoint = os.path.join(job.workspace(), job.FN_STATE_POINT)
+        with open(fn_statepoint, "w") as file:
             file.write("corrupted")
         job2 = self.open_job(test_token)
         try:

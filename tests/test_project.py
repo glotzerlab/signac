@@ -511,7 +511,7 @@ class TestProject(TestProjectBase):
         job = self.project.open_job(dict(a=0))
         job.init()
 
-        os.remove(job.fn(job.FN_MANIFEST))
+        os.remove(job.fn(job.FN_STATE_POINT))
 
         self.project._sp_cache.clear()
         self.project._remove_persistent_cache_file()
@@ -526,8 +526,8 @@ class TestProject(TestProjectBase):
         job = self.project.open_job(dict(a=0))
         job.init()
 
-        # overwrite state point manifest file
-        with open(job.fn(job.FN_MANIFEST), "w"):
+        # Overwrite state point file.
+        with open(job.fn(job.FN_STATE_POINT), "w"):
             pass
 
         self.project._sp_cache.clear()
@@ -536,16 +536,16 @@ class TestProject(TestProjectBase):
             logging.disable(logging.CRITICAL)
             with pytest.raises(JobsCorruptedError):
                 # Accessing the job state point triggers validation of the
-                # state point manifest file
+                # state point file.
                 self.project.open_job(id=job.id).statepoint
             with pytest.raises(JobsCorruptedError):
                 # Initializing the job state point triggers validation of the
-                # state point manifest file
+                # state point file.
                 self.project.open_job(id=job.id).init()
         finally:
             logging.disable(logging.NOTSET)
-        # Ensure that the corrupted manifest still exists
-        assert os.path.exists(job.fn(job.FN_MANIFEST))
+        # Ensure that the corrupted state point file still exists.
+        assert os.path.exists(job.fn(job.FN_STATE_POINT))
 
     def test_rename_workspace(self):
         job = self.project.open_job(dict(a=0))
@@ -598,12 +598,13 @@ class TestProject(TestProjectBase):
 
         self.project.update_cache()
 
-        # no manifest file
+        # This job has no state point file.
         with self.project.open_job(statepoints[0]) as job:
-            os.remove(job.FN_MANIFEST)
-        # blank manifest file
+            os.remove(job.FN_STATE_POINT)
+
+        # This job has an empty state point file.
         with self.project.open_job(statepoints[1]) as job:
-            with open(job.FN_MANIFEST, "w"):
+            with open(job.FN_STATE_POINT, "w"):
                 pass
 
         # Need to clear internal cache to encounter error.

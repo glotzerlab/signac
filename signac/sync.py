@@ -339,7 +339,7 @@ def sync_jobs(
         raise ValueError("Source and destination can't be the same!")
 
     # check src and dst compatiblity
-    assert src.FN_MANIFEST == dst.FN_MANIFEST
+    assert src.FN_STATE_POINT == dst.FN_STATE_POINT
     assert src.FN_DOCUMENT == dst.FN_DOCUMENT
 
     # Nothing to be done if the src is not initialized.
@@ -355,7 +355,7 @@ def sync_jobs(
         exclude = []
     elif not isinstance(exclude, list):
         exclude = [exclude]
-    exclude.append(src.FN_MANIFEST)
+    exclude.append(src.FN_STATE_POINT)
     if doc_sync != DocSync.COPY:
         exclude.append(src.FN_DOCUMENT)
 

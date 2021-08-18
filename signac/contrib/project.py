@@ -899,15 +899,16 @@ class Project:
         """
         # We can rely on the project workspace to be well-formed, so just use
         # str.join with os.sep instead of os.path.join for speed.
-        fn_manifest = os.sep.join((self.workspace(), job_id, self.Job.FN_MANIFEST))
+        fn_statepoint = os.sep.join((self.workspace(), job_id, self.Job.FN_STATE_POINT))
         try:
-            with open(fn_manifest, "rb") as manifest:
-                return json.loads(manifest.read().decode())
+            with open(fn_statepoint, "rb") as statepoint_file:
+                return json.loads(statepoint_file.read().decode())
         except (OSError, ValueError) as error:
             if os.path.isdir(os.sep.join((self.workspace(), job_id))):
                 logger.error(
-                    "Error while trying to access state "
-                    "point manifest file of job '{}': '{}'.".format(job_id, error)
+                    "Error while trying to access state point file of job '{}': '{}'.".format(
+                        job_id, error
+                    )
                 )
                 raise JobsCorruptedError([job_id])
             raise KeyError(job_id)
@@ -933,8 +934,8 @@ class Project:
         KeyError
             If the state point associated with job_id could not be found.
         :class:`signac.errors.JobsCorruptedError`
-            If the state point manifest file corresponding to job_id is
-            inaccessible or corrupted.
+            If the state point file corresponding to job_id is inaccessible or
+            corrupted.
 
         """
         if not self._sp_cache:
@@ -1203,9 +1204,9 @@ class Project:
 
         The ``schema`` argument expects a function that takes a path argument and returns a state
         point dictionary. A default function is used when no argument is provided.
-        The default schema function will simply look for state point manifest files--usually named
-        ``signac_statepoint.json``--and then import all data located within that path into the job
-        workspace corresponding to the state point specified in the manifest file.
+        The default schema function will simply look for state point files -- usually named
+        ``signac_statepoint.json`` -- and then import all data located within that path into the job
+        workspace corresponding to the specified state point.
 
         Alternatively the schema argument may be a string, that is converted into a schema function,
         for example: Providing ``foo/{foo:int}`` as schema argument means that all directories under
@@ -1298,7 +1299,7 @@ class Project:
         """Attempt to repair the workspace after it got corrupted.
 
         This method will attempt to repair lost or corrupted job state point
-        manifest files using a state point cache.
+        files using a state point cache.
 
         Parameters
         ----------
@@ -1351,14 +1352,14 @@ class Project:
                 corrupted.append(job_id)
             else:
                 try:
-                    # Try to reinit the job (triggers state point manifest file check).
+                    # Try to reinitialize the job (triggers state point file check).
                     job.init()
                 except Exception as error:
                     logger.error(
                         "Error during initialization of job with "
                         "id '{}': '{}'.".format(job_id, error)
                     )
-                    try:  # Attempt to fix the job manifest file.
+                    try:  # Attempt to fix the job state point file.
                         job.init(force=True)
                     except Exception as error2:
                         logger.critical(
