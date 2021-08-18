@@ -1849,25 +1849,9 @@ class JobsCursor:
 
     _use_pandas_for_html_repr = True  # toggle use of pandas for html repr
 
-    def __init__(self, project, filter=None, *args, **kwargs):
+    def __init__(self, project, filter=None):
         self._project = project
         self._filter = filter
-
-        doc_filter = next(iter(args), None) or kwargs.pop("doc_filter", None)
-        if len(args) > 1 or len(kwargs):
-            raise TypeError("Unsupported arguments were provided.")
-        # TODO: This is a compatibility layer for signac-flow. It should be
-        # removed after signac 2.0 is released and once signac-flow drops
-        # support for signac < 2.0. At that point the JobsCursor constructor
-        # will require a 'doc.' namespaced filter to perform document-based
-        # filtering.
-        if doc_filter:
-            warnings.warn(DOC_FILTER_WARNING, DeprecationWarning)
-            doc_filter = parse_filter(_add_prefix("doc.", doc_filter))
-            if self._filter:
-                self._filter.update(doc_filter)
-            else:
-                self._filter = doc_filter
 
         # Replace empty filters with None for performance
         if self._filter == {}:
