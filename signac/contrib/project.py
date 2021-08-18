@@ -2053,7 +2053,7 @@ class JobsCursor:
 
         return groupby(
             sorted(
-                iter(JobsCursor(self._project, _filter)),
+                iter(self._project.find_jobs(_filter)),
                 key=keyfunction,
             ),
             key=keyfunction,
