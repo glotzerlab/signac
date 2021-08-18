@@ -236,9 +236,8 @@ class Project:
         """Return the project's workspace directory.
 
         The workspace defaults to `project_root/workspace`. Configure this
-        directory with the ``'workspace_dir'`` configuration option. If the
-        specified directory is a relative path, the absolute path is relative
-        from the project's root directory.
+        directory with the ``'workspace_dir'`` configuration option. A relative
+        path is assumed to be relative to the project's root directory.
 
         .. note::
             The configuration will respect environment variables,
