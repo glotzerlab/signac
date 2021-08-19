@@ -130,6 +130,7 @@ class Project:
             )
 
         # Prepare root directory and workspace paths.
+        # os.path is used instead of pathlib.Path for performance.
         self._root_directory = self.config["project_dir"]
         self._workspace = os.path.expandvars(
             self.config.get("workspace_dir", "workspace")
@@ -625,8 +626,9 @@ class Project:
             True if the job id is initialized for this project.
 
         """
-        # We can rely on the project workspace to be well-formed, so just use
-        # str.join with os.sep instead of os.path.join for speed.
+        # Performance-critical path. We can rely on the project workspace and
+        # job id to be well-formed, so just use str.join with os.sep instead of
+        # os.path.join for speed.
         return os.path.exists(os.sep.join((self.workspace(), job_id)))
 
     def __contains__(self, job):
@@ -871,8 +873,9 @@ class Project:
             Identifier of the job.
 
         """
-        # We can rely on the project workspace to be well-formed, so just use
-        # str.join with os.sep instead of os.path.join for speed.
+        # Performance-critical path. We can rely on the project workspace, job
+        # id, and state point file name to be well-formed, so just use str.join
+        # with os.sep instead of os.path.join for speed.
         fn_manifest = os.sep.join((self.workspace(), job_id, self.Job.FN_MANIFEST))
         try:
             with open(fn_manifest, "rb") as manifest:
