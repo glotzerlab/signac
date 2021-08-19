@@ -497,41 +497,7 @@ class TestJobSpInterface(TestJobBase):
 
 
 class TestConfig(TestJobBase):
-    @pytest.mark.filterwarnings(
-        "ignore:Modifying the project configuration after project initialization "
-        "is deprecated"
-    )
-    def test_set_get_delete(self):
-        key, value = list(test_token.items())[0]
-        key, value = "author_name", list(test_token.values())[0]
-        config = copy.deepcopy(self.project.config)
-        config[key] = value
-        assert config[key] == value
-        assert key in config
-        del config[key]
-        assert key not in config
-
-    @pytest.mark.filterwarnings(
-        "ignore:Modifying the project configuration after project initialization "
-        "is deprecated"
-    )
-    def test_update(self):
-        key, value = "author_name", list(test_token.values())[0]
-        config = copy.deepcopy(self.project.config)
-        config.update({key: value})
-        assert config[key] == value
-        assert key in config
-
-    @pytest.mark.filterwarnings(
-        "ignore:Modifying the project configuration after project initialization "
-        "is deprecated"
-    )
-    def test_set_and_retrieve_version(self):
-        fake_version = 0, 0, 0
-        self.project.config["signac_version"] = fake_version
-        assert self.project.config["signac_version"] == fake_version
-
-    def test_str(self):
+    def test_config_str(self):
         str(self.project.config)
 
 
