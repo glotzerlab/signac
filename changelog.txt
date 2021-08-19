@@ -17,6 +17,7 @@ Deprecated
  - ``Project.index`` method is deprecated (#591, #588).
  - ``JobSearchIndex`` class is deprecated (#600).
  - ``index`` argument is deprecated in ``Project`` methods (#602, #588).
+ - ``signac.cite`` module is deprecated (#611, #592).
 
 [1.7.0] -- 2021-06-08
 ---------------------
