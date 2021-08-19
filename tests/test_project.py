@@ -2188,10 +2188,12 @@ class TestProjectInit:
         assert project.root_directory() == root
 
     def test_project_no_id(self):
-        config = load_config(self.project.root_directory())
+        root = self._tmp_dir.name
+        signac.init_project(name="testproject", root=root)
+        config = load_config(root)
         del config["project"]
         with pytest.raises(LookupError):
-            self.project = self.project_class(config=config)
+            Project(config=config)
 
     def test_get_project_all_printable_characters(self):
         root = self._tmp_dir.name
