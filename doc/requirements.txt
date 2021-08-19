@@ -3,4 +3,5 @@ IPython
 jupyter_client
 nbconvert
 nbsphinx>=0.3
+sphinx>=4
 sphinxcontrib-programoutput
