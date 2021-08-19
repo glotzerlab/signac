@@ -26,6 +26,7 @@ Removed
  - The ``JobSearchIndex`` class (#587).
  - The ability to pass indexes to various ``Project`` methods (#599).
  - The following ``JobsCursor`` methods: ``groupbydoc``, ``next`` (#601, #604).
+ - The ``Project.config`` property is no longer mutable. Use the command line ``$ signac config`` to modify configuration (#608, #246, #244).
 
 Version 1
 =========
