@@ -330,8 +330,9 @@ class Job:
     @property
     def _statepoint_filename(self):
         """Get the path of the state point file for this job."""
-        # We can rely on the job workspace to be well-formed, so just
-        # use str.join with os.sep instead of os.path.join for speed.
+        # Performance-critical path. We can rely on the job workspace and state
+        # point file name to be well-formed, so just use str.join with os.sep
+        # instead of os.path.join for speed.
         return os.sep.join((self.path, self.FN_MANIFEST))
 
     # Tell mypy to ignore type checking of the decorator because decorated
