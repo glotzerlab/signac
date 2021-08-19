@@ -15,7 +15,6 @@ import uuid
 import warnings
 from collections.abc import Iterable
 from contextlib import contextmanager
-from functools import partial
 from itertools import groupby
 from multiprocessing.pool import ThreadPool
 from tempfile import TemporaryDirectory
@@ -87,39 +86,20 @@ class _ProjectConfig(Config):
     ----------
     \*args :
         Forwarded to :class:`~signac.common.config.Config` constructor.
-    _mutate_hook : callable
-        Callable that is triggered if the config is mutated.
     \*\*kwargs :
         Forwarded to :class:`~signac.common.config.Config` constructor.
 
     """
 
-    def __init__(self, *args, _mutate_hook=None, **kwargs):
-        self._mutate_hook = _mutate_hook
+    def __init__(self, *args, **kwargs):
         self._mutable = True
         super().__init__(*args, **kwargs)
         self._mutable = False
 
     def __setitem__(self, key, value):
         if not self._mutable:
-            warnings.warn(
-                "Modifying the project configuration after project "
-                "initialization is deprecated as of version 1.3 and "
-                "will be removed in version 2.0.",
-                FutureWarning,
-            )
-
-            assert version.parse(__version__) < version.parse("2.0")
-        if self._mutate_hook is not None:
-            self._mutate_hook()
+            raise ValueError("The project configuration is immutable.")
         return super().__setitem__(key, value)
-
-
-def _invalidate_config_cache(project):
-    """Invalidate cached properties derived from a project config."""
-    project._id = None
-    project._path = None
-    project._wd = None
 
 
 class Project:
@@ -154,16 +134,13 @@ class Project:
     def __init__(self, config=None):
         if config is None:
             config = _load_config()
-        self._config = _ProjectConfig(
-            config, _mutate_hook=partial(_invalidate_config_cache, self)
-        )
+        self._config = _ProjectConfig(config)
         self._lock = RLock()
 
-        # Prepare cached properties derived from the project config.
-        _invalidate_config_cache(self)
-
         # Ensure that the project id is configured.
-        if self.id is None:
+        try:
+            self._id = str(self.config["project"])
+        except KeyError:
             raise LookupError(
                 "Unable to determine project id. "
                 "Please verify that '{}' is a signac project path.".format(
@@ -180,7 +157,17 @@ class Project:
         # Prepare project H5StoreManager
         self._stores = None
 
-        # Prepare Workspace Directory
+        # Prepare root directory and workspace paths.
+        # os.path is used instead of pathlib.Path for performance.
+        self._root_directory = self.config["project_dir"]
+        ws = os.path.expandvars(
+            self.config.get("workspace_dir", "workspace")
+        )
+        if not os.path.isabs(ws):
+            ws = os.path.join(self._root_directory, ws)
+        self._workspace = _CallableString(ws)
+
+        # Prepare workspace directory.
         if not os.path.isdir(self.workspace):
             try:
                 _mkdir_p(self.workspace)
@@ -240,6 +227,12 @@ class Project:
     def config(self):
         """Get project's configuration.
 
+        The configuration is immutable once the Project is constructed. To
+        modify a project configuration, use the command line or edit the
+        configuration file directly.
+
+        See :ref:`signac config <signac-cli-config>` for related command line tools.
+
         Returns
         -------
         :class:`~signac.contrib.project._ProjectConfig`
@@ -261,20 +254,23 @@ class Project:
     @property
     def path(self):
         """str: The path to the project directory."""
-        if self._path is None:
-            self._path = self.config["project_dir"]
-        return self._path
+        return self._root_directory
 
     @property
     def workspace(self):
         """str: The project's workspace directory.
 
+        The workspace defaults to `project_root/workspace`. Configure this
+        directory with the ``'workspace_dir'`` configuration option. A relative
+        path is assumed to be relative to the project's root directory.
+
+        .. note::
+            The configuration will respect environment variables,
+            such as ``$HOME``.
+
         See :ref:`signac project -w <signac-cli-project>` for the command line equivalent.
         """
-        if self._wd is None:
-            wd = os.path.expandvars(self.config.get("workspace_dir", "workspace"))
-            self._wd = wd if os.path.isabs(wd) else os.path.join(self.path, wd)
-        return _CallableString(self._wd)
+        return self._workspace
 
     @property
     def id(self):
@@ -286,11 +282,6 @@ class Project:
             The project id.
 
         """
-        if self._id is None:
-            try:
-                self._id = str(self.config["project"])
-            except KeyError:
-                return None
         return self._id
 
     def _check_schema_compatibility(self):
@@ -647,8 +638,9 @@ class Project:
             True if the job id is initialized for this project.
 
         """
-        # We can rely on the project workspace to be well-formed, so just use
-        # str.join with os.sep instead of os.path.join for performance.
+        # Performance-critical path. We can rely on the project workspace and
+        # job id to be well-formed, so just use str.join with os.sep instead of
+        # os.path.join for speed.
         return os.path.exists(os.sep.join((self.workspace, job_id)))
 
     def __contains__(self, job):
@@ -902,8 +894,9 @@ class Project:
             Identifier of the job.
 
         """
-        # We can rely on the project workspace to be well-formed, so just use
-        # str.join with os.sep instead of os.path.join for speed.
+        # Performance-critical path. We can rely on the project workspace, job
+        # id, and state point file name to be well-formed, so just use str.join
+        # with os.sep instead of os.path.join for speed.
         fn_manifest = os.sep.join((self.workspace, job_id, self.Job.FN_MANIFEST))
         try:
             with open(fn_manifest, "rb") as manifest:
