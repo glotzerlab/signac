@@ -11,7 +11,6 @@ specific components are abstract and must be implemented by child classes.
 
 import errno
 import os
-import warnings
 from abc import abstractmethod
 from threading import RLock
 from typing import Dict, Tuple, Union
@@ -347,26 +346,14 @@ class FileBufferedCollection(BufferedCollection):
         else:
             raise BufferedError(issues)
 
-    # TODO: The buffer_size argument should be changed to buffer_capacity in
-    # signac 2.0 for consistency with the new names in synced collections.
     @classmethod
-    def buffer_backend(cls, buffer_size=None, force_write=None, *args, **kwargs):
+    def buffer_backend(cls, buffer_capacity=None):
         """Enter context to buffer all operations for this backend.
 
         Parameters
         ----------
-        buffer_size : int
+        buffer_capacity : int
             The capacity of the buffer to use within this context (resets after
             the context is exited).
-        force_write : bool
-            This argument does nothing and is only present for compatibility
-            with signac 1.x.
         """
-        if force_write is not None:
-            warnings.warn(
-                DeprecationWarning(
-                    "The force_write parameter is deprecated and will be removed in "
-                    "signac 2.0. This functionality is no longer supported."
-                )
-            )
-        return cls._buffer_context(buffer_size)
+        return cls._buffer_context(buffer_capacity)
