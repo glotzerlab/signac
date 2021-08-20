@@ -28,9 +28,9 @@ from .version import __version__
 # Alias some properties related to buffering into the signac namespace.
 buffered = JSONDict.buffer_backend
 is_buffered = JSONDict.backend_is_buffered
-get_buffer_load = JSONDict.get_current_buffer_size
-get_buffer_size = JSONDict.get_buffer_capacity
-set_buffer_size = JSONDict.set_buffer_capacity
+get_current_buffer_size = JSONDict.get_current_buffer_size
+get_buffer_capacity = JSONDict.get_buffer_capacity
+set_buffer_capacity = JSONDict.set_buffer_capacity
 
 __all__ = [
     "__version__",
@@ -47,9 +47,9 @@ __all__ = [
     "Collection",
     "buffered",
     "is_buffered",
-    "get_buffer_size",
-    "get_buffer_load",
-    "set_buffer_size",
+    "get_buffer_capacity",
+    "get_current_buffer_size",
+    "set_buffer_capacity",
     "JSONDict",
     "H5Store",
     "H5StoreManager",
