@@ -434,7 +434,7 @@ class H5Store(MutableMapping):
     @property
     def mode(self):
         """Return the default opening mode of this H5Store."""
-        return self._mode
+        return self.file.mode
 
     def flush(self):
         """Flush the underlying HDF5 file."""

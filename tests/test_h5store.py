@@ -103,11 +103,13 @@ class TestH5StoreOpen(TestH5StoreBase):
             h5s["foo"] = "bar"
 
         with self.open_h5store(mode="r") as h5s:
+            assert h5s.mode == "r"
             assert "foo" in h5s
             self.assertEqual(h5s["foo"], "bar")
 
     def test_open_write_only(self):
         with self.open_h5store(mode="w") as h5s:
+            assert h5s.mode == "r+"
             h5s["foo"] = "bar"
             assert "foo" in h5s
             self.assertEqual(h5s["foo"], "bar")
@@ -115,6 +117,8 @@ class TestH5StoreOpen(TestH5StoreBase):
     def test_open_write_and_read_only(self):
         with self.open_h5store(mode="w") as h5s_w:
             with self.open_h5store(mode="r") as h5s_r:
+                assert h5s_w.mode == "r+"
+                assert h5s_r.mode == "r+"
                 assert "foo" not in h5s_r
                 assert "foo" not in h5s_w
 
@@ -222,6 +226,24 @@ class TestH5Store(TestH5StoreBase):
             self.assertEqual(child1[key], d)
             self.assertEqual(child2[key], d)
 
+    def test_setdefault_group(self):
+        with self.open_h5store() as h5s:
+            group_key = "setdefault_group"
+            key = "setdefault"
+            d = self.get_testdata()
+            assert group_key not in h5s
+            h5s[group_key] = {}
+            assert group_key in h5s
+            assert len(h5s[group_key]) == 0
+            assert key not in h5s[group_key]
+            h5s[group_key].setdefault(key, d)
+            assert len(h5s[group_key]) == 1
+            assert key in h5s[group_key]
+            self.assertEqual(h5s[group_key][key], d)
+            d2 = self.get_testdata()
+            h5s[group_key].setdefault(key, d2)
+            self.assertEqual(h5s[group_key][key], d)
+
     def test_repr(self):
         with self.open_h5store() as h5s:
             key = "test_repr"
@@ -289,6 +311,34 @@ class TestH5Store(TestH5StoreBase):
             assert len(h5s) == 0
             with pytest.raises(KeyError):
                 h5s[key]
+
+    def test_delete_attr(self):
+        with self.open_h5store() as h5s:
+            key = "delete"
+            d = self.get_testdata()
+            h5s[key] = d
+            assert len(h5s) == 1
+            self.assertEqual(h5s[key], d)
+            delattr(h5s, key)
+            assert len(h5s) == 0
+            with pytest.raises(KeyError):
+                h5s[key]
+
+    def test_delete_nested(self):
+        with self.open_h5store() as h5s:
+            key1 = "group_key"
+            key2 = "delete"
+            d = self.get_testdata()
+            h5s[key1] = {key2: d}
+            assert len(h5s) == 1
+            assert len(h5s[key1]) == 1
+            self.assertEqual(h5s[key1][key2], d)
+            del h5s[key1][key2]
+            assert len(h5s) == 1
+            assert len(h5s[key1]) == 0
+            self.assertEqual(h5s[key1], {})
+            with pytest.raises(KeyError):
+                h5s[key1][key2]
 
     def test_update(self):
         with self.open_h5store() as h5s:
