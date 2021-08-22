@@ -10,6 +10,11 @@ Version 2
 [2.0.0] -- 2021-xx-xx
 ---------------------
 
+Changed
++++++++
+
+ - Functions raising ``AssertionError`` now raise ``RuntimeError`` (#612).
+
 Removed
 +++++++
 
