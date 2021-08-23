@@ -80,7 +80,7 @@ from collections import namedtuple
 from collections.abc import Mapping
 from multiprocessing.pool import ThreadPool
 
-from .contrib.utility import query_yes_no
+from .contrib.utility import _query_yes_no
 from .errors import (
     DestinationExistsError,
     DocumentSyncConflict,
@@ -137,7 +137,7 @@ class FileSync:
             elif fn in self.no:
                 return False
             else:
-                overwrite = query_yes_no(f"Overwrite files named '{fn}'?", "no")
+                overwrite = _query_yes_no(f"Overwrite files named '{fn}'?", "no")
                 if overwrite:
                     self.yes.add(fn)
                     return True
