@@ -34,7 +34,7 @@ from .common import config
 from .common.configobj import Section, flatten_errors
 from .contrib.filterparse import parse_filter_arg
 from .contrib.import_export import _SchemaPathEvaluationError, export_jobs
-from .contrib.utility import add_verbosity_argument, query_yes_no
+from .contrib.utility import _add_verbosity_argument, _query_yes_no
 from .diff import diff_jobs
 from .errors import (
     DestinationExistsError,
@@ -218,7 +218,7 @@ def main_remove(args):
     project = get_project()
     for job_id in args.job_id:
         job = _open_job_by_id(project, job_id)
-        if args.interactive and not query_yes_no(
+        if args.interactive and not _query_yes_no(
             "Are you sure you want to {action} job with id '{job.id}'?".format(
                 action="clear" if args.clear else "remove", job=job
             ),
@@ -681,7 +681,7 @@ def main_update_cache(args):
 #         _print_err(
 #             "The schema version of the project ({}) is up to date. "
 #             "Nothing to do.".format(config_schema_version))
-#     elif args.yes or query_yes_no(
+#     elif args.yes or _query_yes_no(
 #         "Do you want to migrate this project's schema version from '{}' to '{}'? "
 #         "WARNING: THIS PROCESS IS IRREVERSIBLE!".format(
 #             config_schema_version, schema_version), 'no'):
@@ -927,7 +927,7 @@ def main():
     parser.add_argument(
         "--version", action="store_true", help="Display the version number and exit."
     )
-    add_verbosity_argument(parser, default=2)
+    _add_verbosity_argument(parser, default=2)
     parser.add_argument(
         "-y",
         "--yes",
@@ -1382,7 +1382,7 @@ job documents."
         help="Optional: The root directory of the project that should be modified for "
         "synchronization, defaults to the local project.",
     )
-    add_verbosity_argument(parser_sync, default=2)
+    _add_verbosity_argument(parser_sync, default=2)
 
     sync_group = parser_sync.add_argument_group("copy options")
     sync_group.add_argument(
