@@ -4,11 +4,6 @@
 """Utility functions."""
 
 import os.path
-import re
-import warnings
-
-from ..common.deprecation import deprecated
-from ..version import __version__
 
 
 def _safe_relpath(path):
@@ -23,74 +18,3 @@ def _safe_relpath(path):
         # Windows cannot find relative paths across drives, so show the
         # original path instead.
         return path
-
-
-@deprecated(
-    deprecated_in="1.8",
-    removed_in="2.0",
-    current_version=__version__,
-    details="Use packaging.version.parse instead.",
-)
-class Version(dict):
-    """Utility class to manage revision control numbers."""
-
-    def __init__(self, major=0, minor=0, change=0, postrelease="", prerelease="final"):
-        if prerelease > "final":
-            raise ValueError("illegal pre-release tag", prerelease)
-        super().__init__(
-            major=major,
-            minor=minor,
-            change=change,
-            postrelease=postrelease,
-            prerelease=prerelease,
-        )
-
-    def to_tuple(self):
-        """Return version details as tuple."""
-        return (
-            self["major"],
-            self["minor"],
-            self["change"],
-            self["prerelease"],
-            self["postrelease"],
-        )
-
-    def __lt__(self, other):
-        return self.to_tuple() < other.to_tuple()
-
-    def __eq__(self, other):
-        return self.to_tuple() == other.to_tuple()
-
-    def __str__(self):
-        return "{major}.{minor}{postrelease}.{change}{prerelease}".format(**self)
-
-    def __repr__(self):
-        return "Version({})".format(",".join((f"{k}={v}" for k, v in self.items())))
-
-
-@deprecated(
-    deprecated_in="1.8",
-    removed_in="2.0",
-    current_version=__version__,
-    details="Use packaging.version.Version instead.",
-)
-def parse_version(version_str):
-    """Parse a version number into a version object."""
-    p = re.compile(
-        r"(?P<major>[0-9]*)\.(?P<minor>[0-9]*)((?P<postrelease>-?\w*)"
-        r"\.(?P<change>[0-9])(?P<prerelease>\w*))?"
-    )
-    r = p.match(version_str)
-    v = r.groupdict()
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        version = Version(
-            **{
-                "major": int(v.get("major") or 0),
-                "minor": int(v.get("minor") or 0),
-                "change": int(v.get("change") or 0),
-                "postrelease": str(v.get("postrelease") or ""),
-                "prerelease": str(v.get("prerelease") or "final"),
-            }
-        )
-    return version
