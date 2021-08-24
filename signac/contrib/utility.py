@@ -125,13 +125,14 @@ def _split_and_print_progress(iterable, num_chunks=10, write=None, desc="Progres
 
     Raises
     ------
-    AssertionError
+    ValueError
         If num_chunks <= 0.
 
     """
+    if num_chunks <= 0:
+        raise ValueError("num_chunks must be a positive integer.")
     if write is None:
         write = print
-    assert num_chunks > 0
     if num_chunks > 1:
         N = len(iterable)
         len_chunk = int(N / num_chunks)
