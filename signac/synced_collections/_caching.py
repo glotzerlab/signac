@@ -37,11 +37,12 @@ def get_cache():
             cache = redis.Redis()
             test_key = str(uuid.uuid4())
             cache.set(test_key, 0)
-            assert cache.get(test_key) == b"0"  # Redis stores data as bytes
+            if cache.get(test_key) != b"0":  # Redis stores data as bytes
+                raise RuntimeError("Cache access check failed.")
             cache.delete(test_key)
             logger.info("Using Redis cache.")
             return _RedisCache(cache)
-        except (redis.exceptions.ConnectionError, AssertionError) as error:
+        except (redis.exceptions.ConnectionError, RuntimeError) as error:
             logger.debug(str(error))
     logger.info("Redis not available.")
     return {}
