@@ -13,14 +13,15 @@ try:
     import redis
 
     try:
-        # try to connect to server
+        # Try to connect to server
         redis_client = redis.Redis()
         test_key = str(uuid.uuid4())
         redis_client.set(test_key, 0)
-        assert redis_client.get(test_key) == b"0"  # redis stores data as bytes
+        if redis_client.get(test_key) == b"0":  # Redis stores data as bytes
+            raise RuntimeError("Cache access check failed.")
         redis_client.delete(test_key)
         REDIS = True
-    except (redis.exceptions.ConnectionError, AssertionError):
+    except (redis.exceptions.ConnectionError, RuntimeError):
         REDIS = False
 except ImportError:
     REDIS = False
