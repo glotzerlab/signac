@@ -1635,20 +1635,17 @@ class Project:
             assert project.id == str(name)
             return project
         else:
-            try:
-                assert project.id == str(name)
-                if workspace is not None:
-                    assert os.path.realpath(workspace) == os.path.realpath(
-                        project.workspace()
-                    )
-                return project
-            except AssertionError:
+            if project.id != str(name) or (
+                workspace is not None
+                and os.path.realpath(workspace) != os.path.realpath(project.workspace())
+            ):
                 raise RuntimeError(
                     "Failed to initialize project '{}'. Path '{}' already "
                     "contains a conflicting project configuration.".format(
                         name, os.path.abspath(root)
                     )
                 )
+            return project
 
     @classmethod
     def get_project(cls, root=None, search=True, **kwargs):
