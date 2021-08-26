@@ -4,6 +4,22 @@ Changelog
 
 The **signac** package follows `semantic versioning <https://semver.org/>`_.
 
+Version 2
+=========
+
+[2.0.0] -- 2021-xx-xx
+---------------------
+
+Changed
++++++++
+
+ - Functions raising ``AssertionError`` now raise ``RuntimeError`` (#612).
+
+Removed
++++++++
+
+ - The ``Project.config`` property is no longer mutable. Use the command line ``$ signac config`` to modify configuration (#608, #246, #244).
+
 Version 1
 =========
 

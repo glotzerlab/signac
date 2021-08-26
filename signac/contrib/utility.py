@@ -13,7 +13,7 @@ from time import time
 logger = logging.getLogger(__name__)
 
 
-def query_yes_no(question, default="yes"):  # pragma: no cover
+def _query_yes_no(question, default="yes"):  # pragma: no cover
     """Ask a yes/no question via input() and return their answer.
 
     "question" is a string that is presented to the user.
@@ -62,7 +62,7 @@ def query_yes_no(question, default="yes"):  # pragma: no cover
             sys.stdout.write("Please respond with 'yes' or 'no' (or 'y' or 'n').\n")
 
 
-def add_verbosity_argument(parser, default=0):
+def _add_verbosity_argument(parser, default=0):
     """Add a verbosity argument to parser.
 
     Parameters
@@ -125,13 +125,14 @@ def _split_and_print_progress(iterable, num_chunks=10, write=None, desc="Progres
 
     Raises
     ------
-    AssertionError
+    ValueError
         If num_chunks <= 0.
 
     """
+    if num_chunks <= 0:
+        raise ValueError("num_chunks must be a positive integer.")
     if write is None:
         write = print
-    assert num_chunks > 0
     if num_chunks > 1:
         N = len(iterable)
         len_chunk = int(N / num_chunks)

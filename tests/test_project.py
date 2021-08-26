@@ -23,7 +23,7 @@ from packaging import version
 from test_job import TestJobBase
 
 import signac
-from signac.common.config import get_config
+from signac.common.config import get_config, load_config
 from signac.contrib.errors import (
     IncompatibleSchemaVersion,
     JobsCorruptedError,
@@ -105,25 +105,27 @@ class TestProject(TestProjectBase):
     def test_workspace_directory(self):
         assert self._tmp_wd == self.project.workspace()
 
-    @pytest.mark.filterwarnings(
-        "ignore:Modifying the project configuration after project initialization "
-        "is deprecated"
-    )
     def test_config_modification(self):
         # In-memory modification of the project configuration is
         # deprecated as of 1.3, and will be removed in version 2.0.
         # This unit test should reflect that change beginning 2.0,
         # and check that the project configuration is immutable.
-        self.project.config["foo"] = "bar"
+        with pytest.raises(ValueError):
+            self.project.config["foo"] = "bar"
 
-    @pytest.mark.filterwarnings(
-        "ignore:Modifying the project configuration after project initialization "
-        "is deprecated"
-    )
     def test_workspace_directory_with_env_variable(self):
-        os.environ["SIGNAC_ENV_DIR_TEST"] = self._tmp_wd
-        self.project.config["workspace_dir"] = "${SIGNAC_ENV_DIR_TEST}"
-        assert self._tmp_wd == self.project.workspace()
+        try:
+            with TemporaryDirectory() as tmp_dir:
+                os.environ["SIGNAC_ENV_DIR_TEST"] = os.path.join(tmp_dir, "work_here")
+                project = self.project_class.init_project(
+                    name="testing_test_project",
+                    root=tmp_dir,
+                    workspace="${SIGNAC_ENV_DIR_TEST}",
+                )
+                assert project.workspace() == os.environ["SIGNAC_ENV_DIR_TEST"]
+        finally:
+            if "SIGNAC_ENV_DIR_TEST" in os.environ:
+                del os.environ["SIGNAC_ENV_DIR_TEST"]
 
     def test_workspace_directory_exists(self):
         assert os.path.exists(self.project.workspace())
@@ -213,29 +215,27 @@ class TestProject(TestProjectBase):
         self.project.data = {"a": {"b": 45}}
         assert self.project.data == {"a": {"b": 45}}
 
-    @pytest.mark.filterwarnings(
-        "ignore:Modifying the project configuration after project initialization "
-        "is deprecated"
-    )
     def test_workspace_path_normalization(self):
         def norm_path(p):
             return os.path.abspath(os.path.expandvars(p))
 
-        def root_path():
-            # Returns 'C:\\' on Windows, '/' on other platforms
-            return os.path.abspath(os.sep)
-
         assert self.project.workspace() == norm_path(self._tmp_wd)
 
-        abs_path = os.path.join(root_path(), "path", "to", "workspace")
-        self.project.config["workspace_dir"] = abs_path
-        assert self.project.workspace() == norm_path(abs_path)
+        with TemporaryDirectory() as tmp_dir:
+            abs_path = os.path.join(tmp_dir, "path", "to", "workspace")
+            project = self.project_class.init_project(
+                name="testing_test_project", root=tmp_dir, workspace=abs_path
+            )
+            assert project.workspace() == norm_path(abs_path)
 
-        rel_path = norm_path(os.path.join("path", "to", "workspace"))
-        self.project.config["workspace_dir"] = rel_path
-        assert self.project.workspace() == norm_path(
-            os.path.join(self.project.root_directory(), self.project.workspace())
-        )
+        with TemporaryDirectory() as tmp_dir:
+            rel_path = norm_path(os.path.join("path", "to", "workspace"))
+            project = self.project_class.init_project(
+                name="testing_test_project", root=tmp_dir, workspace=rel_path
+            )
+            assert project.workspace() == norm_path(
+                os.path.join(project.root_directory(), rel_path)
+            )
 
     def test_no_workspace_warn_on_find(self, caplog):
         if os.path.exists(self.project.workspace()):
@@ -249,16 +249,18 @@ class TestProject(TestProjectBase):
             assert len(caplog.records) in (2, 3)
 
     @pytest.mark.skipif(WINDOWS, reason="Symbolic links are unsupported on Windows.")
-    @pytest.mark.filterwarnings(
-        "ignore:Modifying the project configuration after project initialization "
-        "is deprecated"
-    )
     def test_workspace_broken_link_error_on_find(self):
-        wd = self.project.workspace()
-        os.symlink(wd + "~", self.project.fn("workspace-link"))
-        self.project.config["workspace_dir"] = "workspace-link"
-        with pytest.raises(WorkspaceError):
-            list(self.project.find_jobs())
+        with TemporaryDirectory() as tmp_dir:
+            project = self.project_class.init_project(
+                name="testing_test_project", root=tmp_dir, workspace="workspace-link"
+            )
+            os.rmdir(os.path.join(tmp_dir, "workspace-link"))
+            os.symlink(
+                os.path.join(tmp_dir, "workspace~"),
+                os.path.join(tmp_dir, "workspace-link"),
+            )
+            with pytest.raises(WorkspaceError):
+                list(project.find_jobs())
 
     def test_workspace_read_only_path(self):
         # Create file where workspace would be, thus preventing the creation
@@ -283,7 +285,6 @@ class TestProject(TestProjectBase):
         assert not os.path.isdir(self._tmp_wd)
         assert not os.path.isdir(self.project.workspace())
 
-    @pytest.mark.filterwarnings("ignore:The doc_filter argument is deprecated")
     def test_find_jobs(self):
         statepoints = [{"a": i} for i in range(5)]
         for sp in statepoints:
@@ -293,21 +294,67 @@ class TestProject(TestProjectBase):
         assert len(statepoints) == len(list(self.project.find_jobs({})))
         assert 1 == len(list(self.project.find_jobs({"a": 0})))
         assert 0 == len(list(self.project.find_jobs({"a": 5})))
+        assert 1 == len(list(self.project.find_jobs({"a": 0}, None)))
+        assert 0 == len(list(self.project.find_jobs({"a": 5}, None)))
+        assert 1 == len(list(self.project.find_jobs({"a": 0}, doc_filter=None)))
+        assert 0 == len(list(self.project.find_jobs({"a": 5}, doc_filter=None)))
+        assert 1 == len(list(self.project.find_jobs(filter={"a": 0}, doc_filter=None)))
+        assert 0 == len(list(self.project.find_jobs(filter={"a": 5}, doc_filter=None)))
         assert 1 == len(list(self.project.find_jobs({"sp.a": 0})))
         assert 0 == len(list(self.project.find_jobs({"sp.a": 5})))
-        assert 1 == len(list(self.project.find_jobs(doc_filter={"b": 0})))
-        assert 0 == len(list(self.project.find_jobs(doc_filter={"b": 5})))
+        with pytest.deprecated_call():
+            assert 1 == len(list(self.project.find_jobs(doc_filter={"b": 0})))
+        with pytest.deprecated_call():
+            assert 0 == len(list(self.project.find_jobs(doc_filter={"b": 5})))
+        with pytest.deprecated_call():
+            assert 1 == len(list(self.project.find_jobs(None, doc_filter={"b": 0})))
+        with pytest.deprecated_call():
+            assert 0 == len(list(self.project.find_jobs(None, doc_filter={"b": 5})))
+        with pytest.deprecated_call():
+            assert 1 == len(
+                list(self.project.find_jobs(filter=None, doc_filter={"b": 0}))
+            )
+        with pytest.deprecated_call():
+            assert 0 == len(
+                list(self.project.find_jobs(filter=None, doc_filter={"b": 5}))
+            )
+        with pytest.deprecated_call():
+            assert 1 == len(list(self.project.find_jobs(None, {"b": 0})))
+        with pytest.deprecated_call():
+            assert 0 == len(list(self.project.find_jobs(None, {"b": 5})))
         assert 1 == len(list(self.project.find_jobs({"doc.b": 0})))
         assert 0 == len(list(self.project.find_jobs({"doc.b": 5})))
         assert 1 == len(list(self.project.find_jobs({"a": 0, "doc.b": 0})))
+        with pytest.deprecated_call():
+            assert 1 == len(list(self.project.find_jobs({"a": 0}, {"b": 0})))
+        with pytest.deprecated_call():
+            assert 1 == len(
+                list(self.project.find_jobs(filter={"a": 0}, doc_filter={"b": 0}))
+            )
+        with pytest.deprecated_call():
+            assert 1 == len(list(self.project.find_jobs({"a": 0}, doc_filter={"b": 0})))
         assert 1 == len(list(self.project.find_jobs({"sp.a": 0, "doc.b": 0})))
+        assert 0 == len(list(self.project.find_jobs({"a": 0, "doc.b": 5})))
+        with pytest.deprecated_call():
+            assert 0 == len(list(self.project.find_jobs({"a": 0}, {"b": 5})))
+        with pytest.deprecated_call():
+            assert 0 == len(
+                list(self.project.find_jobs(filter={"a": 0}, doc_filter={"b": 5}))
+            )
+        with pytest.deprecated_call():
+            assert 0 == len(list(self.project.find_jobs({"a": 0}, doc_filter={"b": 5})))
         assert 0 == len(list(self.project.find_jobs({"sp.a": 0, "doc.b": 5})))
         assert 0 == len(list(self.project.find_jobs({"sp.a": 5, "doc.b": 0})))
         assert 0 == len(list(self.project.find_jobs({"sp.a": 5, "doc.b": 5})))
+        with pytest.raises(TypeError):
+            self.project.find_jobs({"a": 0}, {"b": 5}, "invalid positional arg")
+        with pytest.raises(TypeError):
+            self.project.find_jobs({"a": 0}, invalid_kwarg="invalid argument")
+        with pytest.raises(TypeError):
+            self.project.find_jobs({"a": 0}, {"b": 0}, doc_filter={"b": 0})
         for job in self.project.find_jobs():
             assert self.project.open_job(id=job.id).id == job.id
 
-    @pytest.mark.filterwarnings("ignore:The doc_filter argument is deprecated")
     def test_find_jobs_JobsCursor_contains(self):
         statepoints = [{"a": i} for i in range(5)]
         for sp in statepoints:
@@ -321,27 +368,14 @@ class TestProject(TestProjectBase):
                 assert self.project.open_job(sp) in cursor_first
             else:
                 assert self.project.open_job(sp) not in cursor_first
-        cursor_doc = self.project.find_jobs(doc_filter={"test": True})
+        cursor_doc = self.project.find_jobs({"doc.test": True})
         for sp in statepoints:
             assert self.project.open_job(sp) in cursor_doc
 
-    @pytest.mark.filterwarnings(
-        r"ignore:Calling next\(\) directly on a JobsCursor is deprecated!"
-    )
-    def test_find_jobs_next(self):
-        statepoints = [{"a": i} for i in range(5)]
-        for sp in statepoints:
-            self.project.open_job(sp).init()
-        jobs = self.project.find_jobs()
-        for i in range(2):  # run this twice
-            jobs_ = set()
-            for i in range(len(self.project)):
-                job = jobs.next()
-                assert job in self.project
-                jobs_.add(job)
-            with pytest.raises(StopIteration):
-                job = jobs.next()
-            assert jobs_ == set(self.project)
+        with pytest.deprecated_call():
+            cursor_doc = self.project.find_jobs(doc_filter={"test": True})
+            for sp in statepoints:
+                assert self.project.open_job(sp) in cursor_doc
 
     def test_find_jobs_arithmetic_operators(self):
         for i in range(10):
@@ -2186,6 +2220,14 @@ class TestProjectInit:
         assert project.workspace() == os.path.join(root, "workspace")
         assert project.root_directory() == root
 
+    def test_project_no_id(self):
+        root = self._tmp_dir.name
+        signac.init_project(name="testproject", root=root)
+        config = load_config(root)
+        del config["project"]
+        with pytest.raises(LookupError):
+            Project(config=config)
+
     def test_get_project_all_printable_characters(self):
         root = self._tmp_dir.name
         with pytest.raises(LookupError):
@@ -2374,23 +2416,21 @@ class TestProjectSchema(TestProjectBase):
                 name=str(self.project), root=self.project.root_directory()
             )
 
-    @pytest.mark.filterwarnings(
-        "ignore:Modifying the project configuration after project initialization "
-        "is deprecated"
-    )
     def test_project_schema_version_migration(self):
         from signac.contrib.migration import apply_migrations
 
         apply_migrations(self.project)
-        self.project._config["schema_version"] = "0"
-        assert self.project._config["schema_version"] == "0"
+        config = load_config(self.project.root_directory())
+        config["schema_version"] = "0"
+        self.project = self.project_class(config=config, _ignore_schema_version=True)
+        assert self.project.config["schema_version"] == "0"
         err = io.StringIO()
         with redirect_stderr(err):
             for origin, destination in apply_migrations(self.project):
-                assert self.project._config["schema_version"] == destination
+                assert self.project.config["schema_version"] == destination
                 project = signac.get_project(root=self.project.root_directory())
                 assert project._config["schema_version"] == destination
-        assert self.project._config["schema_version"] == "1"
+        assert self.project.config["schema_version"] == "1"
         assert "OK" in err.getvalue()
         assert "0 to 1" in err.getvalue()
 

@@ -256,7 +256,7 @@ class TestBasicShell:
                 self.call(
                     "python -m signac find ".split() + ['{"doc.a": ' + str(i) + "}"]
                 ).strip()
-                == [job.id for job in project.find_jobs(doc_filter={"a": i})][0]
+                == [job.id for job in project.find_jobs({"doc.a": i})][0]
             )
 
         for i in range(1, 4):
@@ -264,7 +264,7 @@ class TestBasicShell:
                 self.call(
                     "python -m signac find ".split() + ['{"doc.b": ' + str(i) + "}"]
                 ).strip()
-                == [job.id for job in project.find_jobs(doc_filter={"b": i})][0]
+                == [job.id for job in project.find_jobs({"doc.b": i})][0]
             )
 
     def test_diff(self):

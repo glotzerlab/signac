@@ -1060,7 +1060,7 @@ def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
         If a job is already initialized.
     :class:`~signac.errors.StatepointParsingError`
         If the jobs identified with the given schema function are not unique.
-    AssertionError
+    RuntimeError
         If ``tmpdir`` given is not a directory.
 
     """
@@ -1125,9 +1125,11 @@ def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
 
     tarfile.extractall(path=tmpdir)
     for path, job in mappings.items():
-        assert os.path.isdir(tmpdir)
+        if not os.path.isdir(tmpdir):
+            raise RuntimeError(f"The provided tmpdir {tmpdir} is not a directory.")
         src = os.path.join(tmpdir, path)
-        assert os.path.isdir(src)
+        if not os.path.isdir(src):
+            raise RuntimeError(f"The path {src} is not a directory.")
         copy_executor = _CopyFromTarFileExecutor(src, job)
         yield src, copy_executor
 
