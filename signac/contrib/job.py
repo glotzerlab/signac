@@ -241,7 +241,7 @@ class Job:
 
     """
 
-    FN_MANIFEST = "signac_statepoint.json"
+    FN_STATE_POINT = "signac_statepoint.json"
     """The job's state point filename.
 
     The job state point is a human-readable file containing the job's state
@@ -333,7 +333,7 @@ class Job:
         # Performance-critical path. We can rely on the job workspace and state
         # point file name to be well-formed, so just use str.join with os.sep
         # instead of os.path.join for speed.
-        return os.sep.join((self.path, self.FN_MANIFEST))
+        return os.sep.join((self.path, self.FN_STATE_POINT))
 
     # Tell mypy to ignore type checking of the decorator because decorated
     # properties aren't supported: https://github.com/python/mypy/issues/1362
@@ -733,7 +733,7 @@ class Job:
         """
         try:
             for fn in os.listdir(self.path):
-                if fn in (self.FN_MANIFEST, self.FN_DOCUMENT):
+                if fn in (self.FN_STATE_POINT, self.FN_DOCUMENT):
                     continue
                 path = os.path.join(self.path, fn)
                 if os.path.isfile(path):
