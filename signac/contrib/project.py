@@ -859,7 +859,7 @@ class Project:
         # Performance-critical path. We can rely on the project workspace, job
         # id, and state point file name to be well-formed, so just use str.join
         # with os.sep instead of os.path.join for speed.
-        fn_manifest = os.sep.join((self.workspace(), job_id, self.Job.FN_STATE_POINT))
+        fn_statepoint = os.sep.join((self.workspace(), job_id, self.Job.FN_STATE_POINT))
         try:
             with open(fn_statepoint, "rb") as statepoint_file:
                 return json.loads(statepoint_file.read().decode())
