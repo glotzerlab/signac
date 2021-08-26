@@ -615,15 +615,15 @@ def _make_path_based_schema_function(schema_path):
     return parse_path
 
 
-def _with_consistency_check(schema_function, read_sp_manifest_file):
+def _with_consistency_check(schema_function, read_statepoint_file):
     """Return a function to check schema consistency.
 
     Parameters
     ----------
     schema_function : callable
         Schema function.
-    read_sp_manifest_file : callable
-        Function to read state point manifest.
+    read_statepoint_file : callable
+        Function to read state point file.
 
     Returns
     -------
@@ -633,7 +633,7 @@ def _with_consistency_check(schema_function, read_sp_manifest_file):
     """
 
     def _check(path):
-        """Check if the schema-detected state point matches the manifest file.
+        """Check if the schema-detected state point matches the state point file.
 
         Parameters
         ----------
@@ -648,54 +648,54 @@ def _with_consistency_check(schema_function, read_sp_manifest_file):
         Raises
         ------
         :class:`~signac.errors.StatepointParsingError`
-            If identified state point conflicts with state point in job manifest file.
+            If identified state point conflicts with state point in job state point file.
 
         """
-        if schema_function is read_sp_manifest_file:
+        if schema_function is read_statepoint_file:
             return schema_function(path)
         else:
             sp = schema_function(path)
-            sp_default = read_sp_manifest_file(path)
+            sp_default = read_statepoint_file(path)
             if sp and sp_default and sp_default != sp:
                 raise StatepointParsingError(
-                    "Identified state point conflicts with state point in job manifest file!"
+                    "Identified state point conflicts with state point in job state point file!"
                 )
             return sp
 
     return _check
 
 
-def _parse_workspaces(fn_manifest):
-    """Generate a schema function based on parsing state point manifest files.
+def _parse_workspaces(fn_statepoint):
+    """Generate a schema function based on parsing state point files.
 
     Parameters
     ----------
-    fn_manifest : str
-        Manifest file name.
+    fn_statepoint : str
+        State point file name.
 
     Returns
     -------
     callable
-        Function to parse a manifest, given a path.
+        Function to parse a state point, given a path.
 
     """
 
     def _parse_workspace(path):
-        """Parse a manifest, given a path.
+        """Parse a state point, given a path.
 
         Parameters
         ----------
         path : str
-            Path containing manifest file.
+            Path containing state point file.
 
         Returns
         -------
         dict
-            Parsed manifest contents.
+            Parsed state point contents.
 
         """
         try:
-            with open(os.path.join(path, fn_manifest), "rb") as file:
+            with open(os.path.join(path, fn_statepoint), "rb") as file:
                 return json.loads(file.read().decode())
         except OSError as error:
             if error.errno != errno.ENOENT:
@@ -823,16 +823,16 @@ def _analyze_directory_for_import(root, project, schema):
 
     """
     # Determine schema function
-    read_sp_manifest_file = _parse_workspaces(project.Job.FN_MANIFEST)
+    read_statepoint_file = _parse_workspaces(project.Job.FN_STATE_POINT)
     if schema is None:
-        schema_function = read_sp_manifest_file
+        schema_function = read_statepoint_file
     elif callable(schema):
-        schema_function = _with_consistency_check(schema, read_sp_manifest_file)
+        schema_function = _with_consistency_check(schema, read_statepoint_file)
     elif isinstance(schema, str):
         if not schema.startswith(root):
             schema = os.path.normpath(os.path.join(root, schema))
         schema_function = _with_consistency_check(
-            _make_path_based_schema_function(schema), read_sp_manifest_file
+            _make_path_based_schema_function(schema), read_statepoint_file
         )
     else:
         raise TypeError("The schema variable must be None, callable, or a string.")
@@ -919,32 +919,32 @@ def _analyze_zipfile_for_import(zipfile, project, schema):
     """
     names = zipfile.namelist()
 
-    def read_sp_manifest_file(path):
-        """Read a state point manifest file.
+    def read_statepoint_file(path):
+        """Read a state point file.
 
         Parameters
         ----------
         path : str
-            Path to manifest file.
+            Path to state point file.
 
         Returns
         -------
         dict
-            Parsed manifest contents.
+            Parsed state point contents.
 
         """
         # Must use forward slashes, not os.path.sep.
-        fn_manifest = path + "/" + project.Job.FN_MANIFEST
-        if fn_manifest in names:
-            return json.loads(zipfile.read(fn_manifest).decode())
+        fn_statepoint = path + "/" + project.Job.FN_STATE_POINT
+        if fn_statepoint in names:
+            return json.loads(zipfile.read(fn_statepoint).decode())
 
     if schema is None:
-        schema_function = read_sp_manifest_file
+        schema_function = read_statepoint_file
     elif callable(schema):
-        schema_function = _with_consistency_check(schema, read_sp_manifest_file)
+        schema_function = _with_consistency_check(schema, read_statepoint_file)
     elif isinstance(schema, str):
         schema_function = _with_consistency_check(
-            _make_path_based_schema_function(schema), read_sp_manifest_file
+            _make_path_based_schema_function(schema), read_statepoint_file
         )
     else:
         raise TypeError("The schema variable must be None, callable, or a string.")
@@ -1065,35 +1065,35 @@ def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
 
     """
 
-    def read_sp_manifest_file(path):
-        """Read state point from the manifest file.
+    def read_statepoint_file(path):
+        """Read a state point file.
 
         Parameters
         ----------
         path : str
-            Path to manifest file.
+            Path to state point file.
 
         Returns
         -------
         dict
-            state point.
+            Parsed state point contents.
 
         """
         # Must use forward slashes, not os.path.sep.
-        fn_manifest = _tarfile_path_join(path, project.Job.FN_MANIFEST)
+        fn_statepoint = _tarfile_path_join(path, project.Job.FN_STATE_POINT)
         try:
-            with closing(tarfile.extractfile(fn_manifest)) as file:
+            with closing(tarfile.extractfile(fn_statepoint)) as file:
                 return json.loads(file.read())
         except KeyError:
             pass
 
     if schema is None:
-        schema_function = read_sp_manifest_file
+        schema_function = read_statepoint_file
     elif callable(schema):
-        schema_function = _with_consistency_check(schema, read_sp_manifest_file)
+        schema_function = _with_consistency_check(schema, read_statepoint_file)
     elif isinstance(schema, str):
         schema_function = _with_consistency_check(
-            _make_path_based_schema_function(schema), read_sp_manifest_file
+            _make_path_based_schema_function(schema), read_statepoint_file
         )
     else:
         raise TypeError("The schema variable must be None, callable, or a string.")
@@ -1186,9 +1186,9 @@ def import_into_project(origin, project, schema=None, copytree=None):
     This function will walk through the data space located at origin and try to identify
     data space paths that can be imported as a job workspace into project.
 
-    The default schema function will simply look for state point manifest files -- usually named
+    The default schema function will simply look for state point files -- usually named
     ``signac_statepoint.json`` -- and then import all data located within that path into the job
-    workspace corresponding to the state point specified in the manifest file.
+    workspace corresponding to the specified state point.
 
     Alternatively the schema argument may be a string, that is converted into a schema function,
     for example: Providing ``foo/{foo:int}`` as schema argument means that all directories under
