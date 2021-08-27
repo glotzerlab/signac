@@ -788,15 +788,25 @@ class TestBasicShell:
         assert "[x]" in cfg
         assert "y = z" in cfg
 
+        backup_config = os.path.exists(config.FN_CONFIG)
         global_config_path_backup = config.FN_CONFIG + ".tmp"
         try:
-            shutil.copy2(config.FN_CONFIG, global_config_path_backup)
+            # Make a backup of the global config if it exists
+            if backup_config:
+                shutil.copy2(config.FN_CONFIG, global_config_path_backup)
+
+            # Test the global config CLI
             self.call("python -m signac config --global set b c".split())
             cfg = self.call("python -m signac config --global show".split())
             assert "b" in cfg
             assert "b = c" in cfg.split(os.linesep)
         finally:
-            shutil.move(global_config_path_backup, config.FN_CONFIG)
+            # Revert the global config to its previous state (or remove it if
+            # it did not exist)
+            if backup_config:
+                shutil.move(global_config_path_backup, config.FN_CONFIG)
+            else:
+                os.remove(config.FN_CONFIG)
 
         # setting password with config set should fail
         with pytest.raises(ExitCodeError):
