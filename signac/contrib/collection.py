@@ -55,8 +55,8 @@ _TYPES = {
     "null": type(None),
 }
 
-
-MAX_DEFAULT_ID = int("F" * 32, 16)
+ID_LENGTH = 32
+MAX_DEFAULT_ID = int("F" * ID_LENGTH, 16)
 
 
 class _DictPlaceholder:
@@ -464,7 +464,7 @@ class Collection:
             self._next_default_id_ = len(self)
         for i in range(len(self) + 1):
             assert self._next_default_id_ < MAX_DEFAULT_ID
-            _id = str(hex(self._next_default_id_))[2:].rjust(32, "0")
+            _id = str(hex(self._next_default_id_))[2:].rjust(ID_LENGTH, "0")
             self._next_default_id_ += 1
             if _id not in self:
                 return _id
