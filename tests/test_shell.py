@@ -3,6 +3,7 @@
 # This software is licensed under the BSD 3-Clause License.
 import json
 import os
+import shutil
 import subprocess
 import sys
 from tempfile import TemporaryDirectory
@@ -787,10 +788,25 @@ class TestBasicShell:
         assert "[x]" in cfg
         assert "y = z" in cfg
 
-        self.call("python -m signac config --global set b c".split())
-        cfg = self.call("python -m signac config --global show".split())
-        assert "b" in cfg
-        assert "b = c" in cfg.split(os.linesep)
+        backup_config = os.path.exists(config.FN_CONFIG)
+        global_config_path_backup = config.FN_CONFIG + ".tmp"
+        try:
+            # Make a backup of the global config if it exists
+            if backup_config:
+                shutil.copy2(config.FN_CONFIG, global_config_path_backup)
+
+            # Test the global config CLI
+            self.call("python -m signac config --global set b c".split())
+            cfg = self.call("python -m signac config --global show".split())
+            assert "b" in cfg
+            assert "b = c" in cfg.split(os.linesep)
+        finally:
+            # Revert the global config to its previous state (or remove it if
+            # it did not exist)
+            if backup_config:
+                shutil.move(global_config_path_backup, config.FN_CONFIG)
+            else:
+                os.remove(config.FN_CONFIG)
 
         # setting password with config set should fail
         with pytest.raises(ExitCodeError):
