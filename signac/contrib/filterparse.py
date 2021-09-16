@@ -96,6 +96,23 @@ def _is_regex(q):
     return q.startswith("/") and q.endswith("/")
 
 
+def _is_list(q):
+    """Check if q is a list.
+
+    Parameters
+    ----------
+    q : str
+        Query string.
+
+    Returns
+    -------
+    bool
+        True if q starts with "[" and ends with "]".
+
+    """
+    return q.startswith("[") and q.endswith("]")
+
+
 def _parse_json(q):
     """Parse a query argument as JSON.
 
@@ -183,7 +200,7 @@ def _parse_single(key, value=None):
     """
     if value is None or value == "!":
         return key, {"$exists": True}
-    elif _is_json(value):
+    elif _is_json(value) or _is_list(value):
         return key, _parse_json(value)
     elif _is_regex(value):
         return key, {"$regex": value[1:-1]}
