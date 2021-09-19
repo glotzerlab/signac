@@ -239,6 +239,7 @@ class TestBasicShell:
         self.call("python -m signac init my_project".split())
         project = signac.Project()
         sps = [{"a": i} for i in range(3)]
+        sps.append({"a": [0, 1, 0]})
         for sp in sps:
             project.open_job(sp).init()
         out = self.call("python -m signac find".split())
@@ -269,8 +270,17 @@ class TestBasicShell:
         assert '{"a": 0}' in out
         assert '{"a": 2}' in out
 
+        job = project.open_job({"a": [0, 1, 0]})
+        msg = "python -m signac find a".split()
+        msg.append('[0, 1, 0]')
+        msg.append('--sp')
+        out = self.call(msg).strip()
+        assert out.strip().split(os.linesep) == [str(job.id), str(job.statepoint)]
+        
+
         # Test the doc_filter
         for job in project.find_jobs():
+            if job.statepoint()["a"] == [0, 1, 0]: continue
             job.document["a"] = job.statepoint()["a"]
             job.document["b"] = job.statepoint()["a"] + 1
 
