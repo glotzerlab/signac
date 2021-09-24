@@ -164,7 +164,7 @@ def _parse_single(key, value=None):
         If filter arguments have an invalid key.
 
     """
-    
+
     if value is None or value == "!":
         return key, {"$exists": True}
     elif _is_regex(value):
