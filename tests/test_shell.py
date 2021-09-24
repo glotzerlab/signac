@@ -272,15 +272,15 @@ class TestBasicShell:
 
         job = project.open_job({"a": [0, 1, 0]})
         msg = "python -m signac find a".split()
-        msg.append('[0, 1, 0]')
-        msg.append('--sp')
+        msg.append("[0, 1, 0]")
+        msg.append("--sp")
         out = self.call(msg).strip()
         assert out.strip().split(os.linesep) == [str(job.id), str(job.statepoint)]
-        
 
         # Test the doc_filter
         for job in project.find_jobs():
-            if job.statepoint()["a"] == [0, 1, 0]: continue
+            if job.statepoint()["a"] == [0, 1, 0]:
+                continue
             job.document["a"] = job.statepoint()["a"]
             job.document["b"] = job.statepoint()["a"] + 1
 
