@@ -62,23 +62,6 @@ def _read_index(project, fn_index=None):
         return (json.loads(line) for line in fd)
 
 
-def _is_json(q):
-    """Check if q is JSON.
-
-    Parameters
-    ----------
-    q : str
-        Query string.
-
-    Returns
-    -------
-    bool
-        True if q starts with "{" and ends with "}".
-
-    """
-    return (q[0] == "{" and q[-1] == "}") or (q[0] == "[" and q[-1] == "]")
-
-
 def _is_regex(q):
     """Check if q is a regular expression.
 
@@ -181,19 +164,16 @@ def _parse_single(key, value=None):
         If filter arguments have an invalid key.
 
     """
-    if _is_json(key):
-        raise ValueError(
-            "Please check your filter arguments. "
-            "Using a JSON expression as a key is not allowed: '{}'.".format(key)
-        )
-    elif value is None or value == "!":
+    
+    if value is None or value == "!":
         return key, {"$exists": True}
-    elif _is_json(value):
-        return key, _parse_json(value)
     elif _is_regex(value):
         return key, {"$regex": value[1:-1]}
     else:
-        return key, _cast(value)
+        try:
+            return key, _parse_json(str(value))
+        except json.JSONDecodeError:
+            return key, _cast(value)
 
 
 def parse_simple(tokens):
@@ -238,14 +218,13 @@ def parse_filter_arg(args, file=sys.stderr):
     if args is None or len(args) == 0:
         return None
     elif len(args) == 1:
-        if _is_json(args[0]):
+        try:
             return _parse_json(args[0])
-        else:
+        except json.JSONDecodeError:
             key, value = _parse_single(args[0])
             return _with_message({key: value}, file)
     else:
         q = dict(parse_simple(args))
-
         return _with_message(q, file)
 
 
