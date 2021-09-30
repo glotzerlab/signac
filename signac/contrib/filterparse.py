@@ -180,13 +180,12 @@ def _parse_single(key, value=None):
     ValueError
         If filter arguments have an invalid key.
 
-    """
-    
+    """ 
     if _is_json_like(key):
         raise ValueError(
             "Please check your filter arguments. "
-            "Using a JSON expression as a key is not allowed: '{}'.".format(key)
-        )
+            f"Using a JSON expression as a key is not allowed: '{key}'."
+            )
     elif value is None or value == "!":
         return key, {"$exists": True}
     elif _is_json_like(value):

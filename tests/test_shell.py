@@ -271,9 +271,7 @@ class TestBasicShell:
         assert '{"a": 2}' in out
 
         job = project.open_job({"a": [0, 1, 0]})
-        msg = "python -m signac find a".split()
-        msg.append("[0, 1, 0]")
-        msg.append("--sp")
+        msg = [*"python -m signac find a".split(), "[0, 1, 0]", "--sp"]
         out = self.call(msg).strip()
         assert out.strip().split(os.linesep) == [str(job.id), str(job.statepoint)]
 
