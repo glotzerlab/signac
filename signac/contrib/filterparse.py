@@ -181,7 +181,7 @@ def _parse_single(key, value=None):
         If filter arguments have an invalid key.
 
     """
-    
+
     if _is_json_like(key):
         raise ValueError(
             "Please check your filter arguments. "
@@ -241,7 +241,7 @@ def parse_filter_arg(args, file=sys.stderr):
     elif len(args) == 1:
         if _is_json_like(args[0]):
             return _parse_json(args[0])
-        else: 
+        else:
             key, value = _parse_single(args[0])
             return _with_message({key: value}, file)
     else:
