@@ -1,4 +1,4 @@
 deprecation>=2
-filelock~=3.0
+filelock~=3.2
 packaging>=15.0
 tqdm>=4.10.0
