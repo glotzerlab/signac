@@ -4,6 +4,7 @@ import random
 import string
 from itertools import islice
 from multiprocessing import Pool
+from tempfile import TemporaryDirectory
 
 from tqdm import tqdm
 
@@ -59,9 +60,10 @@ def setup_random_project(
     if not isinstance(N, int):
         raise TypeError("N must be an integer!")
 
-    project = signac.init_project(f"benchmark-N={N}")
+    temp_dir = TemporaryDirectory()
+    project = signac.init_project(f"benchmark-N={N}", root=temp_dir.name)
     generate_random_data(project, N, num_keys, num_doc_keys, data_size, data_std)
-    return project
+    return project, temp_dir
 
 
 PARAMETERS = {"N": [100, 1_000]}
@@ -73,7 +75,10 @@ class _ProjectBenchBase:
 
     def setup(self, *params):
         (N,) = params
-        self.project = setup_random_project(N)
+        self.project, self.temp_dir = setup_random_project(N)
+
+    def teardown(self, *params):
+        self.temp_dir.cleanup()
 
 
 class ProjectBench(_ProjectBenchBase):
