@@ -160,8 +160,7 @@ class Project:
         # Prepare project H5StoreManager
         self._stores = None
 
-        # Internal caches
-        self._index_cache = {}
+        # Internal state point cache
         # Note that the state point cache is a superset of the jobs in the
         # project, and its contents cannot be invalidated. The cached mapping
         # of "id: statepoint" is valid even after a job has been removed, and
@@ -710,10 +709,8 @@ class Project:
         if not filter:
             return list(self._job_dirs())
         filter = dict(parse_filter(_add_prefix("sp.", filter)))
-        if "doc" in _root_keys(filter):
-            index = self._index(include_job_document=True)
-        else:
-            index = self._sp_index()
+        include_job_document = "doc" in _root_keys(filter)
+        index = self._index(include_job_document=include_job_document)
         return list(Collection(index, _trust=True)._find(filter))
 
     def find_jobs(self, filter=None, *args, **kwargs):
@@ -1328,24 +1325,6 @@ class Project:
                         corrupted.append(job_id)
         if corrupted:
             raise JobsCorruptedError(corrupted)
-
-    def _sp_index(self):
-        """Update and return the state point index cache.
-
-        Returns
-        -------
-        dict
-            Dictionary containing ids and state points in the cache.
-
-        """
-        job_ids = set(self._job_dirs())
-        to_add = job_ids.difference(self._index_cache)
-        to_remove = set(self._index_cache).difference(job_ids)
-        for _id in to_remove:
-            del self._index_cache[_id]
-        for _id in to_add:
-            self._index_cache[_id] = dict(sp=self._get_statepoint(_id), _id=_id)
-        return self._index_cache.values()
 
     def _build_index(self, include_job_document=False):
         """Generate a basic state point index.
