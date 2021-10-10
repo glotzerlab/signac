@@ -1356,6 +1356,13 @@ class Project:
             Whether to include the job document in the index (Default value =
             False).
 
+        Yields
+        ------
+        dict
+            Dictionary with keys ``_id`` containing the job id, ``sp``
+            containing the state point, and ``doc`` containing the job document
+            if requested.
+
         """
         wd = self.workspace() if self.Job is Job else None
         for _id in self._find_job_ids():
@@ -1499,28 +1506,9 @@ class Project:
 
         """
         root = self.workspace()
-
-        def _full_doc(doc):
-            """Add `signac_id` and `root` to the index document.
-
-            Parameters
-            ----------
-            doc : dict
-                Index document.
-
-            Returns
-            -------
-            dict
-                Modified index document.
-
-            """
+        for doc in self._build_index(include_job_document=include_job_document):
             doc["signac_id"] = doc["_id"]
             doc["root"] = root
-            return doc
-
-        docs = self._build_index(include_job_document=include_job_document)
-        docs = map(_full_doc, docs)
-        for doc in docs:
             yield doc
 
     @contextmanager
