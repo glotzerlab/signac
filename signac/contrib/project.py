@@ -1364,21 +1364,22 @@ class Project:
             if requested.
 
         """
-        wd = self.workspace() if self.Job is Job else None
-        for _id in self._find_job_ids():
-            doc = dict(_id=_id, sp=self._get_statepoint(_id))
+        for job_id in self._find_job_ids():
+            doc = dict(_id=job_id, sp=self._get_statepoint(job_id))
             if include_job_document:
-                if wd is None:
-                    doc["doc"] = self.open_job(id=_id).document
-                else:  # use optimized path
-                    try:
-                        with open(
-                            os.path.join(wd, _id, self.Job.FN_DOCUMENT), "rb"
-                        ) as file:
-                            doc["doc"] = json.loads(file.read().decode())
-                    except OSError as error:
-                        if error.errno != errno.ENOENT:
-                            raise
+                try:
+                    # Performance-critical path. We can rely on the project
+                    # workspace, job id, and document file name to be
+                    # well-formed, so just use str.join with os.sep instead of
+                    # os.path.join for speed.
+                    fn_document = os.sep.join(
+                        (self.workspace(), job_id, self.Job.FN_DOCUMENT)
+                    )
+                    with open(fn_document, "rb") as file:
+                        doc["doc"] = json.loads(file.read().decode())
+                except OSError as error:
+                    if error.errno != errno.ENOENT:
+                        raise
             yield doc
 
     def _update_in_memory_cache(self):
