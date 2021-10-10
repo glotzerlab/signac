@@ -4,7 +4,6 @@ import random
 import string
 from itertools import islice
 from multiprocessing import Pool
-from tempfile import TemporaryDirectory
 
 from tqdm import tqdm
 
@@ -35,7 +34,7 @@ def _make_job(project, num_keys, num_doc_keys, data_size, data_std, i):
 
 
 def generate_random_data(
-    project, N_sp, num_keys=1, num_doc_keys=0, data_size=0, data_std=0, parallel=True
+    project, N, num_keys=1, num_doc_keys=0, data_size=0, data_std=0, parallel=True
 ):
     assert len(project) == 0
 
@@ -43,14 +42,14 @@ def generate_random_data(
         with Pool() as pool:
             p = [
                 (project, num_keys, num_doc_keys, data_size, data_std, i)
-                for i in range(N_sp)
+                for i in range(N)
             ]
             list(pool.starmap(_make_job, tqdm(p, desc="init random project data")))
     else:
         from functools import partial
 
         make = partial(_make_job, project, num_keys, num_doc_keys, data_size, data_std)
-        list(map(make, tqdm(range(N_sp), desc="init random project data")))
+        list(map(make, tqdm(range(N), desc="init random project data")))
 
 
 def setup_random_project(
@@ -60,50 +59,52 @@ def setup_random_project(
     if not isinstance(N, int):
         raise TypeError("N must be an integer!")
 
-    temp_dir = TemporaryDirectory()
-    project = signac.init_project(f"benchmark-N={N}", root=temp_dir.name)
+    project = signac.init_project(f"benchmark-N={N}")
     generate_random_data(project, N, num_keys, num_doc_keys, data_size, data_std)
-    return project, temp_dir
+    return project
 
 
-class ProjectBench:
-    def setup(self):
-        self.project, self.temp_dir = setup_random_project(100)
+PARAMETERS = {"N": [100, 1_000]}
 
-    def teardown(self):
-        self.temp_dir.cleanup()
 
-    def time_determine_len(self):
+class _ProjectBenchBase:
+    param_names = PARAMETERS.keys()
+    params = PARAMETERS.values()
+
+    def setup(self, *params):
+        (N,) = params
+        self.project = setup_random_project(N)
+
+
+class ProjectBench(_ProjectBenchBase):
+    def time_determine_len(self, *params):
         len(self.project)
 
-    def time_iterate_single_pass(self):
+    def time_iterate_single_pass(self, *params):
         list(self.project)
 
-    def time_iterate(self):
+    def time_iterate(self, *params):
         for _ in range(10):
             list(self.project)
 
-    def time_iterate_load_sp(self):
+    def time_iterate_load_sp(self, *params):
         for _ in range(10):
             [job.sp() for job in self.project]
 
 
-class ProjectRandomJobBench:
-    def setup(self):
-        self.project, self.temp_dir = setup_random_project(100)
+class ProjectRandomJobBench(_ProjectBenchBase):
+    def setup(self, *params):
+        super().setup(*params)
         self.random_job = random.choice(list(self.project))
         self.random_job_sp = self.random_job.statepoint()
         self.random_job_id = self.random_job.id
         self.lean_filter = {k: v for k, v in islice(self.random_job_sp.items(), 1)}
 
-    def teardown(self):
-        self.temp_dir.cleanup()
-
-    def time_select_by_id(self):
+    def time_select_by_id(self, *params):
         self.project.open_job(id=self.random_job_id)
 
-    def time_search_lean_filter(self):
+    def time_search_lean_filter(self, *params):
         len(self.project.find_jobs(self.lean_filter))
 
-    def time_search_rich_filter(self):
+    def time_search_rich_filter(self, *params):
         len(self.project.find_jobs(self.random_job_sp))
