@@ -207,7 +207,7 @@ jobs:
 
   check-metadata:
     docker:
-      - image: circleci/python:3.9
+      - image: cimg/python:3.10
     working_directory: ~/repo
     steps:
       - checkout
@@ -223,7 +223,7 @@ jobs:
 
   test-deploy-pypi:
     docker:
-      - image: circleci/python:3.9
+      - image: cimg/python:3.10
     working_directory: ~/repo
     steps:
       - checkout
@@ -234,7 +234,7 @@ jobs:
 
   deploy-pypi:
     docker:
-      - image: circleci/python:3.9
+      - image: cimg/python:3.10
     working_directory: ~/repo
     steps:
       - checkout
