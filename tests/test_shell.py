@@ -94,6 +94,7 @@ class TestBasicShell:
     def test_help(self):
         out = self.call("python -m signac --help".split())
         assert "positional arguments:" in out
+        # Help string changed in 3.10.
         py310_or_greater = sys.version_info >= (3, 10)
         assert ("options:" if py310_or_greater else "optional arguments:") in out
 
