@@ -99,19 +99,26 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
         raise RuntimeError(err_msg)
 
     path_function = _make_path_function(jobs, path)
-
-    links = {}
+    incomplete_links = {}
     for job in jobs:
         paths = os.path.join(path_function(job), "job")
-        links[paths] = job.workspace()
-    if not links:  # data space contains less than two elements
-        for job in project.find_jobs():
-            links["./job"] = job.workspace()
-        assert len(links) < 2
-    _check_directory_structure_validity(links.keys())
+        incomplete_links[paths] = job.workspace()
 
-    _update_view(prefix, links)
-    return links
+    links = {job.workspace(): path_function(job) for job in jobs}
+    # Check whether the paths are unique
+    if len(set(links.values())) != len(links):
+        print("Paths generated with given path function are not unique. Caught in linked_view.py")
+        #raise RuntimeError("Paths generated with given path function are not unique.")
+
+    if not incomplete_links:  # data space contains less than two elements
+        for job in project.find_jobs():
+            incomplete_links["./job"] = job.workspace()
+        assert len(incomplete_links) < 2
+    _check_directory_structure_validity(incomplete_links.keys())
+    _check_directory_structure_validity(links.values())
+
+    _update_view(prefix, incomplete_links)
+    return links #incomplete_links
 
 
 def _update_view(prefix, links, leaf="job"):
