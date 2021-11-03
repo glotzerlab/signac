@@ -23,8 +23,10 @@ jobs:
       - image: circleci/redis:latest
 
     environment:
-      BENCHMARKS: "RUN"
-      DEPENDENCIES: "NEWEST"
+      # TODO: update this with RUN and NEWEST when all Python 3.10 wheels are
+      # available.
+      BENCHMARKS: "SKIP"
+      DEPENDENCIES: "MINIMAL"
       PYTHON: python
 
     working_directory: ~/repo
@@ -99,15 +101,6 @@ jobs:
               ${PYTHON} benchmark.py run -N 100 1000 --force
               ${PYTHON} benchmark.py compare origin/master "${CIRCLE_SHA1}"
             fi
-
-  linux-python-310-minimal:
-    <<: *linux-template
-    docker:
-      - image: cimg/python:3.10
-    environment:
-      BENCHMARKS: "SKIP"
-      DEPENDENCIES: "MINIMAL"
-      PYTHON: python
 
   linux-python-39:
     <<: *linux-template
@@ -249,7 +242,6 @@ workflows:
   test:
     jobs:
       - linux-python-310
-      - linux-python-310-minimal
       - linux-python-39
       - linux-python-38
       - linux-python-37
@@ -267,7 +259,6 @@ workflows:
               only: /release\/.*/
           requires:
             - linux-python-310
-            - linux-python-310-minimal
             - linux-python-39
             - linux-python-38
             - linux-python-37
