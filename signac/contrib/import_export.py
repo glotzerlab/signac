@@ -243,8 +243,10 @@ def _make_path_function(jobs, path):
         # Check that the user-specified path generates a 1-1 mapping
         link_check = {j.workspace(): path_function(j) for j in jobs}
         if len(set(link_check.values())) != len(link_check):
-            raise RuntimeError("Paths generated with given path function are not 1-1. The easiest "
-                               "way to fix this is to add the job id to the path specification.")
+            raise RuntimeError(
+                "Paths generated with given path function are not 1-1. The easiest "
+                "way to fix this is to add the job id to the path specification."
+            )
 
     else:
         raise ValueError(
