@@ -99,9 +99,14 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
         raise RuntimeError(err_msg)
 
     path_function = _make_path_function(jobs, path)
+
     links = {job.workspace(): path_function(job) for job in jobs}
     _check_directory_structure_validity(links.values())
-    _update_view(prefix, links)
+
+    # invert the dictionary
+    to_update = {links[k]: k for k in links}
+
+    _update_view(prefix, to_update)
 
     return links
 
