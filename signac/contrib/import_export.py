@@ -240,6 +240,7 @@ def _make_path_function(jobs, path):
                 raise _SchemaPathEvaluationError(f"Unknown key: {error}")
             except Exception as error:
                 raise _SchemaPathEvaluationError(error)
+
         # Check that the user-specified path generates a unique mapping
         link_check = {j.workspace(): path_function(j) for j in jobs}
         if len(set(link_check.values())) != len(link_check):
@@ -249,7 +250,6 @@ def _make_path_function(jobs, path):
         raise ValueError(
             "The path argument must either be `None`, `False`, or of type `str`."
         )
-
 
     return path_function
 
