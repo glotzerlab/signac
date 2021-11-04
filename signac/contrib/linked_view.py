@@ -100,13 +100,16 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
 
     path_function = _make_path_function(jobs, path)
 
-    links = {job.workspace(): path_function(job) for job in jobs}
-    _check_directory_structure_validity(links.values())
-
-    # invert the dictionary
-    to_update = {links[k]: k for k in links}
-
-    _update_view(prefix, to_update)
+    links = {}
+    for job in jobs:
+        paths = os.path.join(path_function(job), "job")
+        links[paths] = job.workspace()
+    if not links:  # data space contains less than two elements
+        for job in project.find_jobs():
+            links["./job"] = job.workspace()
+        assert len(links) < 2
+    _check_directory_structure_validity(links.keys())
+    _update_view(prefix, links)
 
     return links
 
