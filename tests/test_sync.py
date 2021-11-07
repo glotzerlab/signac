@@ -545,12 +545,8 @@ class TestProjectSync:
         self._tmp_pr_b = os.path.join(self._tmp_dir.name, "pr_b")
         os.mkdir(self._tmp_pr_a)
         os.mkdir(self._tmp_pr_b)
-        self.project_a = signac.Project.init_project(
-            name="test-project-a", root=self._tmp_pr_a
-        )
-        self.project_b = signac.Project.init_project(
-            name="test-project-b", root=self._tmp_pr_b
-        )
+        self.project_a = signac.Project.init_project(root=self._tmp_pr_a)
+        self.project_b = signac.Project.init_project(root=self._tmp_pr_b)
 
     def _init_job(self, job, data="data"):
         with job:

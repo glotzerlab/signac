@@ -73,7 +73,7 @@ Total transfer volume:       {stats.volume}
 SHELL_BANNER = """Python {python_version}
 signac {signac_version} 🎨
 
-Project:\t{project_id}{job_banner}
+Project:\t{project_root}{job_banner}
 Root:\t\t{root_path}
 Workspace:\t{workspace_path}
 Size:\t\t{size}
@@ -167,7 +167,7 @@ def main_project(args):
     if args.workspace:
         print(project.workspace())
     else:
-        print(project)
+        print(project.root_directory())
 
 
 def main_job(args):
@@ -342,9 +342,7 @@ def main_view(args):
 
 def main_init(args):
     """Handle init subcommand."""
-    project = init_project(
-        name=args.project_id, root=os.getcwd(), workspace=args.workspace
-    )
+    project = init_project(root=os.getcwd(), workspace=args.workspace)
     _print_err(f"Initialized project '{project}'.")
 
 
@@ -551,7 +549,7 @@ def _main_import_interactive(project, origin, args):
                 banner=SHELL_BANNER_INTERACTIVE_IMPORT.format(
                     python_version=sys.version,
                     signac_version=__version__,
-                    project_id=project.id,
+                    project_root=project.root_directory(),
                     job_banner="",
                     root_path=project.root_directory(),
                     workspace_path=project.workspace(),
@@ -909,7 +907,7 @@ def main_shell(args):
                 banner=SHELL_BANNER.format(
                     python_version=sys.version,
                     signac_version=__version__,
-                    project_id=project.id,
+                    project_root=project.root_directory(),
                     job_banner=f"\nJob:\t\t{job.id}" if job is not None else "",
                     root_path=project.root_directory(),
                     workspace_path=project.workspace(),
@@ -940,9 +938,6 @@ def main():
     subparsers = parser.add_subparsers()
 
     parser_init = subparsers.add_parser("init")
-    parser_init.add_argument(
-        "project_id", type=str, help="Initialize a project with the given project id."
-    )
     parser_init.add_argument(
         "-w",
         "--workspace",

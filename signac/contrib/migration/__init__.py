@@ -31,11 +31,13 @@ def _reload_project_config(project):
 
 def _update_project_config(project, **kwargs):
     """Update the project configuration."""
+    found = False
     for fn in ("signac.rc", ".signacrc"):
-        config = get_config(project.fn(fn))
-        if "project" in config:
-            break
-    else:
+        project_fn = project.fn(fn)
+        if os.path.isfile(project_fn):
+            config = get_config(project_fn)
+            found = True
+    if not found:
         raise RuntimeError("Unable to determine project configuration file.")
     config.update(kwargs)
     config.write()

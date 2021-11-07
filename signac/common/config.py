@@ -41,8 +41,7 @@ def _search_tree(root=None):
         yield from _search_local(root)
         up = os.path.abspath(os.path.join(root, ".."))
         if up == root:
-            msg = "Reached filesystem root."
-            logger.debug(msg)
+            logger.debug("Reached filesystem root.")
             return
         else:
             root = up
@@ -84,22 +83,24 @@ def load_config(root=None, local=False):
     if root is None:
         root = os.getcwd()
     config = Config(configspec=cfg.split("\n"))
-    if local:
-        for fn in _search_local(root):
-            tmp = read_config_file(fn)
-            config.merge(tmp)
-            if "project" in tmp:
-                config["project_dir"] = os.path.dirname(fn)
-                break
-    else:
+
+    if not local:
+        # For non-local searches we grab the user's global config file first.
         for fn in search_standard_dirs():
             config.merge(read_config_file(fn))
-        for fn in _search_tree(root):
-            tmp = read_config_file(fn)
-            config.merge(tmp)
-            if "project" in tmp:
-                config["project_dir"] = os.path.dirname(fn)
-                break
+        search_func = _search_tree
+    else:
+        # Local searches cannot proceed up the tree.
+        search_func = _search_local
+
+    for fn in search_func(root):
+        tmp = read_config_file(fn)
+        config.merge(tmp)
+        # Once a valid config file is found, we cease looking any further, i.e.
+        # we assume that the first directory with a valid config file is the
+        # project root.
+        config["project_dir"] = os.path.dirname(fn)
+        break
     return config
 
 

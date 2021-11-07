@@ -11,7 +11,6 @@ import os
 import re
 import shutil
 import time
-import uuid
 import warnings
 from collections.abc import Iterable
 from contextlib import contextmanager
@@ -119,10 +118,8 @@ class Project:
         self._config = _ProjectConfig(config)
         self._lock = RLock()
 
-        # Ensure that the project id is configured.
-        try:
-            self._id = str(self.config["project"])
-        except KeyError:
+        # Ensure that the project is configured.
+        if "project_dir" not in self.config:
             raise LookupError(
                 "Unable to determine project id. "
                 "Please verify that '{}' is a signac project path.".format(
@@ -146,7 +143,7 @@ class Project:
             except OSError:
                 logger.error(
                     "Error occurred while trying to create "
-                    "workspace directory for project {}.".format(self.id)
+                    f"workspace directory at {self.workspace()}."
                 )
                 raise
 
@@ -176,7 +173,8 @@ class Project:
 
     def __str__(self):
         """Return the project's id."""
-        return str(self.id)
+        # TODO: Is this the string representation that we want?
+        return os.path.split(self._root_directory)[-1]
 
     def __repr__(self):
         return "{type}.get_project({root})".format(
@@ -194,7 +192,6 @@ class Project:
         """
         return (
             "<p>"
-            + f"<strong>Project:</strong> {self.id}<br>"
             + f"<strong>Root:</strong> {self.root_directory()}<br>"
             + f"<strong>Workspace:</strong> {self.workspace()}<br>"
             + f"<strong>Size:</strong> {len(self)}"
@@ -254,18 +251,6 @@ class Project:
 
         """
         return self._workspace
-
-    @property
-    def id(self):
-        """Get the project identifier.
-
-        Returns
-        -------
-        str
-            The project id.
-
-        """
-        return self._id
 
     def _check_schema_compatibility(self):
         """Check whether this project's data schema is compatible with this version.
@@ -1524,7 +1509,7 @@ class Project:
             yield doc
 
     @contextmanager
-    def temporary_project(self, name=None, dir=None):
+    def temporary_project(self, dir=None):
         """Context manager for the initialization of a temporary project.
 
         The temporary project is by default created within the root project's
@@ -1540,9 +1525,6 @@ class Project:
 
         Parameters
         ----------
-        name : str
-            An optional name for the temporary project.
-            Defaults to a unique random string.
         dir : str
             Optionally specify where the temporary project root directory is to be
             created. Defaults to the project's workspace directory.
@@ -1553,17 +1535,15 @@ class Project:
             An instance of :class:`~signac.Project`.
 
         """
-        if name is None:
-            name = os.path.join(self.id, str(uuid.uuid4()))
         if dir is None:
             dir = self.workspace()
         _mkdir_p(self.workspace())  # ensure workspace exists
-        with TemporaryProject(name=name, cls=type(self), dir=dir) as tmp_project:
+        with TemporaryProject(cls=type(self), dir=dir) as tmp_project:
             yield tmp_project
 
     @classmethod
-    def init_project(cls, name, root=None, workspace=None, make_dir=True):
-        """Initialize a project with the given name.
+    def init_project(cls, root=None, workspace=None, make_dir=True):
+        """Initialize a project.
 
         It is safe to call this function multiple times with the same
         arguments. However, a `RuntimeError` is raised if an existing project
@@ -1574,8 +1554,6 @@ class Project:
 
         Parameters
         ----------
-        name : str
-            The name of the project to initialize.
         root : str
             The root directory for the project.
             Defaults to the current working directory.
@@ -1607,24 +1585,19 @@ class Project:
             if make_dir:
                 _mkdir_p(os.path.dirname(fn_config))
             config = get_config(fn_config)
-            config["project"] = name
             if workspace is not None:
                 config["workspace_dir"] = workspace
             config["schema_version"] = SCHEMA_VERSION
             config.write()
             project = cls.get_project(root=root)
-            assert project.id == str(name)
             return project
         else:
-            if project.id != str(name) or (
-                workspace is not None
-                and os.path.realpath(workspace) != os.path.realpath(project.workspace())
-            ):
+            if workspace is not None and os.path.realpath(
+                workspace
+            ) != os.path.realpath(project.workspace()):
                 raise RuntimeError(
-                    "Failed to initialize project '{}'. Path '{}' already "
-                    "contains a conflicting project configuration.".format(
-                        name, os.path.abspath(root)
-                    )
+                    f"Failed to initialize project. Path '{os.path.abspath(root)}' "
+                    "already contains a conflicting project configuration."
                 )
             return project
 
@@ -1660,14 +1633,11 @@ class Project:
         if root is None:
             root = os.getcwd()
         config = load_config(root=root, local=False)
-        if "project" not in config or (
-            not search
-            and os.path.realpath(config["project_dir"]) != os.path.realpath(root)
+        if not search and os.path.realpath(config["project_dir"]) != os.path.realpath(
+            root
         ):
             raise LookupError(
-                "Unable to determine project id for path '{}'.".format(
-                    os.path.abspath(root)
-                )
+                f"Unable to find project in path '{os.path.abspath(root)}'."
             )
 
         return cls(config=config, **kwargs)
@@ -1729,7 +1699,7 @@ class Project:
 
 
 @contextmanager
-def TemporaryProject(name=None, cls=None, **kwargs):
+def TemporaryProject(cls=None, **kwargs):
     r"""Context manager for the generation of a temporary project.
 
     This is a factory function that creates a Project within a temporary directory
@@ -1742,9 +1712,6 @@ def TemporaryProject(name=None, cls=None, **kwargs):
 
     Parameters
     ----------
-    name : str
-        An optional name for the temporary project.
-        Defaults to a unique random string.
     cls :
         The class of the temporary project.
         Defaults to :class:`~signac.Project`.
@@ -1758,12 +1725,10 @@ def TemporaryProject(name=None, cls=None, **kwargs):
         An instance of :class:`~signac.Project`.
 
     """
-    if name is None:
-        name = str(uuid.uuid4())
     if cls is None:
         cls = Project
     with TemporaryDirectory(**kwargs) as tmp_dir:
-        yield cls.init_project(name=name, root=tmp_dir)
+        yield cls.init_project(root=tmp_dir)
 
 
 def _skip_errors(iterable, log=print):
@@ -2193,8 +2158,8 @@ class JobsCursor:
         return repr(self) + self._repr_html_jobs()
 
 
-def init_project(name, root=None, workspace=None, make_dir=True):
-    """Initialize a project with the given name.
+def init_project(root=None, workspace=None, make_dir=True):
+    """Initialize a project.
 
     It is safe to call this function multiple times with the same arguments.
     However, a `RuntimeError` is raised if an existing project configuration
@@ -2202,8 +2167,6 @@ def init_project(name, root=None, workspace=None, make_dir=True):
 
     Parameters
     ----------
-    name : str
-        The name of the project to initialize.
     root : str
         The root directory for the project.
         Defaults to the current working directory.
@@ -2226,9 +2189,7 @@ def init_project(name, root=None, workspace=None, make_dir=True):
         configuration.
 
     """
-    return Project.init_project(
-        name=name, root=root, workspace=workspace, make_dir=make_dir
-    )
+    return Project.init_project(root=root, workspace=workspace, make_dir=make_dir)
 
 
 def get_project(root=None, search=True, **kwargs):
