@@ -35,26 +35,34 @@ def _make_job(project, num_keys, num_doc_keys, data_size, data_std, i):
 
 
 def generate_random_data(
-    project, N, num_keys=1, num_doc_keys=0, data_size=0, data_std=0, parallel=True
+    project,
+    N,
+    num_keys=1,
+    num_doc_keys=0,
+    data_size_mean=0,
+    data_size_std=0,
+    parallel=True,
 ):
     assert len(project) == 0
 
     if parallel:
         with Pool() as pool:
             p = [
-                (project, num_keys, num_doc_keys, data_size, data_std, i)
+                (project, num_keys, num_doc_keys, data_size_mean, data_size_std, i)
                 for i in range(N)
             ]
             list(pool.starmap(_make_job, tqdm(p, desc="init random project data")))
     else:
         from functools import partial
 
-        make = partial(_make_job, project, num_keys, num_doc_keys, data_size, data_std)
+        make = partial(
+            _make_job, project, num_keys, num_doc_keys, data_size_mean, data_size_std
+        )
         list(map(make, tqdm(range(N), desc="init random project data")))
 
 
 def setup_random_project(
-    N, num_keys=1, num_doc_keys=0, data_size=0, data_std=0, seed=0, root=None
+    N, num_keys=1, num_doc_keys=0, data_size_mean=0, data_size_std=0, seed=0, root=None
 ):
     random.seed(seed)
     if not isinstance(N, int):
@@ -62,11 +70,19 @@ def setup_random_project(
 
     temp_dir = TemporaryDirectory()
     project = signac.init_project(f"benchmark-N={N}", root=temp_dir.name)
-    generate_random_data(project, N, num_keys, num_doc_keys, data_size, data_std)
+    generate_random_data(
+        project, N, num_keys, num_doc_keys, data_size_mean, data_size_std
+    )
     return project, temp_dir
 
 
-PARAMETERS = {"N": [100, 1_000]}
+PARAMETERS = {
+    "N": [100, 1_000],
+    "num_statepoint_keys": [10],
+    "num_document_keys": [0],
+    "data_size_mean": [100],
+    "data_size_std": [0],
+}
 
 
 class _ProjectBenchBase:
@@ -74,8 +90,14 @@ class _ProjectBenchBase:
     params = PARAMETERS.values()
 
     def setup(self, *params):
-        (N,) = params
-        self.project, self.temp_dir = setup_random_project(N)
+        N, num_keys, num_doc_keys, data_size_mean, data_size_std = params
+        self.project, self.temp_dir = setup_random_project(
+            N,
+            num_keys=num_keys,
+            num_doc_keys=num_doc_keys,
+            data_size_mean=data_size_mean,
+            data_size_std=data_size_std,
+        )
 
     def teardown(self, *params):
         self.temp_dir.cleanup()
