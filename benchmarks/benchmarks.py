@@ -15,21 +15,21 @@ def _random_str(size):
     return "".join(random.choice(string.ascii_lowercase) for _ in range(size))
 
 
-def _make_doc(i, num_keys=1, data_size=0):
+def _make_json_data(i, num_keys=1, data_size=0):
     assert num_keys >= 1
     assert data_size >= 0
 
-    doc = {f"b_{j}": _random_str(data_size) for j in range(num_keys - 1)}
-    doc["a"] = f"{i}{_random_str(max(0, data_size - len(str(i))))}"
-    return doc
+    data = {f"b_{j}": _random_str(data_size) for j in range(num_keys - 1)}
+    data["a"] = f"{i}{_random_str(max(0, data_size - len(str(i))))}"
+    return data
 
 
 def _make_job(project, num_keys, num_doc_keys, data_size, data_std, i):
     size = max(0, int(random.gauss(data_size, data_std)))
-    job = project.open_job(_make_doc(i, num_keys, size))
+    job = project.open_job(_make_json_data(i, num_keys, size))
     if num_doc_keys > 0:
         size = max(0, int(random.gauss(data_size, data_std)))
-        job.document.update(_make_doc(i, num_doc_keys, size))
+        job.document.update(_make_json_data(i, num_doc_keys, size))
     else:
         job.init()
 
