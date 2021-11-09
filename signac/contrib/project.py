@@ -83,6 +83,9 @@ DOC_FILTER_WARNING = (
     "information."
 )
 
+# Temporary default for project names until they are removed entirely in signac 2.0
+_DEFAULT_PROJECT_NAME = "project"
+
 
 class JobSearchIndex:
     """Search for specific jobs with filters.
@@ -2282,7 +2285,7 @@ class Project:
             yield tmp_project
 
     @classmethod
-    def init_project(cls, name, root=None, workspace=None, make_dir=True):
+    def init_project(cls, name=None, root=None, workspace=None, make_dir=True):
         """Initialize a project with the given name.
 
         It is safe to call this function multiple times with the same
@@ -2294,8 +2297,8 @@ class Project:
 
         Parameters
         ----------
-        name : str
-            The name of the project to initialize.
+        name : str, optional
+            The name of the project to initialize (Default value = 'project').
         root : str
             The root directory for the project.
             Defaults to the current working directory.
@@ -2320,6 +2323,14 @@ class Project:
         """
         if root is None:
             root = os.getcwd()
+
+        if name is not None:
+            warnings.warn(
+                "Project names are deprecated and will be removed in signac 2.0. "
+                "The name argument to init_project should be removed.",
+            )
+        else:
+            name = _DEFAULT_PROJECT_NAME
         try:
             project = cls.get_project(root=root, search=False)
         except LookupError:
@@ -2337,7 +2348,7 @@ class Project:
             return project
         else:
             try:
-                assert project.id == str(name)
+                assert project.id == str(name) or name == _DEFAULT_PROJECT_NAME
                 if workspace is not None:
                     assert os.path.realpath(workspace) == os.path.realpath(
                         project.workspace()
