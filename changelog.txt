@@ -14,7 +14,7 @@ Changed
 +++++++
 
  - Functions raising ``AssertionError`` now raise ``RuntimeError`` (#612).
- - Projects no longer have an id and are identified only by their directory (#541).
+ - Projects no longer have an id and are identified only by their directory (#541, #643).
 
 Removed
 +++++++
