@@ -2377,7 +2377,9 @@ class TestProjectSchema(TestProjectBase):
         with redirect_stderr(err):
             for origin, destination in apply_migrations(self.project):
                 assert self.project.config["schema_version"] == destination
-                project = signac.get_project(root=self.project.root_directory())
+                project = signac.get_project(
+                    root=self.project.root_directory(), _ignore_schema_version=True
+                )
                 assert project.config["schema_version"] == destination
         assert self.project.config["schema_version"] == "1"
         assert "OK" in err.getvalue()

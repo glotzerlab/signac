@@ -831,10 +831,7 @@ def main_shell(args):
     except LookupError:
         print("signac", __version__)
         print("No project within this directory.")
-        print(
-            "If you want to initialize a project, execute `$ signac init <project-name>`, "
-            "where <project-name> can be freely chosen."
-        )
+        print("If you want to initialize a project, execute `$ signac init`.")
     else:
         _jobs = find_with_filter(args)
 
