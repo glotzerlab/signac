@@ -19,6 +19,11 @@ Deprecated
  - ``index`` argument is deprecated in ``Project`` methods (#602, #588).
  - ``signac.cite`` module is deprecated (#611, #592).
 
+Changed
++++++++
+
+ - Project names have a default in anticipation of removing names entirely.
+
 Fixed
 +++++
 
