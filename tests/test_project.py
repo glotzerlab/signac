@@ -2470,11 +2470,12 @@ class TestProjectSchema(TestProjectBase):
         with redirect_stderr(err):
             apply_migrations(self.project.root_directory())
         config = read_config_file(self.project.fn("signac.rc"))
-        assert config["schema_version"] == "1"
+        assert config["schema_version"] == "2"
         project = signac.get_project(root=self.project.root_directory())
-        assert project.config["schema_version"] == "1"
+        assert project.config["schema_version"] == "2"
         assert "OK" in err.getvalue()
         assert "0 to 1" in err.getvalue()
+        assert "1 to 2" in err.getvalue()
 
     def test_no_migration(self):
         # This unit test should fail as long as there are no schema migrations
