@@ -13,12 +13,14 @@ from packaging import version
 from ...common.config import get_config
 from ...version import SCHEMA_VERSION, __version__
 from .v0_to_v1 import migrate_v0_to_v1
+from .v1_to_v2 import migrate_v1_to_v2
 
 FN_MIGRATION_LOCKFILE = ".SIGNAC_PROJECT_MIGRATION_LOCK"
 
 
 MIGRATIONS = {
     ("0", "1"): migrate_v0_to_v1,
+    ("1", "2"): migrate_v1_to_v2,
 }
 
 

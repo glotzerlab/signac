@@ -30,6 +30,7 @@ from signac.contrib.errors import (
     WorkspaceError,
 )
 from signac.contrib.linked_view import _find_all_links
+from signac.contrib.migration import apply_migrations, migrate_v1_to_v2
 from signac.contrib.project import JobsCursor, Project  # noqa: F401
 from signac.contrib.schema import ProjectSchema
 from signac.errors import DestinationExistsError
@@ -2367,8 +2368,6 @@ class TestProjectSchema(TestProjectBase):
             signac.init_project(root=self.project.root_directory())
 
     def test_project_schema_version_migration(self):
-        from signac.contrib.migration import apply_migrations
-
         apply_migrations(self.project)
         config = load_config(self.project.root_directory())
         config["schema_version"] = "0"
@@ -2379,7 +2378,7 @@ class TestProjectSchema(TestProjectBase):
             for origin, destination in apply_migrations(self.project):
                 assert self.project.config["schema_version"] == destination
                 project = signac.get_project(root=self.project.root_directory())
-                assert project._config["schema_version"] == destination
+                assert project.config["schema_version"] == destination
         assert self.project.config["schema_version"] == "1"
         assert "OK" in err.getvalue()
         assert "0 to 1" in err.getvalue()
@@ -2396,6 +2395,20 @@ class TestProjectSchema(TestProjectBase):
 
         migrations = list(_collect_migrations(self.project))
         assert len(migrations) == 0
+
+    def test_migrate_1_to_2(self):
+        # Create a project conforming to the v1 schema.
+        config = get_config(self.project.fn("signac.rc"))
+        config["schema_version"] = "1"
+        config["project"] = "project"
+        config.write()
+        project = signac.get_project(
+            root=self.project.root_directory(), _ignore_schema_version=True
+        )
+        migrate_v1_to_v2(project)
+        project = signac.get_project(root=self.project.root_directory())
+        assert "project" not in project.config
+        assert project.config["schema_version"] == "2"
 
 
 class TestProjectPickling(TestProjectBase):
