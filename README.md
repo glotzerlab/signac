@@ -74,7 +74,7 @@ $ python -m pytest tests/
 ## Acknowledgment
 
 When using **signac** as part of your work towards a publication, we would really appreciate that you acknowledge **signac** appropriately.
-We have prepared examples on how to do that [here](http://docs.signac.io/en/latest/acknowledge.html).
+We have prepared examples on how to do that [here](https://docs.signac.io/en/latest/acknowledge.html).
 **Thank you very much!**
 
 The signac framework is a [NumFOCUS Affiliated Project](https://numfocus.org/sponsored-projects/affiliated-projects).
