@@ -1,4 +1,14 @@
 # Copyright 2021 The Regents of the University of Michigan
+# All rights reserved.
+# This software is licensed under the BSD 3-Clause License.
+"""Benchmarks for use with asv (airspeed velocity).
+
+This script defines benchmarks of common signac operations, used to assess the
+performance of the framework over time. The asv tools allow for profiling,
+comparison, and visualization of benchmark results. This complements the file
+``benchmark.py`` in the root directory of the repository, which is primarily
+intended for CI tests.
+"""
 
 import random
 import string
