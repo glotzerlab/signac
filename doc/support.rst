@@ -15,7 +15,7 @@ Code contributions
 
 This project is open-source.
 Users are highly encouraged to contribute directly by implementing new features and fixing issues.
-Development for packages as part of the **signac** framework should follow the general development guidelines outlined `here <http://docs.signac.io/en/latest/community.html#contributions>`__.
+Development for packages as part of the **signac** framework should follow the general development guidelines outlined `here <https://docs.signac.io/en/latest/community.html#contributions>`__.
 
 A brief summary of contributing guidelines are outlined in the `CONTRIBUTING.md <https://github.com/glotzerlab/signac/blob/master/CONTRIBUTING.md>`_ file as part of the repository.
 All contributors must agree to the `Contributor Agreement <https://github.com/glotzerlab/signac/blob/master/ContributorAgreement.md>`_ before their pull request can be merged.
@@ -98,7 +98,7 @@ To run tests, execute:
 Building documentation
 ----------------------
 
-Building documentation requires the `sphinx <http://www.sphinx-doc.org/en/master/>`_ package which you will need to install into your development environment.
+Building documentation requires the `sphinx <https://www.sphinx-doc.org/>`__ package which you will need to install into your development environment.
 
 .. code-block:: bash
 
