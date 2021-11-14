@@ -97,7 +97,7 @@ To run tests, execute:
 Benchmarking
 ------------
 
-This repository includes support for the `asv (airspeed velocity) <https://asv.readthedocs.io/>`__ benchmarking tool.
+Benchmarks can be run using the `asv (airspeed velocity) <https://asv.readthedocs.io/>`__ tool.
 To install the tool, execute:
 
 .. code-block:: bash
