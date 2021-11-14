@@ -251,7 +251,7 @@ class JSONCollection(SyncedCollection):
     def _save_to_resource(self):
         """Write the data to JSON file."""
         # Serialize data
-        blob = json.dumps(self, cls=SyncedCollectionJSONEncoder).encode()
+        blob = json.dumps(self, cls=SyncedCollectionJSONEncoder, indent=2).encode()
         # When write_concern flag is set, we write the data into dummy file and then
         # replace that file with original file. We also enable this mode
         # irrespective of the write_concern flag if we're running in
