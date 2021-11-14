@@ -1,11 +1,10 @@
-# Copyright (c) 2019 The Regents of the University of Michigan
+# Copyright (c) 2019-2021 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 """Handle migrations of signac schema versions."""
 
 import os
 import sys
-from contextlib import contextmanager
 
 from filelock import FileLock
 from packaging import version
@@ -20,39 +19,6 @@ FN_MIGRATION_LOCKFILE = ".SIGNAC_PROJECT_MIGRATION_LOCK"
 MIGRATIONS = {
     ("0", "1"): migrate_v0_to_v1,
 }
-
-
-def _reload_project_config(project):
-    project_reloaded = project.get_project(
-        root=project.root_directory(), search=False, _ignore_schema_version=True
-    )
-    project._config = project_reloaded._config
-
-
-def _update_project_config(project, **kwargs):
-    """Update the project configuration."""
-    for fn in ("signac.rc", ".signacrc"):
-        config = get_config(project.fn(fn))
-        if "project" in config:
-            break
-    else:
-        raise RuntimeError("Unable to determine project configuration file.")
-    config.update(kwargs)
-    config.write()
-    _reload_project_config(project)
-
-
-@contextmanager
-def _lock_for_migration(project):
-    lock = FileLock(project.fn(FN_MIGRATION_LOCKFILE))
-    try:
-        with lock:
-            yield
-    finally:
-        try:
-            os.unlink(lock.lock_file)
-        except FileNotFoundError:
-            pass
 
 
 def _collect_migrations(project):
@@ -86,21 +52,46 @@ def _collect_migrations(project):
 
 def apply_migrations(project):
     """Apply migrations to a project."""
-    with _lock_for_migration(project):
-        for (origin, destination), migrate in _collect_migrations(project):
-            try:
-                print(
-                    f"Applying migration for version {origin} to {destination}... ",
-                    end="",
-                    file=sys.stderr,
-                )
-                migrate(project)
-            except Exception as e:
-                raise RuntimeError(f"Failed to apply migration {destination}.") from e
-            else:
-                _update_project_config(project, schema_version=destination)
-                print("OK", file=sys.stderr)
-                yield origin, destination
+    lock = FileLock(project.fn(FN_MIGRATION_LOCKFILE))
+    try:
+        with lock:
+            for (origin, destination), migrate in _collect_migrations(project):
+                try:
+                    print(
+                        f"Applying migration for version {origin} to {destination}... ",
+                        end="",
+                        file=sys.stderr,
+                    )
+                    migrate(project)
+                except Exception as e:
+                    raise RuntimeError(
+                        f"Failed to apply migration {destination}."
+                    ) from e
+                else:
+                    for fn in ("signac.rc", ".signacrc"):
+                        config = get_config(project.fn(fn))
+                        if "project" in config:
+                            break
+                    else:
+                        raise RuntimeError(
+                            "Unable to determine project configuration file."
+                        )
+                    config["schema_version"] = destination
+                    config.write()
+                    project_reloaded = project.get_project(
+                        root=project.root_directory(),
+                        search=False,
+                        _ignore_schema_version=True,
+                    )
+                    project._config = project_reloaded._config
+
+                    print("OK", file=sys.stderr)
+                    yield origin, destination
+    finally:
+        try:
+            os.unlink(lock.lock_file)
+        except FileNotFoundError:
+            pass
 
 
 __all__ = [
