@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """Synchronize authors and contributor metadata.
 
 This script synchronizes the metadata provided in the CITATION.cff and
@@ -80,16 +80,17 @@ def sync(ctx, in_place=False, check=True):
         for key in ("version", "keywords"):
             zenodo_updated[key] = citation[key]
 
-    modified = json.dumps(zenodo, sort_keys=True) != json.dumps(
-        zenodo_updated, sort_keys=True
-    )
+    def dump_json_utf8(content):
+        return json.dumps(content, sort_keys=True, indent=4, ensure_ascii=False)
+
+    modified = dump_json_utf8(zenodo) != dump_json_utf8(zenodo_updated)
     if modified:
+        json_data = dump_json_utf8(zenodo_updated)
         if in_place:
             with open(".zenodo.json", "wb") as file:
-                json_data = json.dumps(zenodo_updated, indent=4, sort_keys=True)
                 file.write((json_data + "\n").encode("utf-8"))
         else:
-            click.echo(json.dumps(zenodo_updated, indent=4, sort_keys=True))
+            click.echo(json_data)
         if check:
             ctx.exit(1)
     else:
