@@ -242,7 +242,7 @@ def _make_path_function(jobs, path):
                 raise _SchemaPathEvaluationError(error)
         # Check that the user-specified path generates a 1-1 mapping
         links = set()
-        duplicate_links = set() # helps only log once per duplicate
+        duplicate_links = set()  # helps only log once per duplicate
         for job in jobs:
             job_path = path_function(job)
             if job_path not in duplicate_links and job_path in links:
@@ -257,9 +257,7 @@ def _make_path_function(jobs, path):
                 "links. See the debug log for the list. The easiest way to fix "
                 "this is to append the job id to the path specification like '/id/{{job.id}}'."
             )
-        logger.info(
-            f"Path specification {path} uniquely maps workspaces."
-        )
+        logger.info(f"Path specification {path} uniquely maps workspaces.")
 
     else:
         raise ValueError(
