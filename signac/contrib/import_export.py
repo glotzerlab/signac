@@ -241,12 +241,25 @@ def _make_path_function(jobs, path):
             except Exception as error:
                 raise _SchemaPathEvaluationError(error)
         # Check that the user-specified path generates a 1-1 mapping
-        link_check = {j.workspace(): path_function(j) for j in jobs}
-        if len(set(link_check.values())) != len(link_check):
-            raise RuntimeError(
-                "Links generated with the given path function are not 1-1. The easiest "
-                "way to fix this is to add the job id to the path specification."
+        links = set()
+        duplicate_links = set() # helps only log once per duplicate
+        for job in jobs:
+            job_path = path_function(job)
+            if job_path not in duplicate_links and job_path in links:
+                logger.debug(f"Generated path '{job_path}' is not unique.")
+                duplicate_links.add(job_path)
+            else:
+                links.add(job_path)
+        num_dups = len(duplicate_links)
+        if num_dups > 0:
+            raise ValueError(
+                f"The path specification '{path}' would result in {num_dups} duplicate "
+                "links. See the debug log for the list. The easiest way to fix "
+                "this is to append the job id to the path specification like '/id/{{job.id}}'."
             )
+        logger.info(
+            f"Path specification {path} uniquely maps workspaces."
+        )
 
     else:
         raise ValueError(
