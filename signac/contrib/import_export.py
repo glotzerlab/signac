@@ -253,10 +253,11 @@ def _make_path_function(jobs, path):
                 links.add(job_path)
         num_dups = len(duplicate_links)
         if num_dups > 0:
+            path_correction = os.path.join("id", "{job.id}")
             raise RuntimeError(
                 f"The path specification '{path}' would result in {num_dups} duplicate "
                 "links. See the debug log for the list. The easiest way to fix "
-                "this is to append the job id to the path specification like '/id/{{job.id}}'."
+                f"this is to append the job id to the path specification like '{path_correction}'."
             )
         logger.info(f"Path specification {path} uniquely maps workspaces.")
 
