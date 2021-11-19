@@ -2348,7 +2348,7 @@ class Project:
             return project
         else:
             try:
-                assert project.id == str(name) or name == _DEFAULT_PROJECT_NAME
+                assert project.id == str(name)
                 if workspace is not None:
                     assert os.path.realpath(workspace) == os.path.realpath(
                         project.workspace()
