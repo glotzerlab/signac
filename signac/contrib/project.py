@@ -2326,8 +2326,9 @@ class Project:
 
         if name is not None:
             warnings.warn(
-                "Project names are deprecated and will be removed in signac 2.0. "
-                "The name argument to init_project should be removed.",
+                "Project names are deprecated and will be removed in signac 2.0 "
+                "in favor of using the project root directory to identify projects."
+                "The name argument to init_project should be removed."
             )
         else:
             name = _DEFAULT_PROJECT_NAME
