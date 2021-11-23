@@ -258,7 +258,6 @@ def _make_path_function(jobs, path):
                 "links. See the debug log for the list. The easiest way to fix "
                 f"this is to append the job id to the path specification like '{path_correction}'."
             )
-        logger.info(f"Path specification {path} uniquely maps workspaces.")
 
     else:
         raise ValueError(
