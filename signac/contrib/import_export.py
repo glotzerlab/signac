@@ -169,6 +169,9 @@ def _make_path_function(jobs, path):
     ValueError
         The path argument must either be ``None``, ``False``, or of type ``str``.
 
+    RuntimeError
+        If paths generated with given path function are not unique.
+
     """
     if path is None:
         # Generate a path function based on the schema detected for jobs.
