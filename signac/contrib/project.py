@@ -3043,7 +3043,7 @@ class JobsCursor:
         return repr(self) + self._repr_html_jobs()
 
 
-def init_project(name, root=None, workspace=None, make_dir=True):
+def init_project(name=None, root=None, workspace=None, make_dir=True):
     """Initialize a project with the given name.
 
     It is safe to call this function multiple times with the same arguments.
@@ -3052,7 +3052,7 @@ def init_project(name, root=None, workspace=None, make_dir=True):
 
     Parameters
     ----------
-    name : str
+    name : str, optional
         The name of the project to initialize.
     root : str
         The root directory for the project.
