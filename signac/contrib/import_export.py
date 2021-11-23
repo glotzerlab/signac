@@ -165,19 +165,22 @@ def _check_path_function(jobs, path_function):
         If paths generated with given path function are not unique.
 
     """
-    links = set()
-    for job in jobs:
-        job_path = path_function(job)
-        if job_path in links:
-            logger.debug(f"Generated path '{job_path}' is not unique.")
-        else:
-            links.add(job_path)
-    if len(links) != len(jobs)
+    # quick check first
+    links = (set(path_function(job) for job in jobs))
+    if len(links) != len(jobs):
+        # report all mismatches
+        links = set()
+        for job in jobs:
+            job_path = path_function(job)
+            if job_path in links:
+                logger.debug(f"Generated path '{job_path}' is not unique.")
+            else:
+                links.add(job_path)
         raise RuntimeError(
-            f"The path specification '{path}' would result in duplicate links."
+            f"The path specification would result in duplicate links. "
             "See the debug log for the list. The easiest way to fix "
             "this is to append the job id to the path "
-            f"specification like '{os.path.join("id", "{job.id}")}'."
+            f"specification like '{os.path.join('id', '{job.id}')}'."
         )
 
 
