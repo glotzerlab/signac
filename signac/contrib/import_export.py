@@ -149,6 +149,38 @@ class _SchemaPathEvaluationError(RuntimeError):
     pass
 
 
+def _check_path_function(jobs, path_function):
+    """Validate that path function specifies a 1-1 mapping.
+
+    Parameters
+    ----------
+    jobs : iterable of :class:`~signac.contrib.job.Job`
+        A sequence of jobs (instances of :class:`~signac.contrib.job.Job`).
+    path_function : callable
+        A callable path generating function.
+
+    Raises
+    -----
+    RuntimeError
+        If paths generated with given path function are not unique.
+
+    """
+    links = set()
+    for job in jobs:
+        job_path = path_function(job)
+        if job_path in links:
+            logger.debug(f"Generated path '{job_path}' is not unique.")
+        else:
+            links.add(job_path)
+    if len(links) != len(jobs)
+        raise RuntimeError(
+            f"The path specification '{path}' would result in duplicate links."
+            "See the debug log for the list. The easiest way to fix "
+            "this is to append the job id to the path "
+            f"specification like '{os.path.join("id", "{job.id}")}'."
+        )
+
+
 def _make_path_function(jobs, path):
     """Generate a path function for jobs or use ``path`` if it is callable.
 
@@ -168,9 +200,6 @@ def _make_path_function(jobs, path):
     ------
     ValueError
         The path argument must either be ``None``, ``False``, or of type ``str``.
-
-    RuntimeError
-        If paths generated with given path function are not unique.
 
     """
     if path is None:
@@ -244,20 +273,7 @@ def _make_path_function(jobs, path):
             except Exception as error:
                 raise _SchemaPathEvaluationError(error)
         # Check that the user-specified path generates a 1-1 mapping
-        links = set()
-        for job in jobs:
-            job_path = path_function(job)
-            if job_path in links:
-                logger.debug(f"Generated path '{job_path}' is not unique.")
-            else:
-                links.add(job_path)
-        if len(links) != len(jobs)
-            raise RuntimeError(
-                f"The path specification '{path}' would result in duplicate links."
-                "See the debug log for the list. The easiest way to fix "
-                "this is to append the job id to the path "
-                f"specification like '{os.path.join("id", "{job.id}")}'."
-            )
+        _check_path_function(jobs, path_function)
 
     else:
         raise ValueError(
@@ -312,24 +328,17 @@ def _export_jobs(jobs, path, copytree):
     dst : str
         Destination path.
 
-    Raises
-    ------
-    RuntimeError
-        If paths generated with given path function are not unique.
-
     """
     # Transform the path argument into a callable if necessary.
     if callable(path):
         path_function = path
+        _check_path_function(jobs, path_function)
     else:
         path_function = _make_path_function(jobs, path)
+        # path_function is checked inside _make_path_function
 
     # Determine export path for each job.
     paths = {job.workspace(): path_function(job) for job in jobs}
-
-    # Check whether the mapped paths are unique.
-    if len(set(paths.values())) != len(paths):
-        raise RuntimeError("Paths generated with given path function are not unique!")
 
     # Check leaf/node consistency
     _check_directory_structure_validity(paths.values())
