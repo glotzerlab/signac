@@ -166,7 +166,7 @@ def _check_path_function(jobs, path_function):
 
     """
     # quick check first
-    links = (set(path_function(job) for job in jobs))
+    links = {path_function(job) for job in jobs}
     if len(links) != len(jobs):
         # report all mismatches
         links = set()
