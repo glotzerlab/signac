@@ -246,21 +246,18 @@ def _make_path_function(jobs, path):
 
         # Check that the user-specified path generates a 1-1 mapping
         links = set()
-        duplicate_links = set()  # helps only log once per duplicate
         for job in jobs:
             job_path = path_function(job)
-            if job_path not in duplicate_links and job_path in links:
+            if job_path in links:
                 logger.debug(f"Generated path '{job_path}' is not unique.")
-                duplicate_links.add(job_path)
             else:
                 links.add(job_path)
-        num_dups = len(duplicate_links)
-        if num_dups > 0:
-            path_correction = os.path.join("id", "{job.id}")
+        if len(links) != len(jobs)
             raise RuntimeError(
-                f"The path specification '{path}' would result in {num_dups} duplicate "
-                "links. See the debug log for the list. The easiest way to fix "
-                f"this is to append the job id to the path specification like '{path_correction}'."
+                f"The path specification '{path}' would result in duplicate links."
+                "See the debug log for the list. The easiest way to fix "
+                "this is to append the job id to the path "
+                f"specification like '{os.path.join("id", "{job.id}")}'."
             )
 
     else:
