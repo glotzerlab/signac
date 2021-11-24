@@ -12,7 +12,8 @@ Version 1
 
 Added
 +++++
-- Official Python 3.10 support - not all soft dependencies are available for 3.10 yet (#631).
+
+ - Official Python 3.10 support (#631).
 
 Deprecated
 ++++++++++
