@@ -16,9 +16,9 @@ references:
     key: python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements/requirements-test.txt" }}-{{ checksum "requirements/requirements-test-optional.txt" }}-{{ checksum ".circleci/ci-oldest-reqs.txt" }}
 
 jobs:
-  linux-python-39: &linux-template
+  linux-python-310: &linux-template
     docker:
-      - image: cimg/python:3.9
+      - image: cimg/python:3.10
       - image: circleci/mongo:latest
       - image: circleci/redis:latest
 
@@ -100,20 +100,21 @@ jobs:
               ${PYTHON} benchmark.py compare origin/master "${CIRCLE_SHA1}"
             fi
 
-
-  linux-python-310:
+  linux-python-310-minimal:
     <<: *linux-template
     docker:
       - image: cimg/python:3.10
-      - image: circleci/mongo:latest
-      - image: circleci/redis:latest
-
     environment:
-      # TODO: update this with RUN and NEWEST when all Python 3.10 wheels are
-      # available. And make this the template job.
       BENCHMARKS: "SKIP"
       DEPENDENCIES: "MINIMAL"
       PYTHON: python
+
+  linux-python-39:
+    <<: *linux-template
+    docker:
+      - image: cimg/python:3.9
+      - image: circleci/mongo:latest
+      - image: circleci/redis:latest
 
   linux-python-38:
     <<: *linux-template
