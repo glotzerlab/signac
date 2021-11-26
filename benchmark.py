@@ -18,6 +18,16 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+"""Benchmarks for use in CI testing.
+
+This script defines benchmarks of common signac operations, used to assess the
+performance of the framework over time. Most developers will want to make use of
+the asv (airspeed velocity) tools for benchmarking, located in
+``benchmarks/benchmarks.py``. This script is used by CI tests to identify any
+significant performance regressions introduced by new features.
+"""
+
+
 import argparse
 import base64
 import json

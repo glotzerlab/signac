@@ -94,6 +94,26 @@ To run tests, execute:
 
     (signac-dev) signac $ python -m pytest tests/
 
+Benchmarking
+------------
+
+Benchmarks can be run using the `asv (airspeed velocity) <https://asv.readthedocs.io/>`__ tool.
+To install the tool, execute:
+
+.. code-block:: bash
+
+   (signac-dev) signac $ pip install asv
+
+The ``asv`` tool will install signac into an isolated virtual environment that is used for benchmarking.
+Below is a quick reference with some helpful commands:
+
+  * ``$ asv run master..mybranch`` benchmarks every commit from ``master`` to ``mybranch``.
+  * ``$ asv publish`` generates a static HTML site showing benchmark results.
+  * ``$ asv preview`` hosts a local preview of the generated HTML site.
+  * ``$ asv dev`` runs benchmarks that are in development.
+  * ``$ asv profile 'benchmarks.ProjectBench.time_iterate_load_sp(.*)' --gui=snakeviz`` will profile a specific test and visualize results with `snakeviz <https://jiffyclub.github.io/snakeviz/>`__.
+
+For more information on how to use asv, refer to `Using airspeed velocity <https://asv.readthedocs.io/en/stable/using.html>`__.
 
 Building documentation
 ----------------------
