@@ -316,7 +316,7 @@ class H5Store(MutableMapping):
     \*\*kwargs
         Additional keyword arguments to be forwarded to the ``h5py.File``
         constructor. See the documentation for the `h5py.File constructor
-        <http://docs.h5py.org/en/latest/high/file.html#File>`_ for more
+        <https://docs.h5py.org/en/latest/high/file.html#File>`_ for more
         information.
 
     """
