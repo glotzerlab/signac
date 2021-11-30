@@ -149,13 +149,15 @@ class _SchemaPathEvaluationError(RuntimeError):
     pass
 
 
-def _check_path_function(jobs, path_function):
+def _check_path_function(jobs, path_spec, path_function):
     """Validate that path function specifies a 1-1 mapping.
 
     Parameters
     ----------
     jobs : iterable of :class:`~signac.contrib.job.Job`
         A sequence of jobs (instances of :class:`~signac.contrib.job.Job`).
+    path_spec : str
+        The path string that generated the path_function. Displayed in the error message.
     path_function : callable
         A callable path generating function.
 
@@ -177,7 +179,7 @@ def _check_path_function(jobs, path_function):
             else:
                 links.add(job_path)
         raise RuntimeError(
-            f"The path specification would result in duplicate links. "
+            f"The path specification {path_spec} would result in duplicate links. "
             "See the debug log for the list. The easiest way to fix "
             "this is to append the job id to the path "
             f"specification like '{os.path.join('id', '{job.id}')}'."
@@ -277,7 +279,7 @@ def _make_path_function(jobs, path):
                 raise _SchemaPathEvaluationError(error)
 
         # Check that the user-specified path generates a 1-1 mapping
-        _check_path_function(jobs, path_function)
+        _check_path_function(jobs, path_spec=path, path_function=path_function)
 
     else:
         raise ValueError(
@@ -335,7 +337,7 @@ def _export_jobs(jobs, path, copytree):
     # Transform the path argument into a callable if necessary.
     if callable(path):
         path_function = path
-        _check_path_function(jobs, path_function)
+        _check_path_function(jobs, path_spec=path, path_function=path_function)
     else:
         path_function = _make_path_function(jobs, path)
         # path_function is checked inside _make_path_function
