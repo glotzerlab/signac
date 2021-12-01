@@ -10,6 +10,11 @@ Version 1
 [1.8.0] -- 2021-xx-xx
 ---------------------
 
+Added
++++++
+
+ - Benchmarks can be run using the ``asv`` (airspeed velocity) tool (#629).
+
 Deprecated
 ++++++++++
 
