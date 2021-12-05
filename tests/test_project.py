@@ -2471,15 +2471,19 @@ class TestProjectSchema(TestProjectBase):
         from signac.contrib.migration import apply_migrations
 
         apply_migrations(self.project)
-        self.project._config["schema_version"] = "0"
-        assert self.project._config["schema_version"] == "0"
+        config = get_config(self.project.fn("signac.rc"))
+        config["schema_version"] = "0"
+        assert config["schema_version"] == "0"
+        config.write()
         err = io.StringIO()
         with redirect_stderr(err):
             for origin, destination in apply_migrations(self.project):
-                assert self.project._config["schema_version"] == destination
+                config = get_config(self.project.fn("signac.rc"))
+                assert config["schema_version"] == destination
                 project = signac.get_project(root=self.project.root_directory())
                 assert project._config["schema_version"] == destination
-        assert self.project._config["schema_version"] == "1"
+        project = signac.get_project(root=self.project.root_directory())
+        assert project._config["schema_version"] == "1"
         assert "OK" in err.getvalue()
         assert "0 to 1" in err.getvalue()
 
@@ -2493,7 +2497,7 @@ class TestProjectSchema(TestProjectBase):
         # 2. Either update or remove this unit test.
         from signac.contrib.migration import _collect_migrations
 
-        migrations = list(_collect_migrations(self.project))
+        migrations = list(_collect_migrations(self.project.root_directory()))
         assert len(migrations) == 0
 
 

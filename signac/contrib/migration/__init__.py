@@ -9,25 +9,47 @@ import sys
 from filelock import FileLock
 from packaging import version
 
-from ...common.config import get_config
+from ...common.config import get_config, load_config
 from ...version import SCHEMA_VERSION, __version__
-from .v0_to_v1 import migrate_v0_to_v1
+from .v0_to_v1 import _load_config_v1, migrate_v0_to_v1
 
 FN_MIGRATION_LOCKFILE = ".SIGNAC_PROJECT_MIGRATION_LOCK"
 
 
-MIGRATIONS = {
+# Config loaders must be functions whose first argument is a directory from
+# which to read configuration information.
+_CONFIG_LOADERS = {
+    0: _load_config_v1,
+    1: load_config,
+}
+
+
+_MIGRATIONS = {
     ("0", "1"): migrate_v0_to_v1,
 }
 
 
-def _collect_migrations(project):
+def _collect_migrations(root_directory):
     schema_version = version.parse(SCHEMA_VERSION)
 
-    def get_config_schema_version():
-        return version.parse(project._config["schema_version"])
+    def get_config_schema_version(version_guess):
+        # By default, try loading the schema using the loader corresponding to
+        # the expected version.
+        # Search versions in reverse order (assumes lexicographic ordering of
+        # version strings).
+        for version_guess in reversed(sorted(_CONFIG_LOADERS.keys())):
+            try:
+                config = _CONFIG_LOADERS[version_guess](root_directory)
+                break
+            except Exception:
+                # The load failed, go to the next
+                pass
+        else:
+            raise RuntimeError("Unable to load config file.")
+        return version.parse(config["schema_version"])
 
-    if get_config_schema_version() > schema_version:
+    current_schema_version = get_config_schema_version(SCHEMA_VERSION)
+    if current_schema_version > schema_version:
         # Project config schema version is newer and therefore not supported.
         raise RuntimeError(
             "The signac schema version used by this project is {}, but signac {} "
@@ -36,10 +58,12 @@ def _collect_migrations(project):
             )
         )
 
-    while get_config_schema_version() < schema_version:
-        for (origin, destination), migration in MIGRATIONS.items():
-            if version.parse(origin) == get_config_schema_version():
+    guess = current_schema_version
+    while get_config_schema_version(guess) < schema_version:
+        for (origin, destination), migration in _MIGRATIONS.items():
+            if version.parse(origin) == get_config_schema_version(guess):
                 yield (origin, destination), migration
+                guess = destination
                 break
         else:
             raise RuntimeError(
@@ -52,10 +76,11 @@ def _collect_migrations(project):
 
 def apply_migrations(project):
     """Apply migrations to a project."""
+    root_directory = project.root_directory()
     lock = FileLock(project.fn(FN_MIGRATION_LOCKFILE))
     try:
         with lock:
-            for (origin, destination), migrate in _collect_migrations(project):
+            for (origin, destination), migrate in _collect_migrations(root_directory):
                 try:
                     print(
                         f"Applying migration for version {origin} to {destination}... ",
@@ -68,22 +93,9 @@ def apply_migrations(project):
                         f"Failed to apply migration {destination}."
                     ) from e
                 else:
-                    for fn in ("signac.rc", ".signacrc"):
-                        config = get_config(project.fn(fn))
-                        if "project" in config:
-                            break
-                    else:
-                        raise RuntimeError(
-                            "Unable to determine project configuration file."
-                        )
+                    config = get_config(project.fn("signac.rc"))
                     config["schema_version"] = destination
                     config.write()
-                    project_reloaded = project.get_project(
-                        root=project.root_directory(),
-                        search=False,
-                        _ignore_schema_version=True,
-                    )
-                    project._config = project_reloaded._config
 
                     print("OK", file=sys.stderr)
                     yield origin, destination

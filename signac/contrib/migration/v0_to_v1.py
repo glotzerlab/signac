@@ -31,14 +31,9 @@ def _load_config_v1(root_directory):
     validator = configobj.validate.Validator()
     if not cfg.validate(validator):
         raise RuntimeError(
-            "This project's config file is not compatible with " "signac's v1 schema."
+            "This project's config file is not compatible with signac's v1 schema."
         )
     return cfg
-
-
-def _is_schema_version_1(root_directory):
-    cfg = _load_config_v1(root_directory)
-    return cfg["schema_version"] == 1
 
 
 def migrate_v0_to_v1(project):
