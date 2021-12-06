@@ -48,7 +48,8 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
         When state points contain one of ``[os.sep, " ", "*"]``.
 
     """
-    from .import_export import _check_directory_structure_validity, _make_path_function
+    from .import_export import _check_directory_structure_validity
+    from .utility import _check_path_function, _make_path_function
 
     # Windows does not support the creation of symbolic links.
     if sys.platform == "win32":
