@@ -17,7 +17,12 @@ from tempfile import TemporaryDirectory
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from .errors import DestinationExistsError, StatepointParsingError
-from .utility import _check_path_function, _make_path_function, _dotted_dict_to_nested_dicts, _mkdir_p
+from .utility import (
+    _check_path_function,
+    _dotted_dict_to_nested_dicts,
+    _make_path_function,
+    _mkdir_p,
+)
 
 logger = logging.getLogger(__name__)
 
