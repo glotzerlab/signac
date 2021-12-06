@@ -12,7 +12,6 @@ import shutil
 import tarfile
 import zipfile
 from contextlib import closing, contextmanager
-from string import Formatter
 from tempfile import TemporaryDirectory
 from zipfile import ZIP_DEFLATED, ZipFile
 
