@@ -1137,9 +1137,6 @@ class TestProjectExportImport(TestProjectBase):
         with pytest.raises(RuntimeError):
             self.project.export_to(target=prefix_data, path=lambda job: "non_unique")
 
-        with pytest.raises(RuntimeError):
-            self.project.export_to(target=prefix_data, path="non_unique")
-
         self.project.export_to(
             target=prefix_data, path=lambda job: os.path.join("my_a", str(job.sp.a))
         )
@@ -1164,9 +1161,6 @@ class TestProjectExportImport(TestProjectBase):
 
         with pytest.raises(RuntimeError):
             self.project.export_to(target=prefix_data, path="non_unique")
-
-        with pytest.raises(RuntimeError):
-            self.project.export_to(target=prefix_data, path=os.path.join("a", "{a}"))
 
         self.project.export_to(
             target=prefix_data, path=os.path.join("a", "{a}", "b", "{b}", "{{auto:_}}")
@@ -1204,9 +1198,6 @@ class TestProjectExportImport(TestProjectBase):
 
         with pytest.raises(RuntimeError):
             self.project.export_to(target=prefix_data, path="non_unique")
-
-        with pytest.raises(RuntimeError):
-            self.project.export_to(target=prefix_data, path=os.path.join("a", "{a}"))
 
         self.project.export_to(
             target=prefix_data, path=os.path.join("c", "{c}", "b", "{b}", "{{auto}}")
