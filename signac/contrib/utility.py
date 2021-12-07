@@ -628,7 +628,7 @@ def _check_path_function(jobs, path_spec, path_function):
             f"The path specification {path_spec} would result in duplicate links. "
             "See the debug log for the list. The easiest way to fix "
             "this is to append the job id to the path "
-            f"specification like '{os.path.join(path_spec, 'id', '{job.id}')}'."
+            f"specification like '{os.path.join(str(path_spec), 'id', '{job.id}')}'."
         )
 
 
