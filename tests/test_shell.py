@@ -235,6 +235,19 @@ class TestBasicShell:
                 "view/a/{}/job".format(sp["a"])
             ) == os.path.realpath(project.open_job(sp).workspace())
 
+    @pytest.mark.skipif(WINDOWS, reason="Symbolic links are unsupported on Windows.")
+    def test_view_incomplete_path_spec(self):
+        self.call("python -m signac init my_project".split())
+        project = signac.Project()
+        sps = [{"a": i} for i in range(3)]
+        for sp in sps:
+            project.open_job(sp).init()
+        os.mkdir("view")
+
+        # Should error if user-provided path doesn't make 1-1 mapping
+        err = self.call("python -m signac view non_unique".split(), error=True)
+        assert "duplicate links" in err
+
     def test_find(self):
         self.call("python -m signac init my_project".split())
         project = signac.Project()
