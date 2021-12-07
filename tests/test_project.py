@@ -2012,6 +2012,12 @@ class TestLinkedViewProject(TestProjectBase):
                     sp = {"a": a, "d": {"b": b, "c": c}}
                     self.project.open_job(sp).init()
 
+        # Should error if user-provided path doesn't make 1-1 mapping
+        with pytest.raises(RuntimeError):
+            self.project.create_linked_view(
+                prefix=view_prefix, path=os.path.join("a","{a}")
+            )
+
         self.project.create_linked_view(
             prefix=view_prefix, path="a/{a}/d.c/{d.c}/{{auto}}"
         )
