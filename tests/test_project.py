@@ -2006,7 +2006,7 @@ class TestLinkedViewProject(TestProjectBase):
         # Should error if user-provided path doesn't make 1-1 mapping
         with pytest.raises(RuntimeError):
             self.project.create_linked_view(
-                prefix=view_prefix, path=os.path.join("a","{a}")
+                prefix=view_prefix, path=os.path.join("a", "{a}")
             )
 
         self.project.create_linked_view(
