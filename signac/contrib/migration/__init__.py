@@ -12,16 +12,24 @@ from packaging import version
 
 from ...common.config import get_config, load_config
 from ...version import SCHEMA_VERSION, __version__
-from .v0_to_v1 import _load_config_v1, _migrate_v0_to_v1
+
+# To be uncommented when switching to version 2.
+# from .v0_to_v1 import _load_config_v1, _migrate_v0_to_v1
+from .v0_to_v1 import _migrate_v0_to_v1
 
 FN_MIGRATION_LOCKFILE = ".SIGNAC_PROJECT_MIGRATION_LOCK"
 
 
 # Config loaders must be functions whose first argument is a directory from
-# which to read configuration information.
+# which to read configuration information. If the logic for loading a schema
+# has not changed from previous versions, it need not be added to this dict.
+# This dictionary only needs to contains all unique loaders in signac's history
+# to ensure that any prior config may be loaded for migration.
 _CONFIG_LOADERS = {
-    "0": _load_config_v1,
-    "1": load_config,
+    # The following line should be uncommented when schema version 2 is
+    # introduced, making load_config fail for v1 schemas.
+    # "1": _load_config_v1,
+    "1": load_config,  # The latest version uses config.load_config
 }
 
 
@@ -48,7 +56,11 @@ def _get_config_schema_version(root_directory, version_guess):
             pass
     else:
         raise RuntimeError("Unable to load config file.")
-    return version.parse(config["schema_version"])
+    try:
+        return version.parse(config["schema_version"])
+    except KeyError:
+        # The default schema version is version 0.
+        return version.parse("0")
 
 
 def _collect_migrations(root_directory):
