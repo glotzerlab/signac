@@ -12,7 +12,7 @@ from packaging import version
 
 from ...common.config import get_config, load_config
 from ...version import SCHEMA_VERSION, __version__
-from .v0_to_v1 import _load_config_v1, migrate_v0_to_v1
+from .v0_to_v1 import _load_config_v1, _migrate_v0_to_v1
 
 FN_MIGRATION_LOCKFILE = ".SIGNAC_PROJECT_MIGRATION_LOCK"
 
@@ -26,7 +26,7 @@ _CONFIG_LOADERS = {
 
 
 _MIGRATIONS = {
-    ("0", "1"): migrate_v0_to_v1,
+    ("0", "1"): _migrate_v0_to_v1,
 }
 
 
