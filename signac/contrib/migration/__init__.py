@@ -20,8 +20,8 @@ FN_MIGRATION_LOCKFILE = ".SIGNAC_PROJECT_MIGRATION_LOCK"
 # Config loaders must be functions whose first argument is a directory from
 # which to read configuration information.
 _CONFIG_LOADERS = {
-    0: _load_config_v1,
-    1: load_config,
+    "0": _load_config_v1,
+    "1": load_config,
 }
 
 
@@ -33,12 +33,15 @@ _MIGRATIONS = {
 def _get_config_schema_version(root_directory, version_guess):
     # By default, try loading the schema using the loader corresponding to
     # the expected version.
-    # Search versions in reverse order (assumes lexicographic ordering of
-    # version strings).
-    # TODO: Is the ordering implied here reasonable?
-    for version_guess in reversed(sorted(_CONFIG_LOADERS.keys())):
+    versions = [version_guess] + list(
+        reversed(sorted(version.parse(v) for v in _CONFIG_LOADERS.keys()))
+    )
+    for guess in versions:
         try:
-            config = _CONFIG_LOADERS[version_guess](root_directory)
+            # Note: We could consider using a different component as the key
+            # for _CONFIG_LOADERS, but since this is an internal detail it's
+            # not terribly consequential.
+            config = _CONFIG_LOADERS[guess.public](root_directory)
             break
         except Exception:
             # The load failed, go to the next
