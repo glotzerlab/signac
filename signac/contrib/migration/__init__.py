@@ -37,6 +37,7 @@ def _collect_migrations(root_directory):
         # the expected version.
         # Search versions in reverse order (assumes lexicographic ordering of
         # version strings).
+        # TODO: Is the ordering implied here reasonable?
         for version_guess in reversed(sorted(_CONFIG_LOADERS.keys())):
             try:
                 config = _CONFIG_LOADERS[version_guess](root_directory)
