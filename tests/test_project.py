@@ -669,15 +669,15 @@ class TestProject(TestProjectBase):
             logging.disable(logging.NOTSET)
 
     def test_index(self):
-        docs = list(self.project._index(include_job_document=True))
+        docs = list(self.project._build_index(include_job_document=True))
         assert len(docs) == 0
-        docs = list(self.project._index(include_job_document=False))
+        docs = list(self.project._build_index(include_job_document=False))
         assert len(docs) == 0
         statepoints = [{"a": i} for i in range(5)]
         for sp in statepoints:
             self.project.open_job(sp).document["test"] = True
         job_ids = {job.id for job in self.project.find_jobs()}
-        docs = list(self.project._index())
+        docs = list(self.project._build_index())
         job_ids_cmp = {doc["_id"] for doc in docs}
         assert job_ids == job_ids_cmp
         assert len(docs) == len(statepoints)

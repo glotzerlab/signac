@@ -669,7 +669,7 @@ class Project:
         """
         from .schema import _build_job_statepoint_index
 
-        index = self._index(include_job_document=False)
+        index = self._build_index(include_job_document=False)
         if subset is not None:
             subset = {str(s) for s in subset}
             index = [doc for doc in index if doc["_id"] in subset]
@@ -710,7 +710,7 @@ class Project:
             return list(self._job_dirs())
         filter = dict(parse_filter(_add_prefix("sp.", filter)))
         include_job_document = "doc" in _root_keys(filter)
-        index = self._index(include_job_document=include_job_document)
+        index = list(self._build_index(include_job_document=include_job_document))
         return list(Collection(index, _trust=True)._find(filter))
 
     def find_jobs(self, filter=None, *args, **kwargs):
@@ -1452,44 +1452,6 @@ class Project:
             delta = time.time() - start
             logger.debug(f"Read cache in {delta:.3f} seconds.")
             return cache
-
-    def _index(self, *, include_job_document=True):
-        r"""Generate an index of the project's workspace.
-
-        This generator function indexes every file in the project's
-        workspace until the specified `depth`.
-        The job document if it exists, is always indexed, other
-        files need to be specified with the formats argument.
-
-        See :ref:`signac project -i <signac-cli-project>` for the command line equivalent.
-
-        Parameters
-        ----------
-        formats : str, dict
-            The format definitions as a pattern string (e.g. ``r'.*\.txt'``)
-            or a mapping from pattern strings to formats (e.g.
-            ``'TextFile'``). If None, only the job document is indexed
-            (Default value = None).
-        depth : int
-            Specifies the crawling depth. A value of 0 means no limit
-            (Default value = 0).
-        skip_errors : bool
-            Skip all errors which occur during indexing. This is useful when
-            trying to repair a broken workspace (Default value = False).
-        include_job_document : bool
-            Include the contents of job documents (Default value = True).
-
-        Yields
-        ------
-        dict
-            Index document.
-
-        """
-        root = self.workspace()
-        for doc in self._build_index(include_job_document=include_job_document):
-            doc["signac_id"] = doc["_id"]
-            doc["root"] = root
-            yield doc
 
     @contextmanager
     def temporary_project(self, name=None, dir=None):
