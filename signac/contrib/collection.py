@@ -494,7 +494,9 @@ class Collection:
         if self._dirty:
             for _id in self._dirty:
                 self._remove_from_indexes(_id)
-            docs = [self[_id] for _id in self._dirty]
+            # For performance, we read directly from the internal _docs dict to
+            # avoid copying the data like in __getitem__.
+            docs = [self._docs[_id] for _id in self._dirty]
             for key, index in self._indexes.items():
                 tmp = _build_index(docs, key, self._primary_key)
                 for v, group in tmp.items():
