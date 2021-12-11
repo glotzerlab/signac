@@ -5,6 +5,7 @@
 
 import os
 import sys
+import warnings
 
 from filelock import FileLock
 from packaging import version
@@ -29,40 +30,43 @@ _MIGRATIONS = {
 }
 
 
+def _get_config_schema_version(root_directory, version_guess):
+    # By default, try loading the schema using the loader corresponding to
+    # the expected version.
+    # Search versions in reverse order (assumes lexicographic ordering of
+    # version strings).
+    # TODO: Is the ordering implied here reasonable?
+    for version_guess in reversed(sorted(_CONFIG_LOADERS.keys())):
+        try:
+            config = _CONFIG_LOADERS[version_guess](root_directory)
+            break
+        except Exception:
+            # The load failed, go to the next
+            pass
+    else:
+        raise RuntimeError("Unable to load config file.")
+    return version.parse(config["schema_version"])
+
+
 def _collect_migrations(root_directory):
     schema_version = version.parse(SCHEMA_VERSION)
 
-    def get_config_schema_version(version_guess):
-        # By default, try loading the schema using the loader corresponding to
-        # the expected version.
-        # Search versions in reverse order (assumes lexicographic ordering of
-        # version strings).
-        # TODO: Is the ordering implied here reasonable?
-        for version_guess in reversed(sorted(_CONFIG_LOADERS.keys())):
-            try:
-                config = _CONFIG_LOADERS[version_guess](root_directory)
-                break
-            except Exception:
-                # The load failed, go to the next
-                pass
-        else:
-            raise RuntimeError("Unable to load config file.")
-        return version.parse(config["schema_version"])
-
-    current_schema_version = get_config_schema_version(SCHEMA_VERSION)
+    current_schema_version = _get_config_schema_version(root_directory, SCHEMA_VERSION)
     if current_schema_version > schema_version:
         # Project config schema version is newer and therefore not supported.
         raise RuntimeError(
             "The signac schema version used by this project is {}, but signac {} "
             "only supports up to schema version {}. Try updating signac.".format(
-                get_config_schema_version(), __version__, SCHEMA_VERSION
+                current_schema_version, __version__, SCHEMA_VERSION
             )
         )
 
     guess = current_schema_version
-    while get_config_schema_version(guess) < schema_version:
+    while _get_config_schema_version(root_directory, guess) < schema_version:
         for (origin, destination), migration in _MIGRATIONS.items():
-            if version.parse(origin) == get_config_schema_version(guess):
+            if version.parse(origin) == _get_config_schema_version(
+                root_directory, guess
+            ):
                 yield (origin, destination), migration
                 guess = destination
                 break
@@ -70,15 +74,25 @@ def _collect_migrations(root_directory):
             raise RuntimeError(
                 "The signac schema version used by this project is {}, but signac {} "
                 "uses schema version {} and does not know how to migrate.".format(
-                    get_config_schema_version(), __version__, schema_version
+                    _get_config_schema_version(root_directory, guess),
+                    __version__,
+                    schema_version,
                 )
             )
 
 
-def apply_migrations(project):
+def apply_migrations(root_directory):
     """Apply migrations to a project."""
-    root_directory = project.root_directory()
-    lock = FileLock(project.fn(FN_MIGRATION_LOCKFILE))
+    from ..project import Project
+
+    if isinstance(root_directory, Project):
+        warnings.warn(
+            "Migrations should be applied to a directory containing a signac project, "
+            "not a project object.",
+            FutureWarning,
+        )
+        root_directory = root_directory.root_directory()
+    lock = FileLock(os.path.join(root_directory, FN_MIGRATION_LOCKFILE))
     try:
         with lock:
             for (origin, destination), migrate in _collect_migrations(root_directory):
@@ -88,13 +102,13 @@ def apply_migrations(project):
                         end="",
                         file=sys.stderr,
                     )
-                    migrate(project)
+                    migrate(root_directory)
                 except Exception as e:
                     raise RuntimeError(
                         f"Failed to apply migration {destination}."
                     ) from e
                 else:
-                    config = get_config(project.fn("signac.rc"))
+                    config = get_config(os.path.join(root_directory, "signac.rc"))
                     config["schema_version"] = destination
                     config.write()
 

@@ -2470,14 +2470,14 @@ class TestProjectSchema(TestProjectBase):
     def test_project_schema_version_migration(self):
         from signac.contrib.migration import apply_migrations
 
-        apply_migrations(self.project)
+        apply_migrations(self.project.root_directory())
         config = get_config(self.project.fn("signac.rc"))
         config["schema_version"] = "0"
         assert config["schema_version"] == "0"
         config.write()
         err = io.StringIO()
         with redirect_stderr(err):
-            for origin, destination in apply_migrations(self.project):
+            for origin, destination in apply_migrations(self.project.root_directory()):
                 config = get_config(self.project.fn("signac.rc"))
                 assert config["schema_version"] == destination
                 project = signac.get_project(root=self.project.root_directory())
