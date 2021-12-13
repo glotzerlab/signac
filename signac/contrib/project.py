@@ -1542,7 +1542,7 @@ class Project:
             yield tmp_project
 
     @classmethod
-    def init_project(cls, root=None, workspace=None, make_dir=True):
+    def init_project(cls, *args, root=None, workspace=None, make_dir=True):
         """Initialize a project.
 
         It is safe to call this function multiple times with the same
@@ -1576,6 +1576,20 @@ class Project:
             configuration.
 
         """
+        if args:
+            if len(args) == 1:
+                warnings.warn(
+                    "Project names were removed in signac 2.0. If you intended to call "
+                    "`init_project` with a root directory, please provided it as a keyword "
+                    f"argument: `init_project(root={args[0]})`",
+                    FutureWarning,
+                )
+            else:
+                # Match the usual error from misusing keyword-only args
+                raise TypeError(
+                    f"init_project() takes 0 positional arguments but {len(args)} were given."
+                )
+
         if root is None:
             root = os.getcwd()
         try:
@@ -2158,7 +2172,7 @@ class JobsCursor:
         return repr(self) + self._repr_html_jobs()
 
 
-def init_project(root=None, workspace=None, make_dir=True):
+def init_project(*args, root=None, workspace=None, make_dir=True):
     """Initialize a project.
 
     It is safe to call this function multiple times with the same arguments.
@@ -2189,7 +2203,9 @@ def init_project(root=None, workspace=None, make_dir=True):
         configuration.
 
     """
-    return Project.init_project(root=root, workspace=workspace, make_dir=make_dir)
+    return Project.init_project(
+        *args, root=root, workspace=workspace, make_dir=make_dir
+    )
 
 
 def get_project(root=None, search=True, **kwargs):
