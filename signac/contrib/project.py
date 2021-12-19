@@ -84,15 +84,16 @@ class _ProjectConfig(Config):
 class Project:
     """The handle on a signac project.
 
-    Application developers should usually not need to
-    directly instantiate this class, but use
-    :meth:`~signac.get_project` instead.
+    A :class:`Project` may only be constructed in a directory that is already a
+    signac project, i.e. a directory in which :meth:`~signac.init_project` has
+    already been run. If project discovery (searching upwards in the folder
+    hierarchy until a project root is discovery) is desired, users should
+    instead invoke :func:`~signac.get_project` or :meth:`Project.get_project`.
 
     Parameters
     ----------
-    config :
-        The project configuration to use. By default, it loads the first signac
-        project configuration found while searching upward from the current
+    root : str
+        The project root directory. By default, the current working directory
         working directory (Default value = None).
     _ignore_schema_version : bool
         (Default value = False).
@@ -112,9 +113,11 @@ class Project:
 
     _use_pandas_for_html_repr = True  # toggle use of pandas for html repr
 
-    def __init__(self, config=None, _ignore_schema_version=False):
-        if config is None:
-            config = load_config()
+    def __init__(self, root=None, _ignore_schema_version=False):
+        if root is None:
+            root = os.getcwd()
+        # Project constructor does not discover.
+        config = load_config(root, local=True)
         self._config = _ProjectConfig(config)
         self._lock = RLock()
 
@@ -174,9 +177,11 @@ class Project:
     def __str__(self):
         """Return the project's id."""
         # TODO: Is this the string representation that we want?
+        # I think once we update the repr the str can just be repr(self).
         return os.path.split(self._root_directory)[-1]
 
     def __repr__(self):
+        # TODO: Fix this too.
         return "{type}.get_project({root})".format(
             type=self.__class__.__name__, root=repr(self.root_directory())
         )
@@ -1646,15 +1651,13 @@ class Project:
         """
         if root is None:
             root = os.getcwd()
-        config = load_config(root=root, local=False)
-        if not search and os.path.realpath(config["project_dir"]) != os.path.realpath(
-            root
-        ):
+        config = load_config(root=root, local=not search)
+        if "project_dir" not in config:
             raise LookupError(
                 f"Unable to find project in path '{os.path.abspath(root)}'."
             )
 
-        return cls(config=config, **kwargs)
+        return cls(root=config["project_dir"], **kwargs)
 
     @classmethod
     def get_job(cls, root=None):
