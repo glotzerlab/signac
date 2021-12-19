@@ -121,7 +121,7 @@ class Project:
         # Ensure that the project is configured.
         if "project_dir" not in self.config:
             raise LookupError(
-                "Unable to determine project id. "
+                "Unable to determine project root. "
                 "Please verify that '{}' is a signac project path.".format(
                     os.path.abspath(self.config.get("project_dir", os.getcwd()))
                 )
@@ -192,7 +192,7 @@ class Project:
         """
         return (
             "<p>"
-            + f"<strong>Root:</strong> {self.root_directory()}<br>"
+            + f"<strong>Project:</strong> {self.root_directory()}<br>"
             + f"<strong>Workspace:</strong> {self.workspace()}<br>"
             + f"<strong>Size:</strong> {len(self)}"
             + "</p>"

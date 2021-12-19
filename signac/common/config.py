@@ -84,14 +84,14 @@ def load_config(root=None, local=False):
         root = os.getcwd()
     config = Config(configspec=cfg.split("\n"))
 
-    if not local:
+    if local:
+        # Local searches cannot proceed up the tree.
+        search_func = _search_local
+    else:
         # For non-local searches we grab the user's global config file first.
         for fn in search_standard_dirs():
             config.merge(read_config_file(fn))
         search_func = _search_tree
-    else:
-        # Local searches cannot proceed up the tree.
-        search_func = _search_local
 
     for fn in search_func(root):
         tmp = read_config_file(fn)

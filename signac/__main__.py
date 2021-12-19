@@ -73,8 +73,7 @@ Total transfer volume:       {stats.volume}
 SHELL_BANNER = """Python {python_version}
 signac {signac_version} 🎨
 
-Project:\t{project_root}{job_banner}
-Root:\t\t{root_path}
+Project:\t{project_path}{job_banner}
 Workspace:\t{workspace_path}
 Size:\t\t{size}
 
@@ -549,9 +548,8 @@ def _main_import_interactive(project, origin, args):
                 banner=SHELL_BANNER_INTERACTIVE_IMPORT.format(
                     python_version=sys.version,
                     signac_version=__version__,
-                    project_root=project.root_directory(),
                     job_banner="",
-                    root_path=project.root_directory(),
+                    project_path=project.root_directory(),
                     workspace_path=project.workspace(),
                     size=len(project),
                     origin=args.origin,
@@ -904,9 +902,8 @@ def main_shell(args):
                 banner=SHELL_BANNER.format(
                     python_version=sys.version,
                     signac_version=__version__,
-                    project_root=project.root_directory(),
                     job_banner=f"\nJob:\t\t{job.id}" if job is not None else "",
-                    root_path=project.root_directory(),
+                    project_path=project.root_directory(),
                     workspace_path=project.workspace(),
                     size=len(project),
                 ),
