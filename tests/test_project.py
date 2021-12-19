@@ -708,8 +708,8 @@ class TestProject(TestProjectBase):
 
     def test_job_move(self):
         root = self._tmp_dir.name
-        project_a = signac.init_project(os.path.join(root, "a"))
-        project_b = signac.init_project(os.path.join(root, "b"))
+        project_a = signac.init_project(root=os.path.join(root, "a"))
+        project_b = signac.init_project(root=os.path.join(root, "b"))
         job = project_a.open_job(dict(a=0))
         job_b = project_b.open_job(dict(a=0))
         assert job != job_b
@@ -737,8 +737,8 @@ class TestProject(TestProjectBase):
 
     def test_job_clone(self):
         root = self._tmp_dir.name
-        project_a = signac.init_project(os.path.join(root, "a"))
-        project_b = signac.init_project(os.path.join(root, "b"))
+        project_a = signac.init_project(root=os.path.join(root, "a"))
+        project_b = signac.init_project(root=os.path.join(root, "b"))
         job_a = project_a.open_job(dict(a=0))
         assert job_a not in project_a
         assert job_a not in project_b
@@ -2248,9 +2248,9 @@ class TestProjectInit:
         root = self._tmp_dir.name
         root_a = os.path.join(root, "project_a")
         root_b = os.path.join(root_a, "project_b")
-        signac.init_project(root_a)
+        signac.init_project(root=root_a)
         check_root(root_a)
-        signac.init_project(root_b)
+        signac.init_project(root=root_b)
         check_root(root_b)
         cwd = os.getcwd()
         try:
@@ -2300,7 +2300,7 @@ class TestProjectInit:
         job = project.open_job({"a": 1})
         job.init()
         with job:
-            nestedproject = signac.init_project("nestedproject")
+            nestedproject = signac.init_project()
             nestedproject.open_job({"b": 2}).init()
             assert project.get_job() == job
             assert signac.get_job() == job
@@ -2326,7 +2326,7 @@ class TestProjectInit:
         job = project.open_job({"a": 1})
         job.init()
         with job:
-            nestedproject = signac.init_project("nestedproject")
+            nestedproject = signac.init_project()
             nestedproject.open_job({"b": 2}).init()
             os.mkdir("test_subdir")
             assert project.get_job("test_subdir") == job
