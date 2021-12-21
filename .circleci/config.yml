@@ -176,7 +176,7 @@ jobs:
 
   macos-python-3:
     macos:  # executor type
-      xcode: 11.3.0
+      xcode: 13.2.0
     steps:
       - checkout
       - run:
