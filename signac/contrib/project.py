@@ -181,15 +181,10 @@ class Project:
 
     def __str__(self):
         """Return the project's id."""
-        # TODO: Is this the string representation that we want?
-        # I think once we update the repr the str can just be repr(self).
-        return os.path.split(self._root_directory)[-1]
+        return repr(self)
 
     def __repr__(self):
-        # TODO: Fix this too.
-        return "{type}.get_project({root})".format(
-            type=self.__class__.__name__, root=repr(self.root_directory())
-        )
+        return f'{self.__class__.__name__}("{self.root_directory()}")'
 
     def _repr_html_(self):
         """Project details in HTML format for use in IPython environment.

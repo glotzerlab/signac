@@ -49,7 +49,7 @@ class TestBasicShell:
             pythonpath = [os.getcwd()] + pythonpath.split(":")
         os.environ["PYTHONPATH"] = ":".join(pythonpath)
         self.tmpdir = TemporaryDirectory(prefix="signac_")
-        self.project_name = os.path.split(self.tmpdir.name)[-1]
+        self.project_name = f'Project("{os.path.realpath(self.tmpdir.name)}")'
         request.addfinalizer(self.tmpdir.cleanup)
         self.cwd = os.getcwd()
         os.chdir(self.tmpdir.name)
@@ -96,7 +96,7 @@ class TestBasicShell:
     def test_project_id(self):
         self.call("python -m signac init".split())
         project = signac.get_project()
-        assert str(project) == self.project_name
+        assert str(signac.get_project()) == self.project_name
         assert (
             self.call("python -m signac project".split()).strip()
             == project.root_directory()
