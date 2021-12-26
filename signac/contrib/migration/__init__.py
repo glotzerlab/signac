@@ -10,7 +10,7 @@ from contextlib import contextmanager
 from filelock import FileLock
 from packaging import version
 
-from ...common.config import get_config
+from ...common.config import read_config_file
 from ...version import SCHEMA_VERSION, __version__
 from .v0_to_v1 import migrate_v0_to_v1
 from .v1_to_v2 import migrate_v1_to_v2
@@ -36,7 +36,7 @@ def _update_project_config(project, **kwargs):
     for fn in ("signac.rc", ".signacrc"):
         project_fn = project.fn(fn)
         if os.path.isfile(project_fn):
-            config = get_config(project_fn)
+            config = read_config_file(project_fn)
             break
     else:
         raise RuntimeError("Unable to determine project configuration file.")

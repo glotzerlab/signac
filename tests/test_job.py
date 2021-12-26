@@ -54,7 +54,7 @@ NESTED_HASH = "bd6f5828f4410b665bffcec46abeb8f3"
 
 def config_from_cfg(cfg):
     cfile = io.StringIO("\n".join(cfg))
-    return signac.common.config.get_config(cfile)
+    return signac.common.config.read_config_file(cfile)
 
 
 def testdata():

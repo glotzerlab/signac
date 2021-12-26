@@ -52,11 +52,28 @@ def search_standard_dirs():
             yield fn
 
 
-def read_config_file(filename):
-    """Read a configuration file."""
+# TODO: In the corresponding deprecation PR for project names, add support for
+# the extra arguments in read_config_file.
+def read_config_file(filename, configspec=None, *args, **kwargs):
+    """Read a configuration file.
+
+    Parameters
+    ----------
+    filename : str
+        The path to the file to read.
+    configspec : List[str], optional
+        The key-value pairs supported in the config.
+
+    Returns
+    --------
+    :class:`Config`
+        The config contained in the file.
+    """
     logger.debug(f"Reading config file '{filename}'.")
+    if configspec is None:
+        configspec = cfg.split("\n")
     try:
-        config = Config(filename, configspec=cfg.split("\n"))
+        config = Config(filename, configspec=configspec, *args, **kwargs)
     except (OSError, ConfigObjError) as error:
         raise ConfigError(f"Failed to read configuration file '{filename}':\n{error}")
     verification = config.verify()
@@ -71,15 +88,24 @@ def read_config_file(filename):
     return config
 
 
-def get_config(infile=None, configspec=None, *args, **kwargs):
-    """Get configuration from a file."""
-    if configspec is None:
-        configspec = cfg.split("\n")
-    return Config(infile, configspec=configspec, *args, **kwargs)
-
-
 def load_config(root=None, local=False):
-    """Load configuration, searching upward from a root path."""
+    """Load configuration, searching upward from a root path if desired.
+
+    Parameters
+    ----------
+    root : str
+        The path from which to begin searching for config files.
+    local : bool, optional
+        If ``True``, only search in the provided directory and do not traverse
+        upwards through the filesystem (Default value: False).
+
+    Returns
+    --------
+    (str, :class:`Config`)
+        The directory in which a config was found and the corresponding
+        configuration. If no config was found, will return ``None`` for the
+        directory and an empty config object.
+    """
     if root is None:
         root = os.getcwd()
     config = Config(configspec=cfg.split("\n"))

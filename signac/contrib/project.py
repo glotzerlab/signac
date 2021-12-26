@@ -21,7 +21,7 @@ from threading import RLock
 
 from packaging import version
 
-from ..common.config import Config, get_config, load_config
+from ..common.config import Config, load_config, read_config_file
 from ..core.h5store import H5StoreManager
 from ..sync import sync_projects
 from ..synced_collections.backends.collection_json import BufferedJSONAttrDict
@@ -1603,7 +1603,7 @@ class Project:
             fn_config = os.path.join(root, "signac.rc")
             if make_dir:
                 _mkdir_p(os.path.dirname(fn_config))
-            config = get_config(fn_config)
+            config = read_config_file(fn_config)
             if workspace is not None:
                 config["workspace_dir"] = workspace
             config["schema_version"] = SCHEMA_VERSION

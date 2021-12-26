@@ -9,12 +9,12 @@ This migration involves the following changes:
 
 import os
 
-from ...common.config import get_config
+from ...common.config import read_config_file
 
 
 def migrate_v1_to_v2(project):
     """Migrate from schema version 1 to version 2."""
-    config = get_config(os.path.join(project.root_directory(), "signac.rc"))
+    config = read_config_file(os.path.join(project.root_directory(), "signac.rc"))
     config["schema_version"] = 2
     del config["project"]
     config.write()

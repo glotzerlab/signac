@@ -22,7 +22,7 @@ from packaging import version
 from test_job import TestJobBase
 
 import signac
-from signac.common.config import get_config, load_config
+from signac.common.config import load_config, read_config_file
 from signac.contrib.errors import (
     IncompatibleSchemaVersion,
     JobsCorruptedError,
@@ -2361,7 +2361,7 @@ class TestProjectSchema(TestProjectBase):
         assert version.parse(self.project.config["schema_version"]) < version.parse(
             impossibly_high_schema_version
         )
-        config = get_config(self.project.fn("signac.rc"))
+        config = read_config_file(self.project.fn("signac.rc"))
         config["schema_version"] = impossibly_high_schema_version
         config.write()
         with pytest.raises(IncompatibleSchemaVersion):
@@ -2401,7 +2401,7 @@ class TestProjectSchema(TestProjectBase):
 
     def test_migrate_1_to_2(self):
         # Create a project conforming to the v1 schema.
-        config = get_config(self.project.fn("signac.rc"))
+        config = read_config_file(self.project.fn("signac.rc"))
         config["schema_version"] = "1"
         config["project"] = "project"
         config.write()
