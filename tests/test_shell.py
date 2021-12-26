@@ -735,7 +735,7 @@ class TestBasicShell:
 
         self.call("python -m signac init".split())
         out = self.call("python -m signac config --local show".split()).strip()
-        cfg = config.read_config_file("signac.rc")
+        cfg = config.read_config_file(".signac/config")
         expected = config.Config(cfg).write()
         assert out.split(os.linesep) == expected
 

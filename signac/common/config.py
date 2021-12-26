@@ -12,7 +12,8 @@ from .validate import cfg, get_validator
 
 logger = logging.getLogger(__name__)
 
-PROJECT_CONFIG_FN = "signac.rc"
+# TODO: Should these variables be internal or do we want them exposed?
+PROJECT_CONFIG_FN = os.path.join(".signac", "config")
 USER_CONFIG_FN = os.path.expanduser("~/.signacrc")
 
 
@@ -130,7 +131,12 @@ def load_config(root=None, local=False):
         # Once a valid config file is found, we cease looking any further, i.e.
         # we assume that the first directory with a valid config file is the
         # project root.
-        root_dir = os.path.dirname(fn)
+        # TODO: Is this a sufficiently portable solution? We could use pathlib's
+        # `.paths` attribute, but that has significant performance
+        # implications: this takes ~200 ns, whereas
+        # os.path.join(*(pathlib.PosixPath(fn).parts[:-2]))
+        # takes ~6 us, almost a 20x slowdown.
+        root_dir = fn.replace(os.path.sep + ".signac/config", "")
         break
     return root_dir, config
 
