@@ -48,7 +48,7 @@ def _search_tree(root=None):
             root = up
 
 
-def search_standard_dirs():
+def _search_standard_dirs():
     """Locates signac configuration files in standard directories."""
     for path in CONFIG_PATH:
         yield from _search_local(path)
@@ -117,7 +117,7 @@ def load_config(root=None, local=False):
                 config["project_dir"] = os.path.dirname(fn)
                 break
     else:
-        for fn in search_standard_dirs():
+        for fn in _search_standard_dirs():
             config.merge(read_config_file(fn))
         for fn in _search_tree(root):
             tmp = read_config_file(fn)
