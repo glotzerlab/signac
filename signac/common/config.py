@@ -12,18 +12,14 @@ from .validate import cfg, get_validator
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_FILENAME = ".signacrc"
-CONFIG_FILENAMES = [DEFAULT_FILENAME, "signac.rc"]
-HOME = os.path.expanduser("~")
-CONFIG_PATH = [HOME]
-FN_CONFIG = os.path.expanduser("~/.signacrc")
+PROJECT_CONFIG_FN = "signac.rc"
+USER_CONFIG_FN = os.path.expanduser("~/.signacrc")
 
 
 def _search_local(root):
-    for fn in CONFIG_FILENAMES:
-        fn_ = os.path.abspath(os.path.join(root, fn))
-        if os.path.isfile(fn_):
-            yield fn_
+    fn_ = os.path.abspath(os.path.join(root, PROJECT_CONFIG_FN))
+    if os.path.isfile(fn_):
+        yield fn_
 
 
 def _search_tree(root=None):
@@ -41,7 +37,7 @@ def _search_tree(root=None):
         yield from _search_local(root)
         up = os.path.abspath(os.path.join(root, ".."))
         if up == root:
-            logger.debug("Reached filesystem root.")
+            logger.debug("Reached filesystem root, no config found.")
             return
         else:
             root = up
@@ -49,8 +45,11 @@ def _search_tree(root=None):
 
 def search_standard_dirs():
     """Locates signac configuration files in standard directories."""
-    for path in CONFIG_PATH:
-        yield from _search_local(path)
+    # For now this search only finds user-specific files, but it could be
+    # updated in the future to support e.g. system-wide config files.
+    for fn in (USER_CONFIG_FN,):
+        if os.path.isfile(fn):
+            yield fn
 
 
 def read_config_file(filename):
@@ -59,10 +58,11 @@ def read_config_file(filename):
     try:
         config = Config(filename, configspec=cfg.split("\n"))
     except (OSError, ConfigObjError) as error:
-        msg = "Failed to read configuration file '{}':\n{}"
-        raise ConfigError(msg.format(filename, error))
+        raise ConfigError(f"Failed to read configuration file '{filename}':\n{error}")
     verification = config.verify()
     if verification is not True:
+        # TODO: In the future this should raise an error, not just a
+        # debug-level logging notice.
         logger.debug(
             "Config file '{}' may contain invalid values.".format(
                 os.path.abspath(filename)
@@ -99,6 +99,10 @@ def load_config(root=None, local=False):
         # Once a valid config file is found, we cease looking any further, i.e.
         # we assume that the first directory with a valid config file is the
         # project root.
+        # TODO: Rather than adding the project directory to the config, it
+        # should be returned separately (i.e. the return should become a tuple
+        # (root_dir, config). The current approach confuses the discovery with
+        # the contents of the config.
         config["project_dir"] = os.path.dirname(fn)
         break
     return config
