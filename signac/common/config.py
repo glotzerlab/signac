@@ -12,12 +12,22 @@ from .validate import cfg, get_validator
 
 logger = logging.getLogger(__name__)
 
-PROJECT_CONFIG_FN = "signac.rc"
+PROJECT_CONFIG_FN = os.path.join(".signac", "config")
 USER_CONFIG_FN = os.path.expanduser(os.path.join("~", ".signacrc"))
 
 
 def _get_project_config_fn(root):
     return os.path.abspath(os.path.join(root, PROJECT_CONFIG_FN))
+
+
+def _get_config_dirname(fn):
+    # TODO: Is the string replace a sufficiently portable solution? We could
+    # use pathlib's `.paths` attribute, but that has significant performance
+    # implications: this takes ~200 ns, whereas
+    # os.path.join(*(pathlib.PosixPath(fn).parts[:-2])) takes ~6 us, almost a
+    # 20x slowdown. On the other hand, loading a project should not be a
+    # frequent operation that leading to bottlenecks.
+    return fn.replace(os.path.sep + PROJECT_CONFIG_FN, "")
 
 
 def _search_local(root):
@@ -127,7 +137,7 @@ def load_config(root=None, local=False):
         # should be returned separately (i.e. the return should become a tuple
         # (root_dir, config). The current approach confuses the discovery with
         # the contents of the config.
-        config["project_dir"] = os.path.dirname(fn)
+        config["project_dir"] = _get_config_dirname(fn)
         break
     return config
 

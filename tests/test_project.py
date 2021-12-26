@@ -23,7 +23,7 @@ from packaging import version
 from test_job import TestJobBase
 
 import signac
-from signac.common.config import load_config, read_config_file
+from signac.common.config import load_config, read_config_file, PROJECT_CONFIG_FN, _get_project_config_fn
 from signac.contrib.errors import (
     IncompatibleSchemaVersion,
     JobsCorruptedError,
@@ -2434,7 +2434,7 @@ class TestProjectSchema(TestProjectBase):
         assert version.parse(self.project.config["schema_version"]) < version.parse(
             impossibly_high_schema_version
         )
-        config = read_config_file(self.project.fn("signac.rc"))
+        config = read_config_file(_get_project_config_fn(self.project.root_directory()))
         config["schema_version"] = impossibly_high_schema_version
         config.write()
         with pytest.raises(IncompatibleSchemaVersion):
@@ -2448,7 +2448,7 @@ class TestProjectSchema(TestProjectBase):
 
         # Ensure that migration fails on an invalid version.
         invalid_schema_version = "0.5"
-        config = read_config_file(self.project.fn("signac.rc"))
+        config = read_config_file(_get_project_config_fn(self.project.root_directory()))
         config["schema_version"] = invalid_schema_version
         config.write()
         with pytest.raises(RuntimeError):
@@ -2458,7 +2458,14 @@ class TestProjectSchema(TestProjectBase):
     def test_project_schema_version_migration(self, implicit_version):
         from signac.contrib.migration import apply_migrations
 
-        config = read_config_file(self.project.fn("signac.rc"))
+        # First need to move the v2 config file to a suitable v0/v1 file.
+        v2_fn = _get_project_config_fn(self.project.root_directory())
+        v1_fn = self.project.fn("signac.rc")
+        os.rename(v2_fn, v1_fn)
+        os.rmdir(os.path.dirname(v2_fn))
+
+        # First need to move the v2 config file to a suitable v0/v1 file.
+        config = read_config_file(v1_fn)
         if implicit_version:
             del config["schema_version"]
             assert "schema_version" not in config
@@ -2469,13 +2476,14 @@ class TestProjectSchema(TestProjectBase):
         err = io.StringIO()
         with redirect_stderr(err):
             apply_migrations(self.project.root_directory())
-        config = read_config_file(self.project.fn("signac.rc"))
+        config = load_config(self.project.root_directory())
         assert config["schema_version"] == "2"
         project = signac.get_project(root=self.project.root_directory())
         assert project.config["schema_version"] == "2"
         assert "OK" in err.getvalue()
         assert "0 to 1" in err.getvalue()
         assert "1 to 2" in err.getvalue()
+        assert os.path.isfile(project.fn(PROJECT_CONFIG_FN))
 
     def test_no_migration(self):
         # This unit test should fail as long as there are no schema migrations

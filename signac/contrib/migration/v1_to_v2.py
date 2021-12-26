@@ -9,6 +9,7 @@ This migration involves the following changes:
 import os
 
 from signac.common import configobj
+from signac.common.config import _get_project_config_fn
 
 # A minimal v2 config.
 _cfg = """
@@ -20,16 +21,19 @@ workspace_dir = string(default='workspace')
 
 def _load_config_v2(root_directory):
     cfg = configobj.ConfigObj(
-        os.path.join(root_directory, "signac.rc"), configspec=_cfg.split("\n")
+        os.path.join(root_directory, ".signac", "config"), configspec=_cfg.split("\n")
     )
     validator = configobj.validate.Validator()
     if cfg.validate(validator) is not True:
         raise RuntimeError(
-            "This project's config file is not compatible with signac's v1 schema."
+            "This project's config file is not compatible with signac's v2 schema."
         )
     return cfg
 
 
-def _migrate_v1_to_v2(project):
+def _migrate_v1_to_v2(root_directory):
     """Migrate from schema version 1 to version 2."""
-    pass
+    v1_fn = os.path.join(root_directory, "signac.rc")
+    v2_fn = _get_project_config_fn(root_directory)
+    os.mkdir(os.path.dirname(v2_fn))
+    os.rename(v1_fn, v2_fn)
