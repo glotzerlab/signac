@@ -43,7 +43,7 @@ def _search_tree(root=None):
             root = up
 
 
-def search_standard_dirs():
+def _search_standard_dirs():
     """Locates signac configuration files in standard directories."""
     # For now this search only finds user-specific files, but it could be
     # updated in the future to support e.g. system-wide config files.
@@ -115,7 +115,7 @@ def load_config(root=None, local=False):
         search_func = _search_local
     else:
         # For non-local searches we grab the user's global config file first.
-        for fn in search_standard_dirs():
+        for fn in _search_standard_dirs():
             config.merge(read_config_file(fn))
         search_func = _search_tree
 
