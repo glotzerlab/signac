@@ -722,7 +722,7 @@ def main_config_show(args):
     elif args.globalcfg:
         cfg = config.read_config_file(config.USER_CONFIG_FN)
     else:
-        cfg = config.load_config()
+        _, cfg = config.load_config()
     if cfg is None:
         if args.local and args.globalcfg:
             mode = " local or global "
@@ -760,7 +760,7 @@ def main_config_verify(args):
     elif args.globalcfg:
         cfg = config.read_config_file(config.USER_CONFIG_FN)
     else:
-        cfg = config.load_config()
+        _, cfg = config.load_config()
     if cfg is None:
         if args.local and args.globalcfg:
             mode = " local or global "

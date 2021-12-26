@@ -72,7 +72,7 @@ class TestJobBase:
         self._tmp_pr = os.path.join(self._tmp_dir.name, "pr")
         self._tmp_wd = os.path.join(self._tmp_dir.name, "wd")
         os.mkdir(self._tmp_pr)
-        self.config = signac.common.config.load_config()
+        _, self.config = signac.common.config.load_config()
         self.project = self.project_class.init_project(
             root=self._tmp_pr, workspace=self._tmp_wd
         )

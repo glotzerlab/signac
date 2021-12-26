@@ -93,19 +93,16 @@ def load_config(root=None, local=False):
             config.merge(read_config_file(fn))
         search_func = _search_tree
 
+    root_dir = None
     for fn in search_func(root):
         tmp = read_config_file(fn)
         config.merge(tmp)
         # Once a valid config file is found, we cease looking any further, i.e.
         # we assume that the first directory with a valid config file is the
         # project root.
-        # TODO: Rather than adding the project directory to the config, it
-        # should be returned separately (i.e. the return should become a tuple
-        # (root_dir, config). The current approach confuses the discovery with
-        # the contents of the config.
-        config["project_dir"] = os.path.dirname(fn)
+        root_dir = os.path.dirname(fn)
         break
-    return config
+    return root_dir, config
 
 
 class Config(ConfigObj):

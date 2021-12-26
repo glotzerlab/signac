@@ -740,7 +740,7 @@ class TestBasicShell:
         assert out.split(os.linesep) == expected
 
         out = self.call("python -m signac config show".split()).strip()
-        cfg = config.load_config()
+        _, cfg = config.load_config()
         expected = config.Config(cfg).write()
         assert out.split(os.linesep) == expected
 

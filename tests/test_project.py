@@ -2370,7 +2370,7 @@ class TestProjectSchema(TestProjectBase):
     @pytest.mark.xfail(reason="Not yet updated for new migration.")
     def test_project_schema_version_migration(self):
         apply_migrations(self.project)
-        config = load_config(self.project.root_directory())
+        _, config = load_config(self.project.root_directory())
         config["schema_version"] = "0"
         self.project = self.project_class(config=config, _ignore_schema_version=True)
         assert self.project.config["schema_version"] == "0"
@@ -2462,7 +2462,7 @@ class TestProjectStoreBase(test_h5store.TestH5StoreBase):
         self._tmp_pr = os.path.join(self._tmp_dir.name, "pr")
         self._tmp_wd = os.path.join(self._tmp_dir.name, "wd")
         os.mkdir(self._tmp_pr)
-        self.config = signac.common.config.load_config()
+        _, self.config = signac.common.config.load_config()
         self.project = self.project_class.init_project(
             root=self._tmp_pr, workspace=self._tmp_wd
         )

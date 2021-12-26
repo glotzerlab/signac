@@ -117,22 +117,22 @@ class Project:
         if root is None:
             root = os.getcwd()
         # Project constructor does not discover.
-        config = load_config(root, local=True)
+        root_dir, config = load_config(root, local=True)
         self._config = _ProjectConfig(config)
         self._lock = RLock()
 
         # Ensure that the project is configured.
-        if "project_dir" not in self.config:
+        if root_dir is None:
             raise LookupError(
-                "Unable to determine project root. "
+                "Specified project root does not contain a configuration. "
                 "Please verify that '{}' is a signac project path.".format(
-                    os.path.abspath(self.config.get("project_dir", os.getcwd()))
+                    os.path.abspath(root)
                 )
             )
 
         # Prepare root directory and workspace paths.
         # os.path is used instead of pathlib.Path for performance.
-        self._root_directory = self.config["project_dir"]
+        self._root_directory = root_dir
         self._workspace = os.path.expandvars(
             self.config.get("workspace_dir", "workspace")
         )
@@ -1651,13 +1651,13 @@ class Project:
         """
         if root is None:
             root = os.getcwd()
-        config = load_config(root=root, local=not search)
-        if "project_dir" not in config:
+        root_dir, config = load_config(root=root, local=not search)
+        if root_dir is None:
             raise LookupError(
                 f"Unable to find project in path '{os.path.abspath(root)}'."
             )
 
-        return cls(root=config["project_dir"], **kwargs)
+        return cls(root=root_dir, **kwargs)
 
     @classmethod
     def get_job(cls, root=None):
