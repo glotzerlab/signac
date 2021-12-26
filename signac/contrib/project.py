@@ -170,10 +170,7 @@ class Project:
         return str(self.root_directory())
 
     def __repr__(self):
-        # TODO: Fix this too.
-        return "{type}.get_project({root})".format(
-            type=self.__class__.__name__, root=repr(self.root_directory())
-        )
+        return f"{self.__class__.__name__}({repr(self.root_directory())})"
 
     def _repr_html_(self):
         """Project details in HTML format for use in IPython environment.
