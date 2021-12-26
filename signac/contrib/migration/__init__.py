@@ -33,11 +33,11 @@ def _reload_project_config(project):
 
 def _update_project_config(project, **kwargs):
     """Update the project configuration."""
-    for fn in ("signac.rc", ".signacrc"):
-        project_fn = project.fn(fn)
-        if os.path.isfile(project_fn):
-            config = read_config_file(project_fn)
-            break
+    # TODO: Once the new migration logic is merged in this will just use the
+    # root directory directly.
+    project_fn = project.fn("signac.rc")
+    if os.path.isfile(project_fn):
+        config = read_config_file(project_fn)
     else:
         raise RuntimeError("Unable to determine project configuration file.")
     config.update(kwargs)

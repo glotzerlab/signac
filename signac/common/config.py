@@ -16,8 +16,12 @@ PROJECT_CONFIG_FN = "signac.rc"
 USER_CONFIG_FN = os.path.expanduser("~/.signacrc")
 
 
+def _get_project_config_fn(root):
+    return os.path.abspath(os.path.join(root, PROJECT_CONFIG_FN))
+
+
 def _search_local(root):
-    fn_ = os.path.abspath(os.path.join(root, PROJECT_CONFIG_FN))
+    fn_ = _get_project_config_fn(root)
     if os.path.isfile(fn_):
         yield fn_
 

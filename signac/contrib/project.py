@@ -21,7 +21,12 @@ from threading import RLock
 
 from packaging import version
 
-from ..common.config import Config, load_config, read_config_file
+from ..common.config import (
+    Config,
+    _get_project_config_fn,
+    load_config,
+    read_config_file,
+)
 from ..core.h5store import H5StoreManager
 from ..sync import sync_projects
 from ..synced_collections.backends.collection_json import BufferedJSONAttrDict
@@ -1600,7 +1605,7 @@ class Project:
         try:
             project = cls.get_project(root=root, search=False)
         except LookupError:
-            fn_config = os.path.join(root, "signac.rc")
+            fn_config = _get_project_config_fn(root)
             if make_dir:
                 _mkdir_p(os.path.dirname(fn_config))
             config = read_config_file(fn_config)
