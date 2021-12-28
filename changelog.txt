@@ -13,7 +13,7 @@ Version 1
 Added
 +++++
 
- - Official support for Python 3.10. The optional dependency on PyTables is not yet available for Python 3.10, which is required for storing Pandas objects in an ``H5Store`` (#631).
+ - Official support for Python 3.10 (#631).
  - Benchmarks can be run using the ``asv`` (airspeed velocity) tool (#629).
 
 Deprecated
@@ -29,11 +29,6 @@ Fixed
 +++++
 
  - ``H5Store.mode`` returns the file mode (#607).
-
-Removed
-+++++++
-
- - Tests for storing ``pandas`` objects in ``H5Store`` via ``tables`` have been removed from continuous integration because wheels are not broadly available for ``tables``.
 
 [1.7.0] -- 2021-06-08
 ---------------------
