@@ -10,7 +10,6 @@ dist
 build
 eggs
 parts
-bin
 var
 sdist
 develop-eggs
@@ -47,5 +46,4 @@ htmlcov
 # custom
 doc/_build
 *.log
-
 .DS_Store

@@ -30,6 +30,11 @@ Fixed
 
  - ``H5Store.mode`` returns the file mode (#607).
 
+Removed
++++++++
+
+ - Tests for storing ``pandas`` objects in ``H5Store`` via ``tables`` have been removed from continuous integration because wheels are not broadly available for ``tables``.
+
 [1.7.0] -- 2021-06-08
 ---------------------
 
