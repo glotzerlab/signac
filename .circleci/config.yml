@@ -16,9 +16,9 @@ references:
     key: python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements/requirements-test.txt" }}-{{ checksum "requirements/requirements-test-optional.txt" }}-{{ checksum ".circleci/ci-oldest-reqs.txt" }}
 
 jobs:
-  linux-python-39: &linux-template
+  linux-python-310: &linux-template
     docker:
-      - image: circleci/python:3.9
+      - image: cimg/python:3.10
       - image: circleci/mongo:latest
       - image: circleci/redis:latest
 
@@ -100,33 +100,40 @@ jobs:
               ${PYTHON} benchmark.py compare origin/master "${CIRCLE_SHA1}"
             fi
 
-  linux-python-39-minimal:
+  linux-python-310-minimal:
     <<: *linux-template
     docker:
-      - image: circleci/python:3.9
+      - image: cimg/python:3.10
     environment:
       BENCHMARKS: "SKIP"
       DEPENDENCIES: "MINIMAL"
       PYTHON: python
 
+  linux-python-39:
+    <<: *linux-template
+    docker:
+      - image: cimg/python:3.9
+      - image: circleci/mongo:latest
+      - image: circleci/redis:latest
+
   linux-python-38:
     <<: *linux-template
     docker:
-      - image: circleci/python:3.8
+      - image: cimg/python:3.8
       - image: circleci/mongo:latest
       - image: circleci/redis:latest
 
   linux-python-37:
     <<: *linux-template
     docker:
-      - image: circleci/python:3.7
+      - image: cimg/python:3.7
       - image: circleci/mongo:latest
       - image: circleci/redis:latest
 
   linux-python-36-oldest:
     <<: *linux-template
     docker:
-      - image: circleci/python:3.6
+      - image: cimg/python:3.6
       - image: circleci/mongo:latest
       - image: circleci/redis:latest
     environment:
@@ -200,7 +207,7 @@ jobs:
 
   check-metadata:
     docker:
-      - image: circleci/python:3.9
+      - image: cimg/python:3.10
     working_directory: ~/repo
     steps:
       - checkout
@@ -216,7 +223,7 @@ jobs:
 
   test-deploy-pypi:
     docker:
-      - image: circleci/python:3.9
+      - image: cimg/python:3.10
     working_directory: ~/repo
     steps:
       - checkout
@@ -227,7 +234,7 @@ jobs:
 
   deploy-pypi:
     docker:
-      - image: circleci/python:3.9
+      - image: cimg/python:3.10
     working_directory: ~/repo
     steps:
       - checkout
@@ -241,8 +248,9 @@ workflows:
   version: 2
   test:
     jobs:
+      - linux-python-310
+      - linux-python-310-minimal
       - linux-python-39
-      - linux-python-39-minimal
       - linux-python-38
       - linux-python-37
       - linux-python-36-oldest
@@ -258,8 +266,9 @@ workflows:
             branches:
               only: /release\/.*/
           requires:
+            - linux-python-310
+            - linux-python-310-minimal
             - linux-python-39
-            - linux-python-39-minimal
             - linux-python-38
             - linux-python-37
             - linux-python-36-oldest
