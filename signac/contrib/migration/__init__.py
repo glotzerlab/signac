@@ -5,7 +5,6 @@
 
 import os
 import sys
-import warnings
 
 from filelock import FileLock
 from packaging import version
@@ -70,10 +69,10 @@ def _collect_migrations(root_directory):
     if current_schema_version > schema_version:
         # Project config schema version is newer and therefore not supported.
         raise RuntimeError(
-            "The signac schema version used by this project is {}, but signac {} "
-            "only supports up to schema version {}. Try updating signac.".format(
-                current_schema_version, __version__, SCHEMA_VERSION
-            )
+            f"The signac schema version used by this project is "
+            f"{current_schema_version}, but signac {__version__} only "
+            f"supports up to schema version {SCHEMA_VERSION}. Try updating "
+            "signac."
         )
 
     guess = current_schema_version
@@ -87,28 +86,29 @@ def _collect_migrations(root_directory):
                 break
         else:
             raise RuntimeError(
-                "The signac schema version used by this project is {}, but signac {} "
-                "uses schema version {} and does not know how to migrate.".format(
-                    _get_config_schema_version(root_directory, guess),
-                    __version__,
-                    schema_version,
-                )
+                "The signac schema version used by this project is "
+                f"{_get_config_schema_version(root_directory, guess)}, but "
+                f"signac {__version__} uses schema version {schema_version} "
+                "and does not know how to migrate."
             )
 
 
 def apply_migrations(root_directory):
-    """Apply migrations to a project."""
-    from ..project import Project
+    """Apply migrations to a project.
 
-    if isinstance(root_directory, Project):
-        warnings.warn(
-            "Migrations should be applied to a directory containing a signac project, "
-            "not a project object.",
-            FutureWarning,
-        )
-        root_directory = root_directory.root_directory()
-    lock = FileLock(os.path.join(root_directory, FN_MIGRATION_LOCKFILE))
+    This function identifies and performs all the necessary schema migrations
+    to bring a project up to date with the current schema version of signac.
+    The calling code does not require prior knowledge of the schema version of
+    the project, and the function is idempotent when applied to projects that
+    already have an up-to-date schema.
+
+    Parameters
+    ----------
+    root_directory : str
+        The path to the project to migrate.
+    """
     try:
+        lock = FileLock(os.path.join(root_directory, FN_MIGRATION_LOCKFILE))
         with lock:
             for (origin, destination), migrate in _collect_migrations(root_directory):
                 try:
