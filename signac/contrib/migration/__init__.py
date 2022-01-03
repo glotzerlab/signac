@@ -9,7 +9,6 @@ import sys
 from filelock import FileLock
 from packaging import version
 
-from ...common.config import get_config
 from ...version import SCHEMA_VERSION, __version__
 from .v0_to_v1 import _load_config_v1, _migrate_v0_to_v1
 
@@ -128,7 +127,9 @@ def apply_migrations(root_directory):
                         f"Failed to apply migration {destination}."
                     ) from e
                 else:
-                    config = get_config(os.path.join(root_directory, "signac.rc"))
+                    config = _CONFIG_LOADERS[version.parse(destination).public](
+                        root_directory
+                    )
                     config["schema_version"] = destination
                     config.write()
 
