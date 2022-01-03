@@ -123,13 +123,6 @@ jobs:
       - image: circleci/mongo:latest
       - image: circleci/redis:latest
 
-  linux-python-37:
-    <<: *linux-template
-    docker:
-      - image: cimg/python:3.7
-      - image: circleci/mongo:latest
-      - image: circleci/redis:latest
-
   linux-python-36-oldest:
     <<: *linux-template
     docker:
@@ -141,10 +134,10 @@ jobs:
       DEPENDENCIES: "OLDEST"
       PYTHON: python
 
-  linux-pypy-37:
+  linux-pypy-38:
     <<: *linux-template
     docker:
-      - image: pypy:3.7
+      - image: pypy:3.8
     environment:
       BENCHMARKS: "SKIP"
       DEPENDENCIES: "NEWEST"
@@ -252,9 +245,8 @@ workflows:
       - linux-python-310-minimal
       - linux-python-39
       - linux-python-38
-      - linux-python-37
       - linux-python-36-oldest
-      - linux-pypy-37
+      - linux-pypy-38
       - windows-python-38
       - macos-python-3
       - check-metadata:
@@ -270,9 +262,8 @@ workflows:
             - linux-python-310-minimal
             - linux-python-39
             - linux-python-38
-            - linux-python-37
             - linux-python-36-oldest
-            - linux-pypy-37
+            - linux-pypy-38
             - windows-python-38
   deploy:
     jobs:
