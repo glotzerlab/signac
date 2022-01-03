@@ -16,6 +16,8 @@ from ...version import __version__
 # A minimal v1 config.
 _cfg = """
 schema_version = string()
+project = string()
+workspace_dir = string(default='workspace')
 """
 
 
@@ -31,7 +33,7 @@ def _load_config_v1(root_directory):
                 "Please install configobj and try again."
             )
     cfg = configobj.ConfigObj(
-        os.path.join(root_directory) + "signac.rc", configspec=_cfg.split("\n")
+        os.path.join(root_directory, "signac.rc"), configspec=_cfg.split("\n")
     )
     validator = configobj.validate.Validator()
     if not cfg.validate(validator):

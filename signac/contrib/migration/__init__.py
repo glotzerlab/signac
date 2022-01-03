@@ -9,12 +9,9 @@ import sys
 from filelock import FileLock
 from packaging import version
 
-from ...common.config import get_config, load_config
+from ...common.config import get_config
 from ...version import SCHEMA_VERSION, __version__
-
-# To be uncommented when switching to version 2.
-# from .v0_to_v1 import _load_config_v1, _migrate_v0_to_v1
-from .v0_to_v1 import _migrate_v0_to_v1
+from .v0_to_v1 import _load_config_v1, _migrate_v0_to_v1
 
 FN_MIGRATION_LOCKFILE = ".SIGNAC_PROJECT_MIGRATION_LOCK"
 
@@ -23,12 +20,11 @@ FN_MIGRATION_LOCKFILE = ".SIGNAC_PROJECT_MIGRATION_LOCK"
 # which to read configuration information. If the logic for loading a schema
 # has not changed from previous versions, it need not be added to this dict.
 # This dictionary only needs to contains all unique loaders in signac's history
-# to ensure that any prior config may be loaded for migration.
+# to ensure that any prior config may be loaded for migration. The resulting
+# config objects must be writeable, i.e. it must be possible to persist
+# in-memory changes from these objects to the underlying config files.
 _CONFIG_LOADERS = {
-    # The following line should be uncommented when schema version 2 is
-    # introduced, making load_config fail for v1 schemas.
-    # "1": _load_config_v1,
-    "1": load_config,  # The latest version uses config.load_config
+    "1": _load_config_v1,
 }
 
 
@@ -37,12 +33,19 @@ _MIGRATIONS = {
 }
 
 
+_PARSED_SCHEMA_VERSION = version.parse(SCHEMA_VERSION)
+
+_PARSED_VERSION_LIST = list(
+    reversed(sorted(version.parse(v) for v in _CONFIG_LOADERS.keys()))
+)
+
+
 def _get_config_schema_version(root_directory, version_guess):
-    # By default, try loading the schema using the loader corresponding to
-    # the expected version.
-    versions = [version_guess] + list(
-        reversed(sorted(version.parse(v) for v in _CONFIG_LOADERS.keys()))
-    )
+    # Try loading the schema using the loader corresponding to the expected
+    # version if it has a configured loader.
+    versions = _PARSED_VERSION_LIST
+    if version_guess in _CONFIG_LOADERS:
+        versions = [version_guess] + versions
     for guess in versions:
         try:
             # Note: We could consider using a different component as the key
@@ -63,9 +66,11 @@ def _get_config_schema_version(root_directory, version_guess):
 
 
 def _collect_migrations(root_directory):
-    schema_version = version.parse(SCHEMA_VERSION)
+    schema_version = _PARSED_SCHEMA_VERSION
 
-    current_schema_version = _get_config_schema_version(root_directory, SCHEMA_VERSION)
+    current_schema_version = _get_config_schema_version(
+        root_directory, _PARSED_SCHEMA_VERSION
+    )
     if current_schema_version > schema_version:
         # Project config schema version is newer and therefore not supported.
         raise RuntimeError(
@@ -82,7 +87,7 @@ def _collect_migrations(root_directory):
                 root_directory, guess
             ):
                 yield (origin, destination), migration
-                guess = destination
+                guess = version.parse(destination)
                 break
         else:
             raise RuntimeError(
