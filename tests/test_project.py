@@ -2467,13 +2467,18 @@ class TestProjectSchema(TestProjectBase):
                 name=str(self.project), root=self.project.root_directory()
             )
 
-    def test_project_schema_version_migration(self):
+    @pytest.mark.parametrize("implicit_version", [True, False])
+    def test_project_schema_version_migration(self, implicit_version):
         from signac.contrib.migration import apply_migrations
 
         apply_migrations(self.project.root_directory())
         config = get_config(self.project.fn("signac.rc"))
-        config["schema_version"] = "0"
-        assert config["schema_version"] == "0"
+        if implicit_version:
+            del config["schema_version"]
+            assert "schema_version" not in config
+        else:
+            config["schema_version"] = "0"
+            assert config["schema_version"] == "0"
         config.write()
         err = io.StringIO()
         with redirect_stderr(err):
