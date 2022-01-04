@@ -709,8 +709,9 @@ class Project:
         if not filter:
             return list(self._job_dirs())
         filter = dict(parse_filter(_add_prefix("sp.", filter)))
-        include_job_document = "doc" in _root_keys(filter)
-        index = list(self._build_index(include_job_document=include_job_document))
+        index = list(
+            self._build_index(include_job_document="doc" in _root_keys(filter))
+        )
         return list(Collection(index, _trust=True)._find(filter))
 
     def find_jobs(self, filter=None, *args, **kwargs):
