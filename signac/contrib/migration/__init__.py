@@ -15,13 +15,14 @@ from .v0_to_v1 import _load_config_v1, _migrate_v0_to_v1
 FN_MIGRATION_LOCKFILE = ".SIGNAC_PROJECT_MIGRATION_LOCK"
 
 
-# Config loaders must be functions whose first argument is a directory from
-# which to read configuration information. If the logic for loading a schema
-# has not changed from previous versions, it need not be added to this dict.
-# This dictionary only needs to contains all unique loaders in signac's history
-# to ensure that any prior config may be loaded for migration. The resulting
-# config objects must be writeable, i.e. it must be possible to persist
-# in-memory changes from these objects to the underlying config files.
+# Config loaders must be functions with the signature
+# def config_loader(root_directory: str) -> MutableMapping
+# When a new schema version is introduced, a corresponding loader only needs to
+# be added if the old loader will no longer function.  This dictionary must
+# contain all unique loaders for schema versions that are supported as starting
+# points for migration. The resulting MutableMapping config objects must be
+# writeable, i.e. it must be possible to persist in-memory changes from these
+# objects to the underlying config files.
 _CONFIG_LOADERS = {
     "1": _load_config_v1,
 }

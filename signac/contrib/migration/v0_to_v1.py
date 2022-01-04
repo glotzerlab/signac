@@ -8,6 +8,8 @@ for future migrations and testing purposes.
 """
 import os
 
+from signac.common import configobj
+
 # A minimal v1 config.
 _cfg = """
 schema_version = string()
@@ -17,16 +19,6 @@ workspace_dir = string(default='workspace')
 
 
 def _load_config_v1(root_directory):
-    try:
-        import configobj
-    except ModuleNotFoundError:
-        try:
-            from signac.common import configobj
-        except ModuleNotFoundError:
-            raise RuntimeError(
-                "signac schema version 1 can only be read with configobj. "
-                "Please install configobj and try again."
-            )
     cfg = configobj.ConfigObj(
         os.path.join(root_directory, "signac.rc"), configspec=_cfg.split("\n")
     )
