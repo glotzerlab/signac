@@ -2455,6 +2455,9 @@ class TestProjectInit:
 
 class TestProjectSchema(TestProjectBase):
     def test_project_schema_versions(self):
+        from signac.contrib.migration import apply_migrations
+
+        # Ensure that project initialization fails on an unsupported version.
         impossibly_high_schema_version = "9999"
         assert version.parse(self.project.config["schema_version"]) < version.parse(
             impossibly_high_schema_version
@@ -2467,11 +2470,22 @@ class TestProjectSchema(TestProjectBase):
                 name=str(self.project), root=self.project.root_directory()
             )
 
+        # Ensure that migration fails on an unsupported version.
+        with pytest.raises(RuntimeError):
+            apply_migrations(self.project.root_directory())
+
+        # Ensure that migration fails on an invalid version.
+        invalid_schema_version = "0.5"
+        config = get_config(self.project.fn("signac.rc"))
+        config["schema_version"] = invalid_schema_version
+        config.write()
+        with pytest.raises(RuntimeError):
+            apply_migrations(self.project.root_directory())
+
     @pytest.mark.parametrize("implicit_version", [True, False])
     def test_project_schema_version_migration(self, implicit_version):
         from signac.contrib.migration import apply_migrations
 
-        apply_migrations(self.project.root_directory())
         config = get_config(self.project.fn("signac.rc"))
         if implicit_version:
             del config["schema_version"]
@@ -2482,11 +2496,9 @@ class TestProjectSchema(TestProjectBase):
         config.write()
         err = io.StringIO()
         with redirect_stderr(err):
-            for origin, destination in apply_migrations(self.project.root_directory()):
-                config = get_config(self.project.fn("signac.rc"))
-                assert config["schema_version"] == destination
-                project = signac.get_project(root=self.project.root_directory())
-                assert project.config["schema_version"] == destination
+            apply_migrations(self.project.root_directory())
+        config = get_config(self.project.fn("signac.rc"))
+        assert config["schema_version"] == "1"
         project = signac.get_project(root=self.project.root_directory())
         assert project.config["schema_version"] == "1"
         assert "OK" in err.getvalue()

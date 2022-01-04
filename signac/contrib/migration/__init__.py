@@ -135,7 +135,6 @@ def apply_migrations(root_directory):
                     config.write()
 
                     print("OK", file=sys.stderr)
-                    yield origin, destination
     finally:
         try:
             os.unlink(lock.lock_file)
