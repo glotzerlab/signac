@@ -18,7 +18,6 @@ except ImportError:
         This function is only available if pymongo is installed."""
         raise ImportError("You need to install pymongo to use `get_database()`.")
 
-
 else:
     if pymongo.version_tuple[0] < 3:
         logging.getLogger(__name__).warn(
