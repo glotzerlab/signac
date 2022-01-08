@@ -6,7 +6,7 @@ Signac (core) package documentation
     This is documentation for the **signac** *core package*, which is part of the signac_ framework.
     See `here <signac-docs_>`_ for a comprehensive introduction to the **signac** *framework*.
 
-.. _signac: http://www.signac.io/
+.. _signac: https://signac.io/
 .. _signac-docs: https://docs.signac.io/
 
 Contents
