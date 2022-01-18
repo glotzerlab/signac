@@ -35,15 +35,13 @@ _MIGRATIONS = {
 
 _PARSED_SCHEMA_VERSION = version.parse(SCHEMA_VERSION)
 
-_PARSED_VERSION_LIST = list(
-    reversed(sorted(version.parse(v) for v in _CONFIG_LOADERS.keys()))
-)
+_VERSION_LIST = list(reversed(sorted(version.parse(v) for v in _CONFIG_LOADERS.keys())))
 
 
 def _get_config_schema_version(root_directory, version_guess):
     # Try loading the schema using the loader corresponding to the expected
     # version if it has a configured loader.
-    versions = _PARSED_VERSION_LIST
+    versions = _VERSION_LIST
     if version_guess in _CONFIG_LOADERS:
         versions = [version_guess] + versions
     for guess in versions:
@@ -74,7 +72,7 @@ def _collect_migrations(root_directory):
     if current_schema_version > schema_version:
         # Project config schema version is newer and therefore not supported.
         raise RuntimeError(
-            f"The signac schema version used by this project is "
+            "The signac schema version used by this project is "
             f"{current_schema_version}, but signac {__version__} only "
             f"supports up to schema version {SCHEMA_VERSION}. Try updating "
             "signac."

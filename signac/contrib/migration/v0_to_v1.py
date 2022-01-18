@@ -23,7 +23,7 @@ def _load_config_v1(root_directory):
         os.path.join(root_directory, "signac.rc"), configspec=_cfg.split("\n")
     )
     validator = configobj.validate.Validator()
-    if not cfg.validate(validator):
+    if cfg.validate(validator) is not True:
         raise RuntimeError(
             "This project's config file is not compatible with signac's v1 schema."
         )
