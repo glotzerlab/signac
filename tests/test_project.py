@@ -1053,35 +1053,35 @@ class TestProject(TestProjectBase):
             job = self.project.open_job({"i": i}).init()
             job.document = get_doc(i)
 
-        for k, g in self.project.groupbydoc("a"):
+        for k, g in self.project.groupby("doc.a"):
             assert len(list(g)) == 1
             for job in list(g):
                 assert job.document["a"] == k
-        for k, g in self.project.groupbydoc("b"):
+        for k, g in self.project.groupby("doc.b"):
             assert len(list(g)) == 6
             for job in list(g):
                 assert job.document["b"] == k
         with pytest.raises(KeyError):
-            for k, g in self.project.groupbydoc("d"):
+            for k, g in self.project.groupby("doc.d"):
                 pass
-        for k, g in self.project.groupbydoc("d", default=-1):
+        for k, g in self.project.groupby("doc.d", default=-1):
             assert k == -1
             assert len(list(g)) == len(self.project)
-        for k, g in self.project.groupbydoc(("b", "c")):
+        for k, g in self.project.groupby(("doc.b", "doc.c")):
             assert len(list(g)) == 2
             for job in list(g):
                 assert job.document["b"] == k[0]
                 assert job.document["c"] == k[1]
-        for k, g in self.project.groupbydoc(lambda doc: doc["a"] % 4):
+        for k, g in self.project.groupby(lambda job: job.doc["a"] % 4):
             assert len(list(g)) == 3
             for job in list(g):
                 assert job.document["a"] % 4 == k
-        for k, g in self.project.groupbydoc(lambda doc: str(doc)):
+        for k, g in self.project.groupby(lambda job: str(job.doc)):
             assert len(list(g)) == 1
             for job in list(g):
                 assert str(job.document) == k
         group_count = 0
-        for k, g in self.project.groupbydoc():
+        for k, g in self.project.groupby():
             assert len(list(g)) == 1
             group_count = group_count + 1
             for job in list(g):
