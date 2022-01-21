@@ -887,7 +887,7 @@ def main_config_verify(args):
             mode = ""
         raise RuntimeWarning(f"Did not find a{mode}configuration file.")
     if cfg.filename is not None:
-        _print_err(f"Verifcation of config file '{cfg.filename}'.")
+        _print_err(f"Verification of config file '{cfg.filename}'.")
     verify_config(cfg)
 
 
