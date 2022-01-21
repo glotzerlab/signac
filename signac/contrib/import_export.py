@@ -194,7 +194,7 @@ def _make_path_function(jobs, path):
             return str(job.id)
 
     elif isinstance(path, str):
-        # Detect keys that are already provided as part of the path specifier and
+        # Detect keys that are already provided as part of the path specifier
         # and should therefore be excluded from the 'auto'-part.
         exclude_keys = [x[1] for x in Formatter().parse(path)]
 
@@ -240,11 +240,16 @@ def _make_path_function(jobs, path):
                 raise _SchemaPathEvaluationError(f"Unknown key: {error}")
             except Exception as error:
                 raise _SchemaPathEvaluationError(error)
+        # Check that the user-specified path generates a unique mapping
+        link_check = {j.workspace(): path_function(j) for j in jobs}
+        if len(set(link_check.values())) != len(link_check):
+            print("Error caught inside _make_path_function")
 
     else:
         raise ValueError(
             "The path argument must either be `None`, `False`, or of type `str`."
         )
+
 
     return path_function
 
