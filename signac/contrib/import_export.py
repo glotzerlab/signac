@@ -333,6 +333,10 @@ def _export_jobs(jobs, path, copytree):
     dst : str
         Destination path.
 
+    Raises
+    ------
+    RuntimeError
+        If paths generated with given path function are not unique.
     """
     # Transform the path argument into a callable if necessary.
     if callable(path):
