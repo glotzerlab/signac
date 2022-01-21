@@ -277,6 +277,7 @@ def _make_path_function(jobs, path):
                 raise _SchemaPathEvaluationError(f"Unknown key: {error}")
             except Exception as error:
                 raise _SchemaPathEvaluationError(error)
+
         # Check that the user-specified path generates a 1-1 mapping
         _check_path_function(jobs, path_spec=path, path_function=path_function)
 
@@ -284,7 +285,6 @@ def _make_path_function(jobs, path):
         raise ValueError(
             "The path argument must either be `None`, `False`, or of type `str`."
         )
-
 
     return path_function
 
