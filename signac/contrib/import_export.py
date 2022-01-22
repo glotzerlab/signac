@@ -11,7 +11,7 @@ import re
 import shutil
 import tarfile
 import zipfile
-from collections import OrderedDict
+from collections import Counter, OrderedDict
 from contextlib import closing, contextmanager
 from string import Formatter
 from tempfile import TemporaryDirectory
@@ -168,12 +168,12 @@ def _check_path_function(jobs, path_spec, path_function):
 
     """
     # quick check first
-    links = {path_function(job) for job in jobs}
-    if len(links) != len(jobs):
+    job_paths = Counter({job: path_function(job) for job in jobs})
+    if len(set(job_paths.values())) != len(jobs):
         # report all mismatches
         links = set()
         for job in jobs:
-            job_path = path_function(job)
+            job_path = job_paths[job]
             if job_path in links:
                 logger.debug(f"Generated path '{job_path}' is not unique.")
             else:
