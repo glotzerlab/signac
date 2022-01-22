@@ -168,13 +168,13 @@ def _check_path_function(jobs, path_spec, path_function):
 
     """
     # quick check first
-    job_paths = Counter((path_function(job) for job in jobs))
+    job_paths = Counter(path_function(job) for job in jobs)
     common_paths = job_paths.most_common()
     if common_paths[0][1] > 1:
         # log paths generated more than once
-        duplicates = [c[0] for c in common_paths if c[1]>1]
+        duplicates = [c[0] for c in common_paths if c[1] > 1]
         for dup in duplicates:
-                logger.debug(f"Generated path '{dup}' is not unique.")
+            logger.debug(f"Generated path '{dup}' is not unique.")
         raise RuntimeError(
             f"The path specification {path_spec} would result in duplicate links. "
             "See the debug log for the list. The easiest way to fix "
