@@ -2236,6 +2236,23 @@ class TestLinkedViewProject(TestProjectBase):
             with pytest.raises(RuntimeError):
                 self.project.create_linked_view(prefix=view_prefix)
 
+    @pytest.mark.skipif(WINDOWS, reason="Linked views unsupported on Windows.")
+    def test_create_linked_view_duplicate_paths(self):
+        view_prefix = os.path.join(self._tmp_pr, "view")
+        a_vals = range(2)
+        b_vals = range(3, 8)
+        for a in a_vals:
+            for b in b_vals:
+                sp = {"a": a, "b": b}
+                self.project.open_job(sp).init()
+
+        # An error should be raised if the user-provided path function doesn't
+        # make a 1-1 mapping.
+        with pytest.raises(RuntimeError):
+            self.project.create_linked_view(
+                prefix=view_prefix, path=os.path.join("a", "{a}")
+            )
+
 
 class UpdateCacheAfterInitJob(signac.contrib.job.Job):
     def init(self, *args, **kwargs):

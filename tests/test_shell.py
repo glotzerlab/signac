@@ -252,7 +252,7 @@ class TestBasicShell:
             error=True,
             raise_error=False,
         )
-        assert "duplicate links" in err
+        assert "duplicate paths" in err
 
     def test_find(self):
         self.call("python -m signac init my_project".split())
