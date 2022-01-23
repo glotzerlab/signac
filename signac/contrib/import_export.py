@@ -149,7 +149,7 @@ class _SchemaPathEvaluationError(RuntimeError):
     pass
 
 
-def _check_path_function(jobs, path_spec, path_function):
+def _check_path_function_unique(jobs, path_spec, path_function):
     """Validate that path function specifies a 1-1 mapping.
 
     Parameters
@@ -275,7 +275,7 @@ def _make_path_function(jobs, path):
                 raise _SchemaPathEvaluationError(error)
 
         # Check that the user-specified path generates a 1-1 mapping
-        _check_path_function(jobs, path_spec=path, path_function=path_function)
+        _check_path_function_unique(jobs, path_spec=path, path_function=path_function)
 
     else:
         raise ValueError(
@@ -337,7 +337,7 @@ def _export_jobs(jobs, path, copytree):
     # Transform the path argument into a callable if necessary.
     if callable(path):
         path_function = path
-        _check_path_function(jobs, path_spec=path, path_function=path_function)
+        _check_path_function_unique(jobs, path_spec=path, path_function=path_function)
     else:
         path_function = _make_path_function(jobs, path)
         # path_function is checked inside _make_path_function
