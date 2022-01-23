@@ -157,29 +157,28 @@ def _check_path_function(jobs, path_spec, path_function):
     jobs : iterable of :class:`~signac.contrib.job.Job`
         A sequence of jobs (instances of :class:`~signac.contrib.job.Job`).
     path_spec : str
-        The path string that generated the path_function. Displayed in the error message.
+        The path string that generated the path_function. Displayed in the
+        error message.
     path_function : callable
         A callable path generating function.
 
     Raises
-    -----
+    ------
     RuntimeError
         If paths generated with given path function are not unique.
 
     """
-    # quick check first
     job_paths = Counter(path_function(job) for job in jobs)
-    common_paths = job_paths.most_common()
-    if common_paths[0][1] > 1:
-        # log paths generated more than once
-        duplicates = [c[0] for c in common_paths if c[1] > 1]
-        for dup in duplicates:
-            logger.debug(f"Generated path '{dup}' is not unique.")
+    duplicates = {path for path, count in job_paths if count > 1}
+    if len(duplicates) > 0:
+        # Log paths generated more than once
+        for path in duplicates:
+            logger.debug(f"Generated path '{path}' is not unique.")
         raise RuntimeError(
             f"The path specification {path_spec} would result in duplicate links. "
-            "See the debug log for the list. The easiest way to fix "
-            "this is to append the job id to the path "
-            f"specification like '{os.path.join(str(path_spec), 'id', '{job.id}')}'."
+            "See the debug log for the list. The easiest way to fix this is "
+            "to append the job id to the path specification like "
+            f"'{os.path.join(str(path_spec), 'id', '{job.id}')}'."
         )
 
 
