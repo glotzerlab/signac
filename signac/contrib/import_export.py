@@ -341,7 +341,7 @@ def _export_jobs(jobs, path, copytree):
         _check_path_function_unique(jobs, path_spec=path, path_function=path_function)
     else:
         path_function = _make_path_function(jobs, path)
-        # path_function is checked inside _make_path_function
+        # path_function is checked for uniqueness inside _make_path_function
 
     # Determine export path for each job.
     paths = {job.workspace(): path_function(job) for job in jobs}
