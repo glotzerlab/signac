@@ -109,8 +109,8 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
             links["./job"] = job.workspace()
         assert len(links) < 2
     _check_directory_structure_validity(links.keys())
-
     _update_view(prefix, links)
+
     return links
 
 
