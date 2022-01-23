@@ -246,7 +246,8 @@ class TestBasicShell:
             project.open_job(sp).init()
         os.mkdir("view")
 
-        # Should error if user-provided path doesn't make 1-1 mapping
+        # An error should be raised if the user-provided path function
+        # doesn't make a 1-1 mapping.
         err = self.call(
             "python -m signac view view non_unique".split(),
             error=True,
