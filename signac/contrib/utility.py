@@ -10,7 +10,7 @@ import os
 import sys
 import tarfile
 import zipfile
-from collections import OrderedDict
+from collections import Counter, OrderedDict
 from collections.abc import Mapping
 from contextlib import contextmanager
 from datetime import timedelta
@@ -595,7 +595,7 @@ class _SchemaPathEvaluationError(RuntimeError):
     pass
 
 
-def _check_path_function(jobs, path_spec, path_function):
+def _check_path_function_unique(jobs, path_spec, path_function):
     """Validate that path function specifies a 1-1 mapping.
 
     Parameters
@@ -603,32 +603,29 @@ def _check_path_function(jobs, path_spec, path_function):
     jobs : iterable of :class:`~signac.contrib.job.Job`
         A sequence of jobs (instances of :class:`~signac.contrib.job.Job`).
     path_spec : str
-        The path string that generated the path_function. Displayed in the error message.
+        The path string that generated the path_function. Displayed in the
+        error message.
     path_function : callable
         A callable path generating function.
 
     Raises
-    -----
+    ------
     RuntimeError
         If paths generated with given path function are not unique.
 
     """
-    # quick check first
-    links = {path_function(job) for job in jobs}
-    if len(links) != len(jobs):
-        # report all mismatches
-        links = set()
-        for job in jobs:
-            job_path = path_function(job)
-            if job_path in links:
-                logger.debug(f"Generated path '{job_path}' is not unique.")
-            else:
-                links.add(job_path)
+    job_paths = Counter(path_function(job) for job in jobs)
+    duplicates = {path for path, count in job_paths.items() if count > 1}
+    if len(duplicates) > 0:
+        # Log paths generated more than once
+        for path in duplicates:
+            logger.debug(f"Generated path '{path}' is not unique.")
         raise RuntimeError(
-            f"The path specification {path_spec} would result in duplicate links. "
-            "See the debug log for the list. The easiest way to fix "
-            "this is to append the job id to the path "
-            f"specification like '{os.path.join(str(path_spec), 'id', '{job.id}')}'."
+            f"The path specification '{path_spec}' would result in duplicate "
+            "paths. See the debug log for the list of duplicate paths. The "
+            "easiest way to fix this is to append the job id to the path "
+            "specification like "
+            f"'{os.path.join(str(path_spec), 'id', '{job.id}')}'."
         )
 
 
@@ -725,7 +722,7 @@ def _make_path_function(jobs, path):
                 raise _SchemaPathEvaluationError(error)
 
         # Check that the user-specified path generates a 1-1 mapping
-        _check_path_function(jobs, path_spec=path, path_function=path_function)
+        _check_path_function_unique(jobs, path_spec=path, path_function=path_function)
 
     else:
         raise ValueError(

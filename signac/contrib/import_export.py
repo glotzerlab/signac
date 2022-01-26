@@ -84,14 +84,18 @@ def _export_jobs(jobs, path, copytree):
     dst : str
         Destination path.
 
+    Raises
+    ------
+    RuntimeError
+        If paths generated with given path function are not unique.
     """
     # Transform the path argument into a callable if necessary.
     if callable(path):
         path_function = path
-        _check_path_function(jobs, path_spec=path, path_function=path_function)
+        _check_path_function_unique(jobs, path_spec=path, path_function=path_function)
     else:
         path_function = _make_path_function(jobs, path)
-        # path_function is checked inside _make_path_function
+        # path_function is checked for uniqueness inside _make_path_function
 
     # Determine export path for each job.
     paths = {job.workspace(): path_function(job) for job in jobs}
