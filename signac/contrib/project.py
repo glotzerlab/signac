@@ -1103,7 +1103,7 @@ class Project:
                 print(key, list(group))
 
             # Group jobs by jobs.sp['a'] and job.document['b']
-            for key, group in project.groupby('a', 'doc.b'):
+            for key, group in project.groupby(('a', 'doc.b')):
                 print(key, list(group))
 
             # Find jobs where job.sp['a'] is 1 and group them
@@ -2664,7 +2664,7 @@ class JobsCursor:
                 print(key, list(group))
 
             # Group jobs by jobs.sp['a'] and job.document['b']
-            for key, group in project.groupby('a', 'doc.b'):
+            for key, group in project.groupby(('a', 'doc.b')):
                 print(key, list(group))
 
             # Find jobs where job.sp['a'] is 1 and group them
