@@ -12,7 +12,7 @@ from signac.common import configobj
 
 # A minimal v1 config.
 _cfg = """
-schema_version = string()
+schema_version = string(default='0')
 project = string()
 workspace_dir = string(default='workspace')
 """
