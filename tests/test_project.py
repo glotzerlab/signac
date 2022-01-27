@@ -2003,6 +2003,12 @@ class TestLinkedViewProject(TestProjectBase):
                     sp = {"a": a, "d": {"b": b, "c": c}}
                     self.project.open_job(sp).init()
 
+        # Should error if user-provided path doesn't make 1-1 mapping
+        with pytest.raises(RuntimeError):
+            self.project.create_linked_view(
+                prefix=view_prefix, path=os.path.join("a", "{a}")
+            )
+
         self.project.create_linked_view(
             prefix=view_prefix, path="a/{a}/d.c/{d.c}/{{auto}}"
         )
@@ -2230,6 +2236,23 @@ class TestLinkedViewProject(TestProjectBase):
             with pytest.raises(RuntimeError):
                 self.project.create_linked_view(prefix=view_prefix)
 
+    @pytest.mark.skipif(WINDOWS, reason="Linked views unsupported on Windows.")
+    def test_create_linked_view_duplicate_paths(self):
+        view_prefix = os.path.join(self._tmp_pr, "view")
+        a_vals = range(2)
+        b_vals = range(3, 8)
+        for a in a_vals:
+            for b in b_vals:
+                sp = {"a": a, "b": b}
+                self.project.open_job(sp).init()
+
+        # An error should be raised if the user-provided path function doesn't
+        # make a 1-1 mapping.
+        with pytest.raises(RuntimeError):
+            self.project.create_linked_view(
+                prefix=view_prefix, path=os.path.join("a", "{a}")
+            )
+
 
 class UpdateCacheAfterInitJob(signac.contrib.job.Job):
     def init(self, *args, **kwargs):
@@ -2455,6 +2478,9 @@ class TestProjectInit:
 
 class TestProjectSchema(TestProjectBase):
     def test_project_schema_versions(self):
+        from signac.contrib.migration import apply_migrations
+
+        # Ensure that project initialization fails on an unsupported version.
         impossibly_high_schema_version = "9999"
         assert version.parse(self.project.config["schema_version"]) < version.parse(
             impossibly_high_schema_version
@@ -2467,19 +2493,37 @@ class TestProjectSchema(TestProjectBase):
                 name=str(self.project), root=self.project.root_directory()
             )
 
-    def test_project_schema_version_migration(self):
+        # Ensure that migration fails on an unsupported version.
+        with pytest.raises(RuntimeError):
+            apply_migrations(self.project.root_directory())
+
+        # Ensure that migration fails on an invalid version.
+        invalid_schema_version = "0.5"
+        config = get_config(self.project.fn("signac.rc"))
+        config["schema_version"] = invalid_schema_version
+        config.write()
+        with pytest.raises(RuntimeError):
+            apply_migrations(self.project.root_directory())
+
+    @pytest.mark.parametrize("implicit_version", [True, False])
+    def test_project_schema_version_migration(self, implicit_version):
         from signac.contrib.migration import apply_migrations
 
-        apply_migrations(self.project)
-        self.project._config["schema_version"] = "0"
-        assert self.project._config["schema_version"] == "0"
+        config = get_config(self.project.fn("signac.rc"))
+        if implicit_version:
+            del config["schema_version"]
+            assert "schema_version" not in config
+        else:
+            config["schema_version"] = "0"
+            assert config["schema_version"] == "0"
+        config.write()
         err = io.StringIO()
         with redirect_stderr(err):
-            for origin, destination in apply_migrations(self.project):
-                assert self.project._config["schema_version"] == destination
-                project = signac.get_project(root=self.project.root_directory())
-                assert project._config["schema_version"] == destination
-        assert self.project._config["schema_version"] == "1"
+            apply_migrations(self.project.root_directory())
+        config = get_config(self.project.fn("signac.rc"))
+        assert config["schema_version"] == "1"
+        project = signac.get_project(root=self.project.root_directory())
+        assert project.config["schema_version"] == "1"
         assert "OK" in err.getvalue()
         assert "0 to 1" in err.getvalue()
 
@@ -2493,7 +2537,7 @@ class TestProjectSchema(TestProjectBase):
         # 2. Either update or remove this unit test.
         from signac.contrib.migration import _collect_migrations
 
-        migrations = list(_collect_migrations(self.project))
+        migrations = list(_collect_migrations(self.project.root_directory()))
         assert len(migrations) == 0
 
 

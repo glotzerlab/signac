@@ -15,7 +15,6 @@ except ImportError:
         "This function requires passlib!"
         return None
 
-
 else:
 
     def get_crypt_context():
@@ -30,7 +29,6 @@ except ImportError:
     def get_keyring():
         "This function requires keyring!"
         return None
-
 
 else:
 

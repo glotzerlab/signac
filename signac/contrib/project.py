@@ -204,7 +204,7 @@ class _ProjectConfig(Config):
                 "Modifying the project configuration after project "
                 "initialization is deprecated as of version 1.3 and "
                 "will be removed in version 2.0.",
-                DeprecationWarning,
+                FutureWarning,
             )
 
             assert version.parse(__version__) < version.parse("2.0")
@@ -233,8 +233,6 @@ class Project:
         The project configuration to use. By default, it loads the first signac
         project configuration found while searching upward from the current
         working directory (Default value = None).
-    _ignore_schema_version : bool
-        (Default value = False).
 
     """
 
@@ -256,7 +254,7 @@ class Project:
 
     _use_pandas_for_html_repr = True  # toggle use of pandas for html repr
 
-    def __init__(self, config=None, _ignore_schema_version=False):
+    def __init__(self, config=None):
         if config is None:
             config = load_config()
         self._config = _ProjectConfig(
@@ -279,8 +277,7 @@ class Project:
             )
 
         # Ensure that the project's data schema is supported.
-        if not _ignore_schema_version:
-            self._check_schema_compatibility()
+        self._check_schema_compatibility()
 
         # Prepare project document
         self._document = None
@@ -1109,7 +1106,7 @@ class Project:
                 print(key, list(group))
 
             # Group jobs by jobs.sp['a'] and job.document['b']
-            for key, group in project.groupby('a', 'doc.b'):
+            for key, group in project.groupby(('a', 'doc.b')):
                 print(key, list(group))
 
             # Find jobs where job.sp['a'] is 1 and group them
@@ -2679,7 +2676,7 @@ class JobsCursor:
                 print(key, list(group))
 
             # Group jobs by jobs.sp['a'] and job.document['b']
-            for key, group in project.groupby('a', 'doc.b'):
+            for key, group in project.groupby(('a', 'doc.b')):
                 print(key, list(group))
 
             # Find jobs where job.sp['a'] is 1 and group them

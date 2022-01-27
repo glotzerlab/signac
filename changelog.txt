@@ -13,7 +13,13 @@ Version 1
 Added
 +++++
 
+ - Official support for Python 3.10 (#631).
  - Benchmarks can be run using the ``asv`` (airspeed velocity) tool (#629).
+
+Changed
++++++++
+
+ - Schema migration is now performed on directories rather than signac projects and supports a wider range of schemas (#654).
 
 Deprecated
 ++++++++++
@@ -33,6 +39,7 @@ Fixed
 +++++
 
  - ``H5Store.mode`` returns the file mode (#607).
+ - User-provided path functions now raise an error if not unique (#666).
 
 [1.7.0] -- 2021-06-08
 ---------------------
