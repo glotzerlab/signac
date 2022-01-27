@@ -16,6 +16,11 @@ Added
  - Official support for Python 3.10 (#631).
  - Benchmarks can be run using the ``asv`` (airspeed velocity) tool (#629).
 
+Changed
++++++++
+
+ - Schema migration is now performed on directories rather than signac projects and supports a wider range of schemas (#654).
+
 Deprecated
 ++++++++++
 

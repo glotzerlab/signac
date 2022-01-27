@@ -771,13 +771,15 @@ def main_update_cache(args):
 # UNCOMMENT THE FOLLOWING BLOCK WHEN THE FIRST MIGRATION IS INTRODUCED.
 # def main_migrate(args):
 #     "Migrate the project's schema to the current schema version."
-#     from .contrib.migration import apply_migrations
+#     from .contrib.migration import apply_migrations, _get_config_schema_version
 #     from packaging import version
 #     from .version import SCHEMA_VERSION
 #     project = get_project(_ignore_schema_version=True)
 #
+#     root = args.root_directory if args.root_directory else os.getcwd()
+#
 #     schema_version = version.parse(SCHEMA_VERSION)
-#     config_schema_version = version.parse(project.config['schema_version'])
+#     config_schema_version = _get_config_schema_version(root, schema_version)
 #
 #     if config_schema_version > schema_version:
 #         _print_err(
@@ -792,7 +794,7 @@ def main_update_cache(args):
 #         "Do you want to migrate this project's schema version from '{}' to '{}'? "
 #         "WARNING: THIS PROCESS IS IRREVERSIBLE!".format(
 #             config_schema_version, schema_version), 'no'):
-#         apply_migrations(project)
+#         apply_migrations(root)
 #
 #
 def verify_config(cfg, preserve_errors=True):
@@ -2025,6 +2027,13 @@ This feature is still experimental and may be removed in future versions.""",
     #     'migrate',
     #     description="Irreversibly migrate this project's schema version to the "
     #                 "supported version.")
+    # parser_migrate.add_argument(
+    #     "-r",
+    #     "--root-directory",
+    #     type=str,
+    #     default='',
+    #     help="The path to the project.",
+    # )
     # parser_migrate.set_defaults(func=main_migrate)
 
     # This is a hack, as argparse itself does not
