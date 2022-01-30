@@ -9,6 +9,10 @@ from collections.abc import Mapping
 from numbers import Number
 from pprint import pformat
 
+from .collection import _DictPlaceholder
+from .slim_collection import _SlimCollection
+from .utility import _nested_dicts_to_dotted_keys
+
 
 class _Vividict(dict):
     """A dict that returns an empty _Vividict for keys that are missing.
@@ -57,20 +61,18 @@ def _build_job_statepoint_index(exclude_const, index):
     statepoint_key : str
         State point key.
     statepoint_values : dict
-        Dictionary mapping from a state point value to the set of job ids
-        with that state point value.
+        Dictionary mapping from a state point value to the set of job ids with
+        that state point value.
 
     """
-    from .collection import Collection, _DictPlaceholder
-    from .utility import _nested_dicts_to_dotted_keys
-
-    collection = Collection(index, _trust=True)
-    for doc in collection.find():
+    collection = _SlimCollection(index)
+    for _id in collection.find():
+        doc = collection[_id]
         for key, _ in _nested_dicts_to_dotted_keys(doc):
             if key == "_id" or key.split(".")[0] != "sp":
                 continue
             collection.index(key, build=True)
-    indexes = collection._indexes
+    indexes = collection.indexes
 
     def strip_prefix(key):
         return key[len("sp.") :]

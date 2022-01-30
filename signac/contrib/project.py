@@ -26,7 +26,6 @@ from ..core.h5store import H5StoreManager
 from ..sync import sync_projects
 from ..synced_collections.backends.collection_json import BufferedJSONAttrDict
 from ..version import SCHEMA_VERSION, __version__
-from .collection import Collection
 from .errors import (
     DestinationExistsError,
     IncompatibleSchemaVersion,
@@ -37,6 +36,7 @@ from .filterparse import _add_prefix, _root_keys, parse_filter
 from .hashing import calc_id
 from .job import Job
 from .schema import ProjectSchema
+from .slim_collection import _SlimCollection
 from .utility import _mkdir_p, _nested_dicts_to_dotted_keys, _split_and_print_progress
 
 logger = logging.getLogger(__name__)
@@ -708,7 +708,7 @@ class Project:
         index = list(
             self._build_index(include_job_document="doc" in _root_keys(filter))
         )
-        return list(Collection(index, _trust=True)._find(filter))
+        return list(_SlimCollection(index).find(filter))
 
     def find_jobs(self, filter=None, *args, **kwargs):
         """Find all jobs in the project's workspace.
