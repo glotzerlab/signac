@@ -1,18 +1,7 @@
 # Copyright (c) 2022 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-
-# The API of the Collection class is adapted from the API of
-# the pymongo.Collection class provided as part of the
-# mongo-python-driver library [1], which is licensed under the
-# Apache License 2.0.
-#
-# The implementation found here is designed to replicate a subset
-# of the behavior of a pymongo.Collection while operating directly
-# on files on the local file system instead of a MongoDB database.
-#
-# [1]: https://github.com/mongodb/mongo-python-driver
-"""An optimized Collection class for indexing signac Projects."""
+"""An optimized _SlimCollection class for indexing signac Projects."""
 
 import json
 import logging
@@ -29,6 +18,8 @@ from .collection import (
 from .utility import _nested_dicts_to_dotted_keys
 
 logger = logging.getLogger(__name__)
+
+PRIMARY_KEY = "_id"
 
 
 class _SlimCollection:
@@ -70,48 +61,11 @@ class _SlimCollection:
     """
 
     def __init__(self, docs):
-        self.index_rebuild_threshold = 0.1
-        self._primary_key = "_id"
-        self._dirty = set()
-        self._indexes = {}
         self._docs = {}
-        if docs is not None:
-            for doc in docs:
-                self.__setitem__(doc[self._primary_key], doc)
-            self._update_indexes()
+        for doc in docs:
+            self.__setitem__(doc[PRIMARY_KEY], doc)
 
-    def _remove_from_indexes(self, _id):
-        """Remove index corresponding to given id.
-
-        Parameters
-        ----------
-        _id : str
-            id to remove from the index.
-
-        """
-        for index in self._indexes.values():
-            remove_keys = set()
-            for key, group in index.items():
-                if _id in group:  # faster than exception handling (performance)
-                    group.remove(_id)
-                if not len(group):
-                    remove_keys.add(key)
-            for key in remove_keys:
-                del index[key]
-
-    def _update_indexes(self):
-        """Update the indexes."""
-        if self._dirty:
-            for _id in self._dirty:
-                self._remove_from_indexes(_id)
-            docs = [self[_id] for _id in self._dirty]
-            for key, index in self._indexes.items():
-                tmp = _build_index(docs, key, self._primary_key)
-                for v, group in tmp.items():
-                    index[v].update(group)
-            self._dirty.clear()
-
-    def _build_index(self, key):
+    def build_index(self, key):
         """Build index for given key.
 
         Parameters
@@ -119,71 +73,16 @@ class _SlimCollection:
         key : str
             The key to build index for.
 
-        """
-        logger.debug(f"Building index for key '{key}'...")
-        self._indexes[key] = _build_index(self._docs.values(), key, self._primary_key)
-        logger.debug(f"Built index for key '{key}'.")
-
-    def index(self, key, build=False):
-        """Get (and optionally build) the index for a given key.
-
-        An index allows to access documents by a specific key with
-        minimal time complexity, e.g.:
-
-        .. code-block:: python
-
-            age_index = member_collection.index('age')
-            for _id in age_index[32]:
-                print(member_collection[_id]['name'])
-
-        This means we can access documents by the 'age' key in O(1) time on
-        average in addition to the primary key. Using the :meth:`.find`
-        method will automatically build all required indexes for the particular
-        search.
-
-        Once an index has been built, it will be internally managed by the
-        class and updated with subsequent changes. An index returned by this
-        method is always current with the latest state of the collection.
-
-        Parameters
-        ----------
-        key : str
-            The primary key of the requested index.
-        build : bool
-            If True, build a non-existing index if necessary,
-            otherwise raise KeyError (Default value = False).
-
         Returns
         -------
         dict
             Index for the given key.
 
-        Raises
-        ------
-        KeyError
-            In case the build is False and the index has not been built yet or
-            no index is present for the key.
-
         """
-        if key == self._primary_key:
-            raise KeyError("Can't access index for primary key via index() method.")
-        elif key in self._indexes:
-            if len(self._dirty) > self.index_rebuild_threshold * len(self):
-                logger.debug("Indexes outdated, rebuilding...")
-                self._indexes.clear()
-                self._build_index(key)
-                self._dirty.clear()
-            else:
-                self._update_indexes()
-        else:
-            if build:
-                self._build_index(key)
-            else:
-                raise KeyError(f"No index for key '{key}'.")
-        return self._indexes[key]
-
-    def __iter__(self):
-        return iter(self._docs.values())
+        logger.debug(f"Building index for key '{key}'...")
+        index = _build_index(self._docs.values(), key, PRIMARY_KEY)
+        logger.debug(f"Built index for key '{key}'.")
+        return index
 
     @property
     def ids(self):
@@ -197,10 +96,6 @@ class _SlimCollection:
         """
         return iter(self._docs)
 
-    @property
-    def indexes(self):
-        return self._indexes
-
     def __len__(self):
         return len(self._docs)
 
@@ -212,31 +107,12 @@ class _SlimCollection:
 
     def __setitem__(self, _id: str, doc):
         self._docs[_id] = doc
-        self._dirty.add(_id)
 
     def __delitem__(self, _id):
         del self._docs[_id]
-        self._remove_from_indexes(_id)
-        try:
-            del self._dirty[_id]
-        except KeyError:
-            pass
 
-    def update(self, docs):
-        """Update the collection with these documents.
-
-        Any existing documents with the same primary key
-        will be replaced.
-
-        Parameters
-        ----------
-        docs : iterable
-            A sequence of documents to be upserted into the collection.
-
-        """
-        for doc in docs:
-            _id = doc[self._primary_key]
-            self[_id] = doc
+    def __iter__(self):
+        return iter(self._docs.values())
 
     def _find_expression(self, key, value):
         """Find document for key value pair.
@@ -272,20 +148,20 @@ class _SlimCollection:
                 raise KeyError(f"Bad operator placement '{key}'.")
             key = ".".join(nodes[:-1])
             if op in _INDEX_OPERATORS:
-                index = self.index(key, build=True)
+                index = self.build_index(key)
                 return _find_with_index_operator(index, op, value)
             elif op == "$exists":
                 if not isinstance(value, bool):
                     raise ValueError(
                         "The value of the '$exists' operator must be boolean."
                     )
-                index = self.index(key, build=True)
+                index = self.build_index(key)
                 match = {elem for elems in index.values() for elem in elems}
                 return match if value else set(self.ids).difference(match)
             else:
                 raise KeyError(f"Unknown expression-operator '{op}'.")
         else:
-            index = self.index(key, build=True)
+            index = self.build_index(key)
             # Check to see if 'value' is a floating point type but an
             # integer value (e.g., 4.0), and search for both the int and float
             # values. This allows the user to find statepoints that have
@@ -338,7 +214,7 @@ class _SlimCollection:
 
         # Check if filter contains primary key, in which case we can
         # immediately reduce the result.
-        _id = expr.pop(self._primary_key, None)
+        _id = expr.pop(PRIMARY_KEY, None)
         if _id is not None and _id in self:
             reduce_results({_id})
 
@@ -384,7 +260,7 @@ class _SlimCollection:
         The result vector is a set of ids, where each id is the value of the
         primary key of a document that matches the given filter.
 
-        The _find() method uses the following optimizations:
+        The find() method uses the following optimizations:
 
             1. If the filter is None, the result is directly returned, since
                all documents will match an empty filter.
@@ -397,8 +273,6 @@ class _SlimCollection:
         ----------
         filter : dict
             The filter argument that all documents must match (Default value = None).
-        limit : int
-            Limit the size of the result vector (Default value = 0).
 
         Returns
         -------
@@ -411,11 +285,10 @@ class _SlimCollection:
             When the filter argument is invalid.
 
         """
-        if filter:
-            filter = json.loads(json.dumps(filter))  # Normalize
-            if not _valid_filter(filter):
-                raise ValueError(filter)
-            result = self._find_result(filter)
-        else:
-            result = self._docs.keys()
-        return set(result)
+        if not filter:
+            return set(self._docs.keys())
+
+        filter = json.loads(json.dumps(filter))  # Normalize
+        if not _valid_filter(filter):
+            raise ValueError(filter)
+        return set(self._find_result(filter))
