@@ -9,8 +9,8 @@ from collections.abc import Mapping
 from numbers import Number
 from pprint import pformat
 
+from ._slim_collection import _SlimCollection
 from .collection import _DictPlaceholder
-from .slim_collection import _SlimCollection
 from .utility import _nested_dicts_to_dotted_keys
 
 
@@ -46,6 +46,27 @@ def _collect_by_type(values):
     return values_by_type
 
 
+def _strip_prefix(key):
+    return key[len("sp.") :]
+
+
+def _remove_dict_placeholder(x):
+    """Remove _DictPlaceholder elements from a mapping.
+
+    Parameters
+    ----------
+    x : dict
+        Dictionary from which ``_DictPlaceholder`` values will be removed.
+
+    Returns
+    -------
+    dict
+        Dictionary with ``_DictPlaceholder`` keys removed.
+
+    """
+    return {key: value for key, value in x.items() if key is not _DictPlaceholder}
+
+
 def _build_job_statepoint_index(exclude_const, index):
     """Build index for job state points.
 
@@ -74,34 +95,15 @@ def _build_job_statepoint_index(exclude_const, index):
                 continue
             indexes[key] = collection.build_index(key)
 
-    def strip_prefix(key):
-        return key[len("sp.") :]
-
-    def remove_dict_placeholder(x):
-        """Remove _DictPlaceholder elements from a mapping.
-
-        Parameters
-        ----------
-        x : dict
-            Dictionary from which ``_DictPlaceholder`` values will be removed.
-
-        Returns
-        -------
-        dict
-            Dictionary with ``_DictPlaceholder`` keys removed.
-
-        """
-        return {key: value for key, value in x.items() if key is not _DictPlaceholder}
-
     for key in sorted(indexes, key=lambda key: (len(indexes[key]), key)):
         if (
             exclude_const
             and len(indexes[key]) == 1
-            and len(indexes[key][list(indexes[key].keys())[0]]) == len(collection)
+            and len(indexes[key][next(indexes[key].keys())]) == len(collection)
         ):
             continue
-        statepoint_key = strip_prefix(key)
-        statepoint_values = remove_dict_placeholder(indexes[key])
+        statepoint_key = _strip_prefix(key)
+        statepoint_values = _remove_dict_placeholder(indexes[key])
         yield statepoint_key, statepoint_values
 
 

@@ -26,6 +26,7 @@ from ..core.h5store import H5StoreManager
 from ..sync import sync_projects
 from ..synced_collections.backends.collection_json import BufferedJSONAttrDict
 from ..version import SCHEMA_VERSION, __version__
+from ._slim_collection import _SlimCollection
 from .errors import (
     DestinationExistsError,
     IncompatibleSchemaVersion,
@@ -36,7 +37,6 @@ from .filterparse import _add_prefix, _root_keys, parse_filter
 from .hashing import calc_id
 from .job import Job
 from .schema import ProjectSchema
-from .slim_collection import _SlimCollection
 from .utility import _mkdir_p, _nested_dicts_to_dotted_keys, _split_and_print_progress
 
 logger = logging.getLogger(__name__)

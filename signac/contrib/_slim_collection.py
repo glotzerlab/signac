@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 PRIMARY_KEY = "_id"
 
 
-class _SlimCollection:
+class _SlimCollection(dict):
     """A collection of documents, optimized for minimal use cases in signac.
 
     The Collection class manages a collection of documents in memory.
@@ -61,9 +61,8 @@ class _SlimCollection:
     """
 
     def __init__(self, docs):
-        self._docs = {}
         for doc in docs:
-            self.__setitem__(doc[PRIMARY_KEY], doc)
+            self[doc[PRIMARY_KEY]] = doc
 
     def build_index(self, key):
         """Build index for given key.
@@ -80,30 +79,9 @@ class _SlimCollection:
 
         """
         logger.debug(f"Building index for key '{key}'...")
-        index = _build_index(self._docs.values(), key, PRIMARY_KEY)
+        index = _build_index(self.values(), key, PRIMARY_KEY)
         logger.debug(f"Built index for key '{key}'.")
         return index
-
-    @property
-    def ids(self):
-        """Get an iterator over the primary key in the collection.
-
-        Returns
-        -------
-        iterable
-            iterator over the primary key in the collection.
-
-        """
-        return iter(self._docs)
-
-    def __len__(self):
-        return len(self._docs)
-
-    def __getitem__(self, _id):
-        return self._docs[_id].copy()
-
-    def __setitem__(self, _id: str, doc):
-        self._docs[_id] = doc
 
     def _find_expression(self, key, value):
         """Find document for key value pair.
@@ -148,7 +126,7 @@ class _SlimCollection:
                     )
                 index = self.build_index(key)
                 match = {elem for elems in index.values() for elem in elems}
-                return match if value else set(self.ids).difference(match)
+                return match if value else set(self).difference(match)
             else:
                 raise KeyError(f"Unknown expression-operator '{op}'.")
         else:
@@ -183,8 +161,9 @@ class _SlimCollection:
             Set of all the ids if the given expression is empty.
 
         """
-        if not len(expr):
-            return set(self.ids)  # Empty expression yields all ids...
+        if not expr:
+            # Empty expression yields all ids.
+            return set(self)
 
         result_ids = None
 
@@ -217,13 +196,14 @@ class _SlimCollection:
         # Reduce the result based on the remaining non-logical expression:
         for key, value in _nested_dicts_to_dotted_keys(expr):
             reduce_results(self._find_expression(key, value))
-            if not result_ids:  # No match, no need to continue...
+            if not result_ids:
+                # No matches, so exit early.
                 return set()
 
         # Reduce the result based on the logical-operator expressions:
         if not_expression is not None:
             not_match = self._find_result(not_expression)
-            reduce_results(set(self.ids).difference(not_match))
+            reduce_results(set(self).difference(not_match))
 
         if and_expressions is not None:
             _check_logical_operator_argument("$and", and_expressions)
@@ -248,7 +228,7 @@ class _SlimCollection:
         For each key that is queried, an internal index is built and then
         searched.
 
-        The result vector is a set of ids, where each id is the value of the
+        The results are a set of ids, where each id is the value of the
         primary key of a document that matches the given filter.
 
         The find() method uses the following optimizations:
@@ -277,7 +257,7 @@ class _SlimCollection:
 
         """
         if not filter:
-            return set(self._docs.keys())
+            return set(self)
 
         filter = json.loads(json.dumps(filter))  # Normalize
         if not _valid_filter(filter):
