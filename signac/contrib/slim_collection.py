@@ -99,20 +99,11 @@ class _SlimCollection:
     def __len__(self):
         return len(self._docs)
 
-    def __contains__(self, _id):
-        return _id in self._docs
-
     def __getitem__(self, _id):
         return self._docs[_id].copy()
 
     def __setitem__(self, _id: str, doc):
         self._docs[_id] = doc
-
-    def __delitem__(self, _id):
-        del self._docs[_id]
-
-    def __iter__(self):
-        return iter(self._docs.values())
 
     def _find_expression(self, key, value):
         """Find document for key value pair.
