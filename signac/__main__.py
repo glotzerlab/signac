@@ -815,10 +815,7 @@ def main_config_set(args):
             "You need to specify either -l/--local or -g/--global "
             "to specify which configuration to modify."
         )
-    try:
-        cfg = config.read_config_file(fn_config)
-    except OSError:
-        cfg = config._get_config(fn_config)
+    cfg = config.read_config_file(fn_config)
     keys = args.key.split(".")
     if len(args.value) == 0:
         raise ValueError("No value argument provided!")
