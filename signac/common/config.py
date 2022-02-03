@@ -6,8 +6,6 @@
 import logging
 import os
 
-from ..common.deprecation import deprecated
-from ..version import __version__
 from .configobj import ConfigObj, ConfigObjError
 from .errors import ConfigError
 from .validate import cfg, get_validator
@@ -56,20 +54,26 @@ def _search_standard_dirs():
         yield from _search_local(path)
 
 
-@deprecated(
-    deprecated_in="1.8",
-    removed_in="2.0",
-    current_version=__version__,
-    details="The search_standard_dirs method is deprecated.",
-)
-def search_standard_dirs():  # noqa: D103
-    yield from _search_standard_dirs()
+def _read_config_file(filename, configspec=None, *args, **kwargs):
+    """Read a configuration file.
 
+    Parameters
+    ----------
+    filename : str
+        The path to the file to read.
+    configspec : List[str], optional
+        The key-value pairs supported in the config.
 
-def _read_config_file(filename):
+    Returns
+    --------
+    :class:`Config`
+        The config contained in the file.
+    """
     logger.debug(f"Reading config file '{filename}'.")
+    if configspec is None:
+        configspec = cfg.split("\n")
     try:
-        config = Config(filename, configspec=cfg.split("\n"))
+        config = Config(filename, configspec=configspec, *args, **kwargs)
     except (OSError, ConfigObjError) as error:
         msg = "Failed to read configuration file '{}':\n{}"
         raise ConfigError(msg.format(filename, error))
@@ -83,43 +87,23 @@ def _read_config_file(filename):
     return config
 
 
-@deprecated(
-    deprecated_in="1.8",
-    removed_in="2.0",
-    current_version=__version__,
-    details=(
-        "The read_config_file method is deprecated. Configs should only be "
-        "accessed via a Project instance.",
-    ),
-)
-def read_config_file(filename):
-    """Read a configuration file."""
-    return _read_config_file(filename)
-
-
-def _get_config(infile=None, configspec=None, *args, **kwargs):
-    """Get configuration from a file."""
-    if configspec is None:
-        configspec = cfg.split("\n")
-    return Config(infile, configspec=configspec, *args, **kwargs)
-
-
-@deprecated(
-    deprecated_in="1.8",
-    removed_in="2.0",
-    current_version=__version__,
-    details=(
-        "The get_config method is deprecated. Configs should only be "
-        "accessed via a Project instance.",
-    ),
-)
-def get_config(infile=None, configspec=None, *args, **kwargs):  # noqa: D103
-    """Get configuration from a file."""
-    return _get_config(infile, configspec, *args, **kwargs)
-
-
 def _load_config(root=None, local=False):
-    """Load configuration, searching upward from a root path."""
+    """Load configuration, searching upward from a root path if desired.
+
+    Parameters
+    ----------
+    root : str
+        The path from which to begin searching for config files.
+    local : bool, optional
+        If ``True``, only search in the provided directory and do not traverse
+        upwards through the filesystem (Default value: False).
+
+    Returns
+    --------
+    :class:`Config`
+        The composite configuration including both local and global config data
+        if requested.
+    """
     if root is None:
         root = os.getcwd()
     config = Config(configspec=cfg.split("\n"))
@@ -140,20 +124,6 @@ def _load_config(root=None, local=False):
                 config["project_dir"] = os.path.dirname(fn)
                 break
     return config
-
-
-@deprecated(
-    deprecated_in="1.8",
-    removed_in="2.0",
-    current_version=__version__,
-    details=(
-        "The load_config method is deprecated. Configs should only be "
-        "accessed via a Project instance.",
-    ),
-)
-def load_config(root=None, local=False):
-    """Load configuration, searching upward from a root path."""
-    return _load_config(root, local)
 
 
 class Config(ConfigObj):

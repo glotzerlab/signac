@@ -22,7 +22,7 @@ from threading import RLock
 
 from packaging import version
 
-from ..common.config import Config, _get_config, _load_config
+from ..common.config import Config, _load_config, _read_config_file
 from ..common.deprecation import deprecated
 from ..core.h5store import H5StoreManager
 from ..sync import sync_projects
@@ -1564,7 +1564,7 @@ class Project:
             fn_config = os.path.join(root, "signac.rc")
             if make_dir:
                 _mkdir_p(os.path.dirname(fn_config))
-            config = _get_config(fn_config)
+            config = _read_config_file(fn_config)
             config["project"] = name
             if workspace is not None:
                 config["workspace_dir"] = workspace
