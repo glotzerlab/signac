@@ -909,7 +909,7 @@ def main_config_set(args):
     try:
         cfg = config.read_config_file(fn_config)
     except OSError:
-        cfg = config.get_config(fn_config)
+        cfg = config._get_config(fn_config)
     keys = args.key.split(".")
     if keys[-1].endswith("password"):
         raise RuntimeError(
@@ -960,7 +960,7 @@ def main_config_host(args):
     try:
         cfg = config.read_config_file(fn_config)
     except OSError:
-        cfg = config.get_config(fn_config)
+        cfg = config._get_config(fn_config)
 
     def hostcfg():
         return cfg.setdefault("hosts", {}).setdefault(args.hostname, {})
