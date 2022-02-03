@@ -54,7 +54,7 @@ NESTED_HASH = "bd6f5828f4410b665bffcec46abeb8f3"
 
 def config_from_cfg(cfg):
     cfile = io.StringIO("\n".join(cfg))
-    return signac.common.config._get_config(cfile)
+    return signac.common.config._read_config_file(cfile)
 
 
 def testdata():
@@ -1029,9 +1029,9 @@ class TestJobDocument(TestJobBase):
         assert len(dst_job.data) == 1
         assert key not in src_job.data
         with pytest.raises(RuntimeError):
-            src_job.sp = dst
+            src_job.statepoint = dst
         with pytest.raises(DestinationExistsError):
-            src_job.sp = dst
+            src_job.statepoint = dst
 
     @pytest.mark.filterwarnings("ignore:reset_statepoint")
     @pytest.mark.skipif(not H5PY, reason="test requires the h5py package")

@@ -22,7 +22,7 @@ from threading import RLock
 
 from packaging import version
 
-from ..common.config import Config, _get_config, _load_config
+from ..common.config import Config, _load_config, _read_config_file
 from ..common.deprecation import deprecated
 from ..core.h5store import H5StoreManager
 from ..sync import sync_projects
@@ -157,9 +157,7 @@ class Project:
         # Prepare root directory and workspace paths.
         # os.path is used instead of pathlib.Path for performance.
         self._root_directory = self.config["project_dir"]
-        ws = os.path.expandvars(
-            self.config.get("workspace_dir", "workspace")
-        )
+        ws = os.path.expandvars(self.config.get("workspace_dir", "workspace"))
         if not os.path.isabs(ws):
             ws = os.path.join(self._root_directory, ws)
         self._workspace = _CallableString(ws)
@@ -1564,7 +1562,7 @@ class Project:
             fn_config = os.path.join(root, "signac.rc")
             if make_dir:
                 _mkdir_p(os.path.dirname(fn_config))
-            config = _get_config(fn_config)
+            config = _read_config_file(fn_config)
             config["project"] = name
             if workspace is not None:
                 config["workspace_dir"] = workspace

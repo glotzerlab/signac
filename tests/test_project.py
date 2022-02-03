@@ -23,7 +23,7 @@ from packaging import version
 from test_job import TestJobBase
 
 import signac
-from signac.common.config import _get_config, load_config
+from signac.common.config import load_config, read_config_file
 from signac.contrib.errors import (
     IncompatibleSchemaVersion,
     JobsCorruptedError,
@@ -2447,7 +2447,7 @@ class TestProjectSchema(TestProjectBase):
         assert version.parse(self.project.config["schema_version"]) < version.parse(
             impossibly_high_schema_version
         )
-        config = _get_config(self.project.fn("signac.rc"))
+        config = read_config_file(self.project.fn("signac.rc"))
         config["schema_version"] = impossibly_high_schema_version
         config.write()
         with pytest.raises(IncompatibleSchemaVersion):
@@ -2459,7 +2459,7 @@ class TestProjectSchema(TestProjectBase):
 
         # Ensure that migration fails on an invalid version.
         invalid_schema_version = "0.5"
-        config = _get_config(self.project.fn("signac.rc"))
+        config = read_config_file(self.project.fn("signac.rc"))
         config["schema_version"] = invalid_schema_version
         config.write()
         with pytest.raises(RuntimeError):
@@ -2469,7 +2469,7 @@ class TestProjectSchema(TestProjectBase):
     def test_project_schema_version_migration(self, implicit_version):
         from signac.contrib.migration import apply_migrations
 
-        config = _get_config(self.project.fn("signac.rc"))
+        config = read_config_file(self.project.fn("signac.rc"))
         if implicit_version:
             del config["schema_version"]
             assert "schema_version" not in config
@@ -2480,7 +2480,7 @@ class TestProjectSchema(TestProjectBase):
         err = io.StringIO()
         with redirect_stderr(err):
             apply_migrations(self.project.path)
-        config = _get_config(self.project.fn("signac.rc"))
+        config = read_config_file(self.project.fn("signac.rc"))
         assert config["schema_version"] == "1"
         project = signac.get_project(root=self.project.path)
         assert project.config["schema_version"] == "1"

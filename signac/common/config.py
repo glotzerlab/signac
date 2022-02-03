@@ -56,16 +56,6 @@ def _search_standard_dirs():
         yield from _search_local(path)
 
 
-@deprecated(
-    deprecated_in="1.8",
-    removed_in="2.0",
-    current_version=__version__,
-    details="The search_standard_dirs method is deprecated.",
-)
-def search_standard_dirs():  # noqa: D103
-    yield from _search_standard_dirs()
-
-
 def _read_config_file(filename):
     logger.debug(f"Reading config file '{filename}'.")
     try:
@@ -97,29 +87,23 @@ def read_config_file(filename):
     return _read_config_file(filename)
 
 
-def _get_config(infile=None, configspec=None, *args, **kwargs):
-    """Get configuration from a file."""
-    if configspec is None:
-        configspec = cfg.split("\n")
-    return Config(infile, configspec=configspec, *args, **kwargs)
-
-
-@deprecated(
-    deprecated_in="1.8",
-    removed_in="2.0",
-    current_version=__version__,
-    details=(
-        "The get_config method is deprecated. Configs should only be "
-        "accessed via a Project instance.",
-    ),
-)
-def get_config(infile=None, configspec=None, *args, **kwargs):  # noqa: D103
-    """Get configuration from a file."""
-    return _get_config(infile, configspec, *args, **kwargs)
-
-
 def _load_config(root=None, local=False):
-    """Load configuration, searching upward from a root path."""
+    """Load configuration from a project directory.
+
+    Parameters
+    ----------
+    root : str
+        The path from which to begin searching for config files.
+    local : bool, optional
+        If ``True``, only search in the provided directory and do not traverse
+        upwards through the filesystem (Default value: False).
+
+    Returns
+    --------
+    :class:`Config`
+        The composite configuration including both local and global config data
+        if requested.
+    """
     if root is None:
         root = os.getcwd()
     config = Config(configspec=cfg.split("\n"))
