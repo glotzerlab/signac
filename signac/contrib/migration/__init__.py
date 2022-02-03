@@ -32,8 +32,8 @@ _MIGRATIONS = {
     ("0", "1"): _migrate_v0_to_v1,
 }
 
-
 _PARSED_SCHEMA_VERSION = version.parse(SCHEMA_VERSION)
+
 
 _VERSION_LIST = list(reversed(sorted(version.parse(v) for v in _CONFIG_LOADERS.keys())))
 
