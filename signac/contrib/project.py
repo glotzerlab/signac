@@ -25,7 +25,7 @@ from threading import RLock
 from deprecation import deprecated
 from packaging import version
 
-from ..common.config import Config, get_config, load_config
+from ..common.config import Config, _get_config, load_config
 from ..core.h5store import H5StoreManager
 from ..sync import sync_projects
 from ..synced_collections.backends.collection_json import BufferedJSONAttrDict
@@ -2323,7 +2323,7 @@ class Project:
             fn_config = os.path.join(root, "signac.rc")
             if make_dir:
                 _mkdir_p(os.path.dirname(fn_config))
-            config = get_config(fn_config)
+            config = _get_config(fn_config)
             config["project"] = name
             if workspace is not None:
                 config["workspace_dir"] = workspace
