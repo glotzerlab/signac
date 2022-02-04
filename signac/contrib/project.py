@@ -11,7 +11,6 @@ import os
 import re
 import shutil
 import time
-import uuid
 import warnings
 from collections.abc import Iterable
 from contextlib import contextmanager
@@ -1452,7 +1451,7 @@ class Project:
             return cache
 
     @contextmanager
-    def temporary_project(self, name=None, dir=None):
+    def temporary_project(self, dir=None):
         """Context manager for the initialization of a temporary project.
 
         The temporary project is by default created within the root project's
@@ -1468,9 +1467,6 @@ class Project:
 
         Parameters
         ----------
-        name : str
-            An optional name for the temporary project.
-            Defaults to a unique random string.
         dir : str
             Optionally specify where the temporary project root directory is to be
             created. Defaults to the project's workspace directory.
@@ -1481,17 +1477,15 @@ class Project:
             An instance of :class:`~signac.Project`.
 
         """
-        if name is None:
-            name = os.path.join(self.id, str(uuid.uuid4()))
         if dir is None:
             dir = self.workspace()
         _mkdir_p(self.workspace())  # ensure workspace exists
-        with TemporaryProject(name=name, cls=type(self), dir=dir) as tmp_project:
+        with TemporaryProject(cls=type(self), dir=dir) as tmp_project:
             yield tmp_project
 
     @classmethod
-    def init_project(cls, name, root=None, workspace=None, make_dir=True):
-        """Initialize a project with the given name.
+    def init_project(cls, *args, root=None, workspace=None, make_dir=True, **kwargs):
+        """Initialize a project at the provided root directory.
 
         It is safe to call this function multiple times with the same
         arguments. However, a `RuntimeError` is raised if an existing project
@@ -1502,8 +1496,6 @@ class Project:
 
         Parameters
         ----------
-        name : str
-            The name of the project to initialize.
         root : str
             The root directory for the project.
             Defaults to the current working directory.
@@ -1526,6 +1518,37 @@ class Project:
             configuration.
 
         """
+        if args:
+            if len(args) == 1:
+                warnings.warn(
+                    "Project names were removed in signac 2.0. If you intended to call "
+                    "`init_project` with a root directory, please provided it as a keyword "
+                    f"argument: `init_project(root={args[0]})`. If your project name "
+                    "contains important information, consider storing it in the project document "
+                    "instead.",
+                    FutureWarning,
+                )
+            else:
+                # Match the usual error from misusing keyword-only args.
+                num_args = len(args)
+                raise TypeError(
+                    f"init_project() takes 0 positional arguments but {num_args} "
+                    f"{'was' if num_args == 1 else 'were'} given"
+                )
+        if kwargs:
+            if len(kwargs) == 1 and "name" in kwargs:
+                warnings.warn(
+                    "Project names were removed in signac 2.0. If your project name contains "
+                    "important information, consider storing it in the project document instead.",
+                    FutureWarning,
+                )
+            else:
+                # Match the usual error from extra keyword args.
+                raise TypeError(
+                    f"init_project() got an unexpected keyword argument '{next(iter(kwargs))}'"
+                )
+        name = "project"
+
         if root is None:
             root = os.getcwd()
         try:
@@ -1549,9 +1572,9 @@ class Project:
                 and os.path.realpath(workspace) != os.path.realpath(project.workspace())
             ):
                 raise RuntimeError(
-                    "Failed to initialize project '{}'. Path '{}' already "
+                    "Failed to initialize project. Path '{}' already "
                     "contains a conflicting project configuration.".format(
-                        name, os.path.abspath(root)
+                        os.path.abspath(root)
                     )
                 )
             return project
@@ -1657,7 +1680,7 @@ class Project:
 
 
 @contextmanager
-def TemporaryProject(name=None, cls=None, **kwargs):
+def TemporaryProject(cls=None, **kwargs):
     r"""Context manager for the generation of a temporary project.
 
     This is a factory function that creates a Project within a temporary directory
@@ -1670,9 +1693,6 @@ def TemporaryProject(name=None, cls=None, **kwargs):
 
     Parameters
     ----------
-    name : str
-        An optional name for the temporary project.
-        Defaults to a unique random string.
     cls :
         The class of the temporary project.
         Defaults to :class:`~signac.Project`.
@@ -1686,12 +1706,10 @@ def TemporaryProject(name=None, cls=None, **kwargs):
         An instance of :class:`~signac.Project`.
 
     """
-    if name is None:
-        name = str(uuid.uuid4())
     if cls is None:
         cls = Project
     with TemporaryDirectory(**kwargs) as tmp_dir:
-        yield cls.init_project(name=name, root=tmp_dir)
+        yield cls.init_project(root=tmp_dir)
 
 
 def _skip_errors(iterable, log=print):
@@ -2121,7 +2139,7 @@ class JobsCursor:
         return repr(self) + self._repr_html_jobs()
 
 
-def init_project(name, root=None, workspace=None, make_dir=True):
+def init_project(*args, root=None, workspace=None, make_dir=True, **kwargs):
     """Initialize a project with the given name.
 
     It is safe to call this function multiple times with the same arguments.
@@ -2130,8 +2148,6 @@ def init_project(name, root=None, workspace=None, make_dir=True):
 
     Parameters
     ----------
-    name : str
-        The name of the project to initialize.
     root : str
         The root directory for the project.
         Defaults to the current working directory.
@@ -2154,9 +2170,37 @@ def init_project(name, root=None, workspace=None, make_dir=True):
         configuration.
 
     """
-    return Project.init_project(
-        name=name, root=root, workspace=workspace, make_dir=make_dir
-    )
+    if args:
+        if len(args) == 1:
+            warnings.warn(
+                "Project names were removed in signac 2.0. If you intended to call "
+                "`init_project` with a root directory, please provided it as a keyword "
+                f"argument: `init_project(root={args[0]})`. If your project name "
+                "contains important information, consider storing it in the project document "
+                "instead.",
+                FutureWarning,
+            )
+        else:
+            # Match the usual error from misusing keyword-only args.
+            num_args = len(args)
+            raise TypeError(
+                f"init_project() takes 0 positional arguments but {num_args} "
+                "{'was' if num_args == 1 else 'were'} given"
+            )
+    if kwargs:
+        if len(kwargs) == 1 and "name" in kwargs:
+            warnings.warn(
+                "Project names were removed in signac 2.0. If your project name contains "
+                "important information, consider storing it in the project document instead.",
+                FutureWarning,
+            )
+        else:
+            # Match the usual error from extra keyword args.
+            raise TypeError(
+                f"init_project() got an unexpected keyword argument '{next(iter(kwargs))}'"
+            )
+
+    return Project.init_project(root=root, workspace=workspace, make_dir=make_dir)
 
 
 def get_project(root=None, search=True, **kwargs):

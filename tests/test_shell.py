@@ -92,22 +92,10 @@ class TestBasicShell:
 
     def test_init_project(self):
         self.call("python -m signac init my_project".split())
-        assert str(signac.get_project()) == "my_project"
-
-    def test_init_project_in_project_root(self):
-        self.call("python -m signac init my_project".split())
-        assert str(signac.get_project()) == "my_project"
-        with pytest.raises(ExitCodeError):
-            self.call("python -m signac init second_project".split())
-
-    def test_project_id(self):
-        self.call("python -m signac init my_project".split())
-        assert str(signac.get_project()) == "my_project"
-        assert self.call("python -m signac project".split()).strip() == "my_project"
+        assert signac.get_project().root_directory() == os.getcwd()
 
     def test_project_workspace(self):
         self.call("python -m signac init my_project".split())
-        assert str(signac.get_project()) == "my_project"
         assert os.path.realpath(
             self.call("python -m signac project --workspace".split()).strip()
         ) == os.path.realpath(os.path.join(self.tmpdir.name, "workspace"))
@@ -311,7 +299,9 @@ class TestBasicShell:
     def test_clone(self):
         self.call("python -m signac init ProjectA".split())
         project_a = signac.Project()
-        project_b = signac.init_project("ProjectB", os.path.join(self.tmpdir.name, "b"))
+        project_b = signac.init_project(
+            "ProjectB", root=os.path.join(self.tmpdir.name, "b")
+        )
         job = project_a.open_job({"a": 0})
         job.init()
         assert len(project_a) == 1
@@ -353,7 +343,9 @@ class TestBasicShell:
     def test_move(self):
         self.call("python -m signac init ProjectA".split())
         project_a = signac.Project()
-        project_b = signac.init_project("ProjectB", os.path.join(self.tmpdir.name, "b"))
+        project_b = signac.init_project(
+            "ProjectB", root=os.path.join(self.tmpdir.name, "b")
+        )
         job = project_a.open_job({"a": 0})
         job.init()
         assert len(project_a) == 1
@@ -435,7 +427,9 @@ class TestBasicShell:
         assert s.format() == out.strip().replace(os.linesep, "\n")
 
     def test_sync(self):
-        project_b = signac.init_project("ProjectB", os.path.join(self.tmpdir.name, "b"))
+        project_b = signac.init_project(
+            "ProjectB", root=os.path.join(self.tmpdir.name, "b")
+        )
         self.call("python -m signac init ProjectA".split())
         project_a = signac.Project()
         for i in range(4):
@@ -480,7 +474,9 @@ class TestBasicShell:
             )
 
     def test_sync_merge(self):
-        project_b = signac.init_project("ProjectB", os.path.join(self.tmpdir.name, "b"))
+        project_b = signac.init_project(
+            "ProjectB", root=os.path.join(self.tmpdir.name, "b")
+        )
         self.call("python -m signac init ProjectA".split())
         project_a = signac.Project()
         for i in range(4):
@@ -513,7 +509,9 @@ class TestBasicShell:
     def test_sync_document(self):
         self.call("python -m signac init ProjectA".split())
         project_a = signac.Project()
-        project_b = signac.init_project("ProjectB", os.path.join(self.tmpdir.name, "b"))
+        project_b = signac.init_project(
+            "ProjectB", root=os.path.join(self.tmpdir.name, "b")
+        )
         job_src = project_a.open_job({"a": 0})
         job_dst = project_b.open_job({"a": 0})
 
@@ -583,7 +581,9 @@ class TestBasicShell:
     def test_sync_file(self):
         self.call("python -m signac init ProjectA".split())
         project_a = signac.Project()
-        project_b = signac.init_project("ProjectB", os.path.join(self.tmpdir.name, "b"))
+        project_b = signac.init_project(
+            "ProjectB", root=os.path.join(self.tmpdir.name, "b")
+        )
         job_src = project_a.open_job({"a": 0}).init()
         job_dst = project_b.open_job({"a": 0}).init()
         for i, job in enumerate([job_src, job_dst]):
@@ -661,7 +661,9 @@ class TestBasicShell:
             )
 
     def test_import_sync(self):
-        project_b = signac.init_project("ProjectB", os.path.join(self.tmpdir.name, "b"))
+        project_b = signac.init_project(
+            "ProjectB", root=os.path.join(self.tmpdir.name, "b")
+        )
         self.call("python -m signac init ProjectA".split())
         prefix_data = os.path.join(self.tmpdir.name, "data")
         project_a = signac.Project()
@@ -683,7 +685,6 @@ class TestBasicShell:
             "print(str(tmp_project), len(tmp_project)); exit()",
             shell=True,
         )
-        assert "ProjectA" in out
         assert "4" in out
 
     def test_shell(self):
