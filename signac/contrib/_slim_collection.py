@@ -19,7 +19,7 @@ from .utility import _nested_dicts_to_dotted_keys
 
 logger = logging.getLogger(__name__)
 
-PRIMARY_KEY = "_id"
+_PRIMARY_KEY = "_id"
 
 
 class _SlimCollection(dict):
@@ -60,9 +60,15 @@ class _SlimCollection(dict):
 
     """
 
-    def __init__(self, docs):
-        for doc in docs:
-            self[doc[PRIMARY_KEY]] = doc
+    def __init__(self, *args):
+        if len(args) > 1:
+            raise ValueError(
+                "Only one positional argument, an iterable of documents, is allowed."
+            )
+        elif len(args) == 1:
+            docs = args[0]
+            for doc in docs:
+                self[doc[_PRIMARY_KEY]] = doc
 
     def build_index(self, key):
         """Build index for given key.
@@ -79,7 +85,7 @@ class _SlimCollection(dict):
 
         """
         logger.debug(f"Building index for key '{key}'...")
-        index = _build_index(self.values(), key, PRIMARY_KEY)
+        index = _build_index(self.values(), key, _PRIMARY_KEY)
         logger.debug(f"Built index for key '{key}'.")
         return index
 
@@ -184,9 +190,9 @@ class _SlimCollection(dict):
 
         # Check if filter contains primary key, in which case we can
         # immediately reduce the result.
-        _id = expr.pop(PRIMARY_KEY, None)
-        if _id is not None and _id in self:
-            reduce_results({_id})
+        _id = expr.pop(_PRIMARY_KEY, None)
+        if _id is not None:
+            reduce_results({_id} if _id in self else set())
 
         # Extract all logical-operator expressions for now.
         or_expressions = expr.pop("$or", None)
