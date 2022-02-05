@@ -1547,13 +1547,13 @@ class Project:
                 raise TypeError(
                     f"init_project() got an unexpected keyword argument '{next(iter(kwargs))}'"
                 )
-        name = "project"
 
         if root is None:
             root = os.getcwd()
         try:
             project = cls.get_project(root=root, search=False)
         except LookupError:
+            name = "project"
             fn_config = os.path.join(root, "signac.rc")
             if make_dir:
                 _mkdir_p(os.path.dirname(fn_config))
@@ -1567,15 +1567,12 @@ class Project:
             assert project.id == str(name)
             return project
         else:
-            if project.id != str(name) or (
-                workspace is not None
-                and os.path.realpath(workspace) != os.path.realpath(project.workspace())
-            ):
+            if workspace is not None and os.path.realpath(
+                workspace
+            ) != os.path.realpath(project.workspace()):
                 raise RuntimeError(
-                    "Failed to initialize project. Path '{}' already "
-                    "contains a conflicting project configuration.".format(
-                        os.path.abspath(root)
-                    )
+                    f"Failed to initialize project. Path '{os.path.abspath(root)}' already "
+                    "contains a conflicting project configuration."
                 )
             return project
 
