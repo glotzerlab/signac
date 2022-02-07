@@ -23,7 +23,12 @@ from packaging import version
 from test_job import TestJobBase
 
 import signac
-from signac.common.config import load_config, read_config_file, PROJECT_CONFIG_FN, _get_project_config_fn
+from signac.common.config import (
+    PROJECT_CONFIG_FN,
+    _get_project_config_fn,
+    load_config,
+    read_config_file,
+)
 from signac.contrib.errors import (
     IncompatibleSchemaVersion,
     JobsCorruptedError,
