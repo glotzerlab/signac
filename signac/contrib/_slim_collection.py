@@ -91,10 +91,6 @@ class _SlimCollection(dict):
                     v = _DictPlaceholder
             except (KeyError, TypeError):
                 pass
-            except Exception as error:
-                raise RuntimeError(
-                    f"An unexpected error occurred while processing doc '{doc}': {error}."
-                )
             else:
                 # inlined for performance
                 if type(v) is dict:
