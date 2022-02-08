@@ -234,11 +234,17 @@ class _SlimCollection(dict):
         if not_expression is not None:
             not_match = self._find_result(not_expression)
             reduce_results(set(self).difference(not_match))
+            if not result_ids:
+                # No matches, so exit early.
+                return set()
 
         if and_expressions is not None:
             _check_logical_operator_argument("$and", and_expressions)
             for expr_ in and_expressions:
                 reduce_results(self._find_result(expr_))
+                if not result_ids:
+                    # No matches, so exit early.
+                    return set()
 
         if or_expressions is not None:
             _check_logical_operator_argument("$or", or_expressions)
