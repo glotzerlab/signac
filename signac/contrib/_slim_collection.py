@@ -93,9 +93,7 @@ class _SlimCollection(dict):
                 pass
             else:
                 # inlined for performance
-                if type(v) is dict:
-                    continue
-                elif type(v) is list:  # performance
+                if type(v) is list:  # avoid isinstance for performance
                     index[_to_hashable(v)].add(_id)
                 else:
                     index[v].add(_id)
