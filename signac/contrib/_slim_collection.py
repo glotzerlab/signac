@@ -125,9 +125,9 @@ class _SlimCollection(dict):
         Parameters
         ----------
         key : str
-            The key for expression-operator.
+            The key for expression.
         value :
-            The value for expression-operator.
+            The value for expression.
 
         Returns
         -------
@@ -137,8 +137,7 @@ class _SlimCollection(dict):
         Raises
         ------
         KeyError
-            When bad operator expression / bad operator placement or the
-            expression operator is unknown.
+            An invalid operator was given.
         ValueError
             The value is not bool for '$exists' operator or not a
             supported type for '$type' operator.
@@ -147,11 +146,11 @@ class _SlimCollection(dict):
         logger.debug(f"Find documents for expression '{key}: {value}'.")
         if "$" in key:
             if key.count("$") > 1:
-                raise KeyError(f"Bad operator expression '{key}'.")
+                raise KeyError(f"Invalid operator expression '{key}'.")
             nodes = key.split(".")
             op = nodes[-1]
             if not op.startswith("$"):
-                raise KeyError(f"Bad operator placement '{key}'.")
+                raise KeyError(f"Invalid operator placement '{key}'.")
             key = ".".join(nodes[:-1])
             if op in _INDEX_OPERATORS:
                 index = self.build_index(key)
@@ -165,7 +164,7 @@ class _SlimCollection(dict):
                 match = {elem for elems in index.values() for elem in elems}
                 return match if value else set(self).difference(match)
             else:
-                raise KeyError(f"Unknown expression-operator '{op}'.")
+                raise KeyError(f"Unknown operator '{op}'.")
         else:
             index = self.build_index(key)
             # Check to see if 'value' is a floating point type but an
