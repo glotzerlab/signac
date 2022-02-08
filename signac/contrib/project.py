@@ -26,7 +26,7 @@ from ..core.h5store import H5StoreManager
 from ..sync import sync_projects
 from ..synced_collections.backends.collection_json import BufferedJSONAttrDict
 from ..version import SCHEMA_VERSION, __version__
-from ._slim_collection import _SlimCollection
+from ._index import _Index
 from .errors import (
     DestinationExistsError,
     IncompatibleSchemaVersion,
@@ -665,10 +665,10 @@ class Project:
         """
         from .schema import _build_job_statepoint_index
 
-        index = _SlimCollection(self._build_index(include_job_document=False))
+        index = _Index(self._build_index(include_job_document=False))
         if subset is not None:
             subset = {str(s) for s in subset}.intersection(index.keys())
-            index = _SlimCollection((_id, index[_id]) for _id in subset)
+            index = _Index((_id, index[_id]) for _id in subset)
         statepoint_index = _build_job_statepoint_index(
             exclude_const=exclude_const, index=index
         )
@@ -705,7 +705,7 @@ class Project:
         if not filter:
             return list(self._job_dirs())
         filter = dict(parse_filter(_add_prefix("sp.", filter)))
-        index = _SlimCollection(
+        index = _Index(
             self._build_index(include_job_document="doc" in _root_keys(filter))
         )
         return list(index.find(filter))

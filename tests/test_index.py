@@ -1,6 +1,6 @@
 import pytest
 
-from signac.contrib._slim_collection import _SlimCollection
+from signac.contrib._index import _Index
 from signac.errors import InvalidKeyError
 
 n = 42
@@ -58,36 +58,36 @@ INVALID_SYNTAX_EXPRESSIONS = [
 class TestSlimCollection:
     @pytest.fixture(autouse=True)
     def setUp(self):
-        self.c = _SlimCollection()
+        self.c = _Index()
 
     def test_init(self):
         assert len(self.c) == 0
 
     def test_init_with_list_with_ids_sequential(self):
         docs = {str(i): {"a": i} for i in range(10)}
-        self.c = _SlimCollection(docs)
+        self.c = _Index(docs)
         assert len(self.c) == len(docs)
         for _id in docs:
             assert _id in self.c
 
     def test_init_with_list_with_ids_non_sequential(self):
         docs = {f"{i ** 3:032d}": {"a": i} for i in range(10)}
-        self.c = _SlimCollection(docs)
+        self.c = _Index(docs)
         assert len(self.c) == len(docs)
         for _id in docs:
             assert _id in self.c
 
     def test_int_float_equality(self):
         docs = {"int": {"a": 1}, "float": {"a": 1.0}}
-        self.c = _SlimCollection(docs)
+        self.c = _Index(docs)
         assert len(self.c.find()) == 2
         assert len(self.c.find(dict(a=1))) == 2
         assert len(self.c.find(dict(a=1.0))) == 2
 
     def test_copy(self):
         docs = {str(i): {"a": i} for i in range(10)}
-        self.c = _SlimCollection(docs)
-        c2 = _SlimCollection(self.c)
+        self.c = _Index(docs)
+        c2 = _Index(self.c)
         assert len(self.c) == len(c2)
         for doc in c2.values():
             assert len(self.c.find(doc)) == 1
@@ -399,7 +399,7 @@ class TestSlimCollection:
 
     def test_find_type_integer_values_identical_keys(self):
         docs = {"int": {"a": 1}, "float": {"a": 1.0}}
-        self.c = _SlimCollection(docs)
+        self.c = _Index(docs)
         assert len(self.c.find({"a": {"$type": "int"}})) == 1
         assert len(self.c.find({"a": {"$type": "float"}})) == 1
 

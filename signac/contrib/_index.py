@@ -1,7 +1,7 @@
 # Copyright (c) 2022 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"""An optimized _SlimCollection class for indexing signac Projects."""
+"""An optimized class for indexing signac Projects."""
 
 import json
 import logging
@@ -24,15 +24,15 @@ logger = logging.getLogger(__name__)
 _PRIMARY_KEY = "_id"
 
 
-class _SlimCollection(dict):
+class _Index(dict):
     """A collection of documents, optimized for minimal use cases in signac.
 
-    The _SlimCollection class manages a collection of documents in memory.
+    The _Index class manages a collection of documents in memory.
     A document is defined as a dictionary mapping of key-value pairs. Each
-    document is identified by a unique id. The _SlimCollection class is a
+    document is identified by a unique id. The _Index class is a
     mapping from ids to documents, inheriting from :py:class:`dict`.
 
-    An instance of _SlimCollection may be used to manage and search documents.
+    An instance of _Index may be used to manage and search documents.
     For example, given a collection with member data, where each document
     contains a `name` entry and an `age` entry, we can find the name of
     all members that are at age 32 like this:
@@ -46,7 +46,7 @@ class _SlimCollection(dict):
             # ...
         }
 
-        member_collection = _SlimCollection(members)
+        member_collection = _Index(members)
         for doc in member_collection.find({'age': 32}):
             print(doc)  # prints 0 and 2
 
