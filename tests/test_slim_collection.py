@@ -51,6 +51,7 @@ INVALID_SYNTAX_EXPRESSIONS = [
     ({"a": {"$exists": N}}, ValueError),  # Value of $exists must be boolean
     ({"a": {"$nonexistent": N}}, KeyError),  # Unknown expression-operator
     ({"a": {"$type": N}}, ValueError),  # Invalid $type argument
+    (["a"], ValueError),  # Not a valid filter (not a dict)
 ]
 
 
