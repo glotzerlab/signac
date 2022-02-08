@@ -9,17 +9,81 @@ from numbers import Number
 
 from .collection import (
     _INDEX_OPERATORS,
-    _build_index,
     _check_logical_operator_argument,
+    _DictPlaceholder,
     _find_with_index_operator,
     _float,
+    _TypedSetDefaultDict,
     _valid_filter,
 )
-from .utility import _nested_dicts_to_dotted_keys
+from .utility import _nested_dicts_to_dotted_keys, _to_hashable
 
 logger = logging.getLogger(__name__)
 
 _PRIMARY_KEY = "_id"
+
+
+def _build_index(collection, key):
+    """Build an index for 'key'; highly performance critical code path.
+
+    Parameters
+    ----------
+    docs : iterable
+        iterable of doc to build index.
+    key : str
+        The key to build index.
+
+    Returns
+    -------
+    :class:`~_TypedSetDefaultDict`
+        Index for key.
+
+    Raises
+    ------
+    :class:`~signac.errors.InvalidKeyError`
+        The document contains invalid keys.
+
+    """
+    nodes = key.split(".")
+    index = _TypedSetDefaultDict()
+
+    for _id, doc in collection.items():
+        try:
+            v = doc[nodes[0]]
+            for n in nodes[1:]:
+                v = v[n]
+            if type(v) is dict:
+                v = _DictPlaceholder
+        except (KeyError, TypeError):
+            pass
+        except Exception as error:
+            raise RuntimeError(
+                f"An unexpected error occurred while processing doc '{doc}': {error}."
+            )
+        else:
+            # inlined for performance
+            if type(v) is dict:
+                continue
+            elif type(v) is list:  # performance
+                index[_to_hashable(v)].add(_id)
+            else:
+                index[v].add(_id)
+
+        if len(nodes) > 1:
+            try:
+                v = doc[".".join(nodes)]
+            except KeyError:
+                pass
+            else:
+                from ..errors import InvalidKeyError
+
+                raise InvalidKeyError(
+                    "\nThe document contains invalid keys. "
+                    "Specifically keys with dots ('.').\n\n"
+                    "See https://signac.io/document-wide-migration/ "
+                    "for a recipe on how to replace dots in existing keys."
+                )
+    return index
 
 
 class _SlimCollection(dict):
@@ -60,16 +124,6 @@ class _SlimCollection(dict):
 
     """
 
-    def __init__(self, *args):
-        if len(args) > 1:
-            raise ValueError(
-                "Only one positional argument, an iterable of documents, is allowed."
-            )
-        elif len(args) == 1:
-            docs = args[0]
-            for doc in docs:
-                self[doc[_PRIMARY_KEY]] = doc
-
     def build_index(self, key):
         """Build index for given key.
 
@@ -85,7 +139,7 @@ class _SlimCollection(dict):
 
         """
         logger.debug(f"Building index for key '{key}'...")
-        index = _build_index(self.values(), key, _PRIMARY_KEY)
+        index = _build_index(self, key)
         logger.debug(f"Built index for key '{key}'.")
         return index
 

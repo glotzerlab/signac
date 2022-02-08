@@ -11,12 +11,13 @@ import re
 import shutil
 import tarfile
 import zipfile
-from collections import Counter, OrderedDict
+from collections import Counter
 from contextlib import closing, contextmanager
 from string import Formatter
 from tempfile import TemporaryDirectory
 from zipfile import ZIP_DEFLATED, ZipFile
 
+from ._slim_collection import _SlimCollection
 from .errors import DestinationExistsError, StatepointParsingError
 from .utility import _dotted_dict_to_nested_dicts, _mkdir_p
 
@@ -62,8 +63,8 @@ def _make_schema_based_path_function(jobs, exclude_keys=None, delimiter_nested="
         # signature of the path function below.
         return lambda job, sep=None: ""
 
-    index = [{"_id": job.id, "sp": job.sp()} for job in jobs]
-    statepoint_index = OrderedDict(
+    index = _SlimCollection((job.id, {"sp": job.sp()}) for job in jobs)
+    statepoint_index = dict(
         _build_job_statepoint_index(exclude_const=True, index=index)
     )
 
@@ -75,7 +76,7 @@ def _make_schema_based_path_function(jobs, exclude_keys=None, delimiter_nested="
         for value, group in values.items():
             path_tokens = key, str(value)
             for job_id in group:
-                paths.setdefault(job_id, list())
+                paths.setdefault(job_id, [])
                 paths[job_id].extend(path_tokens)
 
     def path(job, sep=None):

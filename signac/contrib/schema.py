@@ -4,12 +4,11 @@
 """Project Schema."""
 
 import itertools
-from collections import defaultdict as ddict
+from collections import defaultdict
 from collections.abc import Mapping
 from numbers import Number
 from pprint import pformat
 
-from ._slim_collection import _SlimCollection
 from .collection import _DictPlaceholder
 from .utility import _nested_dicts_to_dotted_keys
 
@@ -40,7 +39,7 @@ def _collect_by_type(values):
         A mapping of types to a set of input values of that type.
 
     """
-    values_by_type = ddict(set)
+    values_by_type = defaultdict(set)
     for v in values:
         values_by_type[type(v)].add(v)
     return values_by_type
@@ -74,8 +73,8 @@ def _build_job_statepoint_index(exclude_const, index):
     ----------
     exclude_const : bool
         Excludes state point keys whose values are constant across the index.
-    index :
-        An iterable of state points.
+    index : _SlimCollection
+        A _SlimCollection mapping from job ids to job state points.
 
     Yields
     ------
@@ -86,20 +85,18 @@ def _build_job_statepoint_index(exclude_const, index):
         that state point value.
 
     """
-    collection = _SlimCollection(index)
     indexes = {}
-    for _id in collection.find():
-        doc = collection[_id]
+    for _id in index.find():
+        doc = index[_id]
         for key, _ in _nested_dicts_to_dotted_keys(doc):
-            if key == "_id" or key.split(".")[0] != "sp":
-                continue
-            indexes[key] = collection.build_index(key)
+            if key.split(".")[0] == "sp":
+                indexes[key] = index.build_index(key)
 
     for key in sorted(indexes, key=lambda key: (len(indexes[key]), key)):
         if (
             exclude_const
             and len(indexes[key]) == 1
-            and len(indexes[key][next(indexes[key].keys())]) == len(collection)
+            and len(indexes[key][next(indexes[key].keys())]) == len(index)
         ):
             continue
         statepoint_key = _strip_prefix(key)
