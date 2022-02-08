@@ -7,6 +7,7 @@ import json
 import logging
 from numbers import Number
 
+from ..errors import InvalidKeyError
 from .collection import (
     _INDEX_OPERATORS,
     _check_logical_operator_argument,
@@ -23,99 +24,31 @@ logger = logging.getLogger(__name__)
 _PRIMARY_KEY = "_id"
 
 
-def _build_index(collection, key):
-    """Build an index for 'key'; highly performance critical code path.
-
-    Parameters
-    ----------
-    docs : iterable
-        iterable of doc to build index.
-    key : str
-        The key to build index.
-
-    Returns
-    -------
-    :class:`~_TypedSetDefaultDict`
-        Index for key.
-
-    Raises
-    ------
-    :class:`~signac.errors.InvalidKeyError`
-        The document contains invalid keys.
-
-    """
-    nodes = key.split(".")
-    index = _TypedSetDefaultDict()
-
-    for _id, doc in collection.items():
-        try:
-            v = doc[nodes[0]]
-            for n in nodes[1:]:
-                v = v[n]
-            if type(v) is dict:
-                v = _DictPlaceholder
-        except (KeyError, TypeError):
-            pass
-        except Exception as error:
-            raise RuntimeError(
-                f"An unexpected error occurred while processing doc '{doc}': {error}."
-            )
-        else:
-            # inlined for performance
-            if type(v) is dict:
-                continue
-            elif type(v) is list:  # performance
-                index[_to_hashable(v)].add(_id)
-            else:
-                index[v].add(_id)
-
-        if len(nodes) > 1:
-            try:
-                v = doc[".".join(nodes)]
-            except KeyError:
-                pass
-            else:
-                from ..errors import InvalidKeyError
-
-                raise InvalidKeyError(
-                    "\nThe document contains invalid keys. "
-                    "Specifically keys with dots ('.').\n\n"
-                    "See https://signac.io/document-wide-migration/ "
-                    "for a recipe on how to replace dots in existing keys."
-                )
-    return index
-
-
 class _SlimCollection(dict):
     """A collection of documents, optimized for minimal use cases in signac.
 
-    The Collection class manages a collection of documents in memory.
-    A document is defined as a dictionary mapping of key-value pairs.
+    The _SlimCollection class manages a collection of documents in memory.
+    A document is defined as a dictionary mapping of key-value pairs. Each
+    document is identified by a unique id. The _SlimCollection class is a
+    mapping from ids to documents, inheriting from :py:class:`dict`.
 
-    An instance of collection may be used to manage and search documents.
+    An instance of _SlimCollection may be used to manage and search documents.
     For example, given a collection with member data, where each document
     contains a `name` entry and an `age` entry, we can find the name of
     all members that are at age 32 like this:
 
     .. code-block:: python
 
-        members = [
-            {'name': 'John',  'age': 32},
-            {'name': 'Alice', 'age': 28},
-            {'name': 'Kevin', 'age': 32},
+        members = {
+            '0': {'name': 'John',  'age': 32},
+            '1': {'name': 'Alice', 'age': 28},
+            '2': {'name': 'Kevin', 'age': 32},
             # ...
-        ]
+        }
 
         member_collection = _SlimCollection(members)
         for doc in member_collection.find({'age': 32}):
-            print(doc['name'])
-
-    To iterate over all documents in the collection, use:
-
-    .. code-block:: python
-
-        for doc in collection:
-            print(doc)
+            print(doc)  # prints 0 and 2
 
     Parameters
     ----------
@@ -125,21 +58,64 @@ class _SlimCollection(dict):
     """
 
     def build_index(self, key):
-        """Build index for given key.
+        """Build index for a given key.
+
+        This is a highly performance critical code path.
 
         Parameters
         ----------
         key : str
-            The key to build index for.
+            The key on which the index is built.
 
         Returns
         -------
-        dict
-            Index for the given key.
+        :class:`~_TypedSetDefaultDict`
+            Index for key.
+
+        Raises
+        ------
+        :class:`~signac.errors.InvalidKeyError`
+            The document contains invalid keys.
 
         """
         logger.debug(f"Building index for key '{key}'...")
-        index = _build_index(self, key)
+        nodes = key.split(".")
+        index = _TypedSetDefaultDict()
+
+        for _id, doc in self.items():
+            try:
+                v = doc[nodes[0]]
+                for n in nodes[1:]:
+                    v = v[n]
+                if type(v) is dict:
+                    v = _DictPlaceholder
+            except (KeyError, TypeError):
+                pass
+            except Exception as error:
+                raise RuntimeError(
+                    f"An unexpected error occurred while processing doc '{doc}': {error}."
+                )
+            else:
+                # inlined for performance
+                if type(v) is dict:
+                    continue
+                elif type(v) is list:  # performance
+                    index[_to_hashable(v)].add(_id)
+                else:
+                    index[v].add(_id)
+
+            if len(nodes) > 1:
+                try:
+                    v = doc[".".join(nodes)]
+                except KeyError:
+                    pass
+                else:
+                    raise InvalidKeyError(
+                        "\nThe document contains invalid keys. "
+                        "Specifically keys with dots ('.').\n\n"
+                        "See https://signac.io/document-wide-migration/ "
+                        "for a recipe on how to replace dots in existing keys."
+                    )
         logger.debug(f"Built index for key '{key}'.")
         return index
 
@@ -161,10 +137,11 @@ class _SlimCollection(dict):
         Raises
         ------
         KeyError
-            When Bad operator expression/ Bad operator placement or
-            the expression-operator is unknown.
+            When bad operator expression / bad operator placement or the
+            expression operator is unknown.
         ValueError
-            The value is not bool when operator for '$exists' operator.
+            The value is not bool for '$exists' operator or not a
+            supported type for '$type' operator.
 
         """
         logger.debug(f"Find documents for expression '{key}: {value}'.")
