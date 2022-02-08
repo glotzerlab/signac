@@ -265,9 +265,7 @@ class _SlimCollection(dict):
 
             1. If the filter is None, the result is directly returned, since
                all documents will match an empty filter.
-            2. If the filter argument contains a primary key, the result
-               is directly returned since no search operation is necessary.
-            3. The filter is processed key by key, once the result vector is
+            2. The filter is processed key by key, once the result vector is
                empty it is immediately returned.
 
         Parameters
