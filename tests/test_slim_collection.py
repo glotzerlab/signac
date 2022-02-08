@@ -6,7 +6,7 @@ from signac.errors import InvalidKeyError
 n = 42
 N = 100
 
-ARITHMETIC_DOCS = {str(i): {"a": i, "_id": str(i)} for i in range(N)}
+ARITHMETIC_DOCS = {str(i): {"a": i} for i in range(N)}
 
 ARITHMETIC_EXPRESSIONS = [
     ({"$eq": n}, 1),
@@ -64,39 +64,36 @@ class TestSlimCollection:
         assert len(self.c) == 0
 
     def test_init_with_list_with_ids_sequential(self):
-        docs = [{"a": i, "_id": str(i)} for i in range(10)]
+        docs = {str(i): {"a": i} for i in range(10)}
         self.c = _SlimCollection(docs)
         assert len(self.c) == len(docs)
-        for doc in docs:
-            assert doc["_id"] in self.c
+        for _id in docs:
+            assert _id in self.c
 
     def test_init_with_list_with_ids_non_sequential(self):
-        docs = [{"a": i, "_id": f"{i ** 3:032d}"} for i in range(10)]
+        docs = {f"{i ** 3:032d}": {"a": i} for i in range(10)}
         self.c = _SlimCollection(docs)
         assert len(self.c) == len(docs)
-        for doc in docs:
-            assert doc["_id"] in self.c
+        for _id in docs:
+            assert _id in self.c
 
     def test_int_float_equality(self):
-        docs = [{"a": 1, "_id": "int"}, {"a": 1.0, "_id": "float"}]
+        docs = {"int": {"a": 1}, "float": {"a": 1.0}}
         self.c = _SlimCollection(docs)
         assert len(self.c.find()) == 2
         assert len(self.c.find(dict(a=1))) == 2
         assert len(self.c.find(dict(a=1.0))) == 2
 
     def test_copy(self):
-        docs = [dict(_id=str(i)) for i in range(10)]
+        docs = {str(i): {"a": i} for i in range(10)}
         self.c = _SlimCollection(docs)
-        c2 = _SlimCollection(self.c.values())
-        # TODO: it's awkward that we can't construct a new collection from an
-        # existing one, like a normal dict. Consider changing this so we
-        # construct the collection just like a dict, with the id as the key.
+        c2 = _SlimCollection(self.c)
         assert len(self.c) == len(c2)
         for doc in c2.values():
             assert len(self.c.find(doc)) == 1
 
     def test_insert_and_remove(self):
-        doc = dict(a=0, _id="0")
+        doc = {"a": 0}
         self.c["0"] = doc
         assert len(self.c) == 1
         assert self.c["0"] == doc
@@ -107,7 +104,7 @@ class TestSlimCollection:
             assert self.c["0"]
 
     def test_contains(self):
-        doc = dict(a=0, _id="0")
+        doc = {"a": 0}
         assert "0" not in self.c
         self.c["0"] = doc
         assert "0" in self.c
@@ -115,21 +112,21 @@ class TestSlimCollection:
         assert "0" not in self.c
 
     def test_update(self):
-        docs = {str(i): {"a": i, "_id": str(i)} for i in range(10)}
+        docs = {str(i): {"a": i} for i in range(10)}
         self.c.update(docs)
         assert len(self.c) == len(docs)
 
     def test_update_collision(self):
-        docs = {str(i): {"a": i, "_id": str(i)} for i in range(10)}
+        docs = {str(i): {"a": i} for i in range(10)}
         self.c.update(docs)
         # Update the first ten, insert the second ten
-        new_docs = {str(i): {"a": i * 2, "_id": str(i)} for i in range(20)}
+        new_docs = {str(i): {"a": i * 2} for i in range(20)}
         self.c.update(new_docs)
         assert len(self.c) == len(new_docs)
-        assert self.c["0"] == {"a": 0, "_id": "0"}
+        assert self.c["0"] == {"a": 0}
 
     def test_index(self):
-        docs = {str(i): {"a": i, "_id": str(i)} for i in range(10)}
+        docs = {str(i): {"a": i} for i in range(10)}
         self.c.update(docs)
         index = self.c.build_index("a")
         assert len(index) == len(self.c)
@@ -139,7 +136,7 @@ class TestSlimCollection:
 
     def test_clear(self):
         assert len(self.c) == 0
-        self.c["0"] = {"a": 0, "_id": "0"}
+        self.c["0"] = {"a": 0}
         assert len(self.c) == 1
         self.c.clear()
         assert len(self.c) == 0
@@ -147,11 +144,11 @@ class TestSlimCollection:
     def test_iteration(self):
         assert len(self.c) == 0
         assert len(self.c.find()) == 0
-        self.c["0"] = {"a": 0, "_id": "0"}
+        self.c["0"] = {"a": 0}
         assert len(self.c) == 1
         assert len(self.c.find()) == 1
         self.c.clear()
-        docs = {str(i): {"a": i, "_id": str(i)} for i in range(10)}
+        docs = {str(i): {"a": i} for i in range(10)}
         self.c.update(docs)
         assert len(self.c) == len(docs)
         assert len(self.c.find()) == len(docs)
@@ -162,7 +159,7 @@ class TestSlimCollection:
     def test_find_id(self):
         assert len(self.c.find()) == 0
         assert len(self.c.find({"_id": "0"})) == 0
-        docs = {str(i): {"a": i, "_id": str(i)} for i in range(10)}
+        docs = {str(i): {"a": i} for i in range(10)}
         self.c.update(docs)
         assert len(self.c.find()) == len(docs)
         assert len(self.c.find({"_id": "0"})) == 1
@@ -171,7 +168,7 @@ class TestSlimCollection:
         assert len(self.c.find()) == 0
         assert list(self.c.find()) == []
         assert len(self.c.find({"a": 0})) == 0
-        docs = {str(i): {"a": i, "_id": str(i)} for i in range(10)}
+        docs = {str(i): {"a": i} for i in range(10)}
         self.c.update(docs)
         assert len(self.c.find()) == len(docs)
         assert len(self.c.find({"a": 0})) == 1
@@ -188,7 +185,7 @@ class TestSlimCollection:
         assert len(self.c.find()) == 0
         assert list(self.c.find()) == []
         assert len(self.c.find({"a": 0})) == 0
-        docs = {str(i): {"a": float(i), "_id": str(i)} for i in range(10)}
+        docs = {str(i): {"a": float(i)} for i in range(10)}
         self.c.update(docs)
         assert len(self.c.find()) == len(docs)
         assert len(self.c.find({"a": 0})) == 1
@@ -205,17 +202,17 @@ class TestSlimCollection:
         assert len(self.c.find()) == 0
         assert list(self.c.find()) == []
         assert len(self.c.find({"a": []})) == 0
-        docs = {"0": {"a": [], "_id": "0"}}
+        docs = {"0": {"a": []}}
         self.c.update(docs)
         assert len(self.c.find()) == 1
         assert len(self.c.find({"a": []})) == 1
         for i, v in enumerate((None, 1, "1", {"b": 1}), 1):
-            docs = {str(i): {"a": [v], "_id": str(i)}}
+            docs = {str(i): {"a": [v]}}
             self.c.update(docs)
             assert len(self.c.find({"a": [v]})) == 1
 
     def test_find_int_float(self):
-        docs = {"int": {"a": 1, "_id": "int"}, "float": {"a": 1.0, "_id": "float"}}
+        docs = {"int": {"a": 1}, "float": {"a": 1.0}}
         self.c.update(docs)
         assert len(self.c.find({"a": {"$type": "float"}})) == 1
         assert len(self.c.find({"a": {"$type": "int"}})) == 1
@@ -225,7 +222,7 @@ class TestSlimCollection:
     # TODO: Document that dots are not allowed in keys of the document. This is
     # a condition for correctness but is not enforced.
     def test_docs_with_dots(self):
-        self.c["0"] = {"a.b": 0, "_id": "0"}
+        self.c["0"] = {"a.b": 0}
 
         # These searches will not catch the error:
         self.c.find()
@@ -240,11 +237,11 @@ class TestSlimCollection:
         t = [1, 1.0, "1", [1], tuple([1])]
         for i, t in enumerate(t):
             self.c.clear()
-            doc = self.c[str(i)] = {"a": t, "_id": str(i)}
+            doc = self.c[str(i)] = {"a": t}
             assert list(self.c.find(doc)) == [str(i)]
 
     def test_find_nested(self):
-        docs = {str(i): {"a": {"b": i}, "_id": str(i)} for i in range(10)}
+        docs = {str(i): {"a": {"b": i}} for i in range(10)}
         self.c.update(docs)
         assert len(self.c.find()) == len(docs)
         assert len(self.c.find({"a.b": 0})) == 1
@@ -255,7 +252,7 @@ class TestSlimCollection:
         assert len(self.c.find({"a": {"b": 0}})) == 0
 
     def test_nested_lists(self):
-        docs = {str(i): {"a": [[[i]]], "_id": str(i)} for i in range(10)}
+        docs = {str(i): {"a": [[[i]]]} for i in range(10)}
         self.c.update(docs)
         assert len(self.c.find()) == len(docs)
         assert len(self.c.find({"a": [[[-1]]]})) == 0
@@ -292,10 +289,10 @@ class TestSlimCollection:
 
         # Test with data
         for i, (key, value) in enumerate(data.items()):
-            self.c[str(i)] = {key: value, "_id": str(i)}
+            self.c[str(i)] = {key: value}
 
         # Heterogeneous nesting
-        self.c[str(len(self.c))] = {"e": -1, "_id": str(len(self.c))}
+        self.c[str(len(self.c))] = {"e": -1}
 
         for key in data:
             n = 2 if key == "e" else 1
@@ -377,7 +374,7 @@ class TestSlimCollection:
         assert len(self.c) == 0
         assert len(self.c.find({"a": {"$regex": "foo"}})) == 0
         assert len(self.c.find({"a": {"$regex": "hello"}})) == 0
-        docs = {"0": {"a": "hello world", "_id": "0"}}
+        docs = {"0": {"a": "hello world"}}
         self.c.update(docs)
         assert len(self.c.find({"a": {"$regex": "foo"}})) == 0
         assert len(self.c.find({"a": {"$regex": "hello"}})) == 1
@@ -395,13 +392,13 @@ class TestSlimCollection:
         for (v, t) in types:
             assert len(self.c.find({"a": {"$type": t}})) == 0
         for i, (v, t) in enumerate(types):
-            self.c[str(i)] = {str(i): v, "_id": str(i)}
+            self.c[str(i)] = {str(i): v}
         assert len(self.c) == len(types)
         for i, (v, t) in enumerate(types):
             assert len(self.c.find({str(i): {"$type": t}})) == 1
 
     def test_find_type_integer_values_identical_keys(self):
-        docs = [{"a": 1, "_id": "int"}, {"a": 1.0, "_id": "float"}]
+        docs = {"int": {"a": 1}, "float": {"a": 1.0}}
         self.c = _SlimCollection(docs)
         assert len(self.c.find({"a": {"$type": "int"}})) == 1
         assert len(self.c.find({"a": {"$type": "float"}})) == 1
