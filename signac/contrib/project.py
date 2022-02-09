@@ -1518,8 +1518,11 @@ class Project:
             configuration.
 
         """
+        # TODO: Remove both the `if args` and `if kwargs` blocks in version 3.0
+        # when we remove backwards compatibility for project name APIs.
         if args:
-            if len(args) == 1:
+            num_args = len(args)
+            if num_args == 1:
                 warnings.warn(
                     "Project names were removed in signac 2.0. If you intended to call "
                     "`init_project` with a root directory, please provided it as a keyword "
@@ -1530,22 +1533,22 @@ class Project:
                 )
             else:
                 # Match the usual error from misusing keyword-only args.
-                num_args = len(args)
                 raise TypeError(
                     f"init_project() takes 0 positional arguments but {num_args} "
-                    f"{'was' if num_args == 1 else 'were'} given"
+                    f"were given"
                 )
         if kwargs:
-            if len(kwargs) == 1 and "name" in kwargs:
+            name = kwargs.pop("name", None)
+            if kwargs:
+                # Match the usual error from extra keyword args.
+                raise TypeError(
+                    f"init_project() got an unexpected keyword argument '{next(iter(kwargs))}'"
+                )
+            if name is not None:
                 warnings.warn(
                     "Project names were removed in signac 2.0. If your project name contains "
                     "important information, consider storing it in the project document instead.",
                     FutureWarning,
-                )
-            else:
-                # Match the usual error from extra keyword args.
-                raise TypeError(
-                    f"init_project() got an unexpected keyword argument '{next(iter(kwargs))}'"
                 )
 
         if root is None:
@@ -2167,37 +2170,9 @@ def init_project(*args, root=None, workspace=None, make_dir=True, **kwargs):
         configuration.
 
     """
-    if args:
-        if len(args) == 1:
-            warnings.warn(
-                "Project names were removed in signac 2.0. If you intended to call "
-                "`init_project` with a root directory, please provided it as a keyword "
-                f"argument: `init_project(root={args[0]})`. If your project name "
-                "contains important information, consider storing it in the project document "
-                "instead.",
-                FutureWarning,
-            )
-        else:
-            # Match the usual error from misusing keyword-only args.
-            num_args = len(args)
-            raise TypeError(
-                f"init_project() takes 0 positional arguments but {num_args} "
-                "{'was' if num_args == 1 else 'were'} given"
-            )
-    if kwargs:
-        if len(kwargs) == 1 and "name" in kwargs:
-            warnings.warn(
-                "Project names were removed in signac 2.0. If your project name contains "
-                "important information, consider storing it in the project document instead.",
-                FutureWarning,
-            )
-        else:
-            # Match the usual error from extra keyword args.
-            raise TypeError(
-                f"init_project() got an unexpected keyword argument '{next(iter(kwargs))}'"
-            )
-
-    return Project.init_project(root=root, workspace=workspace, make_dir=make_dir)
+    return Project.init_project(
+        *args, root=root, workspace=workspace, make_dir=make_dir, **kwargs
+    )
 
 
 def get_project(root=None, search=True, **kwargs):
