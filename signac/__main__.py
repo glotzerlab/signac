@@ -721,10 +721,7 @@ def main_config_show(args):
         raise ValueError("You can specify either -l/--local or -g/--global, not both.")
     elif args.local:
         if os.path.isfile(config.PROJECT_CONFIG_FN):
-            if cfg is None:
-                cfg = config.read_config_file(config.PROJECT_CONFIG_FN)
-            else:
-                cfg.merge(config.read_config_file(config.PROJECT_CONFIG_FN))
+            cfg = config.read_config_file(config.PROJECT_CONFIG_FN)
     elif args.globalcfg:
         cfg = config.read_config_file(config.USER_CONFIG_FN)
     else:
@@ -759,10 +756,7 @@ def main_config_verify(args):
         raise ValueError("You can specify either -l/--local or -g/--global, not both.")
     elif args.local:
         if os.path.isfile(config.PROJECT_CONFIG_FN):
-            if cfg is None:
-                cfg = config.read_config_file(config.PROJECT_CONFIG_FN)
-            else:
-                cfg.merge(config.read_config_file(config.PROJECT_CONFIG_FN))
+            cfg = config.read_config_file(config.PROJECT_CONFIG_FN)
     elif args.globalcfg:
         cfg = config.read_config_file(config.USER_CONFIG_FN)
     else:
