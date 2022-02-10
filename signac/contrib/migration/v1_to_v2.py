@@ -4,6 +4,7 @@
 """Migrate from schema version 1 to version 2.
 
 This migration involves the following changes:
+    - Moving the signac.rc config file to .signac/config
 """
 
 import os

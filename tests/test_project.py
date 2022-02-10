@@ -10,6 +10,7 @@ import pickle
 import re
 import string
 import sys
+import textwrap
 import uuid
 from contextlib import contextmanager, redirect_stderr
 from tarfile import TarFile
@@ -2459,37 +2460,6 @@ class TestProjectSchema(TestProjectBase):
         with pytest.raises(RuntimeError):
             apply_migrations(self.project.root_directory())
 
-    @pytest.mark.parametrize("implicit_version", [True, False])
-    def test_project_schema_version_migration(self, implicit_version):
-        from signac.contrib.migration import apply_migrations
-
-        # First need to move the v2 config file to a suitable v0/v1 file.
-        v2_fn = _get_project_config_fn(self.project.root_directory())
-        v1_fn = self.project.fn("signac.rc")
-        os.rename(v2_fn, v1_fn)
-        os.rmdir(os.path.dirname(v2_fn))
-
-        # First need to move the v2 config file to a suitable v0/v1 file.
-        config = read_config_file(v1_fn)
-        if implicit_version:
-            del config["schema_version"]
-            assert "schema_version" not in config
-        else:
-            config["schema_version"] = "0"
-            assert config["schema_version"] == "0"
-        config.write()
-        err = io.StringIO()
-        with redirect_stderr(err):
-            apply_migrations(self.project.root_directory())
-        config = load_config(self.project.root_directory())
-        assert config["schema_version"] == "2"
-        project = signac.get_project(root=self.project.root_directory())
-        assert project.config["schema_version"] == "2"
-        assert "OK" in err.getvalue()
-        assert "0 to 1" in err.getvalue()
-        assert "1 to 2" in err.getvalue()
-        assert os.path.isfile(project.fn(PROJECT_CONFIG_FN))
-
     def test_no_migration(self):
         # This unit test should fail as long as there are no schema migrations
         # implemented within the signac.contrib.migration package.
@@ -2502,6 +2472,45 @@ class TestProjectSchema(TestProjectBase):
 
         migrations = list(_collect_migrations(self.project.root_directory()))
         assert len(migrations) == 0
+
+
+class TestSchemaMigration:
+    @pytest.mark.parametrize("implicit_version", [True, False])
+    def test_project_schema_version_migration(self, implicit_version):
+        from signac.contrib.migration import apply_migrations
+
+        with TemporaryDirectory() as dirname:
+            cfg_fn = os.path.join(dirname, "signac.rc")
+            with open(cfg_fn, "w") as f:
+                f.write(
+                    textwrap.dedent(
+                        """\
+                        project = project
+                        workspace_dir = workspace
+                        schema_version = 1"""
+                    )
+                )
+
+            config = read_config_file(cfg_fn)
+            print(config)
+            if implicit_version:
+                del config["schema_version"]
+                assert "schema_version" not in config
+            else:
+                config["schema_version"] = "0"
+                assert config["schema_version"] == "0"
+            config.write()
+            err = io.StringIO()
+            with redirect_stderr(err):
+                apply_migrations(dirname)
+            config = load_config(dirname)
+            assert config["schema_version"] == "2"
+            project = signac.get_project(root=dirname)
+            assert project.config["schema_version"] == "2"
+            assert "OK" in err.getvalue()
+            assert "0 to 1" in err.getvalue()
+            assert "1 to 2" in err.getvalue()
+            assert os.path.isfile(project.fn(PROJECT_CONFIG_FN))
 
 
 class TestProjectPickling(TestProjectBase):

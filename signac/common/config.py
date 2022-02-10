@@ -21,13 +21,12 @@ def _get_project_config_fn(root):
 
 
 def _get_config_dirname(fn):
-    # TODO: Is the string replace a sufficiently portable solution? We could
-    # use pathlib's `.paths` attribute, but that has significant performance
-    # implications: this takes ~200 ns, whereas
+    # We could use pathlib's `.paths` attribute to remove the trailing project
+    # config filename, but that has significant performance
+    # implications: it takes ~200 ns, whereas
     # os.path.join(*(pathlib.PosixPath(fn).parts[:-2])) takes ~6 us, almost a
-    # 20x slowdown. On the other hand, loading a project should not be a
-    # frequent operation that leading to bottlenecks.
-    return fn.replace(os.path.sep + PROJECT_CONFIG_FN, "")
+    # 20x slowdown.
+    return fn.replace(os.sep + PROJECT_CONFIG_FN, "")
 
 
 def _search_local(root):
