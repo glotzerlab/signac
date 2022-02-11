@@ -6,7 +6,7 @@
 
 __version__ = "1.7.0"
 
-SCHEMA_VERSION = "1"
+SCHEMA_VERSION = "2"
 
 
 __all__ = [
