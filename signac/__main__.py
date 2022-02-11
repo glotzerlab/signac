@@ -718,14 +718,10 @@ def main_config_show(args):
     if args.local and args.globalcfg:
         raise ValueError("You can specify either -l/--local or -g/--global, not both.")
     elif args.local:
-        for fn in config.CONFIG_FILENAMES:
-            if os.path.isfile(fn):
-                if cfg is None:
-                    cfg = config.read_config_file(fn)
-                else:
-                    cfg.merge(config.read_config_file(fn))
+        if os.path.isfile(config.PROJECT_CONFIG_FN):
+            cfg = config.read_config_file(config.PROJECT_CONFIG_FN)
     elif args.globalcfg:
-        cfg = config.read_config_file(config.FN_CONFIG)
+        cfg = config.read_config_file(config.USER_CONFIG_FN)
     else:
         cfg = config.load_config()
     if cfg is None:
@@ -757,14 +753,10 @@ def main_config_verify(args):
     if args.local and args.globalcfg:
         raise ValueError("You can specify either -l/--local or -g/--global, not both.")
     elif args.local:
-        for fn in config.CONFIG_FILENAMES:
-            if os.path.isfile(fn):
-                if cfg is None:
-                    cfg = config.read_config_file(fn)
-                else:
-                    cfg.merge(config.read_config_file(fn))
+        if os.path.isfile(config.PROJECT_CONFIG_FN):
+            cfg = config.read_config_file(config.PROJECT_CONFIG_FN)
     elif args.globalcfg:
-        cfg = config.read_config_file(config.FN_CONFIG)
+        cfg = config.read_config_file(config.USER_CONFIG_FN)
     else:
         cfg = config.load_config()
     if cfg is None:
@@ -790,11 +782,10 @@ def main_config_set(args):
     if args.local and args.globalcfg:
         raise ValueError("You can specify either -l/--local or -g/--global, not both.")
     elif args.local:
-        for fn_config in config.CONFIG_FILENAMES:
-            if os.path.isfile(fn_config):
-                break
+        if os.path.isfile(config.PROJECT_CONFIG_FN):
+            fn_config = config.PROJECT_CONFIG_FN
     elif args.globalcfg:
-        fn_config = config.FN_CONFIG
+        fn_config = config.USER_CONFIG_FN
     else:
         raise ValueError(
             "You need to specify either -l/--local or -g/--global "

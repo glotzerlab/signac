@@ -9,6 +9,7 @@ import os
 import pickle
 import re
 import sys
+import textwrap
 import uuid
 from contextlib import contextmanager, redirect_stderr
 from tarfile import TarFile
@@ -22,7 +23,12 @@ from packaging import version
 from test_job import TestJobBase
 
 import signac
-from signac.common.config import load_config, read_config_file
+from signac.common.config import (
+    PROJECT_CONFIG_FN,
+    _get_project_config_fn,
+    load_config,
+    read_config_file,
+)
 from signac.contrib.errors import (
     IncompatibleSchemaVersion,
     JobsCorruptedError,
@@ -2449,7 +2455,7 @@ class TestProjectSchema(TestProjectBase):
         assert version.parse(self.project.config["schema_version"]) < version.parse(
             impossibly_high_schema_version
         )
-        config = read_config_file(self.project.fn("signac.rc"))
+        config = read_config_file(_get_project_config_fn(self.project.root_directory()))
         config["schema_version"] = impossibly_high_schema_version
         config.write()
         with pytest.raises(IncompatibleSchemaVersion):
@@ -2461,33 +2467,11 @@ class TestProjectSchema(TestProjectBase):
 
         # Ensure that migration fails on an invalid version.
         invalid_schema_version = "0.5"
-        config = read_config_file(self.project.fn("signac.rc"))
+        config = read_config_file(_get_project_config_fn(self.project.root_directory()))
         config["schema_version"] = invalid_schema_version
         config.write()
         with pytest.raises(RuntimeError):
             apply_migrations(self.project.root_directory())
-
-    @pytest.mark.parametrize("implicit_version", [True, False])
-    def test_project_schema_version_migration(self, implicit_version):
-        from signac.contrib.migration import apply_migrations
-
-        config = read_config_file(self.project.fn("signac.rc"))
-        if implicit_version:
-            del config["schema_version"]
-            assert "schema_version" not in config
-        else:
-            config["schema_version"] = "0"
-            assert config["schema_version"] == "0"
-        config.write()
-        err = io.StringIO()
-        with redirect_stderr(err):
-            apply_migrations(self.project.root_directory())
-        config = read_config_file(self.project.fn("signac.rc"))
-        assert config["schema_version"] == "1"
-        project = signac.get_project(root=self.project.root_directory())
-        assert project.config["schema_version"] == "1"
-        assert "OK" in err.getvalue()
-        assert "0 to 1" in err.getvalue()
 
     def test_no_migration(self):
         # This unit test should fail as long as there are no schema migrations
@@ -2501,6 +2485,43 @@ class TestProjectSchema(TestProjectBase):
 
         migrations = list(_collect_migrations(self.project.root_directory()))
         assert len(migrations) == 0
+
+
+class TestSchemaMigration:
+    @pytest.mark.parametrize("implicit_version", [True, False])
+    def test_project_schema_version_migration(self, implicit_version):
+        from signac.contrib.migration import apply_migrations
+
+        with TemporaryDirectory() as dirname:
+            cfg_fn = os.path.join(dirname, "signac.rc")
+            with open(cfg_fn, "w") as f:
+                f.write(
+                    textwrap.dedent(
+                        """\
+                        project = project
+                        workspace_dir = workspace
+                        schema_version = 0"""
+                    )
+                )
+
+            config = read_config_file(cfg_fn)
+            if implicit_version:
+                del config["schema_version"]
+                assert "schema_version" not in config
+            else:
+                assert config["schema_version"] == "0"
+            config.write()
+            err = io.StringIO()
+            with redirect_stderr(err):
+                apply_migrations(dirname)
+            config = load_config(dirname)
+            assert config["schema_version"] == "2"
+            project = signac.get_project(root=dirname)
+            assert project.config["schema_version"] == "2"
+            assert "OK" in err.getvalue()
+            assert "0 to 1" in err.getvalue()
+            assert "1 to 2" in err.getvalue()
+            assert os.path.isfile(project.fn(PROJECT_CONFIG_FN))
 
 
 class TestProjectPickling(TestProjectBase):
