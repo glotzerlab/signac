@@ -2487,17 +2487,15 @@ class TestSchemaMigration:
                         """\
                         project = project
                         workspace_dir = workspace
-                        schema_version = 1"""
+                        schema_version = 0"""
                     )
                 )
 
             config = read_config_file(cfg_fn)
-            print(config)
             if implicit_version:
                 del config["schema_version"]
                 assert "schema_version" not in config
             else:
-                config["schema_version"] = "0"
                 assert config["schema_version"] == "0"
             config.write()
             err = io.StringIO()

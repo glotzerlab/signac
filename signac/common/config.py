@@ -23,7 +23,7 @@ def _get_project_config_fn(root):
 def _get_config_dirname(fn):
     # We could use pathlib's `.paths` attribute to remove the trailing project
     # config filename, but that has significant performance
-    # implications: it takes ~200 ns, whereas
+    # implications: this takes ~200 ns, whereas
     # os.path.join(*(pathlib.PosixPath(fn).parts[:-2])) takes ~6 us, almost a
     # 20x slowdown.
     return fn.replace(os.sep + PROJECT_CONFIG_FN, "")
