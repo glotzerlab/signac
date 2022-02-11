@@ -11,6 +11,7 @@ from packaging import version
 
 from ...version import SCHEMA_VERSION, __version__
 from .v0_to_v1 import _load_config_v1, _migrate_v0_to_v1
+from .v1_to_v2 import _load_config_v2, _migrate_v1_to_v2
 
 FN_MIGRATION_LOCKFILE = ".SIGNAC_PROJECT_MIGRATION_LOCK"
 
@@ -25,11 +26,13 @@ FN_MIGRATION_LOCKFILE = ".SIGNAC_PROJECT_MIGRATION_LOCK"
 # objects to the underlying config files.
 _CONFIG_LOADERS = {
     "1": _load_config_v1,
+    "2": _load_config_v2,
 }
 
 
 _MIGRATIONS = {
     ("0", "1"): _migrate_v0_to_v1,
+    ("1", "2"): _migrate_v1_to_v2,
 }
 
 _PARSED_SCHEMA_VERSION = version.parse(SCHEMA_VERSION)
