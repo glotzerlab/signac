@@ -21,7 +21,12 @@ from threading import RLock
 
 from packaging import version
 
-from ..common.config import Config, _load_config, _read_config_file
+from ..common.config import (
+    Config,
+    _get_project_config_fn,
+    _load_config,
+    _read_config_file,
+)
 from ..common.deprecation import deprecated
 from ..core.h5store import H5StoreManager
 from ..sync import sync_projects
@@ -1593,7 +1598,7 @@ class Project:
                     f"project document in which {name_key}={existing_name}."
                 )
         except LookupError:
-            fn_config = os.path.join(root, "signac.rc")
+            fn_config = _get_project_config_fn(root)
             if make_dir:
                 _mkdir_p(os.path.dirname(fn_config))
             config = _read_config_file(fn_config)
