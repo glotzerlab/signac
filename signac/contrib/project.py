@@ -1485,7 +1485,7 @@ class Project:
 
     @classmethod
     def init_project(cls, *args, root=None, workspace=None, make_dir=True, **kwargs):
-        """Initialize a project at the provided root directory.
+        """Initialize a project in the provided root directory.
 
         It is safe to call this function multiple times with the same
         arguments. However, a `RuntimeError` is raised if an existing project
@@ -1545,6 +1545,7 @@ class Project:
                     f"init_project() got an unexpected keyword argument '{next(iter(kwargs))}'"
                 )
             if name is not None:
+                assert version.parse(__version__).major < 3
                 warnings.warn(
                     "Project names were removed in signac 2.0. If your project name contains "
                     "important information, consider storing it in the project document instead.",
