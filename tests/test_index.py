@@ -55,7 +55,7 @@ INVALID_SYNTAX_EXPRESSIONS = [
 ]
 
 
-class TestSlimCollection:
+class TestIndex:
     @pytest.fixture(autouse=True)
     def setUp(self):
         self.c = _Index()
