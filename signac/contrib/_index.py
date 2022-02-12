@@ -33,6 +33,10 @@ class _Index(dict):
     query syntax is based on MongoDB, though this class does not aim to match
     the API of MongoDB's Collection class.
 
+    The dictionary values may be nested (may contain other dicts or lists), but
+    have two restrictions. First, the data must be JSON-encodable. Second, the
+    keys in the dictionary may not contain dots (``.``).
+
     For example, suppose we are given dictionaries of member data containing a
     `name` key and an `age` key along with unique identifiers acting as a
     primary key for each member. We can find the name of all members that are
@@ -47,8 +51,8 @@ class _Index(dict):
             # ...
         })
 
-        for doc in members.find({'age': 32}):
-            print(doc)  # prints 0 and 2
+        for member_id in members.find({'age': 32}):
+            print(member_id)  # prints 0 and 2
 
     Because this class inherits from :class:`dict`, it can be constructed in
     any of the same ways as a :class:`dict`, like ``_Index(**kwargs)``,
