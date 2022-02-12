@@ -103,20 +103,22 @@ class _Index(dict):
 
         for _id, doc in self.items():
             try:
-                v = doc[nodes[0]]
-                for n in nodes[1:]:
+                v = doc
+                # Recursively access nested values from dotted keys.
+                for n in nodes:
                     v = v[n]
-                if type(v) is dict:
-                    v = _DictPlaceholder
             except (KeyError, TypeError):
                 pass
             else:
-                if type(v) is list:  # avoid isinstance for performance
+                if type(v) is list:  # Avoid isinstance for performance.
                     index[_to_hashable(v)].add(_id)
                 else:
+                    if type(v) is dict:  # Avoid isinstance for performance.
+                        v = _DictPlaceholder
                     index[v].add(_id)
 
-            if len(nodes) > 1 and ".".join(nodes) in doc:
+            # If the original key has dots and is present, raise an error.
+            if len(nodes) > 1 and key in doc:
                 raise InvalidKeyError(
                     "Keys with dots ('.') are invalid.\n\n"
                     "See https://signac.io/document-wide-migration/ "
