@@ -71,41 +71,41 @@ class TestCollection:
         assert len(self.c) == 0
 
     def test_buffer_size(self):
-        docs = [{"a": i, "_id": str(i)} for i in range(10)]
+        docs = [{"a": i, "id_": str(i)} for i in range(10)]
         self.c = Collection(docs)
         assert len(self.c._file.getvalue()) == 0
         self.c.flush()
         assert len(self.c._file.getvalue()) > 0
 
     def test_init_with_list_with_ids_sequential(self):
-        docs = [{"a": i, "_id": str(i)} for i in range(10)]
+        docs = [{"a": i, "id_": str(i)} for i in range(10)]
         self.c = Collection(docs)
         assert len(self.c) == len(docs)
         for doc in docs:
-            assert doc["_id"] in self.c
+            assert doc["id_"] in self.c
 
     def test_init_with_list_with_ids_non_sequential(self):
-        docs = [{"a": i, "_id": f"{i ** 3:032d}"} for i in range(10)]
+        docs = [{"a": i, "id_": f"{i ** 3:032d}"} for i in range(10)]
         self.c = Collection(docs)
         assert len(self.c) == len(docs)
         for doc in docs:
-            assert doc["_id"] in self.c
+            assert doc["id_"] in self.c
 
     def test_init_with_list_without_ids(self):
         docs = [{"a": i} for i in range(10)]
         self.c = Collection(docs)
         assert len(self.c) == len(docs)
         for doc in docs:
-            assert doc["_id"] in self.c
+            assert doc["id_"] in self.c
 
     def test_init_with_list_with_and_without_ids(self):
         docs = [{"a": i} for i in range(10)]
         for i, doc in enumerate(islice(docs, 5)):
-            doc.setdefault("_id", str(i))
+            doc.setdefault("id_", str(i))
         self.c = Collection(docs)
         assert len(self.c) == len(docs)
         for doc in docs:
-            assert doc["_id"] in self.c
+            assert doc["id_"] in self.c
 
     def test_init_with_non_serializable(self):
         docs = [dict(a=array.array("f", [1, 2, 3])) for i in range(10)]
@@ -119,7 +119,7 @@ class TestCollection:
         assert self.c["0"] == doc
         assert list(self.c.find()) == [doc]
         with pytest.raises(ValueError):
-            self.c["0"] = dict(_id="1")
+            self.c["0"] = dict(id_="1")
         with pytest.raises(TypeError):
             self.c[0] = dict(a=0)
         with pytest.raises(TypeError):
@@ -151,7 +151,7 @@ class TestCollection:
         """
 
     def test_copy(self):
-        docs = [dict(_id=str(i)) for i in range(10)]
+        docs = [dict(id_=str(i)) for i in range(10)]
         self.c.update(docs)
         c2 = Collection(self.c)
         assert len(self.c) == len(c2)
@@ -171,16 +171,16 @@ class TestCollection:
 
     def test_contains(self):
         assert "0" not in self.c
-        _id = self.c.insert_one(dict())
-        assert _id in self.c
-        del self.c[_id]
-        assert _id not in self.c
-        docs = [dict(_id=str(i)) for i in range(10)]
+        id_ = self.c.insert_one(dict())
+        assert id_ in self.c
+        del self.c[id_]
+        assert id_ not in self.c
+        docs = [dict(id_=str(i)) for i in range(10)]
         self.c.update(docs)
-        for _id in self.c.ids:
-            assert _id in self.c
+        for id_ in self.c.ids:
+            assert id_ in self.c
         for doc in docs:
-            assert doc["_id"] in self.c
+            assert doc["id_"] in self.c
 
     def test_update(self):
         docs = [dict(a=i) for i in range(10)]
@@ -188,10 +188,10 @@ class TestCollection:
         assert len(self.c) == len(docs)
 
     def test_update_collision(self):
-        docs = [dict(_id=str(i), a=i) for i in range(10)]
+        docs = [dict(id_=str(i), a=i) for i in range(10)]
         self.c.update(docs)
         # Update the first ten, insert the second ten
-        new_docs = [dict(_id=str(i), a=i * 2) for i in range(20)]
+        new_docs = [dict(id_=str(i), a=i * 2) for i in range(20)]
         self.c.update(new_docs)
         assert len(self.c) == len(new_docs)
         assert self.c["0"] == new_docs[0]
@@ -204,28 +204,28 @@ class TestCollection:
         index = self.c.index("a", build=True)
         assert len(index) == len(self.c)
         for value, _ids in index.items():
-            for _id in _ids:
-                assert self.c[_id]["a"] == value
+            for id_ in _ids:
+                assert self.c[id_]["a"] == value
         index = self.c.index("b", build=True)
-        del self.c[docs[0]["_id"]]
+        del self.c[docs[0]["id_"]]
         assert len(self.c) == len(docs) - 1
         index = self.c.index("a", build=True)
         assert len(index) == len(self.c)
         for value, _ids in index.items():
-            for _id in _ids:
-                assert self.c[_id]["a"] == value
-        self.c[docs[0]["_id"]] = docs[0]
+            for id_ in _ids:
+                assert self.c[id_]["a"] == value
+        self.c[docs[0]["id_"]] = docs[0]
         index = self.c.index("a", build=True)
         assert len(index) == len(self.c)
         for value, _ids in index.items():
-            for _id in _ids:
-                assert self.c[_id]["a"] == value
+            for id_ in _ids:
+                assert self.c[id_]["a"] == value
         self.c["0"] = dict(a=-1)
         index = self.c.index("a", build=True)
         assert len(index) == len(self.c)
         for value, _ids in index.items():
-            for _id in _ids:
-                assert self.c[_id]["a"] == value
+            for id_ in _ids:
+                assert self.c[id_]["a"] == value
 
     def test_reindex(self):
         assert len(self.c) == 0
@@ -259,11 +259,11 @@ class TestCollection:
 
     def test_find_id(self):
         assert len(self.c.find()) == 0
-        assert len(self.c.find({"_id": "0"})) == 0
-        docs = [{"a": i, "_id": str(i)} for i in range(10)]
+        assert len(self.c.find({"id_": "0"})) == 0
+        docs = [{"a": i, "id_": str(i)} for i in range(10)]
         self.c.update(docs)
         assert len(self.c.find()) == len(docs)
-        assert len(self.c.find({"_id": "0"})) == 1
+        assert len(self.c.find({"id_": "0"})) == 1
 
     def test_find_integer(self):
         assert len(self.c.find()) == 0
@@ -280,7 +280,7 @@ class TestCollection:
         assert len(self.c.find(limit=5)) == 5
         assert len(self.c.find({"a": {"$type": "int"}})) == 10
         assert len(self.c.find({"a": {"$type": "float"}})) == 0
-        del self.c[docs[0]["_id"]]
+        del self.c[docs[0]["id_"]]
         assert len(self.c.find({"a": 0})) == 0
 
     def test_find_float(self):
@@ -298,7 +298,7 @@ class TestCollection:
         assert len(self.c.find(limit=5)) == 5
         assert len(self.c.find({"a": {"$type": "int"}})) == 0
         assert len(self.c.find({"a": {"$type": "float"}})) == 10
-        del self.c[docs[0]["_id"]]
+        del self.c[docs[0]["id_"]]
         assert len(self.c.find({"a": 0})) == 0
 
     def test_find_list(self):
@@ -317,8 +317,8 @@ class TestCollection:
         id_int = self.c.insert_one({"a": 1})
         assert len(self.c.find({"a": {"$type": "float"}})) == 1
         assert len(self.c.find({"a": {"$type": "int"}})) == 1
-        assert self.c.find_one({"a": {"$type": "float"}})["_id"] == id_float
-        assert self.c.find_one({"a": {"$type": "int"}})["_id"] == id_int
+        assert self.c.find_one({"a": {"$type": "float"}})["id_"] == id_float
+        assert self.c.find_one({"a": {"$type": "int"}})["id_"] == id_int
 
         # Reversing order
         self.c.clear()
@@ -326,8 +326,8 @@ class TestCollection:
         id_float = self.c.insert_one({"a": float(1.0)})
         assert len(self.c.find({"a": {"$type": "int"}})) == 1
         assert len(self.c.find({"a": {"$type": "float"}})) == 1
-        assert self.c.find_one({"a": {"$type": "int"}})["_id"] == id_int
-        assert self.c.find_one({"a": {"$type": "float"}})["_id"] == id_float
+        assert self.c.find_one({"a": {"$type": "int"}})["id_"] == id_int
+        assert self.c.find_one({"a": {"$type": "float"}})["id_"] == id_float
 
     def test_insert_docs_with_dots(self):
         with pytest.raises(InvalidKeyError):
@@ -341,9 +341,9 @@ class TestCollection:
         with pytest.raises(InvalidKeyError):
             self.c["0"] = {"a": {"b.c": 0}}
         with pytest.raises(InvalidKeyError):
-            self.c.update([{"_id": "0", "a.b": 0}])
+            self.c.update([{"id_": "0", "a.b": 0}])
         with pytest.raises(InvalidKeyError):
-            self.c.update([{"_id": "0", "a": {"b.c": 0}}])
+            self.c.update([{"id_": "0", "a": {"b.c": 0}}])
 
     def test_replace_docs_with_dots(self):
         self.c.insert_one({"a": 0})
@@ -382,7 +382,7 @@ class TestCollection:
         assert len(self.c.find({"a.b": 0})) == 1
         assert len(self.c.find({"a": {"b": 0}})) == 1
         assert list(self.c.find({"a.b": 0}))[0] == docs[0]
-        del self.c[docs[0]["_id"]]
+        del self.c[docs[0]["id_"]]
         assert len(self.c.find({"a.b": 0})) == 0
         assert len(self.c.find({"a": {"b": 0}})) == 0
 
@@ -395,12 +395,12 @@ class TestCollection:
 
     def test_replace_one_simple(self):
         assert len(self.c) == 0
-        doc = {"_id": "0", "a": 0}
-        self.c.replace_one({"_id": "0"}, doc, upsert=False)
+        doc = {"id_": "0", "a": 0}
+        self.c.replace_one({"id_": "0"}, doc, upsert=False)
         assert len(self.c) == 0
-        self.c.replace_one({"_id": "0"}, doc, upsert=True)
+        self.c.replace_one({"id_": "0"}, doc, upsert=True)
         assert len(self.c) == 1
-        self.c.replace_one({"_id": "0"}, doc, upsert=True)
+        self.c.replace_one({"id_": "0"}, doc, upsert=True)
         assert len(self.c) == 1
 
     def test_replace_one(self):
@@ -620,7 +620,7 @@ class TestCompressedCollection(TestCollection):
 
     def test_compression(self):
         # Fill with data
-        docs = [dict(_id=str(i)) for i in range(10)]
+        docs = [dict(id_=str(i)) for i in range(10)]
         self.c.update(docs)
         self.c.flush()
 
@@ -666,7 +666,7 @@ class TestCollectionToFromJson:
         request.addfinalizer(self._tmp_dir.cleanup)
         self._fn_json = os.path.join(self._tmp_dir.name, "test.json")
         self.c = Collection.open(filename=":memory:")
-        docs = [dict(_id=str(i)) for i in range(10)]
+        docs = [dict(id_=str(i)) for i in range(10)]
         self.c.update(docs)
         self.c.flush()
 
@@ -686,7 +686,7 @@ class TestFileCollectionReadOnly:
         request.addfinalizer(self._tmp_dir.cleanup)
         self._fn_collection = os.path.join(self._tmp_dir.name, "test.txt")
         with Collection.open(self._fn_collection, "w") as c:
-            c.update([dict(_id=str(i)) for i in range(10)])
+            c.update([dict(id_=str(i)) for i in range(10)])
 
     def test_read(self):
         c = Collection.open(self._fn_collection, mode="r")
@@ -721,13 +721,13 @@ class TestFileCollection(TestCollection):
         request.addfinalizer(self.c.close)
 
     def test_write_and_flush(self):
-        docs = [dict(_id=str(i)) for i in range(10)]
+        docs = [dict(id_=str(i)) for i in range(10)]
         self.c.update(docs)
         self.c.flush()
         assert os.path.getsize(self._fn_collection) > 0
 
     def test_write_flush_and_reopen(self):
-        docs = [dict(_id=str(i)) for i in range(10)]
+        docs = [dict(id_=str(i)) for i in range(10)]
         self.c.update(docs)
         self.c.flush()
         assert os.path.getsize(self._fn_collection) > 0
@@ -735,7 +735,7 @@ class TestFileCollection(TestCollection):
         with Collection.open(self._fn_collection) as c:
             assert len(c) == len(docs)
             for doc in self.c:
-                assert doc["_id"] in c
+                assert doc["id_"] in c
 
 
 class TestBinaryFileCollection(TestCollection):
@@ -746,7 +746,7 @@ class TestFileCollectionAppend(TestFileCollection):
     mode = "a"
 
     def test_file_size(self):
-        docs = [dict(_id=str(i)) for i in range(10)]
+        docs = [dict(id_=str(i)) for i in range(10)]
 
         with open(self._fn_collection) as f:
             assert len(list(f)) == 0
@@ -757,7 +757,7 @@ class TestFileCollectionAppend(TestFileCollection):
         with Collection.open(self._fn_collection) as c:
             assert len(c) == len(docs)
             for doc in docs:
-                c.replace_one({"_id": doc["_id"]}, doc)
+                c.replace_one({"id_": doc["id_"]}, doc)
         with Collection.open(self._fn_collection) as c:
             assert len(c) == len(docs)
         with open(self._fn_collection) as f:
@@ -781,7 +781,7 @@ class TestZippedFileCollection(TestFileCollection):
     mode = "wb"
 
     def test_compression_level(self):
-        docs = [dict(_id=str(i)) for i in range(10)]
+        docs = [dict(id_=str(i)) for i in range(10)]
         self.c.update(docs)
         self.c.flush()
         fn_txt = self._fn_collection + ".txt"

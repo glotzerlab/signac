@@ -75,38 +75,38 @@ class LocalFS:
             type(self), ", ".join(f"{k}={v}" for k, v in self.config().items())
         )
 
-    def _fn(self, _id, n=2, suffix=".dat"):
+    def _fn(self, id_, n=2, suffix=".dat"):
         fn = (
-            os.path.join(self.root, *(_id[i : i + n] for i in range(0, len(_id), n)))
+            os.path.join(self.root, *(id_[i : i + n] for i in range(0, len(id_), n)))
             + suffix
         )
         return fn
 
-    def new_file(self, _id, mode=None):
-        """Create a new file for _id.
+    def new_file(self, id_, mode=None):
+        """Create a new file for id_.
 
-        :param _id: The file identifier.
-        :type _id: str
+        :param id_: The file identifier.
+        :type id_: str
         :returns: A file-like object to write to."""
         if mode is None:
             mode = "xb"
         if "x" not in mode:
             raise ValueError(mode)
-        fn = self._fn(_id)
+        fn = self._fn(id_)
         _mkdir_p(os.path.dirname(fn))
         return open(fn, mode=mode)
 
-    def get(self, _id, mode="r"):
+    def get(self, id_, mode="r"):
         """Open the file with the specified id.
 
-        :param _id: The file identifier.
-        :type _id: str
+        :param id_: The file identifier.
+        :type id_: str
         :param mode: The file mode used for opening.
         :returns: A file-like object to read from."""
 
         if "r" not in mode:
             raise ValueError(mode)
-        return open(self._fn(_id), mode=mode)
+        return open(self._fn(id_), mode=mode)
 
 
 _register_fs_class(LocalFS)
@@ -165,15 +165,15 @@ if GRIDFS:
                 self._gridfs = gridfs.GridFS(self.db, collection=self.collection)
             return self._gridfs
 
-        def new_file(self, _id):
-            """Create a new file for _id.
+        def new_file(self, id_):
+            """Create a new file for id_.
 
-            :param _id: The file identifier.
-            :type _id: str
+            :param id_: The file identifier.
+            :type id_: str
             :returns: A file-like object to write to."""
-            return self.gridfs.new_file(_id=_id)
+            return self.gridfs.new_file(id_=id_)
 
-        def get(self, _id, mode="r"):
+        def get(self, id_, mode="r"):
             """Open the file with the specified id.
 
             .. warning::
@@ -183,19 +183,19 @@ if GRIDFS:
                 for higher efficiency, files should generally
                 be opened in binary mode (`rb`) whenever possible.
 
-            :param _id: The file identifier.
-            :type _id: str
+            :param id_: The file identifier.
+            :type id_: str
             :param mode: The file mode used for opening.
             :returns: A file-like object to read from."""
             if mode == "r":
-                file = io.StringIO(self.gridfs.get(_id).read().decode())
+                file = io.StringIO(self.gridfs.get(id_).read().decode())
                 if len(file.getvalue()) > GRIDFS_LARGE_FILE_WARNING_THRSHLD:
                     warnings.warn(
                         "Open large GridFS files more efficiently in 'rb' mode."
                     )
                 return file
             elif mode == "rb":
-                return self.gridfs.get(file_id=_id)
+                return self.gridfs.get(file_id=id_)
             else:
                 raise ValueError(mode)
 

@@ -62,20 +62,20 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
 
     if index is None:
         if job_ids is None:
-            index = [{"_id": job.id, "sp": job.sp()} for job in project]
+            index = [{"id_": job.id, "sp": job.sp()} for job in project]
             jobs = list(project)
         else:
             index = [
-                {"_id": job_id, "sp": project.open_job(id=job_id).sp()}
+                {"id_": job_id, "sp": project.open_job(id=job_id).sp()}
                 for job_id in job_ids
             ]
             jobs = list(project.open_job(id=job_id) for job_id in job_ids)
     elif job_ids is not None:
         if not isinstance(job_ids, set):
             job_ids = set(job_ids)
-        index = [doc for doc in index if doc["_id"] in job_ids]
+        index = [doc for doc in index if doc["id_"] in job_ids]
         jobs = list(project.open_job(id=job_id) for job_id in job_ids)
-        if not job_ids.issubset({doc["_id"] for doc in index}):
+        if not job_ids.issubset({doc["id_"] for doc in index}):
             raise ValueError("Insufficient index for selected data space.")
 
     key_list = [k for job in jobs for k in job.statepoint().keys()]

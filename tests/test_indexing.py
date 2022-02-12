@@ -89,28 +89,28 @@ class _TestFS:
             self.cache[self.file_id] = self.getvalue()
             super(_TestFS._Writer, self).close()
 
-    def __init__(self, _id="_testFS"):
-        self._id = _id
+    def __init__(self, id_="_testFS"):
+        self.id_ = id_
 
     def config(self):
-        return {"id": self._id}
+        return {"id": self.id_}
 
     @classmethod
     def from_config(cls, config):
-        return _TestFS(_id=config["id"])
+        return _TestFS(id_=config["id"])
 
     def new_file(self, mode="xb", **kwargs):
-        _id = kwargs["_id"]
-        cache = self.files.setdefault(self._id, dict())
-        if _id in cache:
-            raise self.FileExistsError(_id)
+        id_ = kwargs["id_"]
+        cache = self.files.setdefault(self.id_, dict())
+        if id_ in cache:
+            raise self.FileExistsError(id_)
         if mode == "xb":
-            return self._Writer(cache, _id)
+            return self._Writer(cache, id_)
         else:
             raise ValueError(mode)
 
     def get(self, file_id, mode="r"):
-        cache = self.files[self._id]
+        cache = self.files[self.id_]
         buf = cache[file_id]
         if mode == "r":
             return io.StringIO(buf.decode())
@@ -281,7 +281,7 @@ class TestIndexingBase:
         for i, doc in enumerate(docs):
             assert doc["a"] == i
             assert doc["format"] is None
-        ids = {doc["_id"] for doc in docs}
+        ids = {doc["id_"] for doc in docs}
         assert len(ids) == len(docs)
 
     def test_main_crawler(self):
@@ -352,7 +352,7 @@ class TestIndexingBase:
                 signac.export_one(doc, index)
             assert index.replace_one.called
             for doc in crawler.crawl():
-                assert index.find_one({"_id": doc["_id"]}) is not None
+                assert index.find_one({"id_": doc["id_"]}) is not None
 
     def test_export(self):
         self.setup_project()
@@ -363,7 +363,7 @@ class TestIndexingBase:
             signac.export(crawler.crawl(), index)
             assert index.replace_one.called or index.bulk_write.called
             for doc in crawler.crawl():
-                assert index.find_one({"_id": doc["_id"]}) is not None
+                assert index.find_one({"id_": doc["id_"]}) is not None
 
     def test_export_with_update(self):
         self.setup_project()
@@ -374,7 +374,7 @@ class TestIndexingBase:
             signac.export(index, collection, update=True)
         assert collection.replace_one.called or collection.bulk_write.called
         for doc in index:
-            assert collection.find_one({"_id": doc["_id"]}) is not None
+            assert collection.find_one({"id_": doc["id_"]}) is not None
         collection.reset_mock()
         assert len(index) == collection.find().count()
         assert collection.find.called
@@ -382,7 +382,7 @@ class TestIndexingBase:
             signac.export(index, collection, update=True)
         assert collection.replace_one.called or collection.bulk_write.called
         for doc in index:
-            assert collection.find_one({"_id": doc["_id"]}) is not None
+            assert collection.find_one({"id_": doc["id_"]}) is not None
         assert len(index) == collection.find().count()
         collection.reset_mock()
         for fn in ("a_0.txt", "a_1.txt"):
@@ -422,7 +422,7 @@ class TestIndexingBase:
                 signac.export_to_mirror(doc, mirror)
             assert index.replace_one.called
             for doc in crawler.crawl():
-                assert index.find_one({"_id": doc["_id"]}) is not None
+                assert index.find_one({"id_": doc["id_"]}) is not None
                 with mirror.get(doc["file_id"]):
                     pass
 

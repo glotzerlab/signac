@@ -93,7 +93,7 @@ class _StatePointDict(JSONAttrDict):
         # All elements of the job list are shallow copies of each other, so any
         # one of them is representative.
         job = next(iter(self._jobs))
-        old_id = job._id
+        old_id = job.id_
         if old_id == new_id:
             return
 
@@ -122,7 +122,7 @@ class _StatePointDict(JSONAttrDict):
 
         # Update each job instance.
         for job in self._jobs:
-            job._id = new_id
+            job.id_ = new_id
             job._initialize_lazy_properties()
 
         # Remove the temporary state point file if it was created. Have to do it
@@ -227,7 +227,7 @@ class Job:
     Application developers should not directly instantiate this class, but
     use :meth:`~signac.Project.open_job` instead.
 
-    Jobs can be opened by ``statepoint`` or ``_id``. If both values are
+    Jobs can be opened by ``statepoint`` or ``id_``. If both values are
     provided, it is the user's responsibility to ensure that the values
     correspond.
 
@@ -237,7 +237,7 @@ class Job:
         Project handle.
     statepoint : dict
         State point for the job. (Default value = None)
-    _id : str
+    id_ : str
         The job identifier. (Default value = None)
 
     """
@@ -255,17 +255,17 @@ class Job:
     KEY_DATA = "signac_data"
     "The job's datastore key."
 
-    def __init__(self, project, statepoint=None, _id=None):
+    def __init__(self, project, statepoint=None, id_=None):
         self._project = project
         self._lock = RLock()
         self._initialize_lazy_properties()
 
-        if statepoint is None and _id is None:
-            raise ValueError("Either statepoint or _id must be provided.")
+        if statepoint is None and id_ is None:
+            raise ValueError("Either statepoint or id_ must be provided.")
         elif statepoint is not None:
             self._statepoint_requires_init = False
             try:
-                self._id = calc_id(statepoint) if _id is None else _id
+                self.id_ = calc_id(statepoint) if id_ is None else id_
             except TypeError:
                 raise KeyTypeError
             self._statepoint = _StatePointDict(
@@ -276,7 +276,7 @@ class Job:
             self._project._register(self.id, statepoint)
         else:
             # Only an id was provided. State point will be loaded lazily.
-            self._id = _id
+            self.id_ = id_
             self._statepoint_requires_init = True
 
     def _initialize_lazy_properties(self):
@@ -302,7 +302,7 @@ class Job:
             The job id.
 
         """
-        return self._id
+        return self.id_
 
     @property
     def id(self):
@@ -314,7 +314,7 @@ class Job:
             The job id.
 
         """
-        return self._id
+        return self.id_
 
     def __hash__(self):
         return hash(self.id)

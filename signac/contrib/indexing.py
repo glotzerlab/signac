@@ -119,7 +119,7 @@ class BaseCrawler:
                 for doc in self.docs_from_file(dirpath, fn):
                     logger.debug(f"doc from file: '{os.path.join(dirpath, fn)}'.")
                     doc.setdefault(KEY_PAYLOAD, None)
-                    doc.setdefault("_id", self._calculate_hash(doc, dirpath, fn))
+                    doc.setdefault("id_", self._calculate_hash(doc, dirpath, fn))
                     yield doc
         logger.info(f"Crawl of '{self.root}' done.")
 
@@ -358,7 +358,7 @@ def _index_signac_project_workspace(
     fn_statepoint="signac_statepoint.json",
     fn_job_document="signac_job_document.json",
     statepoint_index="statepoint",
-    signac_id_alias="_id",
+    signac_id_alias="id_",
     encoding="utf-8",
     statepoint_dict=None,
 ):
@@ -417,7 +417,7 @@ class SignacProjectCrawler(RegexFileCrawler):
     statepoint_index = "statepoint"
     fn_statepoint = "signac_statepoint.json"
     fn_job_document = "signac_job_document.json"
-    signac_id_alias = "_id"
+    signac_id_alias = "id_"
 
     @deprecated(
         deprecated_in="1.3",
@@ -702,7 +702,7 @@ def fetched(docs):
 
 def _export_to_mirror(file, file_id, mirror):
     "Export a file-like object with file_id to mirror."
-    with mirror.new_file(_id=file_id) as dst:
+    with mirror.new_file(id_=file_id) as dst:
         dst.write(file.read())
 
 
@@ -770,13 +770,13 @@ def export_one(doc, index, mirrors=None, num_tries=3, timeout=60):
     :type timeout: int
     :returns: The id and file id after successful export.
     """
-    index.replace_one({"_id": doc["_id"]}, doc, upsert=True)
+    index.replace_one({"id_": doc["id_"]}, doc, upsert=True)
     if mirrors and "file_id" in doc:
         for mirror in mirrors:
             export_to_mirror(doc, mirror, num_tries, timeout)
-        return doc["_id"], doc["file_id"]
+        return doc["id_"], doc["file_id"]
     else:
-        return doc["_id"], None
+        return doc["id_"], None
 
 
 @deprecated(
@@ -799,7 +799,7 @@ def export(docs, index, mirrors=None, update=False, num_tries=3, timeout=60, **k
     automatically identify stale index documents, that means documents
     that refer to files or state points that have been removed and are
     no longer part of the data space. Any document which shares the
-    `root`, but not the `_id` field with any of the updated documents
+    `root`, but not the `id_` field with any of the updated documents
     is considered stale and removed. Using `update` in combination with
     an empty docs sequence will raise `ExportError`, since it is not
     possible to identify stale documents in that case.
@@ -846,21 +846,21 @@ def export(docs, index, mirrors=None, update=False, num_tries=3, timeout=60, **k
             )
     ids = defaultdict(list)
     for doc in docs:
-        _id, _ = export_one(doc, index, mirrors, num_tries, timeout, **kwargs)
+        id_, _ = export_one(doc, index, mirrors, num_tries, timeout, **kwargs)
         if update:
             root = doc.get("root")
             if root is not None:
-                ids[root].append(_id)
+                ids[root].append(id_)
     if update:
         if ids:
             stale = set()
             for root in ids:
                 docs_ = index.find({"root": root})
-                all_ = {doc["_id"] for doc in docs_}
+                all_ = {doc["id_"] for doc in docs_}
                 stale.update(all_.difference(ids[root]))
             logger.info(f"Removing {len(stale)} stale documents.")
-            for _id in set(stale):
-                index.delete_one(dict(_id=_id))
+            for id_ in set(stale):
+                index.delete_one(dict(id_=id_))
         else:
             raise errors.ExportError(
                 "The exported docs sequence is empty! Unable to update!"
@@ -928,11 +928,11 @@ def export_pymongo(
     operations = []
     ids = defaultdict(list)
     for doc in docs:
-        f = {"_id": doc["_id"]}
+        f = {"id_": doc["id_"]}
         if update:
             root = doc.get("root")
             if root is not None:
-                ids[root].append(doc["_id"])
+                ids[root].append(doc["id_"])
         chunk.append(doc)
         operations.append(pymongo.ReplaceOne(f, doc, upsert=True))
         if len(chunk) >= chunksize:
@@ -948,11 +948,11 @@ def export_pymongo(
             stale = set()
             for root in ids:
                 docs_ = index.find({"root": root})
-                all_ = {doc["_id"] for doc in docs_}
+                all_ = {doc["id_"] for doc in docs_}
                 stale.update(all_.difference(ids[root]))
             logger.info(f"Removing {len(stale)} stale documents.")
-            for _id in set(stale):
-                index.delete_one(dict(_id=_id))
+            for id_ in set(stale):
+                index.delete_one(dict(id_=id_))
         else:
             raise errors.ExportError(
                 "The exported docs sequence is empty! Unable to update!"

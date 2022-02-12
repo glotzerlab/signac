@@ -660,7 +660,7 @@ class TestProject(TestProjectBase):
             self.project.open_job(sp).document["test"] = True
         job_ids = {job.id for job in self.project.find_jobs()}
         docs = list(self.project.index())
-        job_ids_cmp = {doc["_id"] for doc in docs}
+        job_ids_cmp = {doc["id_"] for doc in docs}
         assert job_ids == job_ids_cmp
         assert len(docs) == len(statepoints)
         for sp in statepoints:
@@ -673,7 +673,7 @@ class TestProject(TestProjectBase):
             )
         )
         assert len(docs) == 2 * len(statepoints)
-        assert len({doc["_id"] for doc in docs}) == len(docs)
+        assert len({doc["id_"] for doc in docs}) == len(docs)
 
     # Index schema is changed
     @pytest.mark.xfail()
@@ -684,16 +684,16 @@ class TestProject(TestProjectBase):
         job_ids = {job.id for job in self.project.find_jobs()}
         index = {}
         for doc in self.project.index():
-            index[doc["_id"]] = doc
+            index[doc["id_"]] = doc
         assert len(index) == len(job_ids)
         assert set(index.keys()) == set(job_ids)
         crawler = signac.contrib.SignacProjectCrawler(self.project.root_directory())
         index2 = {}
         for doc in crawler.crawl():
-            index2[doc["_id"]] = doc
-        for _id, _id2 in zip(index, index2):
-            assert _id == _id2
-            assert index[_id] == index2[_id]
+            index2[doc["id_"]] = doc
+        for id_, _id2 in zip(index, index2):
+            assert id_ == _id2
+            assert index[id_] == index2[id_]
         assert index == index2
         for job in self.project.find_jobs():
             with open(job.fn("test.txt"), "w") as file:
@@ -701,7 +701,7 @@ class TestProject(TestProjectBase):
         formats = {r".*" + re.escape(os.path.sep) + r"test\.txt": "TextFile"}
         index = {}
         for doc in self.project.index(formats):
-            index[doc["_id"]] = doc
+            index[doc["id_"]] = doc
         assert len(index) == 2 * len(job_ids)
 
         class Crawler(signac.contrib.SignacProjectCrawler):
@@ -711,7 +711,7 @@ class TestProject(TestProjectBase):
                 Crawler.called = True
                 doc = super().process(doc=doc, dirpath=dirpath, fn=fn)
                 if "format" in doc and doc["format"] is None:
-                    assert doc["_id"] == doc["signac_id"]
+                    assert doc["id_"] == doc["signac_id"]
                 return doc
 
         for p, fmt in formats.items():
@@ -719,7 +719,7 @@ class TestProject(TestProjectBase):
                 Crawler.define(p, fmt)
         index2 = {}
         for doc in Crawler(root=self.project.root_directory()).crawl():
-            index2[doc["_id"]] = doc
+            index2[doc["id_"]] = doc
         assert index == index2
         assert Crawler.called
 
@@ -1764,7 +1764,7 @@ class TestLinkedViewProject(TestProjectBase):
         job_subset = self.project.find_jobs({"b": 0})
         id_subset = [job.id for job in job_subset]
 
-        bad_index = [dict(_id=i) for i in range(3)]
+        bad_index = [dict(id_=i) for i in range(3)]
         with pytest.raises(ValueError):
             self.project.create_linked_view(
                 prefix=view_prefix, job_ids=id_subset, index=bad_index
@@ -2469,7 +2469,7 @@ class TestProjectInit:
         job_a.init()
         job_b = project_b.open_job({"b": 1})
         job_b.init()
-        symlink_path = os.path.join(project_b.workspace(), job_a._id)
+        symlink_path = os.path.join(project_b.workspace(), job_a.id_)
         os.symlink(job_a.ws, symlink_path)
         assert project_a.get_job(symlink_path) == job_a
         assert project_b.get_job(symlink_path) == job_a

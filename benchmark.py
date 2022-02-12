@@ -361,11 +361,11 @@ def read_benchmark(filename, filter=None, include_metadata=False):
         docs = list(c.find(filter))
 
     df_data = pd.DataFrame(
-        {doc["_id"]: dict(normalize(doc["data"], doc["meta"]["N"])) for doc in docs}
+        {doc["id_"]: dict(normalize(doc["data"], doc["meta"]["N"])) for doc in docs}
     ).T
 
     if include_metadata:
-        df_meta = pd.DataFrame({doc["_id"]: doc["meta"] for doc in docs}).T
+        df_meta = pd.DataFrame({doc["id_"]: doc["meta"] for doc in docs}).T
         return pd.concat([df_meta, df_data], axis=1)
     else:
         return df_data
