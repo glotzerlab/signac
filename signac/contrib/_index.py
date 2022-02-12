@@ -116,18 +116,12 @@ class _Index(dict):
                 else:
                     index[v].add(_id)
 
-            if len(nodes) > 1:
-                try:
-                    v = doc[".".join(nodes)]
-                except KeyError:
-                    pass
-                else:
-                    raise InvalidKeyError(
-                        "\nThe document contains invalid keys. "
-                        "Specifically keys with dots ('.').\n\n"
-                        "See https://signac.io/document-wide-migration/ "
-                        "for a recipe on how to replace dots in existing keys."
-                    )
+            if len(nodes) > 1 and ".".join(nodes) in doc:
+                raise InvalidKeyError(
+                    "Keys with dots ('.') are invalid.\n\n"
+                    "See https://signac.io/document-wide-migration/ "
+                    "for a recipe on how to replace dots in existing keys."
+                )
         logger.debug(f"Built index for key '{key}'.")
         return index
 
