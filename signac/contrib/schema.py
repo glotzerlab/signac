@@ -9,7 +9,7 @@ from collections.abc import Mapping
 from numbers import Number
 from pprint import pformat
 
-from .collection import _DictPlaceholder
+from ._index import _remove_dict_placeholder
 from .utility import _nested_dicts_to_dotted_keys
 
 
@@ -47,23 +47,6 @@ def _collect_by_type(values):
 
 def _strip_prefix(key):
     return key[len("sp.") :]
-
-
-def _remove_dict_placeholder(x):
-    """Remove _DictPlaceholder elements from a mapping.
-
-    Parameters
-    ----------
-    x : dict
-        Dictionary from which ``_DictPlaceholder`` values will be removed.
-
-    Returns
-    -------
-    dict
-        Dictionary with ``_DictPlaceholder`` keys removed.
-
-    """
-    return {key: value for key, value in x.items() if key is not _DictPlaceholder}
 
 
 def _build_job_statepoint_index(exclude_const, index):

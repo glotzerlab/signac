@@ -23,6 +23,23 @@ logger = logging.getLogger(__name__)
 _PRIMARY_KEY = "_id"
 
 
+def _remove_dict_placeholder(x):
+    """Remove _DictPlaceholder elements from a mapping.
+
+    Parameters
+    ----------
+    x : dict
+        Dictionary from which ``_DictPlaceholder`` values will be removed.
+
+    Returns
+    -------
+    dict
+        Dictionary with ``_DictPlaceholder`` keys removed.
+
+    """
+    return {key: value for key, value in x.items() if key is not _DictPlaceholder}
+
+
 class _Index(dict):
     """A searchable collection of dicts.
 
@@ -254,7 +271,6 @@ class _Index(dict):
                 or_results.update(self._find_result(expr_))
             reduce_results(or_results)
 
-        assert result_ids is not None
         return result_ids
 
     def find(self, filter_=None):
