@@ -15,7 +15,6 @@ from .collection import (
     _find_with_index_operator,
     _float,
     _TypedSetDefaultDict,
-    _valid_filter,
 )
 from .utility import _nested_dicts_to_dotted_keys, _to_hashable
 
@@ -95,7 +94,6 @@ class _Index(dict):
             except (KeyError, TypeError):
                 pass
             else:
-                # inlined for performance
                 if type(v) is list:  # avoid isinstance for performance
                     index[_to_hashable(v)].add(_id)
                 else:
@@ -259,7 +257,7 @@ class _Index(dict):
         assert result_ids is not None
         return result_ids
 
-    def find(self, filter=None):
+    def find(self, filter_=None):
         """Return a result vector of ids for the given filter and limit.
 
         This function normalizes the filter argument and then attempts to
@@ -279,7 +277,7 @@ class _Index(dict):
 
         Parameters
         ----------
-        filter : dict
+        filter_ : dict
             The filter argument that all documents must match (Default value = None).
 
         Returns
@@ -293,10 +291,10 @@ class _Index(dict):
             When the filter argument is invalid.
 
         """
-        if not filter:
+        if not filter_:
             return set(self)
 
-        filter = json.loads(json.dumps(filter))  # Normalize
-        if not _valid_filter(filter):
-            raise ValueError(filter)
-        return set(self._find_result(filter))
+        filter_ = json.loads(json.dumps(filter_))  # Normalize
+        if type(filter_) is not dict:
+            raise ValueError(filter_)
+        return set(self._find_result(filter_))
