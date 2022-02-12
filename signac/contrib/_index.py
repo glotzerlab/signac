@@ -25,35 +25,34 @@ _PRIMARY_KEY = "_id"
 
 
 class _Index(dict):
-    """A collection of documents, optimized for minimal use cases in signac.
+    """A searchable collection of dicts.
 
-    The _Index class manages a collection of documents in memory.
-    A document is defined as a dictionary mapping of key-value pairs. Each
-    document is identified by a unique id. The _Index class is a
-    mapping from ids to documents, inheriting from :py:class:`dict`.
+    The _Index class is a :class:`dict` that maps from ids to :class:`dict`s.
+    The :class:`dict`s stored as values can be searched by their contained keys
+    and values, returning ids for the values matching the provided query. The
+    query syntax is based on MongoDB, though this class does not aim to match
+    the API of MongoDB's Collection class.
 
-    An instance of _Index may be used to manage and search documents.
-    For example, given a collection with member data, where each document
-    contains a `name` entry and an `age` entry, we can find the name of
-    all members that are at age 32 like this:
+    For example, suppose we are given dictionaries of member data containing a
+    `name` key and an `age` key along with unique identifiers acting as a
+    primary key for each member. We can find the name of all members that are
+    age 32 like this:
 
     .. code-block:: python
 
-        members = {
+        members = _Index({
             '0': {'name': 'John',  'age': 32},
             '1': {'name': 'Alice', 'age': 28},
             '2': {'name': 'Kevin', 'age': 32},
             # ...
-        }
+        })
 
-        member_collection = _Index(members)
-        for doc in member_collection.find({'age': 32}):
+        for doc in members.find({'age': 32}):
             print(doc)  # prints 0 and 2
 
-    Parameters
-    ----------
-    docs : iterable
-        Initialize the collection with these documents.
+    Because this class inherits from :class:`dict`, it can be constructed in
+    any of the same ways as a :class:`dict`, like ``_Index(**kwargs)``,
+    ``_Index(mapping, **kwargs)``, or ``_Index(iterable, **kwargs)``.
 
     """
 
