@@ -1041,27 +1041,31 @@ class TestProject(TestProjectBase):
         assert not os.path.isdir(tmp_root_dir)
 
 
+# Use the major version to fail tests expected to fail in 3.0.
+_MAJOR_VERSION = int(version.parse(signac.__version__).public.split(".")[0])
+
+
 class TestProjectNameDeprecations:
     @pytest.fixture(autouse=True)
     def setUp(self, request):
         self._tmp_dir = TemporaryDirectory()
 
     def test_name_only_positional(self):
-        assert version.parse(signac.__version__).release[0] < 3
+        assert _MAJOR_VERSION < 3
         with pytest.warns(
             FutureWarning, match="Project names were removed in signac 2.0"
         ):
             signac.init_project("project", root=self._tmp_dir.name)
 
     def test_name_with_other_args_positional(self):
-        assert version.parse(signac.__version__).release[0] < 3
+        assert _MAJOR_VERSION < 3
         with pytest.raises(
             TypeError, match="takes 0 positional arguments but 2 were given"
         ):
             signac.init_project("project", self._tmp_dir.name)
 
     def test_name_only_keyword(self):
-        assert version.parse(signac.__version__).release[0] < 3
+        assert _MAJOR_VERSION < 3
         os.chdir(self._tmp_dir.name)
         with pytest.warns(
             FutureWarning, match="Project names were removed in signac 2.0"
@@ -1069,7 +1073,7 @@ class TestProjectNameDeprecations:
             signac.init_project(name="project")
 
     def test_name_with_other_args_keyword(self):
-        assert version.parse(signac.__version__).release[0] < 3
+        assert _MAJOR_VERSION < 3
         with pytest.raises(TypeError, match="got an unexpected keyword argument 'foo'"):
             signac.init_project(name="project", foo="bar")
 
