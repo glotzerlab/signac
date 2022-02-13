@@ -2433,7 +2433,7 @@ class TestProjectInit:
         job_a.init()
         job_b = project_b.open_job({"b": 1})
         job_b.init()
-        symlink_path = os.path.join(project_b.workspace(), job_a._id)
+        symlink_path = os.path.join(project_b.workspace(), job_a.id_)
         os.symlink(job_a.ws, symlink_path)
         assert project_a.get_job(symlink_path) == job_a
         assert project_b.get_job(symlink_path) == job_a

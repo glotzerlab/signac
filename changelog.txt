@@ -365,7 +365,7 @@ Added
  - Adds the ``signac.Project.temporary_project()`` context manager which creates a temporary project within the root project workspace.
  - Add ``signac`` to the default namespace when invoking ``signac shell``.
  - Add option to specify a custom view path for the ``signac view``/ ``Project.create_linked_view()`` function.
- - Iterables of documents used to construct a Collection no longer require an ``_id`` field.
+ - Iterables of documents used to construct a Collection no longer require an ``id_`` field.
 
 Changed
 +++++++
@@ -834,7 +834,7 @@ Added
 Changed
 +++++++
 
- - The ``crawl()`` function yields only the index documents and not a tuple of (_id, doc).
+ - The ``crawl()`` function yields only the index documents and not a tuple of (id_, doc).
  - ``export()`` and ``export_pymongo()`` expect the index documents as first argument, not a crawler instance. The old API is still supported, but will trigger a DeprecationWarning.
 
 [0.2.7] -- 2016-02-29
