@@ -114,9 +114,9 @@ class _Index(dict):
             else:
                 if type(v) is list:  # Avoid isinstance for performance.
                     index[_to_hashable(v)].add(_id)
+                elif type(v) is dict:  # Avoid isinstance for performance.
+                    index[_DictPlaceholder].add(_id)
                 else:
-                    if type(v) is dict:  # Avoid isinstance for performance.
-                        v = _DictPlaceholder
                     index[v].add(_id)
 
             # If the original key has dots and is present, raise an error.
@@ -308,6 +308,6 @@ class _Index(dict):
             return set(self)
 
         filter_ = json.loads(json.dumps(filter_))  # Normalize
-        if type(filter_) is not dict:
+        if not isinstance(filter_, dict):
             raise ValueError(f"Invalid filter: {filter_}")
-        return set(self._find_result(filter_))
+        return self._find_result(filter_)
