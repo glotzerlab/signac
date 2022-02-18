@@ -9,7 +9,7 @@ from collections.abc import Mapping
 from numbers import Number
 from pprint import pformat
 
-from ._index import _remove_dict_placeholder
+from .collection import _DictPlaceholder
 from .utility import _nested_dicts_to_dotted_keys
 
 
@@ -83,7 +83,9 @@ def _build_job_statepoint_index(exclude_const, index):
         ):
             continue
         statepoint_key = _strip_prefix(key)
-        statepoint_values = _remove_dict_placeholder(indexes[key])
+        # Remove _DictPlaceholder keys from the index
+        statepoint_values = indexes[key]
+        statepoint_values.pop(_DictPlaceholder, None)
         yield statepoint_key, statepoint_values
 
 

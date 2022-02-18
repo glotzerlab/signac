@@ -23,25 +23,6 @@ logger = logging.getLogger(__name__)
 _PRIMARY_KEY = "_id"
 
 
-def _remove_dict_placeholder(x):
-    """Remove _DictPlaceholder elements from a mapping.
-
-    Parameters
-    ----------
-    x : dict
-        Dictionary from which ``_DictPlaceholder`` keys will be removed.
-
-    Returns
-    -------
-    dict
-        Dictionary with ``_DictPlaceholder`` keys removed.
-
-    """
-    tmp = x.copy()
-    tmp.pop(_DictPlaceholder, None)
-    return tmp
-
-
 class _Index(dict):
     """A searchable collection of dicts.
 
