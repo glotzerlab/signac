@@ -1520,15 +1520,19 @@ class Project:
         """
         # TODO: Remove both the `if args` and `if kwargs` blocks in version 3.0
         # when we remove backwards compatibility for project name APIs.
+        name = None
         if args:
             num_args = len(args)
             if num_args == 1:
+                name = args[0]
                 warnings.warn(
                     "Project names were removed in signac 2.0. If you intended to call "
                     "`init_project` with a root directory, please provided it as a keyword "
                     f"argument: `init_project(root={args[0]})`. If your project name "
                     "contains important information, consider storing it in the project document "
-                    "instead.",
+                    "instead. The name provided will be stored in the project document with "
+                    "the key `signac_project_name`. Calling `init_project` with a "
+                    "name will become an error in signac 3.0.",
                     FutureWarning,
                 )
             else:
@@ -1548,16 +1552,28 @@ class Project:
                 assert version.parse(__version__) < version.parse("3.0.0")
                 warnings.warn(
                     "Project names were removed in signac 2.0. If your project name contains "
-                    "important information, consider storing it in the project document instead.",
+                    "important information, consider storing it in the project document instead."
+                    "The name provided will be stored in the project document with "
+                    "the key `signac_project_name`. Calling `init_project` with a "
+                    "name will become an error in signac 3.0.",
                     FutureWarning,
                 )
+
+        # The key used to store project names in the project document.
+        name_key = "signac_project_name"
 
         if root is None:
             root = os.getcwd()
         try:
             project = cls.get_project(root=root, search=False)
+            existing_name = project.config.get(name_key)
+            if name is not None and name != existing_name:
+                raise ValueError(
+                    "The name provided to `init_project` does not match the existing "
+                    f"project document in which {name_key}={existing_name}."
+                )
         except LookupError:
-            name = "project"
+            name = name or "project"
             fn_config = os.path.join(root, "signac.rc")
             if make_dir:
                 _mkdir_p(os.path.dirname(fn_config))
