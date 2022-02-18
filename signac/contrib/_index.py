@@ -96,7 +96,7 @@ class _Index(dict):
         Raises
         ------
         :class:`~signac.errors.InvalidKeyError`
-            The document contains invalid keys.
+            The dict contains invalid keys.
 
         """
         logger.debug(f"Building index for key '{key}'...")
@@ -130,19 +130,19 @@ class _Index(dict):
         return index
 
     def _find_expression(self, key, value):
-        """Find document for key value pair.
+        """Find ids of dicts with keys matching a value expression.
 
         Parameters
         ----------
         key : str
-            The key for expression.
+            The dict key to match.
         value :
-            The value for expression.
+            The value expression to match.
 
         Returns
         -------
         set
-            The document for key value pair.
+            The ids of dicts matching the value expression.
 
         Raises
         ------
@@ -153,7 +153,7 @@ class _Index(dict):
             supported type for '$type' operator.
 
         """
-        logger.debug(f"Find documents for expression '{key}: {value}'.")
+        logger.debug(f"Find ids matching expression '{key}: {value}'.")
         if "$" in key:
             if key.count("$") > 1:
                 raise KeyError(f"Invalid operator expression '{key}'.")
@@ -194,17 +194,17 @@ class _Index(dict):
                 return index.get(value, set())
 
     def _find_result(self, expr):
-        """Find ids for given expression.
+        """Find ids of dicts matching a dict of filter expressions.
 
         Parameters
         ----------
-        expr : str
-            The expression for which to get ids.
+        expr : dict
+            The filter of expressions to match (Default value = None).
 
         Returns
         -------
         set
-            Set of all the ids if the given expression is empty.
+            A set of ids of dicts that match the given filter.
 
         """
         if not expr:
@@ -272,32 +272,31 @@ class _Index(dict):
         return result_ids
 
     def find(self, filter_=None):
-        """Return a result vector of ids for the given filter and limit.
+        """Find ids of dicts matching a dict of filter expressions.
 
         This function normalizes the filter argument and then attempts to
-        build a result vector for the given key-value queries.
+        build a set of ids matching the given key-value queries.
         For each key that is queried, an internal index is built and then
         searched.
 
         The results are a set of ids, where each id is the value of the
-        primary key of a document that matches the given filter.
+        primary key of a dict that matches the given filter.
 
         The find() method uses the following optimizations:
 
-            1. If the filter is None, the result is directly returned, since
-               all documents will match an empty filter.
-            2. The filter is processed key by key, once the result vector is
+            1. If the filter is None, a set of all ids is returned.
+            2. The filter is processed key by key. Once the set of matches is
                empty it is immediately returned.
 
         Parameters
         ----------
         filter_ : dict
-            The filter argument that all documents must match (Default value = None).
+            The filter of expressions to match (Default value = None).
 
         Returns
         -------
         set
-            A set of ids of documents that match the given filter.
+            A set of ids of dicts that match the given filter.
 
         Raises
         ------
@@ -310,5 +309,5 @@ class _Index(dict):
 
         filter_ = json.loads(json.dumps(filter_))  # Normalize
         if type(filter_) is not dict:
-            raise ValueError(filter_)
+            raise ValueError(f"Invalid filter: {filter_}")
         return set(self._find_result(filter_))
