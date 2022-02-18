@@ -1545,7 +1545,7 @@ class Project:
                     f"init_project() got an unexpected keyword argument '{next(iter(kwargs))}'"
                 )
             if name is not None:
-                assert int(version.parse(__version__).public.split(".")[0]) < 3
+                assert version.parse(__version__) < version.parse("3.0.0")
                 warnings.warn(
                     "Project names were removed in signac 2.0. If your project name contains "
                     "important information, consider storing it in the project document instead.",
