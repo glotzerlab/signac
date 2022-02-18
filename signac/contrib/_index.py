@@ -29,7 +29,7 @@ def _remove_dict_placeholder(x):
     Parameters
     ----------
     x : dict
-        Dictionary from which ``_DictPlaceholder`` values will be removed.
+        Dictionary from which ``_DictPlaceholder`` keys will be removed.
 
     Returns
     -------
