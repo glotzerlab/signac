@@ -1521,25 +1521,16 @@ class Project:
         # TODO: Remove both the `if args` and `if kwargs` blocks in version 3.0
         # when we remove backwards compatibility for project name APIs.
         name = None
+        # The key used to store project names in the project document.
+        name_key = "signac_project_name"
         if args:
             num_args = len(args)
             if num_args == 1:
                 name = args[0]
-                warnings.warn(
-                    "Project names were removed in signac 2.0. If you intended to call "
-                    "`init_project` with a root directory, please provided it as a keyword "
-                    f"argument: `init_project(root={args[0]})`. If your project name "
-                    "contains important information, consider storing it in the project document "
-                    "instead. The name provided will be stored in the project document with "
-                    "the key `signac_project_name`. Calling `init_project` with a "
-                    "name will become an error in signac 3.0.",
-                    FutureWarning,
-                )
             else:
                 # Match the usual error from misusing keyword-only args.
                 raise TypeError(
-                    f"init_project() takes 0 positional arguments but {num_args} "
-                    f"were given"
+                    f"init_project() takes 0 positional arguments but {num_args} were given"
                 )
         if kwargs:
             name = kwargs.pop("name", None)
@@ -1548,25 +1539,25 @@ class Project:
                 raise TypeError(
                     f"init_project() got an unexpected keyword argument '{next(iter(kwargs))}'"
                 )
-            if name is not None:
-                assert version.parse(__version__) < version.parse("3.0.0")
-                warnings.warn(
-                    "Project names were removed in signac 2.0. If your project name contains "
-                    "important information, consider storing it in the project document instead."
-                    "The name provided will be stored in the project document with "
-                    "the key `signac_project_name`. Calling `init_project` with a "
-                    "name will become an error in signac 3.0.",
-                    FutureWarning,
-                )
 
-        # The key used to store project names in the project document.
-        name_key = "signac_project_name"
+        if name is not None:
+            assert version.parse(__version__) < version.parse("3.0.0")
+            warnings.warn(
+                "Project names were removed in signac 2.0. If you intended to call "
+                "`init_project` with a root directory as the sole positional argument, please "
+                f"provide it as a keyword argument: `init_project(root={name})`. If your "
+                "project name contains important information, consider storing it in the "
+                "project document instead. The name provided will be stored in the project "
+                f"document with the key `{name_key}`. Calling `init_project` with a name will "
+                "become an error in signac 3.0.",
+                FutureWarning,
+            )
 
         if root is None:
             root = os.getcwd()
         try:
             project = cls.get_project(root=root, search=False)
-            existing_name = project.config.get(name_key)
+            existing_name = project.doc.get(name_key)
             if name is not None and name != existing_name:
                 raise ValueError(
                     "The name provided to `init_project` does not match the existing "
@@ -1584,6 +1575,8 @@ class Project:
             config["schema_version"] = SCHEMA_VERSION
             config.write()
             project = cls.get_project(root=root)
+            if name != "project":
+                project.doc[name_key] = name
             assert project.id == str(name)
             return project
         else:

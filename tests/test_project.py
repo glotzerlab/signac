@@ -1047,16 +1047,27 @@ _VERSION_3 = version.parse("3.0.0")
 
 
 class TestProjectNameDeprecations:
+    warning_context = pytest.warns(
+        FutureWarning, match="Project names were removed in signac 2.0"
+    )
+
     @pytest.fixture(autouse=True)
     def setUp(self, request):
         self._tmp_dir = TemporaryDirectory()
 
     def test_name_only_positional(self):
         assert _MAJOR_VERSION < _VERSION_3
-        with pytest.warns(
-            FutureWarning, match="Project names were removed in signac 2.0"
-        ):
-            signac.init_project("project", root=self._tmp_dir.name)
+        with self.warning_context:
+            project = signac.init_project("name", root=self._tmp_dir.name)
+
+        # Check that the name was stored as expected, and that trying to open
+        # again with a different name raises the expected exception.
+        assert "signac_project_name" in project.doc
+        with self.warning_context:
+            signac.init_project("name", root=self._tmp_dir.name)
+        with pytest.raises(ValueError, match="does not match the existing"):
+            with self.warning_context:
+                signac.init_project("new_name", root=self._tmp_dir.name)
 
     def test_name_with_other_args_positional(self):
         assert _MAJOR_VERSION < _VERSION_3
@@ -1068,10 +1079,17 @@ class TestProjectNameDeprecations:
     def test_name_only_keyword(self):
         assert _MAJOR_VERSION < _VERSION_3
         os.chdir(self._tmp_dir.name)
-        with pytest.warns(
-            FutureWarning, match="Project names were removed in signac 2.0"
-        ):
-            signac.init_project(name="project")
+        with self.warning_context:
+            project = signac.init_project(name="name")
+
+        # Check that the name was stored as expected, and that trying to open
+        # again with a different name raises the expected exception.
+        assert "signac_project_name" in project.doc
+        with self.warning_context:
+            signac.init_project(name="name")
+        with pytest.raises(ValueError, match="does not match the existing"):
+            with self.warning_context:
+                signac.init_project(name="new_name")
 
     def test_name_with_other_args_keyword(self):
         assert _MAJOR_VERSION < _VERSION_3
