@@ -37,7 +37,9 @@ def _remove_dict_placeholder(x):
         Dictionary with ``_DictPlaceholder`` keys removed.
 
     """
-    return {key: value for key, value in x.items() if key is not _DictPlaceholder}
+    tmp = x.copy()
+    tmp.pop(_DictPlaceholder, None)
+    return tmp
 
 
 class _Index(dict):
