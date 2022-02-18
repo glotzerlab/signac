@@ -9,7 +9,7 @@ from collections.abc import Mapping
 from numbers import Number
 from pprint import pformat
 
-from .collection import _DictPlaceholder
+from ._index import _DictPlaceholder
 from .utility import _nested_dicts_to_dotted_keys
 
 

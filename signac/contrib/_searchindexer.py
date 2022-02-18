@@ -5,22 +5,217 @@
 
 import json
 import logging
+import operator
+import re
+from math import isclose
 from numbers import Number
 
 from ..errors import InvalidKeyError
-from .collection import (
-    _INDEX_OPERATORS,
-    _check_logical_operator_argument,
-    _DictPlaceholder,
-    _find_with_index_operator,
-    _float,
-    _TypedSetDefaultDict,
-)
 from .utility import _nested_dicts_to_dotted_keys, _to_hashable
 
 logger = logging.getLogger(__name__)
 
 _PRIMARY_KEY = "_id"
+
+_INDEX_OPERATORS = (
+    "$eq",
+    "$gt",
+    "$gte",
+    "$lt",
+    "$lte",
+    "$ne",
+    "$in",
+    "$nin",
+    "$regex",
+    "$type",
+    "$where",
+    "$near",
+)
+
+_TYPES = {
+    "int": int,
+    "float": float,
+    "bool": bool,
+    "str": str,
+    "list": tuple,
+    "null": type(None),
+}
+
+
+class _DictPlaceholder:
+    pass
+
+
+class _float(float):
+    # Numerical objects of either integer or float type, that share the same numerical value,
+    # but not the same type, are distinguished within a Collection, but considered equal within
+    # Python. We manipulate the hash value, to enable the storage of both an int and a float
+    # that share the same numerical value within a collection index (dict).
+
+    # There is no risk of accidentally equating ints and floats with different values, since the
+    # hash equality is only a necessary, not a sufficient condition for equality.
+    def __hash__(self):
+        return super().__hash__() + 1
+
+
+class _TypedSetDefaultDict(dict):
+    """Dictionary that is guaranteed to store differently typed values separately.
+
+    This is necessary, because the hash value of integers with float type is identical
+    to the same integer as int type, which means they cannot be stored separately in a
+    standard dict.
+
+    """
+
+    def keys(self):
+        for key in dict.keys(self):
+            yield float(key) if type(key) is _float else key
+
+    __iter__ = keys
+
+    def items(self):
+        for key, value in dict.items(self):
+            yield float(key) if type(key) is _float else key, value
+
+    def __missing__(self, key):
+        value = set()
+        dict.__setitem__(self, key, value)
+        return value
+
+    def __getitem__(self, key):
+        return dict.__getitem__(self, _float(key) if type(key) is float else key)
+
+    def __setitem__(self, key, value):
+        return dict.__setitem__(self, _float(key) if type(key) is float else key, value)
+
+    def __delitem__(self, key):
+        dict.__delitem__(self, _float(key) if type(key) is float else key)
+
+    def get(self, key, default=None):
+        """Get the value for given key.
+
+        Parameters
+        ----------
+        key : str, float
+            The key to get the value.
+        default :
+            Default value if type of key is not float (Default value = None).
+
+        Returns
+        -------
+        The value for given key.
+
+        """
+        return dict.get(self, _float(key) if type(key) is float else key, default)
+
+
+def _find_with_index_operator(index, op, argument):
+    """Find index for given operator and argument.
+
+    Parameters
+    ----------
+    index : dict
+        Index for the operator.
+    op : str
+        logical operator.
+    argument :
+        Dependent on the choice of logical operator argument (op).
+        For better understanding have a look at :meth:`~Collection.find`.
+
+    Returns
+    -------
+    set
+        Index for given operator and argument.
+
+    Raises
+    ------
+    ValueError
+        When unknown argument is given for $type operator (When the operator is $type).
+
+    """
+    if op == "$in":
+
+        def op(value, argument):
+            return value in argument
+
+    elif op == "$nin":
+
+        def op(value, argument):
+            return value not in argument
+
+    elif op == "$regex":
+
+        def op(value, argument):
+            if isinstance(value, str):
+                return re.search(argument, value)
+            else:
+                return False
+
+    elif op == "$type":
+
+        def op(value, argument):
+            if argument in _TYPES:
+                t = _TYPES[argument]
+            else:
+                raise ValueError(f"Unknown argument for $type operator: '{argument}'.")
+            return isinstance(value, t)
+
+    elif op == "$where":
+
+        def op(value, argument):
+            return eval(argument)(value)
+
+    elif op == "$near":
+        rel_tol, abs_tol = 1e-9, 0.0  # default values
+        if isinstance(argument, (list, tuple)):
+            if len(argument) == 1:
+                argument = argument[0]
+            elif len(argument) == 2:
+                argument, rel_tol = argument
+            elif len(argument) == 3:
+                argument, rel_tol, abs_tol = argument
+            else:
+                err_msg = (
+                    "The argument of the $near operator must be a float or a list of floats with "
+                    "length 1, 2, or 3."
+                )
+                raise ValueError(err_msg)
+        argument = float(argument)
+        rel_tol = float(rel_tol)
+        abs_tol = float(abs_tol)
+
+        def op(value, argument):
+            return isclose(value, argument, rel_tol=rel_tol, abs_tol=abs_tol)
+
+    else:
+        op = getattr(operator, {"$gte": "$ge", "$lte": "$le"}.get(op, op)[1:])
+    matches = set()
+    for value in index:
+        if op(value, argument):
+            matches.update(index[value])
+    return matches
+
+
+def _check_logical_operator_argument(op, argument):
+    """Check arguments for the logical-operator.
+
+    Parameters
+    ----------
+    op : str
+        logical-operator.
+    argument : list
+        list of arguments for logical-operator.
+
+    Raises
+    ------
+    ValueError
+        The argument of logical-operator is not a list or is an empty list.
+
+    """
+    if not isinstance(argument, list):
+        raise ValueError(f"The argument of logical-operator '{op}' must be a list!")
+    if not len(argument):
+        raise ValueError(f"The argument of logical-operator '{op}' cannot be empty!")
 
 
 class _SearchIndexer(dict):
