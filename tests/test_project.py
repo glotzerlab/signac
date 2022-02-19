@@ -1670,7 +1670,6 @@ class TestProjectRepresentation(TestProjectBase):
     def test_project_repr_methods(self, project_generator, num_jobs):
         project_generator(self.project, num_jobs)
         assert len(str(self.project)) > 0
-        assert "project" in str(self.project)
         assert len(repr(self.project)) > 0
         assert eval(repr(self.project)) == self.project
         for use_pandas in (True, False):

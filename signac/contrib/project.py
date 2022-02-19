@@ -1564,7 +1564,6 @@ class Project:
                     f"project document in which {name_key}={existing_name}."
                 )
         except LookupError:
-            name = name or "project"
             fn_config = os.path.join(root, "signac.rc")
             if make_dir:
                 _mkdir_p(os.path.dirname(fn_config))
@@ -1575,7 +1574,7 @@ class Project:
             config["schema_version"] = SCHEMA_VERSION
             config.write()
             project = cls.get_project(root=root)
-            if name != "project":
+            if name is not None:
                 project.doc[name_key] = name
             assert project.id == str(name)
             return project
