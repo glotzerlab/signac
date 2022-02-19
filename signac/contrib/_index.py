@@ -1,7 +1,7 @@
 # Copyright (c) 2022 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"""An optimized class for indexing signac Projects."""
+"""Implement class for indexing signac Projects."""
 
 import json
 import logging
@@ -93,14 +93,18 @@ class _Index(dict):
             except (KeyError, TypeError):
                 pass
             else:
-                if type(v) is list:  # Avoid isinstance for performance.
+                # `isinstance(instance, cls)` is typically faster than `type(instance) is cls`
+                # when the answer is True, but it is slower when it is False. Since we
+                # expect lists and dicts to occur infrequently here, we optimize for the
+                # False path using the `type` based check.
+                if type(v) is list:
                     index[_to_hashable(v)].add(_id)
-                elif type(v) is dict:  # Avoid isinstance for performance.
+                elif type(v) is dict:
                     index[_DictPlaceholder].add(_id)
                 else:
                     index[v].add(_id)
 
-            # If the original key has dots and is present, raise an error.
+            # Raise an exception if the original key is present and has dots.
             if len(nodes) > 1 and key in doc:
                 raise InvalidKeyError(
                     "Keys with dots ('.') are invalid.\n\n"
@@ -117,7 +121,7 @@ class _Index(dict):
         ----------
         key : str
             The dict key to match.
-        value :
+        value
             The value expression to match.
 
         Returns
