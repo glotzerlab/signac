@@ -302,8 +302,6 @@ class ProjectSchema(Mapping):
     def __iter__(self):
         return iter(self._schema)
 
-    # TODO: We don't use this method anywhere. Is there a particular use case that is facilitated by
-    # keeping it, or should we deprecate?
     def difference(self, other, ignore_values=False):
         """Determine the difference between this and another project schema.
 
@@ -332,7 +330,8 @@ class ProjectSchema(Mapping):
             )
         return ret
 
-    # TODO: Same as difference, when do we need this?
+    # TODO: We don't use this method anywhere that I see. Is there a particular use case that is
+    # facilitated by keeping it, or should we deprecate?
     def __call__(self, jobs_or_statepoints):
         """Evaluate the schema for the given state points.
 
