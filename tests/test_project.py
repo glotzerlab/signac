@@ -841,16 +841,19 @@ class TestProject(TestProjectBase):
         assert len(s) == 9
         for k in "const", "const2.const3", "a", "b.b2", "c", "d", "e.e2", "f.f2":
             assert k in s
-            assert k.split(".") in s
+            with pytest.warns(FutureWarning):
+                assert k.split(".") in s
             # The following calls should not error out.
             s[k]
-            s[k.split(".")]
+            with pytest.warns(FutureWarning):
+                s[k.split(".")]
         repr(s)
         assert s.format() == str(s)
         s = self.project.detect_schema(exclude_const=True)
         assert len(s) == 7
         assert "const" not in s
-        assert ("const2", "const3") not in s
+        with pytest.warns(FutureWarning):
+            assert ("const2", "const3") not in s
         assert "const2.const3" not in s
         assert type not in s["e"]
 

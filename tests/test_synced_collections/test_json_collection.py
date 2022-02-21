@@ -52,7 +52,7 @@ class TestJSONDict(JSONCollectionTest, SyncedDictTest):
     # See issue: https://github.com/glotzerlab/signac/issues/316.
     def test_keys_non_str_valid_type(self, synced_collection, testdata):
         for key in (0, None, True):
-            with pytest.deprecated_call(match="Use of.+as key is deprecated"):
+            with pytest.warns(FutureWarning, match="Use of.+as key is deprecated"):
                 synced_collection[key] = testdata
             assert str(key) in synced_collection
             assert synced_collection[str(key)] == testdata

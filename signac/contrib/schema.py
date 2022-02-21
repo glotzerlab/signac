@@ -4,6 +4,7 @@
 """Project Schema."""
 
 import itertools
+import warnings
 from collections import defaultdict as ddict
 from collections.abc import Mapping
 from numbers import Number
@@ -42,6 +43,9 @@ def _collect_by_type(values):
     return values_by_type
 
 
+# TODO: This function feels slightly out of place since it's never used here while it is used in
+# import_export.py and project.py, but I see why it fits as "schema". May still make sense to move,
+# though.
 def _build_job_statepoint_index(exclude_const, index):
     """Build index for job state points.
 
@@ -103,7 +107,7 @@ def _build_job_statepoint_index(exclude_const, index):
         yield statepoint_key, statepoint_values
 
 
-class ProjectSchema:
+class ProjectSchema(Mapping):
     """A description of a project's state point schema.
 
     Parameters
@@ -118,6 +122,9 @@ class ProjectSchema:
             schema = {}
         self._schema = schema
 
+    # TODO: If we move _collect_key_by_type to project.py we could just inline this logic when
+    # constructing the ProjectSchema and then this method wouldn't need to exist. It feels like an
+    # unnecessarily specialized method to be defined here.
     @classmethod
     def detect(cls, statepoint_index):
         """Detect Project's state point schema.
@@ -267,43 +274,36 @@ class ProjectSchema:
         output += "<pre>" + str(self) + "</pre>"
         return output
 
+    # TODO: This method can be removed in signac 2.0 once support for list keys
+    # is removed.
     def __contains__(self, key_or_keys):
-        if isinstance(key_or_keys, str):
-            return key_or_keys in self._schema
-        key_or_keys = ".".join(key_or_keys)
+        # NotOverride default __contains__ to support sequence and str inputs.
+        if not isinstance(key_or_keys, str):
+            warnings.warn(
+                "Support for checking nested keys in a schema using a list of keys is deprecated "
+                "and will be removed in signac 2.0. Construct the nested key using '.'.join(...) "
+                "instead.",
+                FutureWarning,
+            )
+            key_or_keys = ".".join(key_or_keys)
         return key_or_keys in self._schema
 
     def __getitem__(self, key_or_keys):
-        if isinstance(key_or_keys, str):
-            return self._schema[key_or_keys]
-        return self._schema[".".join(key_or_keys)]
+        if not isinstance(key_or_keys, str):
+            warnings.warn(
+                "Support for checking nested keys in a schema using a list of keys is deprecated "
+                "and will be removed in signac 2.0. Construct the nested key using '.'.join(...) "
+                "instead.",
+                FutureWarning,
+            )
+            key_or_keys = ".".join(key_or_keys)
+        return self._schema[key_or_keys]
 
     def __iter__(self):
         return iter(self._schema)
 
-    def keys(self):
-        """Return schema keys."""
-        return self._schema.keys()
-
-    def values(self):
-        """Return schema values."""
-        return self._schema.values()
-
-    def items(self):
-        """Return schema items."""
-        return self._schema.items()
-
-    def __eq__(self, other):
-        """Check if two schemas are the same.
-
-        Returns
-        -------
-        bool
-            True if both schemas have the same keys and values.
-
-        """
-        return self._schema == other._schema
-
+    # TODO: We don't use this method anywhere. Is there a particular use case that is facilitated by
+    # keeping it, or should we deprecate?
     def difference(self, other, ignore_values=False):
         """Determine the difference between this and another project schema.
 
@@ -332,6 +332,7 @@ class ProjectSchema:
             )
         return ret
 
+    # TODO: Same as difference, when do we need this?
     def __call__(self, jobs_or_statepoints):
         """Evaluate the schema for the given state points.
 
