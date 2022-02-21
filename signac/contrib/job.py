@@ -359,6 +359,9 @@ class Job:
         # use str.join with os.sep instead of os.path.join for speed.
         return os.sep.join((self.workspace(), self.FN_MANIFEST))
 
+    # TODO: Why is ws a property while workspace is a method? Why don't the
+    # Project methods for workspace/root_directory also behave the same? We
+    # should standardize this.
     @property
     def ws(self):
         """Alias for :meth:`~Job.workspace`."""
@@ -483,6 +486,11 @@ class Job:
 
         return self._statepoint
 
+    # TODO: If we really believe what `reset_statepoint`'s documentation says,
+    # I think we should deprecate this functionality. If resetting a statepoint
+    # is a dangerous operation, making it settable via a property is too easy,
+    # and moreover it's impossible to document effectively because property
+    # setters don't show up in docs.
     @statepoint.setter
     def statepoint(self, new_statepoint):
         """Assign a new state point to this job.
@@ -500,6 +508,7 @@ class Job:
         """Alias for :attr:`~Job.statepoint`."""
         return self.statepoint
 
+    # TODO: Same concern as statepoint setter.
     @sp.setter
     def sp(self, new_sp):
         """Alias for :attr:`~Job.statepoint`."""
