@@ -29,6 +29,7 @@ Deprecated
  - ``JobSearchIndex`` class is deprecated (#600).
  - ``index`` argument is deprecated in ``Project`` methods (#602, #588).
  - ``signac.cite`` module is deprecated (#611, #592).
+ - ``config.get_config`` method is deprecated (#675).
 
 Changed
 +++++++
@@ -40,6 +41,7 @@ Fixed
 
  - ``H5Store.mode`` returns the file mode (#607).
  - User-provided path functions now raise an error if not unique (#666).
+ - ``Collection`` class no longer raises an error when searching by a primary key that does not exist (#676).
 
 [1.7.0] -- 2021-06-08
 ---------------------
