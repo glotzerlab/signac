@@ -8,7 +8,6 @@ import logging
 import os
 import pickle
 import re
-import string
 import sys
 import uuid
 from contextlib import contextmanager, redirect_stderr
@@ -86,10 +85,6 @@ class TestProject(TestProjectBase):
     def test_get(self):
         pass
 
-    def test_property_id(self):
-        assert self.project.id == "testing_test_project"
-        assert str(self.project) == self.project.id
-
     def test_repr(self):
         repr(self.project)
         p = eval(repr(self.project))
@@ -118,7 +113,6 @@ class TestProject(TestProjectBase):
             with TemporaryDirectory() as tmp_dir:
                 os.environ["SIGNAC_ENV_DIR_TEST"] = os.path.join(tmp_dir, "work_here")
                 project = self.project_class.init_project(
-                    name="testing_test_project",
                     root=tmp_dir,
                     workspace="${SIGNAC_ENV_DIR_TEST}",
                 )
@@ -223,16 +217,12 @@ class TestProject(TestProjectBase):
 
         with TemporaryDirectory() as tmp_dir:
             abs_path = os.path.join(tmp_dir, "path", "to", "workspace")
-            project = self.project_class.init_project(
-                name="testing_test_project", root=tmp_dir, workspace=abs_path
-            )
+            project = self.project_class.init_project(root=tmp_dir, workspace=abs_path)
             assert project.workspace == norm_path(abs_path)
 
         with TemporaryDirectory() as tmp_dir:
             rel_path = norm_path(os.path.join("path", "to", "workspace"))
-            project = self.project_class.init_project(
-                name="testing_test_project", root=tmp_dir, workspace=rel_path
-            )
+            project = self.project_class.init_project(root=tmp_dir, workspace=rel_path)
             assert project.workspace == norm_path(
                 os.path.join(project.root_directory(), rel_path)
             )
@@ -252,7 +242,7 @@ class TestProject(TestProjectBase):
     def test_workspace_broken_link_error_on_find(self):
         with TemporaryDirectory() as tmp_dir:
             project = self.project_class.init_project(
-                name="testing_test_project", root=tmp_dir, workspace="workspace-link"
+                root=tmp_dir, workspace="workspace-link"
             )
             os.rmdir(os.path.join(tmp_dir, "workspace-link"))
             os.symlink(
@@ -720,8 +710,8 @@ class TestProject(TestProjectBase):
 
     def test_job_move(self):
         root = self._tmp_dir.name
-        project_a = signac.init_project("ProjectA", os.path.join(root, "a"))
-        project_b = signac.init_project("ProjectB", os.path.join(root, "b"))
+        project_a = signac.init_project(root=os.path.join(root, "a"))
+        project_b = signac.init_project(root=os.path.join(root, "b"))
         job = project_a.open_job(dict(a=0))
         job_b = project_b.open_job(dict(a=0))
         assert job != job_b
@@ -749,8 +739,8 @@ class TestProject(TestProjectBase):
 
     def test_job_clone(self):
         root = self._tmp_dir.name
-        project_a = signac.init_project("ProjectA", os.path.join(root, "a"))
-        project_b = signac.init_project("ProjectB", os.path.join(root, "b"))
+        project_a = signac.init_project(root=os.path.join(root, "a"))
+        project_b = signac.init_project(root=os.path.join(root, "b"))
         job_a = project_a.open_job(dict(a=0))
         assert job_a not in project_a
         assert job_a not in project_b
@@ -1052,6 +1042,62 @@ class TestProject(TestProjectBase):
                 tmp_project.open_job(dict(a=i)).init()
             assert len(tmp_project) == 10
         assert not os.path.isdir(tmp_root_dir)
+
+
+# Use the major version to fail tests expected to fail in 3.0.
+_MAJOR_VERSION = version.parse(signac.__version__)
+_VERSION_3 = version.parse("3.0.0")
+
+
+class TestProjectNameDeprecations:
+    warning_context = pytest.warns(
+        FutureWarning, match="Project names were removed in signac 2.0"
+    )
+
+    @pytest.fixture(autouse=True)
+    def setUp(self, request):
+        self._tmp_dir = TemporaryDirectory()
+
+    def test_name_only_positional(self):
+        assert _MAJOR_VERSION < _VERSION_3
+        with self.warning_context:
+            project = signac.init_project("name", root=self._tmp_dir.name)
+
+        # Check that the name was stored as expected, and that trying to open
+        # again with a different name raises the expected exception.
+        assert "signac_project_name" in project.doc
+        with self.warning_context:
+            signac.init_project("name", root=self._tmp_dir.name)
+        with pytest.raises(ValueError, match="does not match the existing"):
+            with self.warning_context:
+                signac.init_project("new_name", root=self._tmp_dir.name)
+
+    def test_name_with_other_args_positional(self):
+        assert _MAJOR_VERSION < _VERSION_3
+        with pytest.raises(
+            TypeError, match="takes 0 positional arguments but 2 were given"
+        ):
+            signac.init_project("project", self._tmp_dir.name)
+
+    def test_name_only_keyword(self):
+        assert _MAJOR_VERSION < _VERSION_3
+        os.chdir(self._tmp_dir.name)
+        with self.warning_context:
+            project = signac.init_project(name="name")
+
+        # Check that the name was stored as expected, and that trying to open
+        # again with a different name raises the expected exception.
+        assert "signac_project_name" in project.doc
+        with self.warning_context:
+            signac.init_project(name="name")
+        with pytest.raises(ValueError, match="does not match the existing"):
+            with self.warning_context:
+                signac.init_project(name="new_name")
+
+    def test_name_with_other_args_keyword(self):
+        assert _MAJOR_VERSION < _VERSION_3
+        with pytest.raises(TypeError, match="got an unexpected keyword argument 'foo'"):
+            signac.init_project(name="project", foo="bar")
 
 
 class TestProjectExportImport(TestProjectBase):
@@ -1627,7 +1673,6 @@ class TestProjectRepresentation(TestProjectBase):
     def test_project_repr_methods(self, project_generator, num_jobs):
         project_generator(self.project, num_jobs)
         assert len(str(self.project)) > 0
-        assert "project" in str(self.project)
         assert len(repr(self.project)) > 0
         assert eval(repr(self.project)) == self.project
         for use_pandas in (True, False):
@@ -2221,44 +2266,32 @@ class TestProjectInit:
         root = self._tmp_dir.name
         with pytest.raises(LookupError):
             signac.get_project(root=root)
-        project = signac.init_project(name="testproject", root=root)
-        assert project.id == "testproject"
+        project = signac.init_project(root=root)
         assert project.workspace == os.path.join(root, "workspace")
         assert project.root_directory() == root
-        project = signac.Project.init_project(name="testproject", root=root)
-        assert project.id == "testproject"
+        project = signac.Project.init_project(root=root)
         assert project.workspace == os.path.join(root, "workspace")
         assert project.root_directory() == root
         project = signac.get_project(root=root)
-        assert project.id == "testproject"
         assert project.workspace == os.path.join(root, "workspace")
         assert project.root_directory() == root
         project = signac.Project.get_project(root=root)
-        assert project.id == "testproject"
         assert project.workspace == os.path.join(root, "workspace")
         assert project.root_directory() == root
 
     def test_project_no_id(self):
         root = self._tmp_dir.name
-        signac.init_project(name="testproject", root=root)
+        signac.init_project(root=root)
         config = load_config(root)
         del config["project"]
         with pytest.raises(LookupError):
             Project(config=config)
 
-    def test_get_project_all_printable_characters(self):
-        root = self._tmp_dir.name
-        with pytest.raises(LookupError):
-            signac.get_project(root=root)
-        project_name = "testproject" + string.printable
-        project = signac.init_project(name=project_name, root=root)
-        assert project.id == project_name
-
     def test_get_project_non_local(self):
         root = self._tmp_dir.name
         subdir = os.path.join(root, "subdir")
         os.mkdir(subdir)
-        project = signac.init_project(root=root, name="testproject")
+        project = signac.init_project(root=root)
         assert project == project.get_project(root=root)
         assert project == signac.get_project(root=root)
         assert project == project.get_project(root=root, search=False)
@@ -2276,27 +2309,20 @@ class TestProjectInit:
         root = self._tmp_dir.name
         with pytest.raises(LookupError):
             signac.get_project(root=root)
-        project = signac.init_project(name="testproject", root=root)
-        assert project.id == "testproject"
+        project = signac.init_project(root=root)
         assert project.workspace == os.path.join(root, "workspace")
         assert project.root_directory() == root
         # Second initialization should not make any difference.
-        project = signac.init_project(name="testproject", root=root)
+        project = signac.init_project(root=root)
         project = signac.get_project(root=root)
-        assert project.id == "testproject"
         assert project.workspace == os.path.join(root, "workspace")
         assert project.root_directory() == root
         project = signac.Project.get_project(root=root)
-        assert project.id == "testproject"
         assert project.workspace == os.path.join(root, "workspace")
         assert project.root_directory() == root
         # Deviating initialization parameters should result in errors.
         with pytest.raises(RuntimeError):
-            signac.init_project(name="testproject2", root=root)
-        with pytest.raises(RuntimeError):
-            signac.init_project(name="testproject", root=root, workspace="workspace2")
-        with pytest.raises(RuntimeError):
-            signac.init_project(name="testproject2", root=root, workspace="workspace2")
+            signac.init_project(root=root, workspace="workspace2")
 
     def test_nested_project(self):
         def check_root(root=None):
@@ -2309,22 +2335,18 @@ class TestProjectInit:
         root = self._tmp_dir.name
         root_a = os.path.join(root, "project_a")
         root_b = os.path.join(root_a, "project_b")
-        signac.init_project("testprojectA", root_a)
-        assert signac.get_project(root=root_a).id == "testprojectA"
+        signac.init_project(root=root_a)
         check_root(root_a)
-        signac.init_project("testprojectB", root_b)
-        assert signac.get_project(root=root_b).id == "testprojectB"
+        signac.init_project(root=root_b)
         check_root(root_b)
         cwd = os.getcwd()
         try:
             os.chdir(root_a)
             check_root()
-            assert signac.get_project().id == "testprojectA"
         finally:
             os.chdir(cwd)
         try:
             os.chdir(root_b)
-            assert signac.get_project().id == "testprojectB"
             check_root()
         finally:
             os.chdir(cwd)
@@ -2332,7 +2354,7 @@ class TestProjectInit:
     def test_get_job_valid_workspace(self):
         # Test case: The root-path is the job workspace path.
         root = self._tmp_dir.name
-        project = signac.init_project(name="testproject", root=root)
+        project = signac.init_project(root=root)
         job = project.open_job({"a": 1})
         job.init()
         with job:
@@ -2343,7 +2365,7 @@ class TestProjectInit:
     def test_get_job_invalid_workspace(self):
         # Test case: The root-path is not the job workspace path.
         root = self._tmp_dir.name
-        project = signac.init_project(name="testproject", root=root)
+        project = signac.init_project(root=root)
         job = project.open_job({"a": 1})
         job.init()
         # We shouldn't be able to find a job while in the workspace directory,
@@ -2361,11 +2383,11 @@ class TestProjectInit:
     def test_get_job_nested_project(self):
         # Test case: The job workspace dir is also a project root dir.
         root = self._tmp_dir.name
-        project = signac.init_project(name="testproject", root=root)
+        project = signac.init_project(root=root)
         job = project.open_job({"a": 1})
         job.init()
         with job:
-            nestedproject = signac.init_project("nestedproject")
+            nestedproject = signac.init_project()
             nestedproject.open_job({"b": 2}).init()
             assert project.get_job() == job
             assert signac.get_job() == job
@@ -2373,7 +2395,7 @@ class TestProjectInit:
     def test_get_job_subdir(self):
         # Test case: Get a job from a sub-directory of the job workspace dir.
         root = self._tmp_dir.name
-        project = signac.init_project(name="testproject", root=root)
+        project = signac.init_project(root=root)
         job = project.open_job({"a": 1})
         job.init()
         with job:
@@ -2387,11 +2409,11 @@ class TestProjectInit:
         # Test case: Get a job from a sub-directory of the job workspace dir
         # when the job workspace is also a project root dir
         root = self._tmp_dir.name
-        project = signac.init_project(name="testproject", root=root)
+        project = signac.init_project(root=root)
         job = project.open_job({"a": 1})
         job.init()
         with job:
-            nestedproject = signac.init_project("nestedproject")
+            nestedproject = signac.init_project()
             nestedproject.open_job({"b": 2}).init()
             os.mkdir("test_subdir")
             assert project.get_job("test_subdir") == job
@@ -2407,8 +2429,8 @@ class TestProjectInit:
         project_b_dir = os.path.join(root, "project_b")
         os.mkdir(project_a_dir)
         os.mkdir(project_b_dir)
-        project_a = signac.init_project(name="project_a", root=project_a_dir)
-        project_b = signac.init_project(name="project_b", root=project_b_dir)
+        project_a = signac.init_project(root=project_a_dir)
+        project_b = signac.init_project(root=project_b_dir)
         job_a = project_a.open_job({"a": 1})
         job_a.init()
         job_b = project_b.open_job({"b": 1})
@@ -2433,9 +2455,7 @@ class TestProjectSchema(TestProjectBase):
         config["schema_version"] = impossibly_high_schema_version
         config.write()
         with pytest.raises(IncompatibleSchemaVersion):
-            signac.init_project(
-                name=str(self.project), root=self.project.root_directory()
-            )
+            signac.init_project(root=self.project.root_directory())
 
         # Ensure that migration fails on an unsupported version.
         with pytest.raises(RuntimeError):
@@ -2535,7 +2555,7 @@ class TestProjectStoreBase(test_h5store.TestH5StoreBase):
         os.mkdir(self._tmp_pr)
         self.config = load_config()
         self.project = self.project_class.init_project(
-            name="testing_test_project", root=self._tmp_pr, workspace=self._tmp_wd
+            root=self._tmp_pr, workspace=self._tmp_wd
         )
 
         self._fn_store = os.path.join(self._tmp_dir.name, "signac_data.h5")
