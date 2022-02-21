@@ -342,10 +342,8 @@ def main_view(args):
 
 def main_init(args):
     """Handle init subcommand."""
-    project = init_project(
-        name=args.project_id, root=os.getcwd(), workspace=args.workspace
-    )
-    _print_err(f"Initialized project '{project}'.")
+    init_project(name=args.project_id, root=os.getcwd(), workspace=args.workspace)
+    _print_err("Initialized project.")
 
 
 def main_schema(args):
@@ -936,12 +934,7 @@ def main():
     subparsers = parser.add_subparsers()
 
     parser_init = subparsers.add_parser("init")
-    parser_init.add_argument(
-        "project_id",
-        nargs="?",
-        type=str,
-        help="Initialize a project with the given project id.",
-    )
+    parser_init.add_argument("project_id", nargs="?", help=argparse.SUPPRESS)
     parser_init.add_argument(
         "-w",
         "--workspace",
