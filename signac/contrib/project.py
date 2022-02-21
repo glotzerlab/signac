@@ -156,8 +156,8 @@ class Project:
                 _mkdir_p(self.workspace())
             except OSError:
                 logger.error(
-                    "Error occurred while trying to create "
-                    "workspace directory for project {}.".format(self.id)
+                    "Error occurred while trying to create workspace directory for project at root "
+                    f"{self._root_directory}."
                 )
                 raise
 
@@ -175,8 +175,7 @@ class Project:
         )
 
     def __str__(self):
-        """Return the project's id."""
-        return str(self.id)
+        return repr(self)
 
     def __repr__(self):
         return "{type}.get_project({root})".format(
@@ -194,8 +193,7 @@ class Project:
         """
         return (
             "<p>"
-            + f"<strong>Project:</strong> {self.id}<br>"
-            + f"<strong>Root:</strong> {self.root_directory()}<br>"
+            + f"<strong>Project:</strong> {self.root_directory()}<br>"
             + f"<strong>Workspace:</strong> {self.workspace()}<br>"
             + f"<strong>Size:</strong> {len(self)}"
             + "</p>"
@@ -254,18 +252,6 @@ class Project:
 
         """
         return self._workspace
-
-    @property
-    def id(self):
-        """Get the project identifier.
-
-        Returns
-        -------
-        str
-            The project id.
-
-        """
-        return self._id
 
     def _check_schema_compatibility(self):
         """Check whether this project's data schema is compatible with this version.
@@ -1581,7 +1567,6 @@ class Project:
             project = cls.get_project(root=root)
             if name is not None:
                 project.doc[name_key] = name
-            assert project.id == str(name)
             return project
         else:
             if workspace is not None and os.path.realpath(

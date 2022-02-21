@@ -98,7 +98,7 @@ class TestProject(TestProjectBase):
         assert p == self.project
 
     def test_str(self):
-        str(self.project) == self.project.id
+        str(self.project) == f"Project.get_project({self.project.root_directory()})"
 
     def test_root_directory(self):
         assert self._tmp_pr == self.project.root_directory()
