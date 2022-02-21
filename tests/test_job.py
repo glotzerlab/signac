@@ -74,7 +74,7 @@ class TestJobBase:
         os.mkdir(self._tmp_pr)
         self.config = signac.common.config.load_config()
         self.project = self.project_class.init_project(
-            name="testing_test_project", root=self._tmp_pr, workspace=self._tmp_wd
+            root=self._tmp_pr, workspace=self._tmp_wd
         )
 
     def tearDown(self):
@@ -1349,7 +1349,7 @@ class TestJobOpenData(TestJobBase):
         job = self.open_job(test_token).init()
         project_a = self.project
         project_b = self.project_class.init_project(
-            name="project_b", root=os.path.join(self._tmp_pr, "project_b")
+            root=os.path.join(self._tmp_pr, "project_b")
         )
         job.move(project_b)
         job.move(project_a)
