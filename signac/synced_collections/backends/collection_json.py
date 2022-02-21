@@ -49,7 +49,7 @@ def _str_key(key):
         warnings.warn(
             f"Use of {type(key).__name__} as key is deprecated "
             "and will be removed in version 2.0",
-            FutureWarning,
+            DeprecationWarning,
         )
         key = str(key)
     return key
@@ -146,7 +146,7 @@ def json_attr_dict_validator(data):
                 warnings.warn(
                     f"Use of {type(key).__name__} as key is deprecated "
                     "and will be removed in version 2.0.",
-                    FutureWarning,
+                    DeprecationWarning,
                 )
                 data[str(key)] = data.pop(key)
             else:

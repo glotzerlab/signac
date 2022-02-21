@@ -6,8 +6,6 @@
 """Module for signac deprecation warnings."""
 
 
-# TODO: This can be removed in signac 2.0. We can use FutureWarning for this
-# purpose going forward.
 class SignacDeprecationWarning(UserWarning):
     """Indicates the deprecation of a signac feature, API or behavior.
 
