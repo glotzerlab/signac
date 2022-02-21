@@ -84,7 +84,7 @@ DOC_FILTER_WARNING = (
 )
 
 # Temporary default for project names until they are removed entirely in signac 2.0
-_DEFAULT_PROJECT_NAME = "project"
+_DEFAULT_PROJECT_NAME = None
 
 
 class JobSearchIndex:
@@ -2283,7 +2283,7 @@ class Project:
 
     @classmethod
     def init_project(cls, name=None, root=None, workspace=None, make_dir=True):
-        """Initialize a project with the given name.
+        """Initialize a project.
 
         It is safe to call this function multiple times with the same
         arguments. However, a `RuntimeError` is raised if an existing project
@@ -2295,14 +2295,14 @@ class Project:
         Parameters
         ----------
         name : str, optional
-            The name of the project to initialize (Default value = 'project').
-        root : str
+            The name of the project to initialize (Default value = None).
+        root : str, optional
             The root directory for the project.
             Defaults to the current working directory.
-        workspace : str
+        workspace : str, optional
             The workspace directory for the project.
             Defaults to a subdirectory ``workspace`` in the project root.
-        make_dir : bool
+        make_dir : bool, optional
             Create the project root directory if it does not exist yet
             (Default value = True).
 
@@ -2323,9 +2323,10 @@ class Project:
 
         if name is not None:
             warnings.warn(
-                "Project names are deprecated and will be removed in signac 2.0 "
-                "in favor of using the project root directory to identify projects."
-                "The name argument to init_project should be removed."
+                "Project names are deprecated and will be removed in signac 2.0 in favor of using "
+                "the project root directory to identify projects. The name argument to "
+                "init_project should be removed.",
+                DeprecationWarning,
             )
         else:
             name = _DEFAULT_PROJECT_NAME
@@ -3041,7 +3042,7 @@ class JobsCursor:
 
 
 def init_project(name=None, root=None, workspace=None, make_dir=True):
-    """Initialize a project with the given name.
+    """Initialize a project.
 
     It is safe to call this function multiple times with the same arguments.
     However, a `RuntimeError` is raised if an existing project configuration
@@ -3051,13 +3052,13 @@ def init_project(name=None, root=None, workspace=None, make_dir=True):
     ----------
     name : str, optional
         The name of the project to initialize.
-    root : str
+    root : str, optional
         The root directory for the project.
         Defaults to the current working directory.
-    workspace : str
+    workspace : str, optional
         The workspace directory for the project.
         Defaults to a subdirectory ``workspace`` in the project root.
-    make_dir : bool
+    make_dir : bool, optional
         Create the project root directory, if it does not exist yet (Default
         value = True).
 
