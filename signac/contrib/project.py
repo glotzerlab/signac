@@ -260,9 +260,7 @@ class Project:
         self._lock = RLock()
 
         # Prepare cached properties derived from the project config.
-        self._id = None
-        self._rd = None
-        self._wd = None
+        _invalidate_config_cache(self)
 
         # Ensure that the project id is configured.
         if self.id is None:
@@ -514,18 +512,6 @@ class Project:
         """
         return os.path.isfile(self.fn(filename))
 
-    def _reset_document(self, new_doc):
-        """Reset document to new document passed.
-
-        Parameters
-        ----------
-        new_doc : dict
-            The new project document.
-
-        """
-        with self._lock:
-            self.document.reset(new_doc)
-
     @property
     def document(self):
         """Get document associated with this project.
@@ -554,7 +540,8 @@ class Project:
             The new project document.
 
         """
-        self._reset_document(new_doc)
+        with self._lock:
+            self.document.reset(new_doc)
 
     @property
     def doc(self):
@@ -754,6 +741,12 @@ class Project:
                 )
                 raise WorkspaceError(error)
 
+    @deprecated(
+        deprecated_in="1.8",
+        removed_in="2.0",
+        current_version=__version__,
+        details="The num_jobs method is deprecated. Use len(project) instead.",
+    )
     def num_jobs(self):
         """Return the number of initialized jobs.
 
@@ -763,14 +756,15 @@ class Project:
             Count of initialized jobs.
 
         """
+        return len(self)
+
+    def __len__(self):
         # We simply count the the number of valid directories and avoid building a list
         # for improved performance.
         i = 0
         for i, _ in enumerate(self._job_dirs(), 1):
             pass
         return i
-
-    __len__ = num_jobs
 
     def _contains_job_id(self, job_id):
         """Determine whether a job id is in the project's data space.
@@ -787,7 +781,7 @@ class Project:
 
         """
         # We can rely on the project workspace to be well-formed, so just use
-        # str.join with os.sep instead of os.path.join for speed.
+        # os.sep.join instead of os.path.join for speed.
         return os.path.exists(os.sep.join((self.workspace(), job_id)))
 
     def __contains__(self, job):
@@ -2625,6 +2619,12 @@ class JobsCursor:
             self._project, self._project._find_job_ids(self._filter)
         )
 
+    @deprecated(
+        deprecated_in="1.8",
+        removed_in="2.0",
+        current_version=__version__,
+        details="Use next(iter(...)) instead.",
+    )
     def next(self):
         """Return the next element.
 
@@ -2632,10 +2632,6 @@ class JobsCursor:
         .. deprecated:: 0.9.6
 
         """
-        warnings.warn(
-            "Calling next() directly on a JobsCursor is deprecated! Use next(iter(..)) instead.",
-            DeprecationWarning,
-        )
         if self._next_iter is None:
             self._next_iter = iter(self)
         try:
