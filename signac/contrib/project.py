@@ -121,17 +121,6 @@ class Project:
         self._config = _ProjectConfig(config)
         self._lock = RLock()
 
-        # Ensure that the project id is configured.
-        try:
-            self._id = str(self.config["project"])
-        except KeyError:
-            raise LookupError(
-                "Unable to determine project id. "
-                "Please verify that '{}' is a signac project path.".format(
-                    os.path.abspath(self.config.get("project_dir", os.getcwd()))
-                )
-            )
-
         # Ensure that the project's data schema is supported.
         self._check_schema_compatibility()
 
@@ -1559,7 +1548,6 @@ class Project:
             if make_dir:
                 _mkdir_p(os.path.dirname(fn_config))
             config = read_config_file(fn_config)
-            config["project"] = name
             if workspace is not None:
                 config["workspace_dir"] = workspace
             config["schema_version"] = SCHEMA_VERSION
@@ -1610,7 +1598,7 @@ class Project:
         if root is None:
             root = os.getcwd()
         config = load_config(root=root, local=False)
-        if "project" not in config or (
+        if "project_dir" not in config or (
             not search
             and os.path.realpath(config["project_dir"]) != os.path.realpath(root)
         ):

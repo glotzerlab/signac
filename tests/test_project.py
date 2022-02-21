@@ -2290,14 +2290,6 @@ class TestProjectInit:
         assert project.workspace() == os.path.join(root, "workspace")
         assert project.root_directory() == root
 
-    def test_project_no_id(self):
-        root = self._tmp_dir.name
-        signac.init_project(root=root)
-        config = load_config(root)
-        del config["project"]
-        with pytest.raises(LookupError):
-            Project(config=config)
-
     def test_get_project_non_local(self):
         root = self._tmp_dir.name
         subdir = os.path.join(root, "subdir")
