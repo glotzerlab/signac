@@ -5,6 +5,8 @@
 from itertools import cycle
 
 
+# TODO: This feels like something that should be a test fixture or
+# fixture-adjacent, not code that belongs in the main package.
 def init_jobs(project, nested=False, listed=False, heterogeneous=False):
     """Initialize a dataspace for testing purposes.
 
