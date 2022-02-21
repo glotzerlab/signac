@@ -792,14 +792,9 @@ class TestBasicShell:
 
     def test_config_verify(self):
         # no config file
-        with pytest.raises(ExitCodeError):
-            self.call("python -m signac config --local verify".split(), error=True)
-        err = self.call(
-            "python -m signac config --local verify".split(),
-            error=True,
-            raise_error=False,
-        )
+        err = self.call("python -m signac config --local verify".split(), error=True)
         assert "Did not find a local configuration file" in err
+
         self.call("python -m signac init my_project".split())
         err = self.call("python -m signac config --local verify".split(), error=True)
         assert "Passed" in err
