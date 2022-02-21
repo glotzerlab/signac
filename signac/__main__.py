@@ -342,14 +342,7 @@ def main_view(args):
 
 def main_init(args):
     """Handle init subcommand."""
-    if args.project_id is not None:
-        warnings.warn(
-            "Project names were removed in signac 2.0. If your project name "
-            "contains important information, consider storing it in the project document "
-            "instead.",
-            FutureWarning,
-        )
-    init_project(root=os.getcwd(), workspace=args.workspace)
+    init_project(name=args.project_id, root=os.getcwd(), workspace=args.workspace)
     _print_err("Initialized project.")
 
 
@@ -944,7 +937,7 @@ def main():
     subparsers = parser.add_subparsers()
 
     parser_init = subparsers.add_parser("init")
-    parser_init.add_argument("project_id", nargs="?")
+    parser_init.add_argument("project_id", nargs="?", help=argparse.SUPPRESS)
     parser_init.add_argument(
         "-w",
         "--workspace",
