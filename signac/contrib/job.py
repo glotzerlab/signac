@@ -362,6 +362,11 @@ class Job:
     # TODO: Why is ws a property while workspace is a method? Why don't the
     # Project methods for workspace/root_directory also behave the same? We
     # should standardize this.
+    # TODO: The discrepancy between Project and Job in what is defined as a
+    # "workspace" is also slightly confusing. In view of moving towards a
+    # unified 3.0 API where both are subclasses of a common Directory or
+    # similar, we should aim to unify these APIs (although probably with an
+    # extremely long deprecation period like the entire lifetime of signac 2.0)
     @property
     def ws(self):
         """Alias for :meth:`~Job.workspace`."""
