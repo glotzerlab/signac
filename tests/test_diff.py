@@ -16,9 +16,7 @@ class TestDiffBase:
     def setUp(self, request):
         self._tmp_dir = TemporaryDirectory(prefix="signac_")
         request.addfinalizer(self._tmp_dir.cleanup)
-        self.project = self.project_class.init_project(
-            name="diff_test_project", root=self._tmp_dir.name
-        )
+        self.project = self.project_class.init_project(root=self._tmp_dir.name)
 
 
 class TestDiff(TestDiffBase):
