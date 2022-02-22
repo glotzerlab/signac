@@ -1,7 +1,7 @@
 <!-- Provide a general summary of your changes in the Title above -->
 
 
-## Description of [new feature/bug fix/ documentation update] 
+## Description of [new feature/bug fix/ documentation update]
 If this change breaks (or has the potential to break) existing functionality, add the `breaking` label.
 
 <!-- Describe your changes in detail -->
