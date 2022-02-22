@@ -2,8 +2,7 @@
 
 
 ## Description of [new feature/bug fix/ documentation update]
-If this change breaks (or has the potential to break) existing functionality, add the `breaking` label.
-
+<!-- If this change breaks (or has the potential to break) existing functionality, add the `breaking` label. -->
 <!-- Describe your changes in detail -->
 
 ## Motivation and Context
