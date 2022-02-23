@@ -138,7 +138,7 @@ class TestJob(TestJobBase):
             """Minimal subclass that can be compared with Job objects."""
 
             def __init__(self, job):
-                self.id_ = job.id
+                self._id = job.id
                 self._workspace = job.workspace()
 
             def workspace(self):

@@ -90,7 +90,7 @@ class _StatePointDict(JSONAttrDict):
         # All elements of the job list are shallow copies of each other, so any
         # one of them is representative.
         job = next(iter(self._jobs))
-        old_id = job.id_
+        old_id = job._id
         if old_id == new_id:
             return
 
@@ -119,7 +119,7 @@ class _StatePointDict(JSONAttrDict):
 
         # Update each job instance.
         for job in self._jobs:
-            job.id_ = new_id
+            job._id = new_id
             job._initialize_lazy_properties()
 
         # Remove the temporary state point file if it was created. Have to do it
@@ -262,7 +262,7 @@ class Job:
         elif statepoint is not None:
             self._statepoint_requires_init = False
             try:
-                self.id_ = calc_id(statepoint) if id_ is None else id_
+                self._id = calc_id(statepoint) if id_ is None else id_
             except TypeError:
                 raise KeyTypeError
             self._statepoint = _StatePointDict(
@@ -273,7 +273,7 @@ class Job:
             self._project._register(self.id, statepoint)
         else:
             # Only an id was provided. State point will be loaded lazily.
-            self.id_ = id_
+            self._id = id_
             self._statepoint_requires_init = True
 
     def _initialize_lazy_properties(self):
@@ -294,7 +294,7 @@ class Job:
             The job id.
 
         """
-        return self.id_
+        return self._id
 
     def __hash__(self):
         return hash(self.id)
