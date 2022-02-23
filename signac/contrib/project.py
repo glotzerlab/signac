@@ -83,6 +83,9 @@ DOC_FILTER_WARNING = (
     "information."
 )
 
+# Temporary default for project names until they are removed entirely in signac 2.0
+_DEFAULT_PROJECT_NAME = None
+
 
 class JobSearchIndex:
     """Search for specific jobs with filters.
@@ -2279,8 +2282,8 @@ class Project:
             yield tmp_project
 
     @classmethod
-    def init_project(cls, name, root=None, workspace=None, make_dir=True):
-        """Initialize a project with the given name.
+    def init_project(cls, name=None, root=None, workspace=None, make_dir=True):
+        """Initialize a project.
 
         It is safe to call this function multiple times with the same
         arguments. However, a `RuntimeError` is raised if an existing project
@@ -2291,15 +2294,15 @@ class Project:
 
         Parameters
         ----------
-        name : str
-            The name of the project to initialize.
-        root : str
+        name : str, optional
+            The name of the project to initialize (Default value = None).
+        root : str, optional
             The root directory for the project.
             Defaults to the current working directory.
-        workspace : str
+        workspace : str, optional
             The workspace directory for the project.
             Defaults to a subdirectory ``workspace`` in the project root.
-        make_dir : bool
+        make_dir : bool, optional
             Create the project root directory if it does not exist yet
             (Default value = True).
 
@@ -2317,6 +2320,16 @@ class Project:
         """
         if root is None:
             root = os.getcwd()
+
+        if name is not None:
+            warnings.warn(
+                "Project names are deprecated and will be removed in signac 2.0 in favor of using "
+                "the project root directory to identify projects. The name argument to "
+                "init_project should be removed.",
+                DeprecationWarning,
+            )
+        else:
+            name = _DEFAULT_PROJECT_NAME
         try:
             project = cls.get_project(root=root, search=False)
         except LookupError:
@@ -3028,8 +3041,8 @@ class JobsCursor:
         return repr(self) + self._repr_html_jobs()
 
 
-def init_project(name, root=None, workspace=None, make_dir=True):
-    """Initialize a project with the given name.
+def init_project(name=None, root=None, workspace=None, make_dir=True):
+    """Initialize a project.
 
     It is safe to call this function multiple times with the same arguments.
     However, a `RuntimeError` is raised if an existing project configuration
@@ -3037,15 +3050,15 @@ def init_project(name, root=None, workspace=None, make_dir=True):
 
     Parameters
     ----------
-    name : str
+    name : str, optional
         The name of the project to initialize.
-    root : str
+    root : str, optional
         The root directory for the project.
         Defaults to the current working directory.
-    workspace : str
+    workspace : str, optional
         The workspace directory for the project.
         Defaults to a subdirectory ``workspace`` in the project root.
-    make_dir : bool
+    make_dir : bool, optional
         Create the project root directory, if it does not exist yet (Default
         value = True).
 
