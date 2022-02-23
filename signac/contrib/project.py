@@ -119,7 +119,7 @@ class Project:
 
         # Ensure that the project id is configured.
         try:
-            self.id_ = str(self.config["project"])
+            self._id = str(self.config["project"])
         except KeyError:
             raise LookupError(
                 "Unable to determine project id. "
@@ -261,7 +261,7 @@ class Project:
             The project id.
 
         """
-        return self.id_
+        return self._id
 
     def _check_schema_compatibility(self):
         """Check whether this project's data schema is compatible with this version.
@@ -830,7 +830,7 @@ class Project:
         """
         return self.find_jobs().to_dataframe(*args, **kwargs)
 
-    def _register(self, id_, statepoint):
+    def _register(self, _id, statepoint):
         """Register the job state point in the project state point cache.
 
         Parameters
@@ -1335,15 +1335,14 @@ class Project:
 
         Yields
         ------
-        job_id : str
-            The job id.
-        doc : dict
-            Dictionary with keys ``sp`` containing the state point and ``doc``
-            containing the job document if requested.
+        dict
+            Dictionary with keys ``_id`` containing the job id, ``sp``
+            containing the state point, and ``doc`` containing the job document
+            if requested.
 
         """
         for job_id in self._find_job_ids():
-            doc = {"sp": self._get_statepoint(job_id)}
+            doc = dict(_id=job_id, sp=self._get_statepoint(job_id))
             if include_job_document:
                 try:
                     # Performance-critical path. We can rely on the project
