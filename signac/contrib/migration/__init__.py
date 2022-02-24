@@ -24,14 +24,14 @@ FN_MIGRATION_LOCKFILE = ".SIGNAC_PROJECT_MIGRATION_LOCK"
 # writeable, i.e. it must be possible to persist in-memory changes from these
 # objects to the underlying config files.
 _CONFIG_LOADERS = {
-    "1": _load_config_v1,
-    "2": _load_config_v2,
+    1: _load_config_v1,
+    2: _load_config_v2,
 }
 
 
 _MIGRATIONS = {
-    ("0", "1"): _migrate_v0_to_v1,
-    ("1", "2"): _migrate_v1_to_v2,
+    (0, 1): _migrate_v0_to_v1,
+    (1, 2): _migrate_v1_to_v2,
 }
 
 _VERSION_LIST = list(reversed(sorted(v for v in _CONFIG_LOADERS.keys())))
@@ -56,16 +56,16 @@ def _get_config_schema_version(root_directory, version_guess):
     else:
         raise RuntimeError("Unable to load config file.")
     try:
-        return config["schema_version"]
+        return int(config["schema_version"])
     except KeyError:
         # The default schema version is version 0.
-        return "0"
+        return 0
 
 
 def _collect_migrations(root_directory):
-    schema_version = SCHEMA_VERSION
+    schema_version = int(SCHEMA_VERSION)
 
-    current_schema_version = _get_config_schema_version(root_directory, SCHEMA_VERSION)
+    current_schema_version = _get_config_schema_version(root_directory, schema_version)
     if current_schema_version > schema_version:
         # Project config schema version is newer and therefore not supported.
         raise RuntimeError(
