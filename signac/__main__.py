@@ -73,8 +73,7 @@ Total transfer volume:       {stats.volume}
 SHELL_BANNER = """Python {python_version}
 signac {signac_version} 🎨
 
-Project:\t{project_id}{job_banner}
-Root:\t\t{root_path}
+Project:\t{root_path}{job_banner}
 Workspace:\t{workspace_path}
 Size:\t\t{size}
 
@@ -549,7 +548,6 @@ def _main_import_interactive(project, origin, args):
                 banner=SHELL_BANNER_INTERACTIVE_IMPORT.format(
                     python_version=sys.version,
                     signac_version=__version__,
-                    project_id=project.id,
                     job_banner="",
                     root_path=project.root_directory(),
                     workspace_path=project.workspace(),
@@ -724,16 +722,14 @@ def main_config_show(args):
         cfg = config.read_config_file(config.USER_CONFIG_FN)
     else:
         cfg = config.load_config()
-    if cfg is None:
-        if args.local and args.globalcfg:
-            mode = " local or global "
-        elif args.local:
-            mode = " local "
+    if not cfg:
+        if args.local:
+            mode = "local"
         elif args.globalcfg:
-            mode = " global "
+            mode = "global"
         else:
-            mode = ""
-        _print_err(f"Did not find a{mode}configuration file.")
+            mode = "local or global"
+        _print_err(f"Did not find a {mode} configuration file.")
         return
     for key in args.key:
         for kt in key.split("."):
@@ -759,19 +755,19 @@ def main_config_verify(args):
         cfg = config.read_config_file(config.USER_CONFIG_FN)
     else:
         cfg = config.load_config()
-    if cfg is None:
-        if args.local and args.globalcfg:
-            mode = " local or global "
-        elif args.local:
-            mode = " local "
+    if not cfg:
+        if args.local:
+            mode = "local"
         elif args.globalcfg:
-            mode = " global "
+            mode = "global"
         else:
-            mode = ""
-        raise RuntimeWarning(f"Did not find a{mode}configuration file.")
-    if cfg.filename is not None:
-        _print_err(f"Verification of config file '{cfg.filename}'.")
-    verify_config(cfg)
+            mode = "local or global"
+        _print_err(f"Did not find a {mode} configuration file.")
+        return
+    else:
+        if cfg.filename is not None:
+            _print_err(f"Verification of config file '{cfg.filename}'.")
+        verify_config(cfg)
 
 
 def main_config_set(args):
@@ -894,7 +890,6 @@ def main_shell(args):
                 banner=SHELL_BANNER.format(
                     python_version=sys.version,
                     signac_version=__version__,
-                    project_id=project.id,
                     job_banner=f"\nJob:\t\t{job.id}" if job is not None else "",
                     root_path=project.root_directory(),
                     workspace_path=project.workspace(),

@@ -88,17 +88,13 @@ class TestProjectBase(TestJobBase):
 
 
 class TestProject(TestProjectBase):
-    def test_get(self):
-        pass
-
     def test_repr(self):
-        repr(self.project)
         p = eval(repr(self.project))
         assert repr(p) == repr(self.project)
         assert p == self.project
 
     def test_str(self):
-        str(self.project) == self.project.id
+        assert str(self.project) == self.project.root_directory()
 
     def test_root_directory(self):
         assert self._tmp_pr == self.project.root_directory()
@@ -2282,14 +2278,6 @@ class TestProjectInit:
         project = signac.Project.get_project(root=root)
         assert project.workspace() == os.path.join(root, "workspace")
         assert project.root_directory() == root
-
-    def test_project_no_id(self):
-        root = self._tmp_dir.name
-        signac.init_project(root=root)
-        config = load_config(root)
-        del config["project"]
-        with pytest.raises(LookupError):
-            Project(config=config)
 
     def test_get_project_non_local(self):
         root = self._tmp_dir.name
