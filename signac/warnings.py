@@ -3,10 +3,10 @@
 # This software is licensed under the BSD 3-Clause License.
 
 
-"""Module for signac deprecation warnings."""
+"""Module for signac future warnings."""
 
 
-class SignacDeprecationWarning(UserWarning):
+class SignacFutureWarning(UserWarning):
     """Indicates the deprecation of a signac feature, API or behavior.
 
     This class indicates a user-relevant deprecation and is therefore
@@ -16,4 +16,4 @@ class SignacDeprecationWarning(UserWarning):
     pass
 
 
-__all__ = ["SignacDeprecationWarning"]
+__all__ = ["SignacFutureWarning"]
