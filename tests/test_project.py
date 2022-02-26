@@ -88,17 +88,16 @@ class TestProjectBase(TestJobBase):
 
 
 class TestProject(TestProjectBase):
-    def test_get(self):
-        pass
-
     def test_repr(self):
-        repr(self.project)
         p = eval(repr(self.project))
         assert repr(p) == repr(self.project)
         assert p == self.project
 
     def test_str(self):
-        str(self.project) == f"Project.get_project({self.project.root_directory()})"
+        assert str(self.project) == "{cls}.get_project({root})".format(
+            cls=self.project.__class__.__name__,
+            root=repr(self.project.root_directory()),
+        )
 
     def test_root_directory(self):
         assert self._tmp_pr == self.project.root_directory()

@@ -146,7 +146,7 @@ class Project:
             except OSError:
                 logger.error(
                     "Error occurred while trying to create workspace directory for project at root "
-                    f"{self._root_directory}."
+                    f"{self.root_directory()}."
                 )
                 raise
 

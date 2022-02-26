@@ -41,9 +41,7 @@ def _get_config_schema_version(root_directory, version_guess):
     # Try loading the schema using the loader corresponding to the expected
     # version if it has a configured loader.
     versions = _VERSION_LIST
-    # TODO: Do we really need full version objects for this purpose? Can we
-    # just use version numbers for schemas?
-    if str(version_guess.major) in _CONFIG_LOADERS:
+    if version_guess in _CONFIG_LOADERS:
         versions = [version_guess] + versions
     for guess in versions:
         try:

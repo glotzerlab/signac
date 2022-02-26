@@ -724,12 +724,12 @@ def main_config_show(args):
         cfg = config.load_config()
     if not cfg:
         if args.local:
-            mode = " local "
+            mode = "local"
         elif args.globalcfg:
-            mode = " global "
+            mode = "global"
         else:
-            mode = " local or global "
-        _print_err(f"Did not find a{mode}configuration file.")
+            mode = "local or global"
+        _print_err(f"Did not find a {mode} configuration file.")
         return
     for key in args.key:
         for kt in key.split("."):
@@ -757,12 +757,12 @@ def main_config_verify(args):
         cfg = config.load_config()
     if not cfg:
         if args.local:
-            mode = " local "
+            mode = "local"
         elif args.globalcfg:
-            mode = " global "
+            mode = "global"
         else:
-            mode = " local or global "
-        _print_err(f"Did not find a{mode}configuration file.")
+            mode = "local or global"
+        _print_err(f"Did not find a {mode} configuration file.")
         return
     else:
         if cfg.filename is not None:
