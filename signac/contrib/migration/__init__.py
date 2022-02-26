@@ -7,7 +7,6 @@ import os
 import sys
 
 from filelock import FileLock
-from packaging import version
 
 from ...version import SCHEMA_VERSION, __version__
 from .v0_to_v1 import _load_config_v1, _migrate_v0_to_v1
@@ -25,20 +24,17 @@ FN_MIGRATION_LOCKFILE = ".SIGNAC_PROJECT_MIGRATION_LOCK"
 # writeable, i.e. it must be possible to persist in-memory changes from these
 # objects to the underlying config files.
 _CONFIG_LOADERS = {
-    "1": _load_config_v1,
-    "2": _load_config_v2,
+    1: _load_config_v1,
+    2: _load_config_v2,
 }
 
 
 _MIGRATIONS = {
-    ("0", "1"): _migrate_v0_to_v1,
-    ("1", "2"): _migrate_v1_to_v2,
+    (0, 1): _migrate_v0_to_v1,
+    (1, 2): _migrate_v1_to_v2,
 }
 
-_PARSED_SCHEMA_VERSION = version.parse(SCHEMA_VERSION)
-
-
-_VERSION_LIST = list(reversed(sorted(version.parse(v) for v in _CONFIG_LOADERS.keys())))
+_VERSION_LIST = list(reversed(sorted(_CONFIG_LOADERS.keys())))
 
 
 def _get_config_schema_version(root_directory, version_guess):
@@ -52,7 +48,7 @@ def _get_config_schema_version(root_directory, version_guess):
             # Note: We could consider using a different component as the key
             # for _CONFIG_LOADERS, but since this is an internal detail it's
             # not terribly consequential.
-            config = _CONFIG_LOADERS[guess.public](root_directory)
+            config = _CONFIG_LOADERS[guess](root_directory)
             break
         except Exception:
             # The load failed, go to the next
@@ -60,18 +56,16 @@ def _get_config_schema_version(root_directory, version_guess):
     else:
         raise RuntimeError("Unable to load config file.")
     try:
-        return version.parse(config["schema_version"])
+        return int(config["schema_version"])
     except KeyError:
         # The default schema version is version 0.
-        return version.parse("0")
+        return 0
 
 
 def _collect_migrations(root_directory):
-    schema_version = _PARSED_SCHEMA_VERSION
+    schema_version = int(SCHEMA_VERSION)
 
-    current_schema_version = _get_config_schema_version(
-        root_directory, _PARSED_SCHEMA_VERSION
-    )
+    current_schema_version = _get_config_schema_version(root_directory, schema_version)
     if current_schema_version > schema_version:
         # Project config schema version is newer and therefore not supported.
         raise RuntimeError(
@@ -84,11 +78,9 @@ def _collect_migrations(root_directory):
     guess = current_schema_version
     while _get_config_schema_version(root_directory, guess) < schema_version:
         for (origin, destination), migration in _MIGRATIONS.items():
-            if version.parse(origin) == _get_config_schema_version(
-                root_directory, guess
-            ):
+            if origin == _get_config_schema_version(root_directory, guess):
                 yield (origin, destination), migration
-                guess = version.parse(destination)
+                guess = destination
                 break
         else:
             raise RuntimeError(
@@ -129,9 +121,7 @@ def apply_migrations(root_directory):
                         f"Failed to apply migration {destination}."
                     ) from e
                 else:
-                    config = _CONFIG_LOADERS[version.parse(destination).public](
-                        root_directory
-                    )
+                    config = _CONFIG_LOADERS[destination](root_directory)
                     config["schema_version"] = destination
                     config.write()
 
