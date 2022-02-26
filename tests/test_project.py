@@ -2478,14 +2478,6 @@ class TestProjectSchema(TestProjectBase):
         with pytest.raises(RuntimeError):
             apply_migrations(self.project.path)
 
-        # Ensure that migration fails on an invalid version.
-        invalid_schema_version = "0.5"
-        config = read_config_file(_get_project_config_fn(self.project.root_directory()))
-        config["schema_version"] = invalid_schema_version
-        config.write()
-        with pytest.raises(RuntimeError):
-            apply_migrations(self.project.path)
-
     def test_no_migration(self):
         # This unit test should fail as long as there are no schema migrations
         # implemented within the signac.contrib.migration package.
