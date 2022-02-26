@@ -121,17 +121,6 @@ class Project:
         self._config = _ProjectConfig(config)
         self._lock = RLock()
 
-        # Ensure that the project id is configured.
-        try:
-            self._id = str(self.config["project"])
-        except KeyError:
-            raise LookupError(
-                "Unable to determine project id. "
-                "Please verify that '{}' is a signac project path.".format(
-                    os.path.abspath(self.config.get("project_dir", os.getcwd()))
-                )
-            )
-
         # Ensure that the project's data schema is supported.
         self._check_schema_compatibility()
 
@@ -156,8 +145,8 @@ class Project:
                 _mkdir_p(self.workspace())
             except OSError:
                 logger.error(
-                    "Error occurred while trying to create "
-                    "workspace directory for project {}.".format(self.id)
+                    "Error occurred while trying to create workspace directory for project at root "
+                    f"{self.root_directory()}."
                 )
                 raise
 
@@ -175,8 +164,7 @@ class Project:
         )
 
     def __str__(self):
-        """Return the project's id."""
-        return str(self.id)
+        return str(self.root_directory())
 
     def __repr__(self):
         return "{type}.get_project({root})".format(
@@ -194,8 +182,7 @@ class Project:
         """
         return (
             "<p>"
-            + f"<strong>Project:</strong> {self.id}<br>"
-            + f"<strong>Root:</strong> {self.root_directory()}<br>"
+            + f"<strong>Project:</strong> {self.root_directory()}<br>"
             + f"<strong>Workspace:</strong> {self.workspace()}<br>"
             + f"<strong>Size:</strong> {len(self)}"
             + "</p>"
@@ -254,18 +241,6 @@ class Project:
 
         """
         return self._workspace
-
-    @property
-    def id(self):
-        """Get the project identifier.
-
-        Returns
-        -------
-        str
-            The project id.
-
-        """
-        return self._id
 
     def _check_schema_compatibility(self):
         """Check whether this project's data schema is compatible with this version.
@@ -1573,7 +1548,6 @@ class Project:
             if make_dir:
                 _mkdir_p(os.path.dirname(fn_config))
             config = read_config_file(fn_config)
-            config["project"] = name
             if workspace is not None:
                 config["workspace_dir"] = workspace
             config["schema_version"] = SCHEMA_VERSION
@@ -1581,7 +1555,6 @@ class Project:
             project = cls.get_project(root=root)
             if name is not None:
                 project.doc[name_key] = name
-            assert project.id == str(name)
             return project
         else:
             if workspace is not None and os.path.realpath(
@@ -1625,7 +1598,7 @@ class Project:
         if root is None:
             root = os.getcwd()
         config = load_config(root=root, local=False)
-        if "project" not in config or (
+        if "project_dir" not in config or (
             not search
             and os.path.realpath(config["project_dir"]) != os.path.realpath(root)
         ):
