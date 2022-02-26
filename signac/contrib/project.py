@@ -277,8 +277,8 @@ class Project:
             If the schema version is incompatible.
 
         """
-        schema_version = version.parse(SCHEMA_VERSION)
-        config_schema_version = version.parse(self.config["schema_version"])
+        schema_version = SCHEMA_VERSION
+        config_schema_version = int(self.config["schema_version"])
         if config_schema_version > schema_version:
             # Project config schema version is newer and therefore not supported.
             raise IncompatibleSchemaVersion(
