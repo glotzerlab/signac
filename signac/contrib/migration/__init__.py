@@ -34,7 +34,7 @@ _MIGRATIONS = {
     (1, 2): _migrate_v1_to_v2,
 }
 
-_VERSION_LIST = list(reversed(sorted(v for v in _CONFIG_LOADERS.keys())))
+_VERSION_LIST = list(reversed(sorted(_CONFIG_LOADERS.keys())))
 
 
 def _get_config_schema_version(root_directory, version_guess):
