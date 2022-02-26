@@ -164,7 +164,7 @@ class Project:
         )
 
     def __str__(self):
-        return repr(self)
+        return str(self.root_directory())
 
     def __repr__(self):
         return "{type}.get_project({root})".format(

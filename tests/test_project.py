@@ -94,10 +94,7 @@ class TestProject(TestProjectBase):
         assert p == self.project
 
     def test_str(self):
-        assert str(self.project) == "{cls}.get_project({root})".format(
-            cls=self.project.__class__.__name__,
-            root=repr(self.project.root_directory()),
-        )
+        assert str(self.project) == self.project.root_directory()
 
     def test_root_directory(self):
         assert self._tmp_pr == self.project.root_directory()
