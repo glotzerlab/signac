@@ -31,6 +31,11 @@ Deprecated
  - ``signac.cite`` module is deprecated (#611, #592).
  - ``config.get_config`` method is deprecated (#675).
 
+Changed
++++++++
+
+ - Project names have a default in anticipation of removing names entirely. Project names will be removed in signac 2.0.
+
 Fixed
 +++++
 
