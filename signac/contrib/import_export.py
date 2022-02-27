@@ -18,6 +18,7 @@ from tempfile import TemporaryDirectory
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from .errors import DestinationExistsError, StatepointParsingError
+from .job import Job
 from .utility import _dotted_dict_to_nested_dicts, _mkdir_p
 
 logger = logging.getLogger(__name__)
@@ -857,7 +858,7 @@ def _analyze_directory_for_import(root, project, schema):
 
     """
     # Determine schema function
-    read_statepoint_file = _parse_workspaces(project.Job.FN_STATE_POINT)
+    read_statepoint_file = _parse_workspaces(Job.FN_STATE_POINT)
     if schema is None:
         schema_function = read_statepoint_file
     elif callable(schema):
@@ -968,7 +969,7 @@ def _analyze_zipfile_for_import(zipfile, project, schema):
 
         """
         # Must use forward slashes, not os.path.sep.
-        fn_statepoint = path + "/" + project.Job.FN_STATE_POINT
+        fn_statepoint = path + "/" + Job.FN_STATE_POINT
         if fn_statepoint in names:
             return json.loads(zipfile.read(fn_statepoint).decode())
 
@@ -1114,7 +1115,7 @@ def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
 
         """
         # Must use forward slashes, not os.path.sep.
-        fn_statepoint = _tarfile_path_join(path, project.Job.FN_STATE_POINT)
+        fn_statepoint = _tarfile_path_join(path, Job.FN_STATE_POINT)
         try:
             with closing(tarfile.extractfile(fn_statepoint)) as file:
                 return json.loads(file.read())
