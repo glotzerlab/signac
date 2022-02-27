@@ -680,21 +680,6 @@ class TestProject(TestProjectBase):
         assert isinstance(project, signac.Project)
         assert isinstance(project, CustomProject)
 
-    def test_custom_job_class(self):
-        class CustomJob(signac.contrib.job.Job):
-            def __init__(self, *args, **kwargs):
-                super().__init__(*args, **kwargs)
-
-        class CustomProject(signac.Project):
-            Job = CustomJob
-
-        project = CustomProject.get_project(root=self.project.root_directory())
-        assert isinstance(project, signac.Project)
-        assert isinstance(project, CustomProject)
-        job = project.open_job(dict(a=0))
-        assert isinstance(job, CustomJob)
-        assert isinstance(job, signac.contrib.job.Job)
-
     def test_project_contains(self):
         job = self.open_job(dict(a=0))
         assert job not in self.project
