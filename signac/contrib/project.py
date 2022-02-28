@@ -26,7 +26,7 @@ from ..core.h5store import H5StoreManager
 from ..sync import sync_projects
 from ..synced_collections.backends.collection_json import BufferedJSONAttrDict
 from ..version import SCHEMA_VERSION, __version__
-from ._index import _SearchIndexer
+from ._searchindexer import _SearchIndexer
 from .errors import (
     DestinationExistsError,
     IncompatibleSchemaVersion,
