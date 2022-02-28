@@ -26,7 +26,7 @@ from ..core.h5store import H5StoreManager
 from ..sync import sync_projects
 from ..synced_collections.backends.collection_json import BufferedJSONAttrDict
 from ..version import SCHEMA_VERSION, __version__
-from .collection import Collection
+from ._index import _SearchIndexer
 from .errors import (
     DestinationExistsError,
     IncompatibleSchemaVersion,
@@ -665,10 +665,10 @@ class Project:
         """
         from .schema import _build_job_statepoint_index
 
-        index = self._build_index(include_job_document=False)
+        index = _SearchIndexer(self._build_index(include_job_document=False))
         if subset is not None:
-            subset = {str(s) for s in subset}
-            index = [doc for doc in index if doc["_id"] in subset]
+            subset = {str(s) for s in subset}.intersection(index.keys())
+            index = _SearchIndexer((_id, index[_id]) for _id in subset)
         statepoint_index = _build_job_statepoint_index(
             exclude_const=exclude_const, index=index
         )
@@ -705,10 +705,10 @@ class Project:
         if not filter:
             return list(self._job_dirs())
         filter = dict(parse_filter(_add_prefix("sp.", filter)))
-        index = list(
+        index = _SearchIndexer(
             self._build_index(include_job_document="doc" in _root_keys(filter))
         )
-        return list(Collection(index, _trust=True)._find(filter))
+        return list(index.find(filter))
 
     def find_jobs(self, filter=None, *args, **kwargs):
         """Find all jobs in the project's workspace.
@@ -1334,14 +1334,15 @@ class Project:
 
         Yields
         ------
-        dict
-            Dictionary with keys ``_id`` containing the job id, ``sp``
-            containing the state point, and ``doc`` containing the job document
-            if requested.
+        job_id : str
+            The job id.
+        doc : dict
+            Dictionary with keys ``sp`` containing the state point and ``doc``
+            containing the job document if requested.
 
         """
         for job_id in self._find_job_ids():
-            doc = dict(_id=job_id, sp=self._get_statepoint(job_id))
+            doc = {"sp": self._get_statepoint(job_id)}
             if include_job_document:
                 try:
                     # Performance-critical path. We can rely on the project
@@ -1356,7 +1357,7 @@ class Project:
                 except OSError as error:
                     if error.errno != errno.ENOENT:
                         raise
-            yield doc
+            yield job_id, doc
 
     def _update_in_memory_cache(self):
         """Update the in-memory state point cache to reflect the workspace."""
