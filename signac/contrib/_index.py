@@ -23,14 +23,14 @@ logger = logging.getLogger(__name__)
 _PRIMARY_KEY = "_id"
 
 
-class _Index(dict):
+class _SearchIndexer(dict):
     """A searchable collection of dicts.
 
-    The _Index class is a :class:`dict` that maps from ids to :class:`dict`s.
-    The :class:`dict`s stored as values can be searched by their contained keys
-    and values, returning ids for the values matching the provided query. The
-    query syntax is based on MongoDB, though this class does not aim to match
-    the API of MongoDB's Collection class.
+    The _SearchIndexer class is a :class:`dict` that maps from ids to
+    :class:`dict`s. The :class:`dict`s stored as values can be searched by
+    their contained keys and values, returning ids for the values matching the
+    provided query. The query syntax is based on MongoDB, though this class
+    does not aim to match the API of MongoDB's Collection class.
 
     The dictionary values may be nested (may contain other dicts or lists), but
     have two restrictions. First, the data must be JSON-encodable. Second, the
@@ -43,7 +43,7 @@ class _Index(dict):
 
     .. code-block:: python
 
-        members = _Index({
+        members = _SearchIndexer({
             '0': {'name': 'John',  'age': 32},
             '1': {'name': 'Alice', 'age': 28},
             '2': {'name': 'Kevin', 'age': 32},
@@ -54,8 +54,9 @@ class _Index(dict):
             print(member_id)  # prints 0 and 2
 
     Because this class inherits from :class:`dict`, it can be constructed in
-    any of the same ways as a :class:`dict`, like ``_Index(**kwargs)``,
-    ``_Index(mapping, **kwargs)``, or ``_Index(iterable, **kwargs)``.
+    any of the same ways as a :class:`dict`, like ``_SearchIndexer(**kwargs)``,
+    ``_SearchIndexer(mapping, **kwargs)``, or
+    ``_SearchIndexer(iterable, **kwargs)``.
 
     """
 

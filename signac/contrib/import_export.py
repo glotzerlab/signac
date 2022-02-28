@@ -17,7 +17,7 @@ from string import Formatter
 from tempfile import TemporaryDirectory
 from zipfile import ZIP_DEFLATED, ZipFile
 
-from ._index import _Index
+from ._index import _SearchIndexer
 from .errors import DestinationExistsError, StatepointParsingError
 from .utility import _dotted_dict_to_nested_dicts, _mkdir_p
 
@@ -63,7 +63,7 @@ def _make_schema_based_path_function(jobs, exclude_keys=None, delimiter_nested="
         # signature of the path function below.
         return lambda job, sep=None: ""
 
-    index = _Index((job.id, {"sp": job.sp()}) for job in jobs)
+    index = _SearchIndexer((job.id, {"sp": job.sp()}) for job in jobs)
     statepoint_index = dict(
         _build_job_statepoint_index(exclude_const=True, index=index)
     )

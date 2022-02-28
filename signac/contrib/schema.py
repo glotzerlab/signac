@@ -56,8 +56,8 @@ def _build_job_statepoint_index(exclude_const, index):
     ----------
     exclude_const : bool
         Excludes state point keys whose values are constant across the index.
-    index : _Index
-        An _Index mapping from job ids to job state points.
+    index : _SearchIndexer
+        A _SearchIndexer mapping from job ids to job state points.
 
     Yields
     ------
