@@ -667,8 +667,8 @@ class TestProject(TestProjectBase):
         for sp in statepoints:
             self.project.open_job(sp).document["test"] = True
         job_ids = {job.id for job in self.project.find_jobs()}
-        docs = list(self.project._build_index())
-        job_ids_cmp = {doc["_id"] for doc in docs}
+        docs = dict(self.project._build_index())
+        job_ids_cmp = docs.keys()
         assert job_ids == job_ids_cmp
         assert len(docs) == len(statepoints)
 
