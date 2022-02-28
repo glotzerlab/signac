@@ -5,7 +5,7 @@
 
 import itertools
 import warnings
-from collections import defaultdict as ddict
+from collections import defaultdict
 from collections.abc import Mapping
 from numbers import Number
 from pprint import pformat
@@ -14,6 +14,8 @@ from packaging import version
 
 from ..common.deprecation import deprecated
 from ..version import __version__
+from .collection import _DictPlaceholder
+from .utility import _nested_dicts_to_dotted_keys
 
 
 class _Vividict(dict):
@@ -44,10 +46,14 @@ def _collect_by_type(values):
     """
     # TODO: This function should be moved to project.py in version 2.0.
     assert version.parse(__version__) < version.parse("2.0.0")
-    values_by_type = ddict(set)
+    values_by_type = defaultdict(set)
     for v in values:
         values_by_type[type(v)].add(v)
     return values_by_type
+
+
+def _strip_prefix(key):
+    return key[len("sp.") :]
 
 
 def _build_job_statepoint_index(exclude_const, index):
@@ -57,57 +63,36 @@ def _build_job_statepoint_index(exclude_const, index):
     ----------
     exclude_const : bool
         Excludes state point keys whose values are constant across the index.
-    index :
-        An iterable of state points.
+    index : _SearchIndexer
+        A _SearchIndexer mapping from job ids to job state points.
 
     Yields
     ------
     statepoint_key : str
         State point key.
     statepoint_values : dict
-        Dictionary mapping from a state point value to the set of job ids
-        with that state point value.
+        Dictionary mapping from a state point value to the set of job ids with
+        that state point value.
 
     """
-    from .collection import Collection, _DictPlaceholder
-    from .utility import _nested_dicts_to_dotted_keys
-
-    collection = Collection(index, _trust=True)
-    for doc in collection.find():
+    indexes = {}
+    for _id in index.find():
+        doc = index[_id]
         for key, _ in _nested_dicts_to_dotted_keys(doc):
-            if key == "_id" or key.split(".")[0] != "sp":
-                continue
-            collection.index(key, build=True)
-    indexes = collection._indexes
-
-    def strip_prefix(key):
-        return key[len("sp.") :]
-
-    def remove_dict_placeholder(x):
-        """Remove _DictPlaceholder elements from a mapping.
-
-        Parameters
-        ----------
-        x : dict
-            Dictionary from which ``_DictPlaceholder`` values will be removed.
-
-        Returns
-        -------
-        dict
-            Dictionary with ``_DictPlaceholder`` keys removed.
-
-        """
-        return {key: value for key, value in x.items() if key is not _DictPlaceholder}
+            if key.split(".")[0] == "sp":
+                indexes[key] = index.build_index(key)
 
     for key in sorted(indexes, key=lambda key: (len(indexes[key]), key)):
         if (
             exclude_const
             and len(indexes[key]) == 1
-            and len(indexes[key][list(indexes[key].keys())[0]]) == len(collection)
+            and len(indexes[key][next(indexes[key].keys())]) == len(index)
         ):
             continue
-        statepoint_key = strip_prefix(key)
-        statepoint_values = remove_dict_placeholder(indexes[key])
+        statepoint_key = _strip_prefix(key)
+        # Remove _DictPlaceholder keys from the index
+        statepoint_values = indexes[key]
+        statepoint_values.pop(_DictPlaceholder, None)
         yield statepoint_key, statepoint_values
 
 
