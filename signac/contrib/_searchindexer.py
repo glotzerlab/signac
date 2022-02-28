@@ -48,9 +48,9 @@ class _DictPlaceholder:
 
 class _float(float):
     # Numerical objects of either integer or float type, that share the same numerical value,
-    # but not the same type, are distinguished within a Collection, but considered equal within
+    # but not the same type, are distinguished within a search index, but considered equal within
     # Python. We manipulate the hash value, to enable the storage of both an int and a float
-    # that share the same numerical value within a collection index (dict).
+    # that share the same numerical value within a search index (dict).
 
     # There is no risk of accidentally equating ints and floats with different values, since the
     # hash equality is only a necessary, not a sufficient condition for equality.
@@ -120,7 +120,7 @@ def _find_with_index_operator(index, op, argument):
         logical operator.
     argument :
         Dependent on the choice of logical operator argument (op).
-        For better understanding have a look at :meth:`~Collection.find`.
+        For better understanding have a look at :meth:`~_SearchIndexer.find`.
 
     Returns
     -------
@@ -219,7 +219,7 @@ def _check_logical_operator_argument(op, argument):
 
 
 class _SearchIndexer(dict):
-    """A searchable collection of dicts.
+    """A searchable index of dicts.
 
     The _SearchIndexer class is a :class:`dict` that maps from ids to
     :class:`dict`s. The :class:`dict`s stored as values can be searched by
