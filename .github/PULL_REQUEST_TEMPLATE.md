@@ -1,7 +1,7 @@
 <!-- Provide a general summary of your changes in the Title above -->
 
 
-## Description of [new feature/bug fix/ documentation update]
+## Description
 <!-- Describe your changes in detail. -->
 <!-- Please indicate if this change breaks or may break existing functionality, so we can mark it as 'breaking'. -->
 
