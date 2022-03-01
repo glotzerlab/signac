@@ -1,4 +1,4 @@
-click==8.0.3
+click==8.0.4
 gitdb2==4.0.2
 GitPython==3.1.26
 numpy==1.22.1
