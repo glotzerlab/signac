@@ -92,8 +92,7 @@ jobs:
               . venv/bin/activate
               ${PYTHON} -m pip install --progress-bar off -r requirements/requirements-benchmark.txt
               ${PYTHON} -m pip freeze
-              ${PYTHON} -m asv machine --machine circleci
-              ${PYTHON} -m asv continuous --machine circleci master "${CIRCLE_SHA1}"
+              ${PYTHON} -m asv continuous master "${CIRCLE_SHA1}"
               ${PYTHON} benchmark.py run -N 100 1000  # this revision
               ${PYTHON} benchmark.py report
               git reset --hard origin/master
