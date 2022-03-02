@@ -75,7 +75,7 @@ jobs:
           name: Run tests
           command: |
             . venv/bin/activate
-            ${PYTHON} -m pytest --cov signac --cov-config=setup.cfg --cov-report=xml tests/ -v
+            ${PYTHON} -m pytest -n auto --cov=signac --cov-config=setup.cfg --cov-report=xml tests/ -v
             codecov
 
       - store_artifacts:
@@ -171,7 +171,7 @@ jobs:
       - run:
           name: Run tests
           command: |
-            ${PYTHON} -m pytest --cov=signac --cov-report=xml tests/ -v
+            ${PYTHON} -m pytest -n auto --cov=signac --cov-report=xml tests/ -v
             codecov
 
   macos-python-3:
@@ -195,7 +195,7 @@ jobs:
             python -m pip install --progress-bar off -U -r requirements/requirements-test.txt
             python -m pip install --progress-bar off -U -r requirements/requirements-test-optional.txt
             python -m pip install --progress-bar off -U -e .
-            python -m pytest --cov=signac --cov-report=xml tests/ -v
+            python -m pytest -n auto --cov=signac --cov-report=xml tests/ -v
             codecov
 
   check-metadata:
