@@ -2227,6 +2227,8 @@ class TestLinkedViewProject(TestProjectBase):
 
 
 class UpdateCacheAfterInitJob(signac.contrib.job.Job):
+    """Test job class that updates the project cache on job init."""
+
     def init(self, *args, **kwargs):
         job = super().init(*args, **kwargs)
         self._project.update_cache()
@@ -2234,8 +2236,14 @@ class UpdateCacheAfterInitJob(signac.contrib.job.Job):
 
 
 class UpdateCacheAfterInitJobProject(signac.Project):
-    "This is a test class that regularly calls the update_cache() method."
-    Job = UpdateCacheAfterInitJob
+    """Test project class that updates the project cache on job init."""
+
+    def open_job(self, *args, **kwargs):
+        job = super().open_job(*args, **kwargs)
+        cache_updating_job = UpdateCacheAfterInitJob(
+            job._project, job.statepoint(), job._id
+        )
+        return cache_updating_job
 
 
 class TestCachedProject(TestProject):
