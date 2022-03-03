@@ -33,6 +33,7 @@ Removed
  - The following ``JobsCursor`` methods: ``groupbydoc``, ``next`` (#601, #604).
  - The ``Project.config`` property is no longer mutable. Use the command line ``$ signac config`` to modify configuration (#608, #246, #244).
  - The following config related functions: ``get_config_file``, ``search_standard_dirs`` (#674).
+ - ``Project`` subclasses can no longer define a ``Job`` subclass to use (#588, #693).
 
 Version 1
 =========
