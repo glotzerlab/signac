@@ -95,12 +95,12 @@ jobs:
               ${PYTHON} -m asv check
               ${PYTHON} -m asv machine --yes
               ${PYTHON} -m asv continuous master "${CIRCLE_SHA1}" --no-only-changed
-              ${PYTHON} benchmark.py run -N 100 1000  # this revision
-              ${PYTHON} benchmark.py report
-              git reset --hard origin/master
-              git checkout "${CIRCLE_SHA1}" -- benchmark.py  # ensure that we use the same benchmark script
-              ${PYTHON} benchmark.py run -N 100 1000 --force
-              ${PYTHON} benchmark.py compare origin/master "${CIRCLE_SHA1}"
+              #${PYTHON} benchmark.py run -N 100 1000  # this revision
+              #${PYTHON} benchmark.py report
+              #git reset --hard origin/master
+              #git checkout "${CIRCLE_SHA1}" -- benchmark.py  # ensure that we use the same benchmark script
+              #${PYTHON} benchmark.py run -N 100 1000 --force
+              #${PYTHON} benchmark.py compare origin/master "${CIRCLE_SHA1}"
             fi
 
   linux-python-310-minimal:
