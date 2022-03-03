@@ -10,11 +10,12 @@ comparison, and visualization of benchmark results. This complements the file
 intended for CI tests.
 """
 
+import os
 import random
 import string
+import tempfile
 from itertools import islice
 from multiprocessing import Pool
-from tempfile import TemporaryDirectory
 
 from tqdm import tqdm
 
@@ -74,16 +75,37 @@ def generate_random_data(
 def setup_random_project(
     N, num_keys=1, num_doc_keys=0, data_size_mean=0, data_size_std=0, seed=0, root=None
 ):
-    random.seed(seed)
     if not isinstance(N, int):
         raise TypeError("N must be an integer!")
 
-    temp_dir = TemporaryDirectory()
-    project = signac.init_project(f"benchmark-N={N}", root=temp_dir.name)
-    generate_random_data(
-        project, N, num_keys, num_doc_keys, data_size_mean, data_size_std
+    # Compute a reproducible hash for this set of parameters, used to avoid
+    # recreating random projects for every run. We cannot use asv's setup_cache
+    # method because it is not parameterized. Instead, we create a temporary
+    # directory of random project data that persists across benchmarks for a
+    # given set of parameters.
+    project_hash = signac.contrib.hashing.calc_id(
+        {
+            "N": N,
+            "num_keys": num_keys,
+            "num_doc_keys": num_doc_keys,
+            "data_size_mean": data_size_mean,
+            "data_size_std": data_size_std,
+            "seed": seed,
+        }
     )
-    return project, temp_dir
+    name = f"benchmark_N_{N}_{project_hash}"
+    root = os.path.join(tempfile.gettempdir(), "signac_benchmarks", name)
+
+    if os.path.isdir(root):
+        project = signac.get_project(root=root)
+        assert len(project) == N
+    else:
+        project = signac.init_project(name, root=root)
+        random.seed(seed)
+        generate_random_data(
+            project, N, num_keys, num_doc_keys, data_size_mean, data_size_std
+        )
+    return project
 
 
 PARAMETERS = {
@@ -98,23 +120,20 @@ PARAMETERS = {
 class _ProjectBenchBase:
     param_names = PARAMETERS.keys()
     params = PARAMETERS.values()
-    rounds = 3
-    repeat = (1, 1, 0)
+    rounds = 1
+    repeat = (3, 3, 0)
     sample_time = 0.1
     min_run_count = 3
 
     def setup(self, *params):
         N, num_keys, num_doc_keys, data_size_mean, data_size_std = params
-        self.project, self.temp_dir = setup_random_project(
+        self.project = setup_random_project(
             N,
             num_keys=num_keys,
             num_doc_keys=num_doc_keys,
             data_size_mean=data_size_mean,
             data_size_std=data_size_std,
         )
-
-    def teardown(self, *params):
-        self.temp_dir.cleanup()
 
 
 class ProjectBench(_ProjectBenchBase):
