@@ -94,7 +94,7 @@ jobs:
               ${PYTHON} -m pip freeze
               ${PYTHON} -m asv check
               ${PYTHON} -m asv machine --yes
-              ${PYTHON} -m asv continuous master "${CIRCLE_SHA1}"
+              ${PYTHON} -m asv continuous master "${CIRCLE_SHA1}" --no-only-changed
               ${PYTHON} benchmark.py run -N 100 1000  # this revision
               ${PYTHON} benchmark.py report
               git reset --hard origin/master
