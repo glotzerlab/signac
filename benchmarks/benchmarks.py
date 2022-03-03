@@ -98,6 +98,10 @@ PARAMETERS = {
 class _ProjectBenchBase:
     param_names = PARAMETERS.keys()
     params = PARAMETERS.values()
+    rounds = 3
+    repeat = (1, 1, 0)
+    sample_time = 0.1
+    min_run_count = 3
 
     def setup(self, *params):
         N, num_keys, num_doc_keys, data_size_mean, data_size_std = params
