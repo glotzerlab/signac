@@ -339,7 +339,7 @@ class TestProject(TestProjectBase):
                 assert self.project.open_job(sp) in cursor_first
             else:
                 assert self.project.open_job(sp) not in cursor_first
-        cursor_doc = self.project.find_jobs(doc_filter={"test": True})
+        cursor_doc = self.project.find_jobs(filter={"doc.test": True})
         for sp in statepoints:
             assert self.project.open_job(sp) in cursor_doc
 
