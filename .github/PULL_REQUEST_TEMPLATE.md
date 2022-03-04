@@ -1,10 +1,8 @@
 <!-- Provide a general summary of your changes in the Title above -->
 
-
 ## Description
 <!-- Describe your changes in detail. -->
 <!-- If possible, please indicate if this change breaks or may break existing functionality, so we can mark it as 'breaking'. -->
-
 
 ## Motivation and Context
 <!-- Why is this change required? What problem does it solve? -->
@@ -12,7 +10,7 @@
 
 
 ## Checklist:
-<!-- Please complete the checklist before the PR can be merged. Reviews can begin while the checklist is in progress. -->
+<!-- This checklist must be complete before merging the pull request. -->
 <!-- If you are unsure about any of these items, do not hesitate to ask! -->
 - [ ] I am familiar with the [**Contributing Guidelines**](https://github.com/glotzerlab/signac/blob/master/CONTRIBUTING.md).
 - [ ] I agree with the terms of the [**Contributor Agreement**](https://github.com/glotzerlab/signac/blob/master/ContributorAgreement.md).
