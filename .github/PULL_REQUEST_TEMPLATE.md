@@ -3,7 +3,7 @@
 
 ## Description
 <!-- Describe your changes in detail. -->
-<!-- Please indicate if this change breaks or may break existing functionality, so we can mark it as 'breaking'. -->
+<!-- If possible, please indicate if this change breaks or may break existing functionality, so we can mark it as 'breaking'. -->
 
 
 ## Motivation and Context
