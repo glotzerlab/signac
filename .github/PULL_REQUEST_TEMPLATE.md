@@ -2,7 +2,7 @@
 
 ## Description
 <!-- Describe your changes in detail. -->
-<!-- If possible, please indicate if this change breaks or may break existing functionality, so we can mark it as 'breaking'. -->
+<!-- Please indicate if the changes may break existing functionality. -->
 
 ## Motivation and Context
 <!-- Why is this change required? What problem does it solve? -->
