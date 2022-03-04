@@ -796,7 +796,8 @@ class Collection:
             When Bad operator expression/ Bad operator placement or
             the expression-operator is unknown.
         ValueError
-            The value is not bool when operator for '$exists' operator.
+            The value is not bool for '$exists' operator or not a
+            supported type for '$type' operator.
 
         """
         logger.debug(f"Find documents for expression '{key}: {value}'.")
@@ -876,8 +877,8 @@ class Collection:
         # Check if filter contains primary key, in which case we can
         # immediately reduce the result.
         _id = expr.pop(self._primary_key, None)
-        if _id is not None and _id in self:
-            reduce_results({_id})
+        if _id is not None:
+            reduce_results({_id} if _id in self else set())
 
         # Extract all logical-operator expressions for now.
         or_expressions = expr.pop("$or", None)
@@ -1049,7 +1050,7 @@ class Collection:
 
                     .. code-block:: python
 
-                        project.find({"protocol": {"$type": str}})
+                        project.find({"protocol": {"$type": "str"}})
 
             Finds all docs, where the value of protocol is of type str.
             Other types that can be checked are: *int*, *float*, *bool*, *list*, and *null*.

@@ -16,6 +16,12 @@ Added
  - Official support for Python 3.10 (#631).
  - Benchmarks can be run using the ``asv`` (airspeed velocity) tool (#629).
 
+Changed
++++++++
+
+ - Schema migration is now performed on directories rather than signac projects and supports a wider range of schemas (#654).
+ - Deprecated features now use ``FutureWarning`` instead of ``DeprecationWarning``, which is hidden by default (#687, #691).
+
 Deprecated
 ++++++++++
 
@@ -24,11 +30,19 @@ Deprecated
  - ``JobSearchIndex`` class is deprecated (#600).
  - ``index`` argument is deprecated in ``Project`` methods (#602, #588).
  - ``signac.cite`` module is deprecated (#611, #592).
+ - ``config.get_config`` method is deprecated (#675).
+
+Changed
++++++++
+
+ - Project names have a default in anticipation of removing names entirely. Project names will be removed in signac 2.0.
 
 Fixed
 +++++
 
  - ``H5Store.mode`` returns the file mode (#607).
+ - User-provided path functions now raise an error if not unique (#666).
+ - ``Collection`` class no longer raises an error when searching by a primary key that does not exist (#676).
 
 [1.7.0] -- 2021-06-08
 ---------------------

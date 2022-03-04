@@ -11,7 +11,7 @@ import re
 import shutil
 import tarfile
 import zipfile
-from collections import OrderedDict
+from collections import Counter, OrderedDict
 from contextlib import closing, contextmanager
 from string import Formatter
 from tempfile import TemporaryDirectory
@@ -149,6 +149,40 @@ class _SchemaPathEvaluationError(RuntimeError):
     pass
 
 
+def _check_path_function_unique(jobs, path_spec, path_function):
+    """Validate that path function specifies a 1-1 mapping.
+
+    Parameters
+    ----------
+    jobs : iterable of :class:`~signac.contrib.job.Job`
+        A sequence of jobs (instances of :class:`~signac.contrib.job.Job`).
+    path_spec : str
+        The path string that generated the path_function. Displayed in the
+        error message.
+    path_function : callable
+        A callable path generating function.
+
+    Raises
+    ------
+    RuntimeError
+        If paths generated with given path function are not unique.
+
+    """
+    job_paths = Counter(path_function(job) for job in jobs)
+    duplicates = {path for path, count in job_paths.items() if count > 1}
+    if len(duplicates) > 0:
+        # Log paths generated more than once
+        for path in duplicates:
+            logger.debug(f"Generated path '{path}' is not unique.")
+        raise RuntimeError(
+            f"The path specification '{path_spec}' would result in duplicate "
+            "paths. See the debug log for the list of duplicate paths. The "
+            "easiest way to fix this is to append the job id to the path "
+            "specification like "
+            f"'{os.path.join(str(path_spec), 'id', '{job.id}')}'."
+        )
+
+
 def _make_path_function(jobs, path):
     """Generate a path function for jobs or use ``path`` if it is callable.
 
@@ -194,7 +228,7 @@ def _make_path_function(jobs, path):
             return str(job.id)
 
     elif isinstance(path, str):
-        # Detect keys that are already provided as part of the path specifier and
+        # Detect keys that are already provided as part of the path specifier
         # and should therefore be excluded from the 'auto'-part.
         exclude_keys = [x[1] for x in Formatter().parse(path)]
 
@@ -240,6 +274,9 @@ def _make_path_function(jobs, path):
                 raise _SchemaPathEvaluationError(f"Unknown key: {error}")
             except Exception as error:
                 raise _SchemaPathEvaluationError(error)
+
+        # Check that the user-specified path generates a 1-1 mapping
+        _check_path_function_unique(jobs, path_spec=path, path_function=path_function)
 
     else:
         raise ValueError(
@@ -297,20 +334,17 @@ def _export_jobs(jobs, path, copytree):
     ------
     RuntimeError
         If paths generated with given path function are not unique.
-
     """
     # Transform the path argument into a callable if necessary.
     if callable(path):
         path_function = path
+        _check_path_function_unique(jobs, path_spec=path, path_function=path_function)
     else:
         path_function = _make_path_function(jobs, path)
+        # path_function is checked for uniqueness inside _make_path_function
 
     # Determine export path for each job.
     paths = {job.workspace(): path_function(job) for job in jobs}
-
-    # Check whether the mapped paths are unique.
-    if len(set(paths.values())) != len(paths):
-        raise RuntimeError("Paths generated with given path function are not unique!")
 
     # Check leaf/node consistency
     _check_directory_structure_validity(paths.values())

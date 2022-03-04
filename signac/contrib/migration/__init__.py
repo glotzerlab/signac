@@ -5,102 +5,139 @@
 
 import os
 import sys
-from contextlib import contextmanager
 
 from filelock import FileLock
 from packaging import version
 
-from ...common.config import get_config
 from ...version import SCHEMA_VERSION, __version__
-from .v0_to_v1 import migrate_v0_to_v1
+from .v0_to_v1 import _load_config_v1, _migrate_v0_to_v1
 
 FN_MIGRATION_LOCKFILE = ".SIGNAC_PROJECT_MIGRATION_LOCK"
 
 
-MIGRATIONS = {
-    ("0", "1"): migrate_v0_to_v1,
+# Config loaders must be functions with the signature
+# def config_loader(root_directory: str) -> MutableMapping
+# When a new schema version is introduced, a corresponding loader only needs to
+# be added if the old loader will no longer function.  This dictionary must
+# contain all unique loaders for schema versions that are supported as starting
+# points for migration. The resulting MutableMapping config objects must be
+# writeable, i.e. it must be possible to persist in-memory changes from these
+# objects to the underlying config files.
+_CONFIG_LOADERS = {
+    "1": _load_config_v1,
 }
 
 
-def _reload_project_config(project):
-    project_reloaded = project.get_project(
-        root=project.root_directory(), search=False, _ignore_schema_version=True
-    )
-    project._config = project_reloaded._config
+_MIGRATIONS = {
+    ("0", "1"): _migrate_v0_to_v1,
+}
 
 
-def _update_project_config(project, **kwargs):
-    """Update the project configuration."""
-    for fn in ("signac.rc", ".signacrc"):
-        config = get_config(project.fn(fn))
-        if "project" in config:
+_PARSED_SCHEMA_VERSION = version.parse(SCHEMA_VERSION)
+
+_VERSION_LIST = list(reversed(sorted(version.parse(v) for v in _CONFIG_LOADERS.keys())))
+
+
+def _get_config_schema_version(root_directory, version_guess):
+    # Try loading the schema using the loader corresponding to the expected
+    # version if it has a configured loader.
+    versions = _VERSION_LIST
+    if version_guess in _CONFIG_LOADERS:
+        versions = [version_guess] + versions
+    for guess in versions:
+        try:
+            # Note: We could consider using a different component as the key
+            # for _CONFIG_LOADERS, but since this is an internal detail it's
+            # not terribly consequential.
+            config = _CONFIG_LOADERS[guess.public](root_directory)
             break
+        except Exception:
+            # The load failed, go to the next
+            pass
     else:
-        raise RuntimeError("Unable to determine project configuration file.")
-    config.update(kwargs)
-    config.write()
-    _reload_project_config(project)
-
-
-@contextmanager
-def _lock_for_migration(project):
-    lock = FileLock(project.fn(FN_MIGRATION_LOCKFILE))
+        raise RuntimeError("Unable to load config file.")
     try:
+        return version.parse(config["schema_version"])
+    except KeyError:
+        # The default schema version is version 0.
+        return version.parse("0")
+
+
+def _collect_migrations(root_directory):
+    schema_version = _PARSED_SCHEMA_VERSION
+
+    current_schema_version = _get_config_schema_version(
+        root_directory, _PARSED_SCHEMA_VERSION
+    )
+    if current_schema_version > schema_version:
+        # Project config schema version is newer and therefore not supported.
+        raise RuntimeError(
+            "The signac schema version used by this project is "
+            f"{current_schema_version}, but signac {__version__} only "
+            f"supports up to schema version {SCHEMA_VERSION}. Try updating "
+            "signac."
+        )
+
+    guess = current_schema_version
+    while _get_config_schema_version(root_directory, guess) < schema_version:
+        for (origin, destination), migration in _MIGRATIONS.items():
+            if version.parse(origin) == _get_config_schema_version(
+                root_directory, guess
+            ):
+                yield (origin, destination), migration
+                guess = version.parse(destination)
+                break
+        else:
+            raise RuntimeError(
+                "The signac schema version used by this project is "
+                f"{_get_config_schema_version(root_directory, guess)}, but "
+                f"signac {__version__} uses schema version {schema_version} "
+                "and does not know how to migrate."
+            )
+
+
+def apply_migrations(root_directory):
+    """Apply migrations to a project.
+
+    This function identifies and performs all the necessary schema migrations
+    to bring a project up to date with the current schema version of signac.
+    The calling code does not require prior knowledge of the schema version of
+    the project, and the function is idempotent when applied to projects that
+    already have an up-to-date schema.
+
+    Parameters
+    ----------
+    root_directory : str
+        The path to the project to migrate.
+    """
+    try:
+        lock = FileLock(os.path.join(root_directory, FN_MIGRATION_LOCKFILE))
         with lock:
-            yield
+            for (origin, destination), migrate in _collect_migrations(root_directory):
+                try:
+                    print(
+                        f"Applying migration for version {origin} to {destination}... ",
+                        end="",
+                        file=sys.stderr,
+                    )
+                    migrate(root_directory)
+                except Exception as e:
+                    raise RuntimeError(
+                        f"Failed to apply migration {destination}."
+                    ) from e
+                else:
+                    config = _CONFIG_LOADERS[version.parse(destination).public](
+                        root_directory
+                    )
+                    config["schema_version"] = destination
+                    config.write()
+
+                    print("OK", file=sys.stderr)
     finally:
         try:
             os.unlink(lock.lock_file)
         except FileNotFoundError:
             pass
-
-
-def _collect_migrations(project):
-    schema_version = version.parse(SCHEMA_VERSION)
-
-    def get_config_schema_version():
-        return version.parse(project._config["schema_version"])
-
-    if get_config_schema_version() > schema_version:
-        # Project config schema version is newer and therefore not supported.
-        raise RuntimeError(
-            "The signac schema version used by this project is {}, but signac {} "
-            "only supports up to schema version {}. Try updating signac.".format(
-                get_config_schema_version(), __version__, SCHEMA_VERSION
-            )
-        )
-
-    while get_config_schema_version() < schema_version:
-        for (origin, destination), migration in MIGRATIONS.items():
-            if version.parse(origin) == get_config_schema_version():
-                yield (origin, destination), migration
-                break
-        else:
-            raise RuntimeError(
-                "The signac schema version used by this project is {}, but signac {} "
-                "uses schema version {} and does not know how to migrate.".format(
-                    get_config_schema_version(), __version__, schema_version
-                )
-            )
-
-
-def apply_migrations(project):
-    """Apply migrations to a project."""
-    with _lock_for_migration(project):
-        for (origin, destination), migrate in _collect_migrations(project):
-            try:
-                print(
-                    f"Applying migration for version {origin} to {destination}... ",
-                    end="",
-                    file=sys.stderr,
-                )
-                migrate(project)
-            except Exception as e:
-                raise RuntimeError(f"Failed to apply migration {destination}.") from e
-            else:
-                _update_project_config(project, schema_version=destination)
-                print("OK", file=sys.stderr)
-                yield origin, destination
 
 
 __all__ = [

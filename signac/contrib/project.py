@@ -25,7 +25,7 @@ from threading import RLock
 from deprecation import deprecated
 from packaging import version
 
-from ..common.config import Config, get_config, load_config
+from ..common.config import Config, _get_config, load_config
 from ..core.h5store import H5StoreManager
 from ..sync import sync_projects
 from ..synced_collections.backends.collection_json import BufferedJSONAttrDict
@@ -82,6 +82,9 @@ DOC_FILTER_WARNING = (
     "See https://docs.signac.io/en/latest/query.html#query-namespaces for more "
     "information."
 )
+
+# Temporary default for project names until they are removed entirely in signac 2.0
+_DEFAULT_PROJECT_NAME = None
 
 
 class JobSearchIndex:
@@ -170,7 +173,7 @@ class JobSearchIndex:
             if doc_filter:
                 filter.update(doc_filter)
         elif doc_filter:
-            warnings.warn(DOC_FILTER_WARNING, DeprecationWarning)
+            warnings.warn(DOC_FILTER_WARNING, FutureWarning)
             filter = doc_filter
         return self._collection._find(filter)
 
@@ -201,7 +204,7 @@ class _ProjectConfig(Config):
                 "Modifying the project configuration after project "
                 "initialization is deprecated as of version 1.3 and "
                 "will be removed in version 2.0.",
-                DeprecationWarning,
+                FutureWarning,
             )
 
             assert version.parse(__version__) < version.parse("2.0")
@@ -230,8 +233,6 @@ class Project:
         The project configuration to use. By default, it loads the first signac
         project configuration found while searching upward from the current
         working directory (Default value = None).
-    _ignore_schema_version : bool
-        (Default value = False).
 
     """
 
@@ -253,7 +254,7 @@ class Project:
 
     _use_pandas_for_html_repr = True  # toggle use of pandas for html repr
 
-    def __init__(self, config=None, _ignore_schema_version=False):
+    def __init__(self, config=None):
         if config is None:
             config = load_config()
         self._config = _ProjectConfig(
@@ -276,8 +277,7 @@ class Project:
             )
 
         # Ensure that the project's data schema is supported.
-        if not _ignore_schema_version:
-            self._check_schema_compatibility()
+        self._check_schema_compatibility()
 
         # Prepare project document
         self._document = None
@@ -919,7 +919,7 @@ class Project:
         if index is None:
             index = self.index(include_job_document=False)
         else:
-            warnings.warn(INDEX_DEPRECATION_WARNING, DeprecationWarning)
+            warnings.warn(INDEX_DEPRECATION_WARNING, FutureWarning)
         if subset is not None:
             subset = {str(s) for s in subset}
             index = [doc for doc in index if doc["_id"] in subset]
@@ -1031,7 +1031,7 @@ class Project:
         if index is None:
             filter = dict(parse_filter(_add_prefix("sp.", filter)))
             if doc_filter:
-                warnings.warn(DOC_FILTER_WARNING, DeprecationWarning)
+                warnings.warn(DOC_FILTER_WARNING, FutureWarning)
                 filter.update(parse_filter(_add_prefix("doc.", doc_filter)))
                 index = self.index(include_job_document=True)
             elif "doc" in _root_keys(filter):
@@ -1039,7 +1039,7 @@ class Project:
             else:
                 index = self._sp_index()
         else:
-            warnings.warn(INDEX_DEPRECATION_WARNING, DeprecationWarning)
+            warnings.warn(INDEX_DEPRECATION_WARNING, FutureWarning)
 
         return Collection(index, _trust=True)._find(filter)
 
@@ -1079,7 +1079,7 @@ class Project:
         """
         filter = dict(parse_filter(_add_prefix("sp.", filter)))
         if doc_filter:
-            warnings.warn(DOC_FILTER_WARNING, DeprecationWarning)
+            warnings.warn(DOC_FILTER_WARNING, FutureWarning)
             filter.update(parse_filter(_add_prefix("doc.", doc_filter)))
         return JobsCursor(self, filter)
 
@@ -1521,7 +1521,7 @@ class Project:
 
         """
         if index is not None:
-            warnings.warn(INDEX_DEPRECATION_WARNING, DeprecationWarning)
+            warnings.warn(INDEX_DEPRECATION_WARNING, FutureWarning)
         from .linked_view import create_linked_view
 
         return create_linked_view(self, prefix, job_ids, index, path)
@@ -1922,7 +1922,7 @@ class Project:
         if index is not None:
             for doc in index:
                 self._sp_cache[doc["signac_id"]] = doc["sp"]
-            warnings.warn(INDEX_DEPRECATION_WARNING, DeprecationWarning)
+            warnings.warn(INDEX_DEPRECATION_WARNING, FutureWarning)
         corrupted = []
         for job_id in job_ids:
             try:
@@ -2226,7 +2226,7 @@ class Project:
         """
         if master is not None:
             warnings.warn(
-                "The parameter master has been renamed to main.", DeprecationWarning
+                "The parameter master has been renamed to main.", FutureWarning
             )
             main = master
 
@@ -2282,8 +2282,8 @@ class Project:
             yield tmp_project
 
     @classmethod
-    def init_project(cls, name, root=None, workspace=None, make_dir=True):
-        """Initialize a project with the given name.
+    def init_project(cls, name=None, root=None, workspace=None, make_dir=True):
+        """Initialize a project.
 
         It is safe to call this function multiple times with the same
         arguments. However, a `RuntimeError` is raised if an existing project
@@ -2294,15 +2294,15 @@ class Project:
 
         Parameters
         ----------
-        name : str
-            The name of the project to initialize.
-        root : str
+        name : str, optional
+            The name of the project to initialize (Default value = None).
+        root : str, optional
             The root directory for the project.
             Defaults to the current working directory.
-        workspace : str
+        workspace : str, optional
             The workspace directory for the project.
             Defaults to a subdirectory ``workspace`` in the project root.
-        make_dir : bool
+        make_dir : bool, optional
             Create the project root directory if it does not exist yet
             (Default value = True).
 
@@ -2320,13 +2320,23 @@ class Project:
         """
         if root is None:
             root = os.getcwd()
+
+        if name is not None:
+            warnings.warn(
+                "Project names are deprecated and will be removed in signac 2.0 in favor of using "
+                "the project root directory to identify projects. The name argument to "
+                "init_project should be removed.",
+                FutureWarning,
+            )
+        else:
+            name = _DEFAULT_PROJECT_NAME
         try:
             project = cls.get_project(root=root, search=False)
         except LookupError:
             fn_config = os.path.join(root, "signac.rc")
             if make_dir:
                 _mkdir_p(os.path.dirname(fn_config))
-            config = get_config(fn_config)
+            config = _get_config(fn_config)
             config["project"] = name
             if workspace is not None:
                 config["workspace_dir"] = workspace
@@ -2637,7 +2647,7 @@ class JobsCursor:
         """
         warnings.warn(
             "Calling next() directly on a JobsCursor is deprecated! Use next(iter(..)) instead.",
-            DeprecationWarning,
+            FutureWarning,
         )
         if self._next_iter is None:
             self._next_iter = iter(self)
@@ -3031,8 +3041,8 @@ class JobsCursor:
         return repr(self) + self._repr_html_jobs()
 
 
-def init_project(name, root=None, workspace=None, make_dir=True):
-    """Initialize a project with the given name.
+def init_project(name=None, root=None, workspace=None, make_dir=True):
+    """Initialize a project.
 
     It is safe to call this function multiple times with the same arguments.
     However, a `RuntimeError` is raised if an existing project configuration
@@ -3040,15 +3050,15 @@ def init_project(name, root=None, workspace=None, make_dir=True):
 
     Parameters
     ----------
-    name : str
+    name : str, optional
         The name of the project to initialize.
-    root : str
+    root : str, optional
         The root directory for the project.
         Defaults to the current working directory.
-    workspace : str
+    workspace : str, optional
         The workspace directory for the project.
         Defaults to a subdirectory ``workspace`` in the project root.
-    make_dir : bool
+    make_dir : bool, optional
         Create the project root directory, if it does not exist yet (Default
         value = True).
 

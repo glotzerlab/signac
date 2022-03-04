@@ -237,6 +237,24 @@ class TestBasicShell:
                 "view/a/{}/job".format(sp["a"])
             ) == os.path.realpath(project.open_job(sp).workspace())
 
+    @pytest.mark.skipif(WINDOWS, reason="Symbolic links are unsupported on Windows.")
+    def test_view_incomplete_path_spec(self):
+        self.call("python -m signac init my_project".split())
+        project = signac.Project()
+        sps = [{"a": i} for i in range(3)]
+        for sp in sps:
+            project.open_job(sp).init()
+        os.mkdir("view")
+
+        # An error should be raised if the user-provided path function
+        # doesn't make a 1-1 mapping.
+        err = self.call(
+            "python -m signac view view non_unique".split(),
+            error=True,
+            raise_error=False,
+        )
+        assert "duplicate paths" in err
+
     def test_find(self):
         self.call("python -m signac init my_project".split())
         project = signac.Project()
@@ -848,15 +866,10 @@ class TestBasicShell:
         cfg = self.call("python -m signac config --local show".split())
         assert "Mongo" not in cfg
 
-    @pytest.mark.skipif(
-        not PYMONGO, reason="pymongo is required for host configuration"
-    )
     def test_config_verify(self):
         # no config file
         with pytest.raises(ExitCodeError):
-            err = self.call(
-                "python -m signac config --local verify".split(), error=True
-            )
+            self.call("python -m signac config --local verify".split(), error=True)
         err = self.call(
             "python -m signac config --local verify".split(),
             error=True,
@@ -867,6 +880,11 @@ class TestBasicShell:
         err = self.call("python -m signac config --local verify".split(), error=True)
         assert "Passed" in err
 
+    @pytest.mark.skipif(
+        not PYMONGO, reason="pymongo is required for host configuration"
+    )
+    def test_config_verify_mongo(self):
+        self.call("python -m signac init my_project".split())
         self.call("python -m signac config --local host Mongo -u abc -p 123".split())
         err = self.call("python -m signac config --local verify".split(), error=True)
         assert "hosts.Mongo.password_config.[missing section]" in err
