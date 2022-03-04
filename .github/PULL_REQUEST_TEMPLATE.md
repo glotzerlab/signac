@@ -12,7 +12,7 @@
 
 
 ## Checklist:
-<!-- Please select all items that apply either now or after creating the pull request. -->
+<!-- Please complete the checklist before the PR can be merged. Reviews can begin while the checklist is in progress. -->
 <!-- If you are unsure about any of these items, do not hesitate to ask! -->
 - [ ] I am familiar with the [**Contributing Guidelines**](https://github.com/glotzerlab/signac/blob/master/CONTRIBUTING.md).
 - [ ] I agree with the terms of the [**Contributor Agreement**](https://github.com/glotzerlab/signac/blob/master/ContributorAgreement.md).
