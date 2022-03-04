@@ -15,7 +15,7 @@ Added
 
  - Official support for Python 3.10 (#631).
  - Benchmarks can be run using the ``asv`` (airspeed velocity) tool (#629).
- - Tests run in parallel with ``pytest-xdist`` (#705).
+ - Continuous integration tests run in parallel with ``pytest-xdist`` (#705).
 
 Changed
 +++++++
