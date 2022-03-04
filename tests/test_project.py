@@ -1,6 +1,7 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+import gzip
 import io
 import itertools
 import json
@@ -36,6 +37,7 @@ from signac.contrib.errors import (
     StatepointParsingError,
     WorkspaceError,
 )
+from signac.contrib.hashing import calc_id
 from signac.contrib.linked_view import _find_all_links
 from signac.contrib.project import JobsCursor, Project  # noqa: F401
 from signac.contrib.schema import ProjectSchema
@@ -2503,6 +2505,14 @@ class TestSchemaMigration:
                     )
                 )
 
+            # Create a statepoint cache. Note that this cache does not
+            # correspond to actual statepoints since we don't currently have
+            # any in this project, but that's fine for migration testing.
+            history_fn = os.path.join(dirname, ".signac_sp_cache.json.gz")
+            sp = {"a": 1}
+            with gzip.open(history_fn, "wb") as f:
+                f.write(json.dumps({calc_id(sp): sp}).encode())
+
             # If no schema version is present in the config it is equivalent to
             # version 0, so we test both explicit and implicit versions.
             config = read_config_file(cfg_fn)
@@ -2525,6 +2535,7 @@ class TestSchemaMigration:
             assert "1 to 2" in err.getvalue()
             assert os.path.isfile(project.fn(PROJECT_CONFIG_FN))
             assert os.path.isfile(project.fn(SHELL_HISTORY_FN))
+            assert os.path.isfile(project.fn(Project.FN_CACHE))
 
 
 class TestProjectPickling(TestProjectBase):

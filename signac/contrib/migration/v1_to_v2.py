@@ -54,6 +54,7 @@ def _migrate_v1_to_v2(root_directory):
     # Now move all other files.
     files_to_move = {
         ".signac_shell_history": os.sep.join((".signac", "shell_history")),
+        ".signac_sp_cache.json.gz": os.sep.join((".signac", "sp_cache.json.gz")),
     }
     for src, dst in files_to_move.items():
         os.rename(
