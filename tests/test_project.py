@@ -23,6 +23,7 @@ from packaging import version
 from test_job import TestJobBase
 
 import signac
+from signac.__main__ import SHELL_HISTORY_FN
 from signac.common.config import (
     PROJECT_CONFIG_FN,
     _get_project_config_fn,
@@ -2480,6 +2481,7 @@ class TestSchemaMigration:
         from signac.contrib.migration import apply_migrations
 
         with TemporaryDirectory() as dirname:
+            # Create v1 config file.
             cfg_fn = os.path.join(dirname, "signac.rc")
             with open(cfg_fn, "w") as f:
                 f.write(
@@ -2491,6 +2493,18 @@ class TestSchemaMigration:
                     )
                 )
 
+            # Create a shell history file.
+            history_fn = os.path.join(dirname, ".signac_shell_history")
+            with open(history_fn, "w") as f:
+                f.write(
+                    textwrap.dedent(
+                        """\
+                        print(project)"""
+                    )
+                )
+
+            # If no schema version is present in the config it is equivalent to
+            # version 0, so we test both explicit and implicit versions.
             config = read_config_file(cfg_fn)
             if implicit_version:
                 del config["schema_version"]
@@ -2498,6 +2512,7 @@ class TestSchemaMigration:
             else:
                 assert config["schema_version"] == "0"
             config.write()
+
             err = io.StringIO()
             with redirect_stderr(err):
                 apply_migrations(dirname)
@@ -2509,6 +2524,7 @@ class TestSchemaMigration:
             assert "0 to 1" in err.getvalue()
             assert "1 to 2" in err.getvalue()
             assert os.path.isfile(project.fn(PROJECT_CONFIG_FN))
+            assert os.path.isfile(project.fn(SHELL_HISTORY_FN))
 
 
 class TestProjectPickling(TestProjectBase):
