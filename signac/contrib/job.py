@@ -281,6 +281,9 @@ class Job:
 
     def _initialize_lazy_properties(self):
         """Initialize all properties that are designed to be loaded lazily."""
+        # TODO: Consider using functools.cached_property for these instead.  That simplify our code,
+        # although at the expense of creating multiple locks (each cached_property has its own lock
+        # AFAICT from looking at the implementation).
         with self._lock:
             self._wd = None
             self._document = None
@@ -335,22 +338,15 @@ class Job:
             self.__class__.__name__, repr(self._project), self.statepoint
         )
 
+    @deprecated(
+        deprecated_in="1.8",
+        removed_in="2.0",
+        current_version=__version__,
+        details="Use Job.path instead.",
+    )
     def workspace(self):
-        """Return the job's unique workspace directory.
-
-        See :ref:`signac job -w <signac-cli-job>` for the command line equivalent.
-
-        Returns
-        -------
-        str
-            The path to the job's workspace directory.
-
-        """
-        if self._wd is None:
-            # We can rely on the project workspace to be well-formed, so just
-            # use str.join with os.sep instead of os.path.join for speed.
-            self._wd = os.sep.join((self._project.workspace(), self.id))
-        return self._wd
+        """Alias for :meth:`~Job.path`."""
+        return self.path
 
     @property
     def _statepoint_filename(self):
@@ -359,18 +355,29 @@ class Job:
         # use str.join with os.sep instead of os.path.join for speed.
         return os.sep.join((self.workspace(), self.FN_MANIFEST))
 
-    # TODO: Why is ws a property while workspace is a method? Why don't the
-    # Project methods for workspace/root_directory also behave the same? We
-    # should standardize this.
-    # TODO: The discrepancy between Project and Job in what is defined as a
-    # "workspace" is also slightly confusing. In view of moving towards a
-    # unified 3.0 API where both are subclasses of a common Directory or
-    # similar, we should aim to unify these APIs (although probably with an
-    # extremely long deprecation period like the entire lifetime of signac 2.0)
-    @property
+    # Decorated properties aren't supported: https://github.com/python/mypy/issues/1362
+    @property  # type: ignore
+    @deprecated(
+        deprecated_in="1.8",
+        removed_in="2.0",
+        current_version=__version__,
+        details="Use Job.path instead.",
+    )
     def ws(self):
-        """Alias for :meth:`~Job.workspace`."""
-        return self.workspace()
+        """Alias for :meth:`~Job.path`."""
+        return self.path
+
+    @property
+    def path(self):
+        """str: The path to the job directory.
+
+        See :ref:`signac job -w <signac-cli-job>` for the command line equivalent.
+        """
+        if self._wd is None:
+            # We can rely on the project workspace to be well-formed, so just
+            # use str.join with os.sep instead of os.path.join for speed.
+            self._wd = os.sep.join((self._project.workspace(), self.id))
+        return self._wd
 
     def reset_statepoint(self, new_statepoint):
         """Overwrite the state point of this job while preserving job data.

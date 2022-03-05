@@ -212,6 +212,9 @@ class _ProjectConfig(Config):
 
 def _invalidate_config_cache(project):
     """Invalidate cached properties derived from a project config."""
+    # TODO: Consider using functools.cached_property for these instead. That simplify our code,
+    # although at the expense of creating multiple locks (each cached_property has its own lock
+    # AFAICT from looking at the implementation).
     project._id = None
     project._rd = None
     project._wd = None
@@ -348,15 +351,19 @@ class Project:
         """
         return self._config
 
+    @deprecated(
+        deprecated_in="1.8",
+        removed_in="2.0",
+        current_version=__version__,
+        details="Use Project.path instead.",
+    )
     def root_directory(self):
-        """Return the project's root directory.
+        """Alias for :meth:`~Project.path`."""
+        return self.path
 
-        Returns
-        -------
-        str
-            Path of project directory.
-
-        """
+    @property
+    def path(self):
+        """str: The path to the project directory."""
         if self._rd is None:
             self._rd = self.config["project_dir"]
         return self._rd
