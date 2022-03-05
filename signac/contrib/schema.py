@@ -341,8 +341,11 @@ class ProjectSchema(Mapping):
             )
         return ret
 
-    # TODO: We don't use this method anywhere that I see. Is there a particular use case that is
-    # facilitated by keeping it, or should we deprecate?
+    @deprecated(
+        deprecated_in="1.8",
+        removed_in="2.0",
+        current_version=__version__,
+    )
     def __call__(self, jobs_or_statepoints):
         """Evaluate the schema for the given state points.
 
