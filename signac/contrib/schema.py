@@ -10,6 +10,10 @@ from collections.abc import Mapping
 from numbers import Number
 from pprint import pformat
 
+from packaging import version
+
+from ..version import __version__
+
 
 class _Vividict(dict):
     """A dict that returns an empty _Vividict for keys that are missing.
@@ -278,6 +282,7 @@ class ProjectSchema(Mapping):
     # is removed.
     def __contains__(self, key_or_keys):
         # NotOverride default __contains__ to support sequence and str inputs.
+        assert version.parse(__version__) < version.parse("2.0.0")
         if not isinstance(key_or_keys, str):
             warnings.warn(
                 "Support for checking nested keys in a schema using a list of keys is deprecated "
@@ -289,6 +294,7 @@ class ProjectSchema(Mapping):
         return key_or_keys in self._schema
 
     def __getitem__(self, key_or_keys):
+        assert version.parse(__version__) < version.parse("2.0.0")
         if not isinstance(key_or_keys, str):
             warnings.warn(
                 "Support for checking nested keys in a schema using a list of keys is deprecated "
