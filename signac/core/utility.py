@@ -49,7 +49,7 @@ def get_subject_from_certificate(fn_certificate):  # noqa: D103, E261
     deprecated_in="1.8",
     removed_in="2.0",
     current_version=__version__,
-    details="Use the packaging package's Version object instead.",
+    details="Use packaging.version.Version instead.",
 )
 class Version(dict):
     """Utility class to manage revision control numbers."""
@@ -92,7 +92,7 @@ class Version(dict):
     deprecated_in="1.8",
     removed_in="2.0",
     current_version=__version__,
-    details="Use the packaging package's version.parse function instead.",
+    details="Use packaging.version.Version instead.",
 )
 def parse_version(version_str):
     """Parse a version number into a version object."""

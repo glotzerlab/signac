@@ -2629,7 +2629,7 @@ class JobsCursor:
         )
 
     @deprecated(
-        deprecated_in="1.8",
+        deprecated_in="0.9.6",
         removed_in="2.0",
         current_version=__version__,
         details="Use next(iter(...)) instead.",

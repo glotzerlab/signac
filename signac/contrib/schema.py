@@ -50,9 +50,6 @@ def _collect_by_type(values):
     return values_by_type
 
 
-# TODO: This function feels slightly out of place since it's never used here while it is used in
-# import_export.py and project.py, but I see why it fits as "schema". May still make sense to move,
-# though.
 def _build_job_statepoint_index(exclude_const, index):
     """Build index for job state points.
 
@@ -291,7 +288,7 @@ class ProjectSchema(Mapping):
         if not isinstance(key_or_keys, str):
             warnings.warn(
                 "Support for checking nested keys in a schema using a list of keys is deprecated "
-                "and will be removed in signac 2.0. Construct the nested key using '.'.join(...) "
+                "and will be removed in signac 2.0. Construct the nested key using '.'.join(keys) "
                 "instead.",
                 FutureWarning,
             )
@@ -303,7 +300,7 @@ class ProjectSchema(Mapping):
         if not isinstance(key_or_keys, str):
             warnings.warn(
                 "Support for checking nested keys in a schema using a list of keys is deprecated "
-                "and will be removed in signac 2.0. Construct the nested key using '.'.join(...) "
+                "and will be removed in signac 2.0. Construct the nested key using '.'.join(keys) "
                 "instead.",
                 FutureWarning,
             )
