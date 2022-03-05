@@ -92,16 +92,17 @@ class _ProjectConfig(Config):
 class Project:
     """The handle on a signac project.
 
-    Application developers should usually not need to
-    directly instantiate this class, but use
-    :meth:`~signac.get_project` instead.
+    A :class:`Project` may only be constructed in a directory that is already a
+    signac project, i.e. a directory in which :func:`~signac.init_project` has
+    already been run. If project discovery (searching upwards in the folder
+    hierarchy until a project root is discovered) is desired, users should
+    instead invoke :func:`~signac.get_project` or :meth:`Project.get_project`.
 
     Parameters
     ----------
-    config :
-        The project configuration to use. By default, it loads the first signac
-        project configuration found while searching upward from the current
-        working directory (Default value = None).
+    root : str, optional
+        The project root directory. By default, the current working directory
+        (Default value = None).
 
     """
 
@@ -116,9 +117,12 @@ class Project:
 
     _use_pandas_for_html_repr = True  # toggle use of pandas for html repr
 
-    def __init__(self, config=None):
-        if config is None:
-            config = load_config()
+    def __init__(self, root=None):
+        if root is None:
+            root = os.getcwd()
+        # Project constructor does not search upward, so the provided root must
+        # be a project directory.
+        config = load_config(root, local=True)
         self._config = _ProjectConfig(config)
         self._lock = RLock()
 
@@ -168,9 +172,7 @@ class Project:
         return str(self.root_directory())
 
     def __repr__(self):
-        return "{type}.get_project({root})".format(
-            type=self.__class__.__name__, root=repr(self.root_directory())
-        )
+        return f"{self.__class__.__name__}({repr(self.root_directory())})"
 
     def _repr_html_(self):
         """Project details in HTML format for use in IPython environment.
@@ -1609,7 +1611,7 @@ class Project:
         """
         if root is None:
             root = os.getcwd()
-        config = load_config(root=root, local=False)
+        config = load_config(root=root, local=not search)
         if "project_dir" not in config or (
             not search
             and os.path.realpath(config["project_dir"]) != os.path.realpath(root)
@@ -1620,7 +1622,7 @@ class Project:
                 )
             )
 
-        return cls(config=config, **kwargs)
+        return cls(root=config["project_dir"], **kwargs)
 
     @classmethod
     def get_job(cls, root=None):
