@@ -41,7 +41,7 @@ from .filterparse import _add_prefix, _root_keys, parse_filter
 from .hashing import calc_id
 from .indexing import MainCrawler, SignacProjectCrawler
 from .job import Job
-from .schema import ProjectSchema
+from .schema import ProjectSchema, _collect_by_type
 from .utility import _mkdir_p, _nested_dicts_to_dotted_keys, split_and_print_progress
 
 logger = logging.getLogger(__name__)
@@ -924,7 +924,9 @@ class Project:
         statepoint_index = _build_job_statepoint_index(
             exclude_const=exclude_const, index=index
         )
-        return ProjectSchema.detect(statepoint_index)
+        return ProjectSchema(
+            {key: _collect_by_type(value) for key, value in statepoint_index}
+        )
 
     @deprecated(
         deprecated_in="1.3",

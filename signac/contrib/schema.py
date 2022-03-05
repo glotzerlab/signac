@@ -10,6 +10,7 @@ from collections.abc import Mapping
 from numbers import Number
 from pprint import pformat
 
+from deprecation import deprecated
 from packaging import version
 
 from ..version import __version__
@@ -41,6 +42,8 @@ def _collect_by_type(values):
         A mapping of types to a set of input values of that type.
 
     """
+    # TODO: This function should be moved to project.py in version 2.0.
+    assert version.parse(__version__) < version.parse("2.0.0")
     values_by_type = ddict(set)
     for v in values:
         values_by_type[type(v)].add(v)
@@ -126,9 +129,11 @@ class ProjectSchema(Mapping):
             schema = {}
         self._schema = schema
 
-    # TODO: If we move _collect_key_by_type to project.py we could just inline this logic when
-    # constructing the ProjectSchema and then this method wouldn't need to exist. It feels like an
-    # unnecessarily specialized method to be defined here.
+    @deprecated(
+        deprecated_in="1.8",
+        removed_in="2.0",
+        current_version=__version__,
+    )
     @classmethod
     def detect(cls, statepoint_index):
         """Detect Project's state point schema.
