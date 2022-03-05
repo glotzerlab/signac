@@ -99,7 +99,7 @@ class Project:
     ----------
     root : str, optional
         The project root directory. By default, the current working directory
-        working directory (Default value = None).
+        (Default value = None).
 
     """
 
@@ -119,7 +119,8 @@ class Project:
     def __init__(self, root=None):
         if root is None:
             root = os.getcwd()
-        # Project constructor does not discover, so the root must be exact.
+        # Project constructor does not search upward, so the provided root must
+        # be a project directory.
         config = load_config(root, local=True)
         self._config = _ProjectConfig(config)
         self._lock = RLock()

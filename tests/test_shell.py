@@ -49,7 +49,6 @@ class TestBasicShell:
             pythonpath = [os.getcwd()] + pythonpath.split(":")
         os.environ["PYTHONPATH"] = ":".join(pythonpath)
         self.tmpdir = TemporaryDirectory(prefix="signac_")
-        self.project_name = f"Project({repr(os.path.realpath(self.tmpdir.name))})"
         request.addfinalizer(self.tmpdir.cleanup)
         self.cwd = os.getcwd()
         os.chdir(self.tmpdir.name)
