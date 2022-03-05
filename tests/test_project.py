@@ -24,7 +24,6 @@ from packaging import version
 from test_job import TestJobBase
 
 import signac
-from signac.__main__ import SHELL_HISTORY_FN
 from signac.common.config import (
     PROJECT_CONFIG_FN,
     _get_project_config_fn,
@@ -2498,12 +2497,7 @@ class TestSchemaMigration:
             # Create a shell history file.
             history_fn = os.path.join(dirname, ".signac_shell_history")
             with open(history_fn, "w") as f:
-                f.write(
-                    textwrap.dedent(
-                        """\
-                        print(project)"""
-                    )
-                )
+                f.write("print(project)")
 
             # Create a statepoint cache. Note that this cache does not
             # correspond to actual statepoints since we don't currently have
@@ -2534,7 +2528,7 @@ class TestSchemaMigration:
             assert "0 to 1" in err.getvalue()
             assert "1 to 2" in err.getvalue()
             assert os.path.isfile(project.fn(PROJECT_CONFIG_FN))
-            assert os.path.isfile(project.fn(SHELL_HISTORY_FN))
+            assert os.path.isfile(project.fn(os.sep.join((".signac", "shell_history"))))
             assert os.path.isfile(project.fn(Project.FN_CACHE))
 
 
