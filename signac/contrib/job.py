@@ -379,6 +379,12 @@ class Job:
             self._wd = os.sep.join((self._project.workspace(), self.id))
         return self._wd
 
+    @deprecated(
+        deprecated_in="1.8",
+        removed_in="2.0",
+        current_version=__version__,
+        details="Use job.statepoint = new_statepoint instead.",
+    )
     def reset_statepoint(self, new_statepoint):
         """Overwrite the state point of this job while preserving job data.
 
@@ -463,7 +469,13 @@ class Job:
 
     @property
     def statepoint(self):
-        """Get the job's state point.
+        """Get or set the job's state point.
+
+        Setting the state point to a different value will change the job id.
+
+        For more information, see
+        `Modifying the State Point
+        <https://docs.signac.io/en/latest/jobs.html#modifying-the-state-point>`_.
 
         .. warning::
 
@@ -478,11 +490,16 @@ class Job:
 
         See :ref:`signac statepoint <signac-cli-statepoint>` for the command line equivalent.
 
+        .. danger::
+
+            Use this function with caution! Resetting a job's state point
+            may sometimes be necessary, but can possibly lead to incoherent
+            data spaces.
+
         Returns
         -------
         dict
             Returns the job's state point.
-
         """
         with self._lock:
             if self._statepoint_requires_init:
@@ -498,11 +515,6 @@ class Job:
 
         return self._statepoint
 
-    # TODO: If we really believe what `reset_statepoint`'s documentation says,
-    # I think we should deprecate this functionality. If resetting a statepoint
-    # is a dangerous operation, making it settable via a property is too easy,
-    # and moreover it's impossible to document effectively because property
-    # setters don't show up in docs.
     @statepoint.setter
     def statepoint(self, new_statepoint):
         """Assign a new state point to this job.
@@ -511,7 +523,6 @@ class Job:
         ----------
         new_statepoint : dict
             The new state point to be assigned.
-
         """
         self.reset_statepoint(new_statepoint)
 

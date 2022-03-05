@@ -1528,7 +1528,7 @@ class Project:
         deprecated_in="1.3",
         removed_in="2.0",
         current_version=__version__,
-        details="Use job.reset_statepoint() instead.",
+        details="Use job.statepoint = new_statepoint instead.",
     )
     def reset_statepoint(self, job, new_statepoint):
         """Overwrite the state point of this job while preserving job data.
