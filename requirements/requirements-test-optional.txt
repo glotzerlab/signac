@@ -5,4 +5,4 @@ pymongo==4.0.1; implementation_name=='cpython'
 redis==4.1.4
 ruamel.yaml==0.17.21
 tables==3.7.0; implementation_name=='cpython'
-zarr==2.10.3; platform_system!='Windows'
+zarr==2.11.0; platform_system!='Windows'
