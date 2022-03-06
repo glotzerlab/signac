@@ -49,4 +49,16 @@ def _migrate_v1_to_v2(root_directory):
     v1_fn = os.path.join(root_directory, "signac.rc")
     v2_fn = _get_project_config_fn(root_directory)
     os.mkdir(os.path.dirname(v2_fn))
-    os.rename(v1_fn, v2_fn)
+    os.replace(v1_fn, v2_fn)
+
+    # Now move all other files.
+    files_to_move = {
+        ".signac_shell_history": os.sep.join((".signac", "shell_history")),
+        ".signac_sp_cache.json.gz": os.sep.join(
+            (".signac", "statepoint_cache.json.gz")
+        ),
+    }
+    for src, dst in files_to_move.items():
+        os.replace(
+            os.sep.join((root_directory, src)), os.sep.join((root_directory, dst))
+        )

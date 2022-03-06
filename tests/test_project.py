@@ -1,6 +1,7 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+import gzip
 import io
 import itertools
 import json
@@ -35,6 +36,7 @@ from signac.contrib.errors import (
     StatepointParsingError,
     WorkspaceError,
 )
+from signac.contrib.hashing import calc_id
 from signac.contrib.linked_view import _find_all_links
 from signac.contrib.project import JobsCursor, Project  # noqa: F401
 from signac.contrib.schema import ProjectSchema
@@ -2473,6 +2475,7 @@ class TestSchemaMigration:
         from signac.contrib.migration import apply_migrations
 
         with TemporaryDirectory() as dirname:
+            # Create v1 config file.
             cfg_fn = os.path.join(dirname, "signac.rc")
             with open(cfg_fn, "w") as f:
                 f.write(
@@ -2484,6 +2487,21 @@ class TestSchemaMigration:
                     )
                 )
 
+            # Create a shell history file.
+            history_fn = os.path.join(dirname, ".signac_shell_history")
+            with open(history_fn, "w") as f:
+                f.write("print(project)")
+
+            # Create a statepoint cache. Note that this cache does not
+            # correspond to actual statepoints since we don't currently have
+            # any in this project, but that's fine for migration testing.
+            history_fn = os.path.join(dirname, ".signac_sp_cache.json.gz")
+            sp = {"a": 1}
+            with gzip.open(history_fn, "wb") as f:
+                f.write(json.dumps({calc_id(sp): sp}).encode())
+
+            # If no schema version is present in the config it is equivalent to
+            # version 0, so we test both explicit and implicit versions.
             config = read_config_file(cfg_fn)
             if implicit_version:
                 del config["schema_version"]
@@ -2491,6 +2509,7 @@ class TestSchemaMigration:
             else:
                 assert config["schema_version"] == "0"
             config.write()
+
             err = io.StringIO()
             with redirect_stderr(err):
                 apply_migrations(dirname)
@@ -2502,6 +2521,8 @@ class TestSchemaMigration:
             assert "0 to 1" in err.getvalue()
             assert "1 to 2" in err.getvalue()
             assert os.path.isfile(project.fn(PROJECT_CONFIG_FN))
+            assert os.path.isfile(project.fn(os.sep.join((".signac", "shell_history"))))
+            assert os.path.isfile(project.fn(Project.FN_CACHE))
 
 
 class TestProjectPickling(TestProjectBase):

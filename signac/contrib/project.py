@@ -112,7 +112,7 @@ class Project:
     KEY_DATA = "signac_data"
     "The project's datastore key."
 
-    FN_CACHE = ".signac_sp_cache.json.gz"
+    FN_CACHE = os.sep.join((".signac", "statepoint_cache.json.gz"))
     "The default filename for the state point cache file."
 
     _use_pandas_for_html_repr = True  # toggle use of pandas for html repr

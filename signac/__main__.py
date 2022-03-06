@@ -93,6 +93,8 @@ Synchronize your project with the temporary project, for example with:
 )
 
 
+SHELL_HISTORY_FN = os.sep.join((".signac", "shell_history"))
+
 warnings.simplefilter("default")
 
 
@@ -861,7 +863,7 @@ def main_shell(args):
         else:  # interactive
             if READLINE:
                 if "PyPy" not in platform.python_implementation():
-                    fn_hist = project.fn(".signac_shell_history")
+                    fn_hist = project.fn(SHELL_HISTORY_FN)
                     try:
                         readline.read_history_file(fn_hist)
                         readline.set_history_length(1000)
