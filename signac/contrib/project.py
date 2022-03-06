@@ -23,7 +23,6 @@ from packaging import version
 
 from ..common.config import (
     Config,
-    _contains_config_file,
     _get_project_config_fn,
     _locate_config_dir,
     load_config,
@@ -122,7 +121,7 @@ class Project:
     def __init__(self, root=None):
         if root is None:
             root = os.getcwd()
-        if not _contains_config_file(root):
+        if not os.path.isfile(_get_project_config_fn(root)):
             raise LookupError(
                 f"Unable to find project at path '{os.path.abspath(root)}'."
             )
@@ -1619,7 +1618,7 @@ class Project:
         if root is None:
             root = os.getcwd()
         if not search:
-            if not _contains_config_file(root):
+            if not os.path.isfile(_get_project_config_fn(root)):
                 raise LookupError(
                     f"Unable to find project at path '{os.path.abspath(root)}'."
                 )

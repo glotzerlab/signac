@@ -20,25 +20,6 @@ def _get_project_config_fn(root):
     return os.path.abspath(os.path.join(root, PROJECT_CONFIG_FN))
 
 
-def _contains_config_file(root):
-    """Determine if the root directory contains a signac configuration file.
-
-    Parameters
-    ----------
-    root : str
-        Path to search. Uses ``os.getcwd()`` if None (Default value = None).
-
-    Returns
-    --------
-    str or None
-        The path to the configuration file if one is found, otherwise None.
-    """
-    fn_ = _get_project_config_fn(root)
-    if os.path.isfile(fn_):
-        return root
-    return None
-
-
 def _locate_config_dir(root):
     """Locates root directory containing a signac configuration file in a directory hierarchy.
 
@@ -52,10 +33,13 @@ def _locate_config_dir(root):
     str or None
         The root directory containing the configuration file if one is found, otherwise None.
     """
+    root = os.path.abspath(root)
     while True:
-        if _contains_config_file(root):
+        if os.path.isfile(_get_project_config_fn(root)):
             return root
-        up = os.path.abspath(os.path.join(root, ".."))
+        # TODO: Could use the walrus operator here when we completely drop
+        # Python 3.7 support if we like the operator.
+        up = os.path.dirname(root)
         if up == root:
             logger.debug("Reached filesystem root, no config found.")
             return None
@@ -66,18 +50,19 @@ def _locate_config_dir(root):
 def read_config_file(filename, configspec=None, *args, **kwargs):
     """Read a configuration file.
 
-        Parameters
-        ----------
-        filename : str
-            The path to the file to read.
-        configspec : List[str], optional
-            The key-value pairs supported in the config.
+    Parameters
+    ----------
+    filename : str
+        The path to the file to read.
+    configspec : List[str], optional
+        The key-value pairs supported in the config. If None, uses the default
+        pairs supported by signac, see :data:`signac.common.validate.cfg`
+        (Default value = None).
 
-        Returns
-        --------
-        :class:`Config`
-
-    The config contained in the file.
+    Returns
+    --------
+    :class:`Config`
+        The config contained in the file.
     """
     logger.debug(f"Reading config file '{filename}'.")
     if configspec is None:
@@ -99,31 +84,31 @@ def read_config_file(filename, configspec=None, *args, **kwargs):
 
 
 def load_config(root=None):
-    """Load configuration at root directory.
+    """Load configuration from a project directory.
 
     Parameters
     ----------
     root : str
-        The path from which to load the local config.
+        The project path to pull project-local configuration data from.
 
     Returns
     --------
     :class:`Config`
-        The composite configuration including both local and global config data
-        if requested. Note that because this config is a composite,
+        The composite configuration including both project-local and global
+        config data if requested. Note that because this config is a composite,
         modifications to the returned value will not be reflected in the files.
     """
     if root is None:
         root = os.getcwd()
     config = Config(configspec=cfg.split("\n"))
 
-    # Add in any global or user config files. For now this search only finds user-specific
+    # Add in any global or user config files. For now this only finds user-specific
     # files, but it could be updated in the future to support e.g. system-wide config files.
     for fn in (USER_CONFIG_FN,):
         if os.path.isfile(fn):
             config.merge(read_config_file(fn))
 
-    if _contains_config_file(root):
+    if os.path.isfile(_get_project_config_fn(root)):
         config.merge(read_config_file(_get_project_config_fn(root)))
     return config
 
