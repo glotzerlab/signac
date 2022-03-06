@@ -279,6 +279,12 @@ def main_job(args):
     if args.create:
         job.init()
     if args.workspace:
+        warnings.warn(
+            "The `-w/--workspace` parameter is deprecated. Use -p/--path instead",
+            FutureWarning,
+        )
+        args.path = True
+    if args.path:
         print(job.workspace())
     else:
         print(job)
@@ -1243,6 +1249,12 @@ def main():
         "--workspace",
         action="store_true",
         help="Print the job's workspace path instead of the job id.",
+    )
+    parser_job.add_argument(
+        "-p",
+        "--path",
+        action="store_true",
+        help="Print the job's path instead of the job id.",
     )
     parser_job.add_argument(
         "-c",
