@@ -531,7 +531,6 @@ class Job:
         """Alias for :attr:`~Job.statepoint`."""
         return self.statepoint
 
-    # TODO: Same concern as statepoint setter.
     @sp.setter
     def sp(self, new_sp):
         """Alias for :attr:`~Job.statepoint`."""

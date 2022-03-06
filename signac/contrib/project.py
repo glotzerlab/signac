@@ -87,6 +87,19 @@ DOC_FILTER_WARNING = (
 _DEFAULT_PROJECT_NAME = None
 
 
+class _CallableString(str):
+    # A string object that returns itself when called. Introduced temporarily
+    # to support deprecating Project.workspace, which will become a property.
+    def __call__(self):
+        assert version.parse(__version__) < version.parse("2.0")
+        warnings.warn(
+            "This method will soon become a property and should be used "
+            "without the call operator (parentheses).",
+            FutureWarning,
+        )
+        return self
+
+
 class JobSearchIndex:
     """Search for specific jobs with filters.
 
@@ -361,7 +374,7 @@ class Project:
         details="Use Project.path instead.",
     )
     def root_directory(self):
-        """Alias for :meth:`~Project.path`."""
+        """Alias for :attr:`~Project.path`."""
         return self.path
 
     @property
@@ -371,34 +384,18 @@ class Project:
             self._rd = self.config["project_dir"]
         return self._rd
 
+    @property
     def workspace(self):
-        """Return the project's workspace directory.
-
-        The workspace defaults to `project_root/workspace`.
-        Configure this directory with the 'workspace_dir'
-        attribute.
-        If the specified directory is a relative path,
-        the absolute path is relative from the project's
-        root directory.
-
-        .. note::
-            The configuration will respect environment variables,
-            such as ``$HOME``.
+        """str: The project's workspace directory.
 
         See :ref:`signac project -w <signac-cli-project>` for the command line equivalent.
-
-        Returns
-        -------
-        str
-            Path of workspace directory.
-
         """
         if self._wd is None:
             wd = os.path.expandvars(self.config.get("workspace_dir", "workspace"))
             self._wd = (
                 wd if os.path.isabs(wd) else os.path.join(self.root_directory(), wd)
             )
-        return self._wd
+        return _CallableString(self._wd)
 
     @deprecated(
         deprecated_in="1.3",
@@ -2650,7 +2647,7 @@ class JobsCursor:
     def next(self):
         """Return the next element.
 
-        This function is deprecated. Users should use ``next(iter(..))`` instead.
+        This function is deprecated. Users should use ``next(iter(...))`` instead.
         .. deprecated:: 0.9.6
 
         """
