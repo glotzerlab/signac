@@ -1512,23 +1512,23 @@ class TestJobOpenData(TestJobBase):
 
     def test_statepoint_copy(self):
         job = self.open_job(dict(a=test_token, b=test_token)).init()
-        _id = job.id
+        id_ = job.id
         sp_copy = copy.copy(job.sp)
         del sp_copy["b"]
         assert "a" in job.sp
         assert "b" not in job.sp
         assert job in self.project
-        assert job.id != _id
+        assert job.id != id_
 
     def test_statepoint_deepcopy(self):
         job = self.open_job(dict(a=test_token, b=test_token)).init()
-        _id = job.id
+        id_ = job.id
         sp_copy = copy.deepcopy(job.sp)
         del sp_copy["b"]
         assert "a" in job.sp
         assert "b" in job.sp
         assert job not in self.project
-        assert job.id == _id
+        assert job.id == id_
 
 
 @pytest.mark.skipif(not H5PY, reason="test requires the h5py package")

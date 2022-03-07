@@ -172,14 +172,14 @@ class TestCollection:
 
     def test_contains(self):
         assert "0" not in self.c
-        _id = self.c.insert_one(dict())
-        assert _id in self.c
-        del self.c[_id]
-        assert _id not in self.c
+        id_ = self.c.insert_one(dict())
+        assert id_ in self.c
+        del self.c[id_]
+        assert id_ not in self.c
         docs = [dict(_id=str(i)) for i in range(10)]
         self.c.update(docs)
-        for _id in self.c.ids:
-            assert _id in self.c
+        for id_ in self.c.ids:
+            assert id_ in self.c
         for doc in docs:
             assert doc["_id"] in self.c
 
@@ -205,28 +205,28 @@ class TestCollection:
         index = self.c.index("a", build=True)
         assert len(index) == len(self.c)
         for value, _ids in index.items():
-            for _id in _ids:
-                assert self.c[_id]["a"] == value
+            for id_ in _ids:
+                assert self.c[id_]["a"] == value
         index = self.c.index("b", build=True)
         del self.c[docs[0]["_id"]]
         assert len(self.c) == len(docs) - 1
         index = self.c.index("a", build=True)
         assert len(index) == len(self.c)
         for value, _ids in index.items():
-            for _id in _ids:
-                assert self.c[_id]["a"] == value
+            for id_ in _ids:
+                assert self.c[id_]["a"] == value
         self.c[docs[0]["_id"]] = docs[0]
         index = self.c.index("a", build=True)
         assert len(index) == len(self.c)
         for value, _ids in index.items():
-            for _id in _ids:
-                assert self.c[_id]["a"] == value
+            for id_ in _ids:
+                assert self.c[id_]["a"] == value
         self.c["0"] = dict(a=-1)
         index = self.c.index("a", build=True)
         assert len(index) == len(self.c)
         for value, _ids in index.items():
-            for _id in _ids:
-                assert self.c[_id]["a"] == value
+            for id_ in _ids:
+                assert self.c[id_]["a"] == value
 
     def test_reindex(self):
         assert len(self.c) == 0
