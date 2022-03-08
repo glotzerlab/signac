@@ -173,7 +173,7 @@ class JobSearchIndex:
             if doc_filter:
                 filter.update(doc_filter)
         elif doc_filter:
-            warnings.warn(DOC_FILTER_WARNING, DeprecationWarning)
+            warnings.warn(DOC_FILTER_WARNING, FutureWarning)
             filter = doc_filter
         return self._collection._find(filter)
 
@@ -919,7 +919,7 @@ class Project:
         if index is None:
             index = self.index(include_job_document=False)
         else:
-            warnings.warn(INDEX_DEPRECATION_WARNING, DeprecationWarning)
+            warnings.warn(INDEX_DEPRECATION_WARNING, FutureWarning)
         if subset is not None:
             subset = {str(s) for s in subset}
             index = [doc for doc in index if doc["_id"] in subset]
@@ -1031,7 +1031,7 @@ class Project:
         if index is None:
             filter = dict(parse_filter(_add_prefix("sp.", filter)))
             if doc_filter:
-                warnings.warn(DOC_FILTER_WARNING, DeprecationWarning)
+                warnings.warn(DOC_FILTER_WARNING, FutureWarning)
                 filter.update(parse_filter(_add_prefix("doc.", doc_filter)))
                 index = self.index(include_job_document=True)
             elif "doc" in _root_keys(filter):
@@ -1039,7 +1039,7 @@ class Project:
             else:
                 index = self._sp_index()
         else:
-            warnings.warn(INDEX_DEPRECATION_WARNING, DeprecationWarning)
+            warnings.warn(INDEX_DEPRECATION_WARNING, FutureWarning)
 
         return Collection(index, _trust=True)._find(filter)
 
@@ -1079,7 +1079,7 @@ class Project:
         """
         filter = dict(parse_filter(_add_prefix("sp.", filter)))
         if doc_filter:
-            warnings.warn(DOC_FILTER_WARNING, DeprecationWarning)
+            warnings.warn(DOC_FILTER_WARNING, FutureWarning)
             filter.update(parse_filter(_add_prefix("doc.", doc_filter)))
         return JobsCursor(self, filter)
 
@@ -1521,7 +1521,7 @@ class Project:
 
         """
         if index is not None:
-            warnings.warn(INDEX_DEPRECATION_WARNING, DeprecationWarning)
+            warnings.warn(INDEX_DEPRECATION_WARNING, FutureWarning)
         from .linked_view import create_linked_view
 
         return create_linked_view(self, prefix, job_ids, index, path)
@@ -1922,7 +1922,7 @@ class Project:
         if index is not None:
             for doc in index:
                 self._sp_cache[doc["signac_id"]] = doc["sp"]
-            warnings.warn(INDEX_DEPRECATION_WARNING, DeprecationWarning)
+            warnings.warn(INDEX_DEPRECATION_WARNING, FutureWarning)
         corrupted = []
         for job_id in job_ids:
             try:
@@ -2226,7 +2226,7 @@ class Project:
         """
         if master is not None:
             warnings.warn(
-                "The parameter master has been renamed to main.", DeprecationWarning
+                "The parameter master has been renamed to main.", FutureWarning
             )
             main = master
 
@@ -2326,7 +2326,7 @@ class Project:
                 "Project names are deprecated and will be removed in signac 2.0 in favor of using "
                 "the project root directory to identify projects. The name argument to "
                 "init_project should be removed.",
-                DeprecationWarning,
+                FutureWarning,
             )
         else:
             name = _DEFAULT_PROJECT_NAME
@@ -2647,7 +2647,7 @@ class JobsCursor:
         """
         warnings.warn(
             "Calling next() directly on a JobsCursor is deprecated! Use next(iter(..)) instead.",
-            DeprecationWarning,
+            FutureWarning,
         )
         if self._next_iter is None:
             self._next_iter = iter(self)
