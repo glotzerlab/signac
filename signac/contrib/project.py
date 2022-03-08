@@ -830,7 +830,7 @@ class Project:
         """
         return self.find_jobs().to_dataframe(*args, **kwargs)
 
-    def _register(self, _id, statepoint):
+    def _register(self, id_, statepoint):
         """Register the job state point in the project state point cache.
 
         Parameters
