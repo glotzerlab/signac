@@ -364,7 +364,7 @@ class FileBufferedCollection(BufferedCollection):
         """
         if force_write is not None:
             warnings.warn(
-                DeprecationWarning(
+                FutureWarning(
                     "The force_write parameter is deprecated and will be removed in "
                     "signac 2.0. This functionality is no longer supported."
                 )
