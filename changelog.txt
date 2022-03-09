@@ -15,11 +15,13 @@ Added
 
  - Official support for Python 3.10 (#631).
  - Benchmarks can be run using the ``asv`` (airspeed velocity) tool (#629).
+ - Continuous integration tests run in parallel with ``pytest-xdist`` (#705).
 
 Changed
 +++++++
 
  - Schema migration is now performed on directories rather than signac projects and supports a wider range of schemas (#654).
+ - Deprecated features now use ``FutureWarning`` instead of ``DeprecationWarning``, which is hidden by default (#687, #691).
 
 Deprecated
 ++++++++++
