@@ -16,5 +16,5 @@
 - [ ] I agree with the terms of the [**Contributor Agreement**](https://github.com/glotzerlab/signac/blob/master/ContributorAgreement.md).
 - [ ] My name is on the [list of contributors](https://github.com/glotzerlab/signac/blob/master/contributors.yaml).
 - [ ] The changes introduced by this pull request are covered by existing or newly introduced tests.
-- [ ] If this PR changes user-facing features or breaks existing APIs, I have created a separate pull request to update the [framework documentation](https://docs.signac.io/) on [signac-docs](https://github.com/glotzerlab/signac-docs) and included a link here.
+- [ ] The package documentation and [framework documentation](https://docs.signac.io/) in [signac-docs](https://github.com/glotzerlab/signac-docs) are up to date with these changes.
 - [ ] I have updated the [changelog](https://github.com/glotzerlab/signac/blob/master/changelog.txt) and added any related issue and pull request numbers for future reference.
