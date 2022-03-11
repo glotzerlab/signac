@@ -10,7 +10,7 @@ import signac
 @contextmanager
 def deprecated_in_version(version_string):
     if version.parse(version_string) <= version.parse(signac.__version__):
-        with pytest.deprecated_call():
+        with pytest.warns(FutureWarning):
             yield
     else:
         yield
