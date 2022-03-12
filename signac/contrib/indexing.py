@@ -620,7 +620,7 @@ class MasterCrawler(MainCrawler):
         warnings.warn(
             "The MasterCrawler class has been replaced by the MainCrawler class. "
             "Both classes are deprecated and will be removed in a future release.",
-            DeprecationWarning,
+            FutureWarning,
         )
         super().__init__(*args, **kwargs)
 

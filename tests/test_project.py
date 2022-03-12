@@ -20,7 +20,6 @@ from zipfile import ZipFile
 
 import pytest
 import test_h5store
-from conftest import deprecated_in_version
 from packaging import version
 from test_job import TestJobBase
 
@@ -1099,7 +1098,7 @@ class TestProject(TestProjectBase):
         assert not os.path.isdir(tmp_root_dir)
 
     def test_access_module(self):
-        with deprecated_in_version("1.5"):
+        with pytest.deprecated_call():
             self.project.create_access_module()
 
 
