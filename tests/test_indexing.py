@@ -120,6 +120,7 @@ class _TestFS:
             raise ValueError(mode)
 
 
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 class TestIndexingBase:
 
     access_module = SIGNAC_ACCESS_MODULE

@@ -438,11 +438,14 @@ class TestJobSpInterface(TestJobBase):
     def test_valid_sp_key_types(self):
         job = self.open_job(dict(invalid_key=True)).init()
 
-        class A:
-            pass
-
-        for key in ("0", 0, True, False, None):
+        for key in ("0",):
             job.sp[key] = "test"
+            assert str(key) in job.sp
+
+        # TODO: Non-string keys will not be supported in signac 2.0.
+        for key in (0, True, False, None):
+            with pytest.warns(FutureWarning):
+                job.sp[key] = "test"
             assert str(key) in job.sp
 
     def test_invalid_sp_key_types(self):
@@ -468,11 +471,14 @@ class TestJobSpInterface(TestJobBase):
     def test_valid_doc_key_types(self):
         job = self.open_job(dict(invalid_key=True)).init()
 
-        class A:
-            pass
-
-        for key in ("0", 0, True, False, None):
+        for key in ("0",):
             job.doc[key] = "test"
+            assert str(key) in job.doc
+
+        # TODO: Non-string keys will not be supported in signac 2.0.
+        for key in (0, True, False, None):
+            with pytest.warns(FutureWarning):
+                job.doc[key] = "test"
             assert str(key) in job.doc
 
     def test_invalid_doc_key_types(self):
