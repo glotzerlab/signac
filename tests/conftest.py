@@ -6,16 +6,6 @@ from packaging import version
 
 import signac
 
-
-@contextmanager
-def deprecated_in_version(version_string):
-    if version.parse(version_string) <= version.parse(signac.__version__):
-        with pytest.warns(FutureWarning):
-            yield
-    else:
-        yield
-
-
 @pytest.fixture
 def testdata():
     return str(uuid.uuid4())
