@@ -15,12 +15,15 @@ logger = logging.getLogger(__name__)
 PROJECT_CONFIG_FN = os.path.join(".signac", "config")
 USER_CONFIG_FN = os.path.expanduser(os.path.join("~", ".signacrc"))
 
+# TODO: Consider making this entire module internal and removing all its
+# functions from the public API.
+
 
 def _get_project_config_fn(root):
     return os.path.abspath(os.path.join(root, PROJECT_CONFIG_FN))
 
 
-def _locate_config_dir(root):
+def _locate_config_dir(search_path):
     """Locates root directory containing a signac configuration file in a directory hierarchy.
 
     Parameters
@@ -33,7 +36,7 @@ def _locate_config_dir(root):
     str or None
         The root directory containing the configuration file if one is found, otherwise None.
     """
-    root = os.path.abspath(root)
+    root = os.path.abspath(search_path)
     while True:
         if os.path.isfile(_get_project_config_fn(root)):
             return root
@@ -47,17 +50,13 @@ def _locate_config_dir(root):
             root = up
 
 
-def read_config_file(filename, configspec=None, *args, **kwargs):
+def read_config_file(filename):
     """Read a configuration file.
 
     Parameters
     ----------
     filename : str
         The path to the file to read.
-    configspec : List[str], optional
-        The key-value pairs supported in the config. If None, uses the default
-        pairs supported by signac, see :data:`signac.common.validate.cfg`
-        (Default value = None).
 
     Returns
     --------
@@ -65,10 +64,9 @@ def read_config_file(filename, configspec=None, *args, **kwargs):
         The config contained in the file.
     """
     logger.debug(f"Reading config file '{filename}'.")
-    if configspec is None:
-        configspec = cfg.split("\n")
+    configspec = cfg.split("\n")
     try:
-        config = Config(filename, configspec=configspec, *args, **kwargs)
+        config = Config(filename, configspec=configspec)
     except (OSError, ConfigObjError) as error:
         raise ConfigError(f"Failed to read configuration file '{filename}':\n{error}")
     verification = config.verify()

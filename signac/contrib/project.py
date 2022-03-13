@@ -1617,18 +1617,17 @@ class Project:
         """
         if root is None:
             root = os.getcwd()
-        if not search:
-            if not os.path.isfile(_get_project_config_fn(root)):
-                raise LookupError(
-                    f"Unable to find project at path '{os.path.abspath(root)}'."
-                )
+
+        old_root = root
+        if not search and not os.path.isfile(_get_project_config_fn(root)):
+            root = None
         else:
-            old_root = root
             root = _locate_config_dir(root)
-            if not root:
-                raise LookupError(
-                    f"Unable to find project at path '{os.path.abspath(old_root)}'."
-                )
+
+        if not root:
+            raise LookupError(
+                f"Unable to find project at path '{os.path.abspath(old_root)}'."
+            )
 
         return cls(root=root, **kwargs)
 

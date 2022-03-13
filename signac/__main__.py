@@ -412,6 +412,7 @@ def main_sync(args):
         destination = get_project(root=args.destination)
     except LookupError:
         if args.allow_workspace:
+            # TODO: Remove allow_workspace entirely.
             destination = Project(os.path.relpath(args.destination))
         else:
             _print_err(
