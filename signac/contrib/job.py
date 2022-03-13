@@ -285,7 +285,7 @@ class Job:
         # although at the expense of creating multiple locks (each cached_property has its own lock
         # AFAICT from looking at the implementation).
         with self._lock:
-            self._wd = None
+            self._path = None
             self._document = None
             self._stores = None
             self._cwd = []
@@ -345,7 +345,7 @@ class Job:
         details="Use Job.path instead.",
     )
     def workspace(self):
-        """Alias for :meth:`~Job.path`."""
+        """Alias for :attr:`~Job.path`."""
         return self.path
 
     @property
@@ -355,7 +355,8 @@ class Job:
         # use str.join with os.sep instead of os.path.join for speed.
         return os.sep.join((self.workspace(), self.FN_MANIFEST))
 
-    # Decorated properties aren't supported: https://github.com/python/mypy/issues/1362
+    # Tell mypy to ignore type checking of the decorator because decorated
+    # properties aren't supported: https://github.com/python/mypy/issues/1362
     @property  # type: ignore
     @deprecated(
         deprecated_in="1.8",
@@ -364,7 +365,7 @@ class Job:
         details="Use Job.path instead.",
     )
     def ws(self):
-        """Alias for :meth:`~Job.path`."""
+        """Alias for :attr:`~Job.path`."""
         return self.path
 
     @property
@@ -373,11 +374,11 @@ class Job:
 
         See :ref:`signac job -w <signac-cli-job>` for the command line equivalent.
         """
-        if self._wd is None:
+        if self._path is None:
             # We can rely on the project workspace to be well-formed, so just
             # use str.join with os.sep instead of os.path.join for speed.
-            self._wd = os.sep.join((self._project.workspace(), self.id))
-        return self._wd
+            self._path = os.sep.join((self._project.workspace(), self.id))
+        return self._path
 
     @deprecated(
         deprecated_in="1.8",

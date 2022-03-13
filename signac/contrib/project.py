@@ -380,9 +380,9 @@ class Project:
     @property
     def path(self):
         """str: The path to the project directory."""
-        if self._rd is None:
-            self._rd = self.config["project_dir"]
-        return self._rd
+        if self._path is None:
+            self._path = self.config["project_dir"]
+        return self._path
 
     @property
     def workspace(self):
@@ -787,8 +787,8 @@ class Project:
             True if the job id is initialized for this project.
 
         """
-        # We can rely on the project workspace to be well-formed, so just use
-        # os.sep.join instead of os.path.join for speed.
+        # We can rely on the project workspace to be well-formed, so use
+        # os.sep.join instead of os.path.join for performance.
         return os.path.exists(os.sep.join((self.workspace(), job_id)))
 
     def __contains__(self, job):
