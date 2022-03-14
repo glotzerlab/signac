@@ -112,19 +112,6 @@ class TestProject(TestProjectBase):
         with pytest.raises(ValueError):
             self.project.config["foo"] = "bar"
 
-    def test_workspace_directory_with_env_variable(self):
-        try:
-            with TemporaryDirectory() as tmp_dir:
-                os.environ["SIGNAC_ENV_DIR_TEST"] = os.path.join(tmp_dir, "work_here")
-                project = self.project_class.init_project(
-                    root=tmp_dir,
-                    workspace="${SIGNAC_ENV_DIR_TEST}",
-                )
-                assert project.workspace() == os.environ["SIGNAC_ENV_DIR_TEST"]
-        finally:
-            if "SIGNAC_ENV_DIR_TEST" in os.environ:
-                del os.environ["SIGNAC_ENV_DIR_TEST"]
-
     def test_workspace_directory_exists(self):
         assert os.path.exists(self.project.workspace())
 
@@ -213,24 +200,6 @@ class TestProject(TestProjectBase):
         self.project.data = {"a": {"b": 45}}
         assert self.project.data == {"a": {"b": 45}}
 
-    def test_workspace_path_normalization(self):
-        def norm_path(p):
-            return os.path.abspath(os.path.expandvars(p))
-
-        assert self.project.workspace() == norm_path(self._tmp_wd)
-
-        with TemporaryDirectory() as tmp_dir:
-            abs_path = os.path.join(tmp_dir, "path", "to", "workspace")
-            project = self.project_class.init_project(root=tmp_dir, workspace=abs_path)
-            assert project.workspace() == norm_path(abs_path)
-
-        with TemporaryDirectory() as tmp_dir:
-            rel_path = norm_path(os.path.join("path", "to", "workspace"))
-            project = self.project_class.init_project(root=tmp_dir, workspace=rel_path)
-            assert project.workspace() == norm_path(
-                os.path.join(project.root_directory(), rel_path)
-            )
-
     def test_no_workspace_warn_on_find(self, caplog):
         if os.path.exists(self.project.workspace()):
             os.rmdir(self.project.workspace())
@@ -245,13 +214,11 @@ class TestProject(TestProjectBase):
     @pytest.mark.skipif(WINDOWS, reason="Symbolic links are unsupported on Windows.")
     def test_workspace_broken_link_error_on_find(self):
         with TemporaryDirectory() as tmp_dir:
-            project = self.project_class.init_project(
-                root=tmp_dir, workspace="workspace-link"
-            )
-            os.rmdir(os.path.join(tmp_dir, "workspace-link"))
+            project = self.project_class.init_project(root=tmp_dir)
+            os.rmdir(os.path.join(tmp_dir, "workspace"))
             os.symlink(
                 os.path.join(tmp_dir, "workspace~"),
-                os.path.join(tmp_dir, "workspace-link"),
+                os.path.join(tmp_dir, "workspace"),
             )
             with pytest.raises(WorkspaceError):
                 list(project.find_jobs())
@@ -2314,9 +2281,6 @@ class TestProjectInit:
         project = signac.Project.get_project(root=root)
         assert project.workspace() == os.path.join(root, "workspace")
         assert project.root_directory() == root
-        # Deviating initialization parameters should result in errors.
-        with pytest.raises(RuntimeError):
-            signac.init_project(root=root, workspace="workspace2")
 
     def test_nested_project(self):
         def check_root(root=None):
@@ -2571,12 +2535,10 @@ class TestProjectStoreBase(test_h5store.TestH5StoreBase):
         self._tmp_dir = TemporaryDirectory(prefix="signac_")
         request.addfinalizer(self._tmp_dir.cleanup)
         self._tmp_pr = os.path.join(self._tmp_dir.name, "pr")
-        self._tmp_wd = os.path.join(self._tmp_dir.name, "wd")
+        self._tmp_wd = os.path.join(self._tmp_dir.name, "pr", "workspace")
         os.mkdir(self._tmp_pr)
         self.config = load_config()
-        self.project = self.project_class.init_project(
-            root=self._tmp_pr, workspace=self._tmp_wd
-        )
+        self.project = self.project_class.init_project(root=self._tmp_pr)
 
         self._fn_store = os.path.join(self._tmp_dir.name, "signac_data.h5")
         self._fn_store_other = os.path.join(self._tmp_dir.name, "other.h5")

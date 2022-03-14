@@ -138,11 +138,7 @@ class Project:
         # Prepare root directory and workspace paths.
         # os.path is used instead of pathlib.Path for performance.
         self._root_directory = self.config["project_dir"]
-        self._workspace = os.path.expandvars(
-            self.config.get("workspace_dir", "workspace")
-        )
-        if not os.path.isabs(self._workspace):
-            self._workspace = os.path.join(self._root_directory, self._workspace)
+        self._workspace = os.path.join(self._root_directory, "workspace")
 
         # Prepare workspace directory.
         if not os.path.isdir(self.workspace()):
@@ -1467,8 +1463,9 @@ class Project:
         with TemporaryProject(cls=type(self), dir=dir) as tmp_project:
             yield tmp_project
 
+    # TODO: Is there a reason to support the make_dir parameter?
     @classmethod
-    def init_project(cls, *args, root=None, workspace=None, make_dir=True, **kwargs):
+    def init_project(cls, *args, root=None, make_dir=True, **kwargs):
         """Initialize a project in the provided root directory.
 
         It is safe to call this function multiple times with the same
@@ -1483,9 +1480,6 @@ class Project:
         root : str, optional
             The root directory for the project.
             Defaults to the current working directory.
-        workspace : str, optional
-            The workspace directory for the project.
-            Defaults to a subdirectory ``workspace`` in the project root.
         make_dir : bool, optional
             Create the project root directory if it does not exist yet
             (Default value = True).
@@ -1562,8 +1556,6 @@ class Project:
             if make_dir:
                 _mkdir_p(os.path.dirname(fn_config))
             config = read_config_file(fn_config)
-            if workspace is not None:
-                config["workspace_dir"] = workspace
             config["schema_version"] = SCHEMA_VERSION
             config.write()
             project = cls.get_project(root=root)
@@ -1571,13 +1563,6 @@ class Project:
                 project.doc[name_key] = name
             return project
         else:
-            if workspace is not None and os.path.realpath(
-                workspace
-            ) != os.path.realpath(project.workspace()):
-                raise RuntimeError(
-                    f"Failed to initialize project. Path '{os.path.abspath(root)}' already "
-                    "contains a conflicting project configuration."
-                )
             return project
 
     @classmethod
@@ -2140,7 +2125,7 @@ class JobsCursor:
         return repr(self) + self._repr_html_jobs()
 
 
-def init_project(*args, root=None, workspace=None, make_dir=True, **kwargs):
+def init_project(*args, root=None, make_dir=True, **kwargs):
     """Initialize a project.
 
     It is safe to call this function multiple times with the same arguments.
@@ -2152,9 +2137,6 @@ def init_project(*args, root=None, workspace=None, make_dir=True, **kwargs):
     root : str, optional
         The root directory for the project.
         Defaults to the current working directory.
-    workspace : str, optional
-        The workspace directory for the project.
-        Defaults to a subdirectory ``workspace`` in the project root.
     make_dir : bool, optional
         Create the project root directory, if it does not exist yet (Default
         value = True).
@@ -2171,9 +2153,7 @@ def init_project(*args, root=None, workspace=None, make_dir=True, **kwargs):
         configuration.
 
     """
-    return Project.init_project(
-        *args, root=root, workspace=workspace, make_dir=make_dir, **kwargs
-    )
+    return Project.init_project(*args, root=root, make_dir=make_dir, **kwargs)
 
 
 def get_project(root=None, search=True, **kwargs):

@@ -15,6 +15,5 @@ def get_validator():  # noqa: D103
 
 
 cfg = """
-workspace_dir = string(default='workspace')
 schema_version = string(default='1')
 """
