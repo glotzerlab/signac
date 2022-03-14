@@ -232,7 +232,7 @@ def _invalidate_config_cache(project):
     # although at the expense of creating multiple locks (each cached_property has its own lock
     # AFAICT from looking at the implementation).
     project._id = None
-    project._rd = None
+    project._path = None
     project._wd = None
 
 
