@@ -2435,21 +2435,28 @@ class TestProjectSchema(TestProjectBase):
 
 class TestSchemaMigration:
     @pytest.mark.parametrize("implicit_version", [True, False])
-    def test_project_schema_version_migration(self, implicit_version):
+    @pytest.mark.parametrize("workspace_exists", [True, False])
+    def test_project_schema_version_migration(self, implicit_version, workspace_exists):
         from signac.contrib.migration import apply_migrations
 
         with TemporaryDirectory() as dirname:
             # Create v1 config file.
             cfg_fn = os.path.join(dirname, "signac.rc")
+            workspace_dir = "workspace_dir"
             with open(cfg_fn, "w") as f:
                 f.write(
                     textwrap.dedent(
-                        """\
+                        f"""\
                         project = project
-                        workspace_dir = workspace
+                        workspace_dir = {workspace_dir}
                         schema_version = 0"""
                     )
                 )
+
+            # Create a custom workspace
+            os.makedirs(os.path.join(dirname, workspace_dir))
+            if workspace_exists:
+                os.makedirs(os.path.join(dirname, "workspace"))
 
             # Create a shell history file.
             history_fn = os.path.join(dirname, ".signac_shell_history")
@@ -2473,6 +2480,12 @@ class TestSchemaMigration:
             else:
                 assert config["schema_version"] == "0"
             config.write()
+
+            # If the 'workspace' directory already exists the migration should fail.
+            if workspace_exists:
+                with pytest.raises(RuntimeError):
+                    apply_migrations(dirname)
+                return
 
             err = io.StringIO()
             with redirect_stderr(err):
