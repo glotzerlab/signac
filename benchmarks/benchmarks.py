@@ -5,9 +5,7 @@
 
 This script defines benchmarks of common signac operations, used to assess the
 performance of the framework over time. The asv tools allow for profiling,
-comparison, and visualization of benchmark results. This complements the file
-``benchmark.py`` in the root directory of the repository, which is primarily
-intended for CI tests.
+comparison, and visualization of benchmark results.
 """
 
 import random

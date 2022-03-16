@@ -82,24 +82,6 @@ jobs:
           path: test-reports
           destination: test-reports
 
-      - run:
-          name: Run benchmarks
-          command: |
-            # Benchmarks depend on pandas, which isn't available for pypy or
-            # minimal dependencies
-            # BENCHMARKS can be "RUN" or "SKIP"
-            if [[ "${BENCHMARKS}" == "RUN" ]]; then
-              . venv/bin/activate
-              ${PYTHON} -m pip install --progress-bar off -r requirements/requirements-benchmark.txt
-              ${PYTHON} -m pip freeze
-              ${PYTHON} benchmark.py run -N 100 1000  # this revision
-              ${PYTHON} benchmark.py report
-              git reset --hard origin/master
-              git checkout "${CIRCLE_SHA1}" -- benchmark.py  # ensure that we use the same benchmark script
-              ${PYTHON} benchmark.py run -N 100 1000 --force
-              ${PYTHON} benchmark.py compare origin/master "${CIRCLE_SHA1}"
-            fi
-
   linux-python-310-minimal:
     <<: *linux-template
     docker:
