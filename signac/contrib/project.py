@@ -24,6 +24,7 @@ from packaging import version
 from ..common.config import (
     Config,
     _get_project_config_fn,
+    _locate_config_dir,
     load_config,
     read_config_file,
 )
@@ -134,9 +135,14 @@ class Project:
     def __init__(self, root=None):
         if root is None:
             root = os.getcwd()
+        if not os.path.isfile(_get_project_config_fn(root)):
+            raise LookupError(
+                f"Unable to find project at path '{os.path.abspath(root)}'."
+            )
+
         # Project constructor does not search upward, so the provided root must
         # be a project directory.
-        config = load_config(root, local=True)
+        config = load_config(root)
         self._config = _ProjectConfig(config)
         self._lock = RLock()
 
@@ -151,7 +157,7 @@ class Project:
 
         # Prepare root directory and workspace paths.
         # os.path is used instead of pathlib.Path for performance.
-        self._root_directory = self.config["project_dir"]
+        self._root_directory = os.path.abspath(root)
         ws = os.path.expandvars(
             self.config.get("workspace_dir", "workspace")
         )
@@ -1621,18 +1627,19 @@ class Project:
         """
         if root is None:
             root = os.getcwd()
-        config = load_config(root=root, local=not search)
-        if "project_dir" not in config or (
-            not search
-            and os.path.realpath(config["project_dir"]) != os.path.realpath(root)
-        ):
+
+        old_root = root
+        if not search and not os.path.isfile(_get_project_config_fn(root)):
+            root = None
+        else:
+            root = _locate_config_dir(root)
+
+        if not root:
             raise LookupError(
-                "Unable to determine project id for path '{}'.".format(
-                    os.path.abspath(root)
-                )
+                f"Unable to find project at path '{os.path.abspath(old_root)}'."
             )
 
-        return cls(root=config["project_dir"], **kwargs)
+        return cls(root=root, **kwargs)
 
     @classmethod
     def get_job(cls, root=None):
