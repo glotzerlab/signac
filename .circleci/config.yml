@@ -143,7 +143,7 @@ jobs:
       DEPENDENCIES: "NEWEST"
       PYTHON: pypy3
 
-  windows-python-38:
+  windows-python-310:
     executor:
       name: win/default
       shell: bash.exe
@@ -247,7 +247,7 @@ workflows:
       - linux-python-38
       - linux-python-38-oldest
       - linux-pypy-38
-      - windows-python-38
+      - windows-python-310
       - macos-python-3
       - check-metadata:
           filters:
@@ -264,7 +264,7 @@ workflows:
             - linux-python-38
             - linux-python-38-oldest
             - linux-pypy-38
-            - windows-python-38
+            - windows-python-310
   deploy:
     jobs:
       - deploy-pypi:
