@@ -14,6 +14,7 @@ def get_validator():  # noqa: D103
     return Validator()
 
 
+# TODO: Rename to something internal and uppercase e.g. _CFG.
 cfg = """
 workspace_dir = string(default='workspace')
 schema_version = string(default='1')
