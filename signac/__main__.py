@@ -363,7 +363,7 @@ def main_sync(args):
     """Handle sync subcommand."""
     # TODO: This function appears to be untested.
     #
-    # Valid provided argument combinations
+    # Validate provided argument combinations
     #
     if args.archive:
         args.recursive = True
