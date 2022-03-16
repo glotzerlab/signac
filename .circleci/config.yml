@@ -148,13 +148,13 @@ jobs:
       name: win/default
       shell: bash.exe
     environment:
-      PYTHON: python
+      PYTHON: C:\Python310\python
     steps:
       - checkout
       - run:
           name: Install Python
           command: |
-            choco install python --version 3.8.1 --limit-output --no-progress
+            choco install python --version 3.10.2 --limit-output --no-progress
       - run:
           name: Install dependencies
           command: |
