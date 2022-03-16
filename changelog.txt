@@ -41,6 +41,11 @@ Fixed
  - User-provided path functions now raise an error if not unique (#666).
  - ``Collection`` class no longer raises an error when searching by a primary key that does not exist (#676).
 
+Removed
++++++++
+
+ - Dropped support for Python 3.6 and Python 3.7 (#715). These have been dropped by NEP 29.
+
 [1.7.0] -- 2021-06-08
 ---------------------
 
