@@ -76,7 +76,7 @@ jobs:
           command: |
             . venv/bin/activate
             ${PYTHON} -m pytest -n 2 --dist loadfile --cov=signac --cov-config=setup.cfg --cov-report=xml tests/ -v
-            codecov
+            ${PYTHON} -m codecov
 
       - store_artifacts:
           path: test-reports
@@ -172,7 +172,7 @@ jobs:
           name: Run tests
           command: |
             ${PYTHON} -m pytest -n 2 --dist loadfile --cov=signac --cov-report=xml tests/ -v
-            codecov
+            ${PYTHON} -m codecov
 
   macos-python-3:
     macos:  # executor type
@@ -196,7 +196,7 @@ jobs:
             python -m pip install --progress-bar off -U -r requirements/requirements-test-optional.txt
             python -m pip install --progress-bar off -U -e .
             python -m pytest -n 2 --dist loadfile --cov=signac --cov-report=xml tests/ -v
-            codecov
+            python -m codecov
 
   check-metadata:
     docker:
