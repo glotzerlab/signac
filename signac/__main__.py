@@ -361,8 +361,9 @@ def main_schema(args):
 
 def main_sync(args):
     """Handle sync subcommand."""
+    # TODO: This function appears to be untested.
     #
-    # Valid provided argument combinations
+    # Validate provided argument combinations
     #
     if args.archive:
         args.recursive = True
@@ -411,13 +412,8 @@ def main_sync(args):
         destination = get_project(root=args.destination)
     except LookupError:
         if args.allow_workspace:
-            destination = Project(
-                config={
-                    "project": os.path.relpath(args.destination),
-                    "project_dir": args.destination,
-                    "workspace_dir": ".",
-                }
-            )
+            # TODO: Remove allow_workspace entirely.
+            destination = Project(os.path.relpath(args.destination))
         else:
             _print_err(
                 "WARNING: The destination appears to not be a project path. "
@@ -723,7 +719,7 @@ def main_config_show(args):
     elif args.globalcfg:
         cfg = config.read_config_file(config.USER_CONFIG_FN)
     else:
-        cfg = config.load_config()
+        cfg = config.load_config(config._locate_config_dir(os.getcwd()))
     if not cfg:
         if args.local:
             mode = "local"
@@ -756,7 +752,7 @@ def main_config_verify(args):
     elif args.globalcfg:
         cfg = config.read_config_file(config.USER_CONFIG_FN)
     else:
-        cfg = config.load_config()
+        cfg = config.load_config(config._locate_config_dir(os.getcwd()))
     if not cfg:
         if args.local:
             mode = "local"
