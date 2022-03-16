@@ -123,10 +123,10 @@ jobs:
       - image: circleci/mongo:latest
       - image: circleci/redis:latest
 
-  linux-python-36-oldest:
+  linux-python-38-oldest:
     <<: *linux-template
     docker:
-      - image: cimg/python:3.6
+      - image: cimg/python:3.8
       - image: circleci/mongo:latest
       - image: circleci/redis:latest
     environment:
@@ -245,7 +245,7 @@ workflows:
       - linux-python-310-minimal
       - linux-python-39
       - linux-python-38
-      - linux-python-36-oldest
+      - linux-python-38-oldest
       - linux-pypy-38
       - windows-python-38
       - macos-python-3
@@ -262,7 +262,7 @@ workflows:
             - linux-python-310-minimal
             - linux-python-39
             - linux-python-38
-            - linux-python-36-oldest
+            - linux-python-38-oldest
             - linux-pypy-38
             - windows-python-38
   deploy:
