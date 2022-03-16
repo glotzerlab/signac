@@ -22,6 +22,7 @@ Changed
 
  - Schema migration is now performed on directories rather than signac projects and supports a wider range of schemas (#654).
  - Deprecated features now use ``FutureWarning`` instead of ``DeprecationWarning``, which is hidden by default (#687, #691).
+ - Project names have a default in anticipation of removing names entirely. Project names will be removed in signac 2.0 (#644).
 
 Deprecated
 ++++++++++
@@ -32,11 +33,6 @@ Deprecated
  - ``index`` argument is deprecated in ``Project`` methods (#602, #588).
  - ``signac.cite`` module is deprecated (#611, #592).
  - ``config.get_config`` method is deprecated (#675).
-
-Changed
-+++++++
-
- - Project names have a default in anticipation of removing names entirely. Project names will be removed in signac 2.0.
 
 Fixed
 +++++
