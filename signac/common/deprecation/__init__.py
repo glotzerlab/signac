@@ -31,10 +31,10 @@ __all__ = ["deprecated", "message_location", "fail_if_not_removed",
 message_location = "bottom"
 
 
-class DeprecatedWarning(DeprecationWarning):
+class DeprecatedWarning(FutureWarning):
     """A warning class for deprecated methods
 
-    This is a specialization of the built-in :class:`DeprecationWarning`,
+    This is a specialization of the built-in :class:`FutureWarning`,
     adding parameters that allow us to get information into the __str__
     that ends up being sent through the :mod:`warnings` system.
     The attributes aren't able to be retrieved after the warning gets
@@ -112,10 +112,7 @@ def deprecated(deprecated_in=None, removed_in=None, current_version=None,
           about deprecation, e.g., "Deprecated since 0.9.11. Use foo instead."
         * Raises a :class:`~deprecation.DeprecatedWarning`
           via the :mod:`warnings` module, which is a subclass of the built-in
-          :class:`DeprecationWarning`. Note that built-in
-          :class:`DeprecationWarning`s are ignored by default, so for users
-          to be informed of said warnings they will need to enable them--see
-          the :mod:`warnings` module documentation for more details.
+          :class:`FutureWarning`.
 
     :param deprecated_in: The version at which the decorated method is
                           considered deprecated. This will usually be the
@@ -254,7 +251,7 @@ def deprecated(deprecated_in=None, removed_in=None, current_version=None,
 
                 the_warning = cls(function.__name__, deprecated_in,
                                   removed_in, details)
-                warnings.warn(the_warning, category=DeprecationWarning,
+                warnings.warn(the_warning, category=FutureWarning,
                               stacklevel=2)
 
             return function(*args, **kwargs)
