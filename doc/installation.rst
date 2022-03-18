@@ -5,9 +5,9 @@ Installation
 ============
 
 The recommended installation method for **signac** is via conda_ or pip_.
-The software is tested for Python versions 3.6+ and has minimal dependencies.
+The software is tested for Python versions 3.8+ and has minimal dependencies.
 Some features such as the HDF5 integration require additional packages.
-Supported Python and NumPy versions are determined according to the `NEP 29 deprecation policy <https://numpy.org/neps/nep-0029-deprecation_policy.html>`_.
+The signac framework uses the `NEP 29 deprecation policy <https://numpy.org/neps/nep-0029-deprecation_policy.html>`__ as a guideline for when to drop support for Python and NumPy versions, and does not guarantee support beyond the versions recommended in that proposal.
 
 .. _conda: https://conda.io/
 .. _conda-forge: https://conda-forge.org/
