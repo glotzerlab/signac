@@ -5,7 +5,6 @@
 
 import logging
 
-from .collection import Collection
 from .project import Project, TemporaryProject, get_job, get_project, init_project
 
 logger = logging.getLogger(__name__)
@@ -17,5 +16,4 @@ __all__ = [
     "get_project",
     "init_project",
     "get_job",
-    "Collection",
 ]
