@@ -110,13 +110,6 @@ The Job class
 
 .. currentmodule:: signac
 
-The Collection
-==============
-
-.. autoclass:: Collection
-    :members:
-
-
 The JSONDict
 ============
 
@@ -154,7 +147,7 @@ Top-level functions
 .. automodule:: signac
     :members:
     :show-inheritance:
-    :exclude-members: Project,Collection,JSONDict,H5Store,H5StoreManager
+    :exclude-members: Project,JSONDict,H5Store,H5StoreManager
 
 
 Submodules
