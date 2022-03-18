@@ -22,10 +22,10 @@ from multiprocessing.pool import ThreadPool
 from tempfile import TemporaryDirectory
 from threading import RLock
 
-from deprecation import deprecated
 from packaging import version
 
 from ..common.config import Config, _get_config, load_config
+from ..common.deprecation import deprecated
 from ..core.h5store import H5StoreManager
 from ..sync import sync_projects
 from ..synced_collections.backends.collection_json import BufferedJSONAttrDict
