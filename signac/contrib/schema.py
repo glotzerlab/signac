@@ -14,7 +14,7 @@ from packaging import version
 
 from ..common.deprecation import deprecated
 from ..version import __version__
-from .collection import _DictPlaceholder
+from ._searchindexer import _DictPlaceholder
 from .utility import _nested_dicts_to_dotted_keys
 
 
