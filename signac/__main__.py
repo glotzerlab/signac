@@ -258,7 +258,7 @@ def main_project(args):
             print(json.dumps(doc))
         return
     if args.workspace:
-        print(project.workspace())
+        print(project.workspace)
     else:
         print(project)
 
@@ -280,7 +280,8 @@ def main_job(args):
         job.init()
     if args.workspace:
         warnings.warn(
-            "The `-w/--workspace` parameter is deprecated. Use -p/--path instead",
+            "The `-w/--workspace` parameter is deprecated as of version 1.8 and will be removed in "
+            "version 2.0. Use -p/--path instead",
             FutureWarning,
         )
         args.path = True
@@ -664,7 +665,7 @@ def _main_import_interactive(project, origin, args):
                     project_id=project.get_id(),
                     job_banner="",
                     root_path=project.root_directory(),
-                    workspace_path=project.workspace(),
+                    workspace_path=project.workspace,
                     size=len(project),
                     origin=args.origin,
                 ),
@@ -1175,7 +1176,7 @@ def main_shell(args):
                     project_id=project.id,
                     job_banner=f"\nJob:\t\t{job.id}" if job is not None else "",
                     root_path=project.root_directory(),
-                    workspace_path=project.workspace(),
+                    workspace_path=project.workspace,
                     size=len(project),
                 ),
             )

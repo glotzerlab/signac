@@ -500,7 +500,7 @@ def sync_projects(
 
     # Setup data modification proxy
     proxy = _FileModifyProxy(
-        root=source.workspace(),
+        root=source.workspace,
         follow_symlinks=follow_symlinks,
         permissions=preserve_permissions,
         times=preserve_times,

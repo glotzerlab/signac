@@ -91,7 +91,7 @@ class _CallableString(str):
     # A string object that returns itself when called. Introduced temporarily
     # to support deprecating Project.workspace, which will become a property.
     def __call__(self):
-        assert version.parse(__version__) < version.parse("2.0")
+        assert version.parse(__version__) < version.parse("2.0.0")
         warnings.warn(
             "This method will soon become a property and should be used "
             "without the call operator (parentheses).",
@@ -300,9 +300,9 @@ class Project:
         self._stores = None
 
         # Prepare Workspace Directory
-        if not os.path.isdir(self.workspace()):
+        if not os.path.isdir(self.workspace):
             try:
-                _mkdir_p(self.workspace())
+                _mkdir_p(self.workspace)
             except OSError:
                 logger.error(
                     "Error occurred while trying to create "
@@ -346,7 +346,7 @@ class Project:
             "<p>"
             + f"<strong>Project:</strong> {self.id}<br>"
             + f"<strong>Root:</strong> {self.root_directory()}<br>"
-            + f"<strong>Workspace:</strong> {self.workspace()}<br>"
+            + f"<strong>Workspace:</strong> {self.workspace}<br>"
             + f"<strong>Size:</strong> {len(self)}"
             + "</p>"
             + self.find_jobs()._repr_html_jobs()
@@ -722,29 +722,27 @@ class Project:
 
         """
         try:
-            for d in os.listdir(self.workspace()):
+            for d in os.listdir(self.workspace):
                 if JOB_ID_REGEX.match(d):
                     yield d
         except OSError as error:
             if error.errno == errno.ENOENT:
-                if os.path.islink(self.workspace()):
+                if os.path.islink(self.workspace):
                     raise WorkspaceError(
-                        f"The link '{self.workspace()}' pointing to the workspace is broken."
+                        f"The link '{self.workspace}' pointing to the workspace is broken."
                     )
-                elif not os.path.isdir(os.path.dirname(self.workspace())):
+                elif not os.path.isdir(os.path.dirname(self.workspace)):
                     logger.warning(
                         "The path to the workspace directory "
-                        "('{}') does not exist.".format(
-                            os.path.dirname(self.workspace())
-                        )
+                        "('{}') does not exist.".format(os.path.dirname(self.workspace))
                     )
                 else:
                     logger.info(
-                        f"The workspace directory '{self.workspace()}' does not exist!"
+                        f"The workspace directory '{self.workspace}' does not exist!"
                     )
             else:
                 logger.error(
-                    f"Unable to access the workspace directory '{self.workspace()}'."
+                    f"Unable to access the workspace directory '{self.workspace}'."
                 )
                 raise WorkspaceError(error)
 
@@ -789,7 +787,7 @@ class Project:
         """
         # We can rely on the project workspace to be well-formed, so use
         # os.sep.join instead of os.path.join for performance.
-        return os.path.exists(os.sep.join((self.workspace(), job_id)))
+        return os.path.exists(os.sep.join((self.workspace, job_id)))
 
     def __contains__(self, job):
         """Determine whether a job is in the project's data space.
@@ -1344,12 +1342,12 @@ class Project:
         """
         # We can rely on the project workspace to be well-formed, so just use
         # str.join with os.sep instead of os.path.join for speed.
-        fn_manifest = os.sep.join((self.workspace(), job_id, self.Job.FN_MANIFEST))
+        fn_manifest = os.sep.join((self.workspace, job_id, self.Job.FN_MANIFEST))
         try:
             with open(fn_manifest, "rb") as manifest:
                 return json.loads(manifest.read().decode())
         except (OSError, ValueError) as error:
-            if os.path.isdir(os.sep.join((self.workspace(), job_id))):
+            if os.path.isdir(os.sep.join((self.workspace, job_id))):
                 logger.error(
                     "Error while trying to access state "
                     "point manifest file of job '{}': '{}'.".format(job_id, error)
@@ -1935,8 +1933,8 @@ class Project:
                         "The job id of job '{}' is incorrect; "
                         "it should be '{}'.".format(job_id, correct_id)
                     )
-                    invalid_wd = os.path.join(self.workspace(), job_id)
-                    correct_wd = os.path.join(self.workspace(), correct_id)
+                    invalid_wd = os.path.join(self.workspace, job_id)
+                    correct_wd = os.path.join(self.workspace, correct_id)
                     try:
                         os.replace(invalid_wd, correct_wd)
                     except OSError as error:
@@ -2002,7 +2000,7 @@ class Project:
             False).
 
         """
-        wd = self.workspace() if self.Job is Job else None
+        wd = self.workspace if self.Job is Job else None
         for _id in self._find_job_ids():
             doc = dict(_id=_id, sp=self._get_statepoint(_id))
             if include_job_document:
@@ -2157,7 +2155,7 @@ class Project:
 
         """
         if formats is None:
-            root = self.workspace()
+            root = self.workspace
 
             def _full_doc(doc):
                 """Add `signac_id` and `root` to the index document.
@@ -2276,8 +2274,8 @@ class Project:
         if name is None:
             name = os.path.join(self.id, str(uuid.uuid4()))
         if dir is None:
-            dir = self.workspace()
-        _mkdir_p(self.workspace())  # ensure workspace exists
+            dir = self.workspace
+        _mkdir_p(self.workspace)  # ensure workspace exists
         with TemporaryProject(name=name, cls=type(self), dir=dir) as tmp_project:
             yield tmp_project
 
@@ -2350,7 +2348,7 @@ class Project:
                 assert project.id == str(name)
                 if workspace is not None:
                     assert os.path.realpath(workspace) == os.path.realpath(
-                        project.workspace()
+                        project.workspace
                     )
                 return project
             except AssertionError:

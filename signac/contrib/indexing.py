@@ -428,7 +428,7 @@ class SignacProjectCrawler(RegexFileCrawler):
     def __init__(self, root):
         from .project import get_project
 
-        root = get_project(root=root).workspace()
+        root = get_project(root=root).workspace
         self._statepoints = {}
         return super().__init__(root=root)
 

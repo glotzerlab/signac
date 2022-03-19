@@ -109,7 +109,12 @@ class TestProject(TestProjectBase):
         assert self._tmp_pr == self.project.root_directory()
 
     def test_workspace_directory(self):
-        assert self._tmp_wd == self.project.workspace()
+        assert self._tmp_wd == self.project.workspace
+
+    def test_workspace_property(self):
+        with pytest.warns(FutureWarning):
+            ws = self.project.workspace()
+        assert ws == self.project.workspace
 
     def test_config_modification(self):
         # In-memory modification of the project configuration is
@@ -121,10 +126,10 @@ class TestProject(TestProjectBase):
     def test_workspace_directory_with_env_variable(self):
         os.environ["SIGNAC_ENV_DIR_TEST"] = self._tmp_wd
         self.project.config["workspace_dir"] = "${SIGNAC_ENV_DIR_TEST}"
-        assert self._tmp_wd == self.project.workspace()
+        assert self._tmp_wd == self.project.workspace
 
     def test_workspace_directory_exists(self):
-        assert os.path.exists(self.project.workspace())
+        assert os.path.exists(self.project.workspace)
 
     def test_fn(self):
         assert self.project.fn("test/abc") == os.path.join(
@@ -233,21 +238,21 @@ class TestProject(TestProjectBase):
             # Returns 'C:\\' on Windows, '/' on other platforms
             return os.path.abspath(os.sep)
 
-        assert self.project.workspace() == norm_path(self._tmp_wd)
+        assert self.project.workspace == norm_path(self._tmp_wd)
 
         abs_path = os.path.join(root_path(), "path", "to", "workspace")
         self.project.config["workspace_dir"] = abs_path
-        assert self.project.workspace() == norm_path(abs_path)
+        assert self.project.workspace == norm_path(abs_path)
 
         rel_path = norm_path(os.path.join("path", "to", "workspace"))
         self.project.config["workspace_dir"] = rel_path
-        assert self.project.workspace() == norm_path(
-            os.path.join(self.project.root_directory(), self.project.workspace())
+        assert self.project.workspace == norm_path(
+            os.path.join(self.project.root_directory(), self.project.workspace)
         )
 
     def test_no_workspace_warn_on_find(self, caplog):
-        if os.path.exists(self.project.workspace()):
-            os.rmdir(self.project.workspace())
+        if os.path.exists(self.project.workspace):
+            os.rmdir(self.project.workspace)
         with caplog.at_level(logging.INFO):
             list(self.project.find_jobs())
             # Python < 3.8 will return 2 messages.
@@ -258,7 +263,7 @@ class TestProject(TestProjectBase):
 
     @pytest.mark.skipif(WINDOWS, reason="Symbolic links are unsupported on Windows.")
     def test_workspace_broken_link_error_on_find(self):
-        wd = self.project.workspace()
+        wd = self.project.workspace
         os.symlink(wd + "~", self.project.fn("workspace-link"))
         self.project.config["workspace_dir"] = "workspace-link"
         with pytest.raises(WorkspaceError):
@@ -267,13 +272,13 @@ class TestProject(TestProjectBase):
     def test_workspace_read_only_path(self):
         # Create file where workspace would be, thus preventing the creation
         # of the workspace directory.
-        if os.path.exists(self.project.workspace()):
-            os.rmdir(self.project.workspace())
-        with open(os.path.join(self.project.workspace()), "w"):
+        if os.path.exists(self.project.workspace):
+            os.rmdir(self.project.workspace)
+        with open(os.path.join(self.project.workspace), "w"):
             pass
 
         with pytest.raises(OSError):  # Ensure that the file is in place.
-            os.mkdir(self.project.workspace())
+            os.mkdir(self.project.workspace)
 
         assert issubclass(WorkspaceError, OSError)
 
@@ -285,7 +290,7 @@ class TestProject(TestProjectBase):
             logging.disable(logging.NOTSET)
 
         assert not os.path.isdir(self._tmp_wd)
-        assert not os.path.isdir(self.project.workspace())
+        assert not os.path.isdir(self.project.workspace)
 
     def test_find_job_ids(self):
         statepoints = [{"a": i} for i in range(5)]
@@ -566,7 +571,7 @@ class TestProject(TestProjectBase):
         job.init()
         # First, we move the job to the wrong directory.
         wd = job.workspace()
-        wd_invalid = os.path.join(self.project.workspace(), "0" * 32)
+        wd_invalid = os.path.join(self.project.workspace, "0" * 32)
         os.replace(wd, wd_invalid)  # Move to incorrect id.
         assert not os.path.exists(job.workspace())
 
@@ -1364,7 +1369,7 @@ class TestProjectExportImport(TestProjectBase):
         with TarFile(name=target) as tarfile:
             for i in range(10):
                 assert f"a/{i}" in tarfile.getnames()
-        os.replace(self.project.workspace(), self.project.workspace() + "~")
+        os.replace(self.project.workspace, self.project.workspace + "~")
         assert len(self.project) == 0
         self.project.import_from(origin=target)
         assert len(self.project) == 10
@@ -1400,7 +1405,7 @@ class TestProjectExportImport(TestProjectBase):
             for i in range(10):
                 assert f"a/{i}" in tarfile.getnames()
                 assert f"a/{i}/sub-dir/signac_statepoint.json" in tarfile.getnames()
-        os.replace(self.project.workspace(), self.project.workspace() + "~")
+        os.replace(self.project.workspace, self.project.workspace + "~")
         assert len(self.project) == 0
         self.project.import_from(origin=target)
         assert len(self.project) == 10
@@ -1425,7 +1430,7 @@ class TestProjectExportImport(TestProjectBase):
             for i in range(10):
                 assert f"a/{i}/signac_statepoint.json" in zipfile.namelist()
                 assert f"a/{i}/sub-dir/signac_statepoint.json" in zipfile.namelist()
-        os.replace(self.project.workspace(), self.project.workspace() + "~")
+        os.replace(self.project.workspace, self.project.workspace + "~")
         assert len(self.project) == 0
         self.project.import_from(origin=target)
         assert len(self.project) == 10
@@ -1478,7 +1483,7 @@ class TestProjectExportImport(TestProjectBase):
             assert len(self.project.import_from(prefix_data)) == 10
 
         selection = list(self.project.find_jobs(dict(a=0)))
-        os.replace(self.project.workspace(), self.project.workspace() + "~")
+        os.replace(self.project.workspace, self.project.workspace + "~")
         assert len(self.project) == 0
         assert (
             len(self.project.import_from(prefix_data, sync=dict(selection=selection)))
@@ -1637,10 +1642,10 @@ class TestProjectExportImport(TestProjectBase):
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
         ids_before_export = {job.id for job in self.project.find_jobs()}
-        self.project.import_from(origin=self.project.workspace())
+        self.project.import_from(origin=self.project.workspace)
         assert ids_before_export == {job.id for job in self.project.find_jobs()}
         with self.project.temporary_project() as tmp_project:
-            tmp_project.import_from(origin=self.project.workspace())
+            tmp_project.import_from(origin=self.project.workspace)
             assert ids_before_export == {job.id for job in self.project.find_jobs()}
             assert len(tmp_project) == len(self.project)
 
@@ -2290,19 +2295,19 @@ class TestProjectInit:
             signac.get_project(root=root)
         project = signac.init_project(name="testproject", root=root)
         assert project.id == "testproject"
-        assert project.workspace() == os.path.join(root, "workspace")
+        assert project.workspace == os.path.join(root, "workspace")
         assert project.root_directory() == root
         project = signac.Project.init_project(name="testproject", root=root)
         assert project.id == "testproject"
-        assert project.workspace() == os.path.join(root, "workspace")
+        assert project.workspace == os.path.join(root, "workspace")
         assert project.root_directory() == root
         project = signac.get_project(root=root)
         assert project.id == "testproject"
-        assert project.workspace() == os.path.join(root, "workspace")
+        assert project.workspace == os.path.join(root, "workspace")
         assert project.root_directory() == root
         project = signac.Project.get_project(root=root)
         assert project.id == "testproject"
-        assert project.workspace() == os.path.join(root, "workspace")
+        assert project.workspace == os.path.join(root, "workspace")
         assert project.root_directory() == root
 
     def test_get_project_all_printable_characters(self):
@@ -2338,17 +2343,17 @@ class TestProjectInit:
             signac.get_project(root=root)
         project = signac.init_project(name="testproject", root=root)
         assert project.id == "testproject"
-        assert project.workspace() == os.path.join(root, "workspace")
+        assert project.workspace == os.path.join(root, "workspace")
         assert project.root_directory() == root
         # Second initialization should not make any difference.
         project = signac.init_project(name="testproject", root=root)
         project = signac.get_project(root=root)
         assert project.id == "testproject"
-        assert project.workspace() == os.path.join(root, "workspace")
+        assert project.workspace == os.path.join(root, "workspace")
         assert project.root_directory() == root
         project = signac.Project.get_project(root=root)
         assert project.id == "testproject"
-        assert project.workspace() == os.path.join(root, "workspace")
+        assert project.workspace == os.path.join(root, "workspace")
         assert project.root_directory() == root
         # Deviating initialization parameters should result in errors.
         with pytest.raises(RuntimeError):
@@ -2410,7 +2415,7 @@ class TestProjectInit:
         # since no signac_statepoint.json exists.
         cwd = os.getcwd()
         try:
-            os.chdir(project.workspace())
+            os.chdir(project.workspace)
             with pytest.raises(LookupError):
                 project.get_job()
             with pytest.raises(LookupError):
@@ -2473,7 +2478,7 @@ class TestProjectInit:
         job_a.init()
         job_b = project_b.open_job({"b": 1})
         job_b.init()
-        symlink_path = os.path.join(project_b.workspace(), job_a._id)
+        symlink_path = os.path.join(project_b.workspace, job_a._id)
         os.symlink(job_a.ws, symlink_path)
         assert project_a.get_job(symlink_path) == job_a
         assert project_b.get_job(symlink_path) == job_a

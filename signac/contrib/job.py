@@ -103,7 +103,7 @@ class _StatePointDict(JSONAttrDict):
             # Move the state point to an intermediate location as a backup.
             os.replace(self.filename, tmp_statepoint_file)
             try:
-                new_workspace = os.path.join(job._project.workspace(), new_id)
+                new_workspace = os.path.join(job._project.workspace, new_id)
                 os.replace(job.workspace(), new_workspace)
             except OSError as error:
                 os.replace(tmp_statepoint_file, self.filename)  # rollback
@@ -377,7 +377,7 @@ class Job:
         if self._path is None:
             # We can rely on the project workspace to be well-formed, so just
             # use str.join with os.sep instead of os.path.join for speed.
-            self._path = os.sep.join((self._project.workspace(), self.id))
+            self._path = os.sep.join((self._project.workspace, self.id))
         return self._path
 
     @deprecated(
@@ -817,7 +817,7 @@ class Job:
         with self._lock:
             statepoint = self.statepoint()
             dst = project.open_job(statepoint)
-            _mkdir_p(project.workspace())
+            _mkdir_p(project.workspace)
             try:
                 os.replace(self.workspace(), dst.workspace())
             except OSError as error:

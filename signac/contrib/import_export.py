@@ -758,7 +758,7 @@ def _crawl_directory_data_space(root, project, schema_function):
 
     """
     # We compare paths to the 'realpath' of the project workspace to catch loops.
-    workspace_real_path = os.path.realpath(project.workspace())
+    workspace_real_path = os.path.realpath(project.workspace)
 
     for path, dirs, _ in os.walk(root):
         sp = schema_function(path)
