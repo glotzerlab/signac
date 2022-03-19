@@ -115,7 +115,7 @@ class TestProject(TestProjectBase):
         # deprecated as of 1.3, and will be removed in version 2.0.
         # This unit test should reflect that change beginning 2.0,
         # and check that the project configuration is immutable.
-        assert _MAJOR_VERSION < _VERSION_3
+        assert _MAJOR_VERSION < _VERSION_2
         with pytest.raises(ValueError):
             self.project.config["foo"] = "bar"
 
