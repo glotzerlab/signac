@@ -409,7 +409,7 @@ def main_sync(args):
     try:
         destination = get_project(root=args.destination)
     except LookupError:
-        _print_err("WARNING: The destination appears to not be a project path. ")
+        _print_err("WARNING: The destination does not appear to be a project path.")
         raise
     selection = find_with_filter_or_none(args)
 

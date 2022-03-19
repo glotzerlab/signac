@@ -52,7 +52,7 @@ def _migrate_v1_to_v2(root_directory):
                     "Workspace directories are no longer configurable in schema version 2, and "
                     f"must be 'workspace', but {new_workspace} already exists. Please remove or "
                     f"move it so that the currently configured workspace directory "
-                    "{current_workspace} can be moved to {new_workspace}."
+                    f"{current_workspace} can be moved to {new_workspace}."
                 )
             os.replace(current_workspace, new_workspace)
         del cfg["workspace_dir"]

@@ -215,10 +215,10 @@ class TestProject(TestProjectBase):
     def test_workspace_broken_link_error_on_find(self):
         with TemporaryDirectory() as tmp_dir:
             project = self.project_class.init_project(root=tmp_dir)
-            os.rmdir(os.path.join(tmp_dir, "workspace"))
+            os.rmdir(project.workspace())
             os.symlink(
                 os.path.join(tmp_dir, "workspace~"),
-                os.path.join(tmp_dir, "workspace"),
+                project.workspace(),
             )
             with pytest.raises(WorkspaceError):
                 list(project.find_jobs())
@@ -2548,7 +2548,6 @@ class TestProjectStoreBase(test_h5store.TestH5StoreBase):
         self._tmp_dir = TemporaryDirectory(prefix="signac_")
         request.addfinalizer(self._tmp_dir.cleanup)
         self._tmp_pr = os.path.join(self._tmp_dir.name, "pr")
-        self._tmp_wd = os.path.join(self._tmp_dir.name, "pr", "workspace")
         os.mkdir(self._tmp_pr)
         self.config = load_config()
         self.project = self.project_class.init_project(root=self._tmp_pr)
