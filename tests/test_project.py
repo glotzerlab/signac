@@ -71,6 +71,12 @@ WINDOWS = sys.platform == "win32"
 test_token = {"test_token": str(uuid.uuid4())}
 
 
+# Use the major version to fail tests expected to fail in 3.0.
+_MAJOR_VERSION = version.parse(signac.__version__)
+_VERSION_3 = version.parse("3.0.0")
+_VERSION_2 = version.parse("2.0.0")
+
+
 S_FORMAT1 = """{
  'a': 'int([0, 1, 2, ..., 8, 9], 10)',
  'b.b2': 'int([0, 1, 2, ..., 8, 9], 10)',
@@ -102,13 +108,14 @@ class TestProject(TestProjectBase):
         assert self._tmp_pr == self.project.root_directory()
 
     def test_workspace_directory(self):
-        assert self._tmp_wd == self.project.workspace()
+        assert os.path.join(self._tmp_pr, "workspace") == self.project.workspace()
 
     def test_config_modification(self):
         # In-memory modification of the project configuration is
         # deprecated as of 1.3, and will be removed in version 2.0.
         # This unit test should reflect that change beginning 2.0,
         # and check that the project configuration is immutable.
+        assert _MAJOR_VERSION < _VERSION_3
         with pytest.raises(ValueError):
             self.project.config["foo"] = "bar"
 
@@ -243,7 +250,6 @@ class TestProject(TestProjectBase):
         finally:
             logging.disable(logging.NOTSET)
 
-        assert not os.path.isdir(self._tmp_wd)
         assert not os.path.isdir(self.project.workspace())
 
     def test_find_jobs(self):
@@ -995,11 +1001,6 @@ class TestProject(TestProjectBase):
                 tmp_project.open_job(dict(a=i)).init()
             assert len(tmp_project) == 10
         assert not os.path.isdir(tmp_root_dir)
-
-
-# Use the major version to fail tests expected to fail in 3.0.
-_MAJOR_VERSION = version.parse(signac.__version__)
-_VERSION_3 = version.parse("3.0.0")
 
 
 class TestProjectNameDeprecations:

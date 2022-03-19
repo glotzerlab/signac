@@ -1463,9 +1463,8 @@ class Project:
         with TemporaryProject(cls=type(self), dir=dir) as tmp_project:
             yield tmp_project
 
-    # TODO: Is there a reason to support the make_dir parameter?
     @classmethod
-    def init_project(cls, *args, root=None, make_dir=True, **kwargs):
+    def init_project(cls, *args, root=None, **kwargs):
         """Initialize a project in the provided root directory.
 
         It is safe to call this function multiple times with the same
@@ -1480,9 +1479,6 @@ class Project:
         root : str, optional
             The root directory for the project.
             Defaults to the current working directory.
-        make_dir : bool, optional
-            Create the project root directory if it does not exist yet
-            (Default value = True).
 
         Returns
         -------
@@ -1553,8 +1549,7 @@ class Project:
                 )
         except LookupError:
             fn_config = _get_project_config_fn(root)
-            if make_dir:
-                _mkdir_p(os.path.dirname(fn_config))
+            _mkdir_p(os.path.dirname(fn_config))
             config = read_config_file(fn_config)
             config["schema_version"] = SCHEMA_VERSION
             config.write()
@@ -2125,7 +2120,7 @@ class JobsCursor:
         return repr(self) + self._repr_html_jobs()
 
 
-def init_project(*args, root=None, make_dir=True, **kwargs):
+def init_project(*args, root=None, **kwargs):
     """Initialize a project.
 
     It is safe to call this function multiple times with the same arguments.
@@ -2137,9 +2132,6 @@ def init_project(*args, root=None, make_dir=True, **kwargs):
     root : str, optional
         The root directory for the project.
         Defaults to the current working directory.
-    make_dir : bool, optional
-        Create the project root directory, if it does not exist yet (Default
-        value = True).
 
     Returns
     -------
@@ -2153,7 +2145,7 @@ def init_project(*args, root=None, make_dir=True, **kwargs):
         configuration.
 
     """
-    return Project.init_project(*args, root=root, make_dir=make_dir, **kwargs)
+    return Project.init_project(*args, root=root, **kwargs)
 
 
 def get_project(root=None, search=True, **kwargs):
