@@ -229,16 +229,6 @@ class Project:
     def workspace(self):
         """Return the project's workspace directory.
 
-        The workspace defaults to `project_root/workspace`. Configure this
-        directory with the ``'workspace_dir'`` configuration option. A relative
-        path is assumed to be relative to the project's root directory.
-
-        .. note::
-            The configuration will respect environment variables,
-            such as ``$HOME``.
-
-        See :ref:`signac project -w <signac-cli-project>` for the command line equivalent.
-
         Returns
         -------
         str
