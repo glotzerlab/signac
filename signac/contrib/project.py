@@ -1335,14 +1335,15 @@ class Project:
 
         Yields
         ------
-        dict
-            Dictionary with keys ``_id`` containing the job id, ``sp``
-            containing the state point, and ``doc`` containing the job document
-            if requested.
+        job_id : str
+            The job id.
+        doc : dict
+            Dictionary with keys ``sp`` containing the state point and ``doc``
+            containing the job document if requested.
 
         """
         for job_id in self._find_job_ids():
-            doc = dict(_id=job_id, sp=self._get_statepoint(job_id))
+            doc = {"sp": self._get_statepoint(job_id)}
             if include_job_document:
                 try:
                     # Performance-critical path. We can rely on the project
