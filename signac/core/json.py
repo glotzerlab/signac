@@ -7,8 +7,7 @@ from json import JSONEncoder, load, loads
 from json.decoder import JSONDecodeError
 from typing import Any, Dict, Optional
 
-from deprecation import deprecated
-
+from ..common.deprecation import deprecated
 from ..version import __version__
 
 logger = logging.getLogger(__name__)

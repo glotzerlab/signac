@@ -7,8 +7,7 @@ import logging
 import os
 import stat
 
-from deprecation import deprecated
-
+from ..common.deprecation import deprecated
 from ..version import __version__
 from .configobj import ConfigObj, ConfigObjError
 from .errors import ConfigError

@@ -8,8 +8,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from functools import wraps
 
-from deprecation import deprecated
-
+from ..common.deprecation import deprecated
 from ..version import __version__
 
 try:
