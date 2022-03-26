@@ -7,7 +7,6 @@ import errno
 import json
 import os
 import uuid
-import warnings
 from collections.abc import Mapping, Sequence
 from typing import Callable, FrozenSet
 from typing import Sequence as Sequence_t
@@ -26,7 +25,7 @@ from ..numpy_utils import (
     _numpy_cache_blocklist,
 )
 from ..utils import AbstractTypeResolver, SyncedCollectionJSONEncoder
-from ..validators import json_format_validator, no_dot_in_key
+from ..validators import json_format_validator, no_dot_in_key, require_string_key
 
 """
 There are many classes defined in this file. Most of the definitions are
@@ -35,54 +34,6 @@ and the extensive docstrings can be intimidating and make the source
 difficult to parse. Section headers like these are used to organize the
 code to reduce this barrier.
 """
-
-
-# TODO: This method should be removed in signac 2.0.
-def _str_key(key):
-    VALID_KEY_TYPES = (str, int, bool, type(None))
-
-    if not isinstance(key, VALID_KEY_TYPES):
-        raise KeyTypeError(
-            f"Mapping keys must be str, int, bool or None, not {type(key).__name__}"
-        )
-    elif not isinstance(key, str):
-        warnings.warn(
-            f"Use of {type(key).__name__} as key is deprecated "
-            "and will be removed in version 2.0",
-            FutureWarning,
-        )
-        key = str(key)
-    return key
-
-
-# TODO: This method should be removed in signac 2.0.
-def _convert_key_to_str(data):
-    """Recursively convert non-string keys to strings in dicts.
-
-    This method supports :class:`collections.abc.Sequence` or
-    :class:`collections.abc.Mapping` types as inputs, and recursively
-    searches for any entries in :class:`collections.abc.Mapping` types where
-    the key is not a string. This functionality is added for backwards
-    compatibility with legacy behavior in signac, which allowed integer keys
-    for dicts. These inputs were silently converted to string keys and stored
-    since JSON does not support integer keys. This behavior is deprecated and
-    will become an error in signac 2.0.
-
-    Note for developers: this method is designed for use as a validator in the
-    synced collections framework, but due to the backwards compatibility requirement
-    it violates the general behavior of validators by modifying the data in place.
-    This behavior can be removed in signac 2.0 once non-str keys become an error.
-    """
-    if isinstance(data, dict):
-        # Explicitly call `list(keys)` to get a fixed list of keys to avoid
-        # running into issues with iterating over a DictKeys view while
-        # modifying the dict at the same time.
-        for key in list(data):
-            _convert_key_to_str(data[key])
-            data[_str_key(key)] = data.pop(key)
-    elif isinstance(data, list):
-        for i, value in enumerate(data):
-            _convert_key_to_str(value)
 
 
 _json_attr_dict_validator_type_resolver = AbstractTypeResolver(
@@ -107,8 +58,6 @@ def json_attr_dict_validator(data):
     This validator combines the following logic:
         - JSON format validation
         - Ensuring no dots are present in string keys
-        - Converting non-str keys to strings. This is a backwards compatibility
-          layer that will be removed in signac 2.0.
 
     Parameters
     ----------
@@ -141,17 +90,9 @@ def json_attr_dict_validator(data):
                     raise InvalidKeyError(
                         f"Mapping keys may not contain dots ('.'): {key}."
                     )
-            elif isinstance(key, (int, bool, type(None))):
-                # TODO: Remove this branch in signac 2.0.
-                warnings.warn(
-                    f"Use of {type(key).__name__} as key is deprecated "
-                    "and will be removed in version 2.0.",
-                    FutureWarning,
-                )
-                data[str(key)] = data.pop(key)
             else:
                 raise KeyTypeError(
-                    f"Mapping keys must be str, int, bool or None, not {type(key).__name__}."
+                    f"Mapping keys must be str, not {type(key).__name__}."
                 )
     elif switch_type == "SEQUENCE":
         for value in data:
@@ -209,15 +150,7 @@ class JSONCollection(SyncedCollection):
 
     _backend = __name__  # type: ignore
     _supports_threading = True
-
-    # The order in which these validators are added is important, because
-    # validators are called in sequence and _convert_key_to_str will ensure that
-    # valid non-str keys are converted to strings before json_format_validator is
-    # called. This ordering is an implementation detail that we should not rely on
-    # in the future, however, the _convert_key_to_str validator will be removed in
-    # signac 2.0 so this is OK (that validator is modifying the data in place,
-    # which is unsupported behavior that will be removed in signac 2.0 as well).
-    _validators: Sequence_t[Callable] = (_convert_key_to_str, json_format_validator)
+    _validators: Sequence_t[Callable] = (require_string_key, json_format_validator)
 
     def __init__(self, filename=None, write_concern=False, *args, **kwargs):
         # The `_filename` attribute _must_ be defined prior to calling the

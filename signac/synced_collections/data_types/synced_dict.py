@@ -171,17 +171,9 @@ class SyncedDict(SyncedCollection, MutableMapping):
             )
 
     def __setitem__(self, key, value):
-        # TODO: Remove in signac 2.0, currently we're constructing a dict to
-        # allow in-place modification by _convert_key_to_str, but validators
-        # should not have side effects once that backwards compatibility layer
-        # is removed, so we can validate a temporary dict {key: value} and
-        # directly set using those rather than looping over data.
-
-        data = {key: value}
-        self._validate(data)
+        self._validate({key: value})
         with self._load_and_save, self._suspend_sync:
-            for key, value in data.items():
-                self._data[key] = self._from_base(value, parent=self)
+            self._data[key] = self._from_base(value, parent=self)
 
     def reset(self, data):
         """Update the instance with new data.
@@ -257,16 +249,7 @@ class SyncedDict(SyncedCollection, MutableMapping):
             if key in self._data:
                 ret = self._data[key]
             else:
-                ret = self._from_base(default, parent=self)
-                # TODO: Remove in signac 2.0, currently we're constructing a dict
-                # to allow in-place modification by _convert_key_to_str, but
-                # validators should not have side effects once that backwards
-                # compatibility layer is removed, so we can validate a temporary
-                # dict {key: value} and directly set using those rather than
-                # looping over data.
-                data = {key: ret}
-                self._validate(data)
+                self._validate({key: default})
                 with self._suspend_sync:
-                    for key, value in data.items():
-                        self._data[key] = value
+                    ret = self._data[key] = self._from_base(default, parent=self)
         return ret

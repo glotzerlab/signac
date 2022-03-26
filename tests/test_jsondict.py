@@ -219,16 +219,14 @@ class TestJSONDict(TestJSONDictBase):
         with pytest.raises(InvalidKeyError):
             jsd["a.b"] = None
 
-    @pytest.mark.filterwarnings("ignore:Use of int as key is deprecated")
-    @pytest.mark.filterwarnings("ignore:Use of NoneType as key is deprecated")
-    @pytest.mark.filterwarnings("ignore:Use of bool as key is deprecated")
     def test_keys_valid_type(self):
         jsd = self.get_json_dict()
 
         class MyStr(str):
             pass
 
-        for key in ("key", MyStr("key"), 0, None, True):
+        # Only strings are permitted as keys
+        for key in ("key", MyStr("key")):
             d = jsd[key] = self.get_testdata()
             assert str(key) in jsd
             assert jsd[str(key)] == d
@@ -239,7 +237,7 @@ class TestJSONDict(TestJSONDictBase):
         class A:
             pass
 
-        for key in (0.0, A(), (1, 2, 3)):
+        for key in (1, True, False, None, 0.0, A(), (1, 2, 3)):
             with pytest.raises(KeyTypeError):
                 jsd[key] = self.get_testdata()
         for key in ([], {}):
