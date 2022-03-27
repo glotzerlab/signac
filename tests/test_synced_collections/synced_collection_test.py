@@ -441,7 +441,7 @@ class SyncedDictTest(SyncedCollectionTest):
             assert key in synced_collection
             assert synced_collection[key] == testdata
 
-    # TODO: This test should only be applied for backends where JSON-formatting
+    # (issue #729) TODO: This test should only be applied for backends where JSON-formatting
     # is required.
     def test_keys_invalid_type(self, synced_collection, testdata):
         class A:
@@ -481,7 +481,7 @@ class SyncedDictTest(SyncedCollectionTest):
         try:
             with ThreadPoolExecutor(max_workers=num_threads) as executor:
                 list(executor.map(set_value, [synced_collection] * num_threads * 10))
-        except (RuntimeError, JSONDecodeError):
+        except (RuntimeError, JSONDecodeError, KeyError):
             # This line may raise an exception, or it may successfully complete
             # but not modify all the expected data. If it raises an exception,
             # then the underlying data is likely to be invalid, so we must

@@ -20,7 +20,6 @@ from zipfile import ZipFile
 
 import pytest
 import test_h5store
-from conftest import deprecated_in_version
 from packaging import version
 from test_job import TestJobBase
 
@@ -89,8 +88,9 @@ class TestProject(TestProjectBase):
         pass
 
     def test_get_id(self):
-        with pytest.deprecated_call():
+        with pytest.warns(FutureWarning):
             assert self.project.get_id() == "testing_test_project"
+        with pytest.warns(FutureWarning):
             assert str(self.project) == self.project.get_id()
 
     def test_property_id(self):
@@ -223,7 +223,7 @@ class TestProject(TestProjectBase):
         read2 = list(self.project.read_statepoints())
         assert len(read2) == len(statepoints) + len(more_statepoints)
         for id_ in self.project.read_statepoints().keys():
-            with pytest.deprecated_call():
+            with pytest.warns(FutureWarning):
                 self.project.get_statepoint(id_)
 
     def test_workspace_path_normalization(self):
@@ -292,7 +292,7 @@ class TestProject(TestProjectBase):
         statepoints = [{"a": i} for i in range(5)]
         for sp in statepoints:
             self.project.open_job(sp).document["b"] = sp["a"]
-        with pytest.deprecated_call():
+        with pytest.warns(FutureWarning):
             assert len(statepoints) == len(list(self.project.find_job_ids()))
             assert 1 == len(list(self.project.find_job_ids({"a": 0})))
             assert 0 == len(list(self.project.find_job_ids({"a": 5})))
@@ -715,7 +715,7 @@ class TestProject(TestProjectBase):
                 return doc
 
         for p, fmt in formats.items():
-            with pytest.deprecated_call():
+            with pytest.warns(FutureWarning):
                 Crawler.define(p, fmt)
         index2 = {}
         for doc in Crawler(root=self.project.root_directory()).crawl():
@@ -1099,7 +1099,7 @@ class TestProject(TestProjectBase):
         assert not os.path.isdir(tmp_root_dir)
 
     def test_access_module(self):
-        with deprecated_in_version("1.5"):
+        with pytest.warns(FutureWarning):
             self.project.create_access_module()
 
 
@@ -2307,7 +2307,7 @@ class TestProjectInit:
             signac.get_project(root=root)
         project_name = "testproject" + string.printable
         project = signac.init_project(name=project_name, root=root)
-        with pytest.deprecated_call():
+        with pytest.warns(FutureWarning):
             assert project.get_id() == project_name
 
     def test_get_project_non_local(self):

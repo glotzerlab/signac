@@ -171,7 +171,7 @@ class SyncedDict(SyncedCollection, MutableMapping):
             )
 
     def __setitem__(self, key, value):
-        # TODO: Remove in signac 2.0, currently we're constructing a dict to
+        # (issue # 728) TODO: Remove in signac 2.0, currently we're constructing a dict to
         # allow in-place modification by _convert_key_to_str, but validators
         # should not have side effects once that backwards compatibility layer
         # is removed, so we can validate a temporary dict {key: value} and
@@ -258,7 +258,7 @@ class SyncedDict(SyncedCollection, MutableMapping):
                 ret = self._data[key]
             else:
                 ret = self._from_base(default, parent=self)
-                # TODO: Remove in signac 2.0, currently we're constructing a dict
+                # (issue #728) TODO: Remove in signac 2.0, currently we're constructing a dict
                 # to allow in-place modification by _convert_key_to_str, but
                 # validators should not have side effects once that backwards
                 # compatibility layer is removed, so we can validate a temporary

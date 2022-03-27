@@ -1,0 +1,5 @@
+The `__init__.py` file is copied from `deprecation.py`, available at https://github.com/briancurtin/deprecation.
+Its license can be found in `LICENSE`.
+
+The file has been modified in the following ways:
+- Use `FutureWarning` instead of `DeprecationWarning`

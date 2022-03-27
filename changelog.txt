@@ -15,12 +15,14 @@ Added
 
  - Official support for Python 3.10 (#631).
  - Benchmarks can be run using the ``asv`` (airspeed velocity) tool (#629).
+ - Continuous integration tests run in parallel with ``pytest-xdist`` (#705).
 
 Changed
 +++++++
 
  - Schema migration is now performed on directories rather than signac projects and supports a wider range of schemas (#654).
  - Deprecated features now use ``FutureWarning`` instead of ``DeprecationWarning``, which is hidden by default (#687, #691).
+ - Project names have a default in anticipation of removing names entirely. Project names will be removed in signac 2.0 (#644).
 
 Deprecated
 ++++++++++
@@ -32,17 +34,17 @@ Deprecated
  - ``signac.cite`` module is deprecated (#611, #592).
  - ``config.get_config`` method is deprecated (#675).
 
-Changed
-+++++++
-
- - Project names have a default in anticipation of removing names entirely. Project names will be removed in signac 2.0.
-
 Fixed
 +++++
 
  - ``H5Store.mode`` returns the file mode (#607).
  - User-provided path functions now raise an error if not unique (#666).
  - ``Collection`` class no longer raises an error when searching by a primary key that does not exist (#676).
+
+Removed
++++++++
+
+ - Dropped support for Python 3.6 and Python 3.7 (#715) following the recommended support schedules of `NEP 29 <https://numpy.org/neps/nep-0029-deprecation_policy.html>`__.
 
 [1.7.0] -- 2021-06-08
 ---------------------

@@ -347,7 +347,7 @@ class FileBufferedCollection(BufferedCollection):
         else:
             raise BufferedError(issues)
 
-    # TODO: The buffer_size argument should be changed to buffer_capacity in
+    # (issue #727) TODO: The buffer_size argument should be changed to buffer_capacity in
     # signac 2.0 for consistency with the new names in synced collections.
     @classmethod
     def buffer_backend(cls, buffer_size=None, force_write=None, *args, **kwargs):
@@ -364,9 +364,9 @@ class FileBufferedCollection(BufferedCollection):
         """
         if force_write is not None:
             warnings.warn(
-                DeprecationWarning(
-                    "The force_write parameter is deprecated and will be removed in "
-                    "signac 2.0. This functionality is no longer supported."
-                )
+                "The force_write parameter is deprecated and will be removed in "
+                "signac 2.0. This functionality is no longer supported.",
+                FutureWarning,
             )
+
         return cls._buffer_context(buffer_size)
