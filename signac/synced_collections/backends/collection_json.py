@@ -37,7 +37,7 @@ code to reduce this barrier.
 """
 
 
-# TODO: This method should be removed in signac 2.0.
+# (issue #726) TODO: This method should be removed in signac 2.0.
 def _str_key(key):
     VALID_KEY_TYPES = (str, int, bool, type(None))
 
@@ -55,7 +55,7 @@ def _str_key(key):
     return key
 
 
-# TODO: This method should be removed in signac 2.0.
+# (issue #726) TODO: This method should be removed in signac 2.0.
 def _convert_key_to_str(data):
     """Recursively convert non-string keys to strings in dicts.
 
@@ -142,7 +142,7 @@ def json_attr_dict_validator(data):
                         f"Mapping keys may not contain dots ('.'): {key}."
                     )
             elif isinstance(key, (int, bool, type(None))):
-                # TODO: Remove this branch in signac 2.0.
+                # (issue #726) TODO: Remove this branch in signac 2.0.
                 warnings.warn(
                     f"Use of {type(key).__name__} as key is deprecated "
                     "and will be removed in version 2.0.",

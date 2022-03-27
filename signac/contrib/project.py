@@ -72,7 +72,7 @@ if __name__ == '__main__':
 
 # The warning used for doc filter deprecation everywhere. Don't use
 # triple-quoted multi-line string to avoid inserting newlines.
-# TODO: In signac 2.0, remove all docstrings for doc_filter parameters. The
+# (issue #725) TODO: In signac 2.0, remove all docstrings for doc_filter parameters. The
 # doc_filter parameters will only be preserved for backwards compatibility but
 # not advertised as part of the API in signac 2.0.
 DOC_FILTER_WARNING = (

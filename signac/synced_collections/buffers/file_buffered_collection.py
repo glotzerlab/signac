@@ -347,7 +347,7 @@ class FileBufferedCollection(BufferedCollection):
         else:
             raise BufferedError(issues)
 
-    # TODO: The buffer_size argument should be changed to buffer_capacity in
+    # (issue #727) TODO: The buffer_size argument should be changed to buffer_capacity in
     # signac 2.0 for consistency with the new names in synced collections.
     @classmethod
     def buffer_backend(cls, buffer_size=None, force_write=None, *args, **kwargs):
