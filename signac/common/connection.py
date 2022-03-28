@@ -6,8 +6,8 @@ import subprocess
 from os.path import expanduser
 
 import pymongo
-from deprecation import deprecated
 
+from ..common.deprecation import deprecated
 from ..version import __version__
 from .errors import ConfigError
 

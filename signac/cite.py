@@ -4,8 +4,7 @@
 """Functions to support citing this software."""
 import sys
 
-from deprecation import deprecated
-
+from .common.deprecation import deprecated
 from .version import __version__
 
 """

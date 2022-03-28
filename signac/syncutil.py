@@ -11,8 +11,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from filecmp import dircmp
 
-from deprecation import deprecated
-
+from .common.deprecation import deprecated
 from .version import __version__
 
 LEVEL_MORE = logging.INFO - 5

@@ -6,8 +6,6 @@ import os
 from setuptools import find_packages, setup
 
 requirements = [
-    # Deprecation management
-    "deprecation>=2",
     # Platform-independent file locking
     "filelock>=3.0",
     # Used for version parsing and comparison
@@ -47,8 +45,6 @@ setup(
         "License :: OSI Approved :: BSD License",
         "Topic :: Database",
         "Topic :: Scientific/Engineering :: Physics",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
@@ -64,7 +60,7 @@ setup(
     install_requires=requirements,
     # Supported versions are determined according to NEP 29.
     # https://numpy.org/neps/nep-0029-deprecation_policy.html
-    python_requires=">=3.6, <4",
+    python_requires=">=3.8, <4",
     extras_require={"db": ["pymongo>=3.0"], "mpi": ["mpi4py"], "h5": ["h5py"]},
     entry_points={"console_scripts": ["signac = signac.__main__:main"]},
 )

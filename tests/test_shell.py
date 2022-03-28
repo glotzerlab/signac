@@ -171,7 +171,7 @@ class TestBasicShell:
         project = signac.Project()
         project.open_job({"a": 0}).init()
         assert len(project) == 1
-        with pytest.deprecated_call():
+        with pytest.warns(FutureWarning):
             assert len(list(project.index())) == 1
             assert len(list(signac.index())) == 1
         doc = json.loads(self.call("python -m signac index".split()))
@@ -311,7 +311,7 @@ class TestBasicShell:
                 == next(iter(project.find_jobs({"a": i}))).id
             )
 
-        with pytest.deprecated_call():
+        with pytest.warns(FutureWarning):
             for i in range(3):
                 assert (
                     self.call(
@@ -320,7 +320,7 @@ class TestBasicShell:
                     == list(project.find_job_ids(doc_filter={"a": i}))[0]
                 )
 
-        with pytest.deprecated_call():
+        with pytest.warns(FutureWarning):
             for i in range(1, 4):
                 assert (
                     self.call(

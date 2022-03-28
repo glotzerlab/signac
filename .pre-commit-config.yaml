@@ -1,7 +1,11 @@
 ci:
   autoupdate_schedule: quarterly
 
-exclude: '(?:^signac/common/configobj/)'
+exclude: |
+  (?x)^(
+    ^signac/common/configobj/|
+    ^signac/common/deprecation/
+  )
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -23,7 +27,7 @@ repos:
     hooks:
       - id: pyupgrade
         args:
-          - --py36-plus
+          - --py38-plus
   - repo: https://github.com/PyCQA/isort
     rev: '5.10.1'
     hooks:
@@ -45,6 +49,7 @@ repos:
             ^doc/|
             ^tests/|
             ^signac/common/configobj/|
+            ^signac/common/deprecation/|
             ^signac/db/
           )
   - repo: https://github.com/pre-commit/mirrors-mypy
