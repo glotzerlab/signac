@@ -3,8 +3,7 @@
 # This software is licensed under the BSD 3-Clause License.
 import base64
 
-from deprecation import deprecated
-
+from ..common.deprecation import deprecated
 from ..version import __version__
 
 try:

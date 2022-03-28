@@ -6,8 +6,7 @@
 import re
 import subprocess
 
-from deprecation import deprecated
-
+from ..common.deprecation import deprecated
 from ..version import __version__
 
 
