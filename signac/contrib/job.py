@@ -12,8 +12,7 @@ from json import JSONDecodeError
 from threading import RLock
 from typing import FrozenSet
 
-from deprecation import deprecated
-
+from ..common.deprecation import deprecated
 from ..core.h5store import H5StoreManager
 from ..sync import sync_jobs
 from ..synced_collections.backends.collection_json import (

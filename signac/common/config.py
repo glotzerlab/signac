@@ -7,6 +7,8 @@ import logging
 import os
 import stat
 
+from ..common.deprecation import deprecated
+from ..version import __version__
 from .configobj import ConfigObj, ConfigObjError
 from .errors import ConfigError
 from .validate import cfg, get_validator
@@ -55,10 +57,20 @@ def search_tree(root=None):
             root = up
 
 
-def search_standard_dirs():
+def _search_standard_dirs():
     """Locates signac configuration files in standard directories."""
     for path in CONFIG_PATH:
         yield from _search_local(path)
+
+
+@deprecated(
+    deprecated_in="1.8",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The search_standard_dirs method is deprecated.",
+)
+def search_standard_dirs():  # noqa: D103
+    yield from _search_standard_dirs()
 
 
 def check_permissions(filename):
@@ -112,11 +124,21 @@ def read_config_file(filename):
     return config
 
 
-def get_config(infile=None, configspec=None, *args, **kwargs):
+def _get_config(infile=None, configspec=None, *args, **kwargs):
     """Get configuration from a file."""
     if configspec is None:
         configspec = cfg.split("\n")
     return Config(infile, configspec=configspec, *args, **kwargs)
+
+
+@deprecated(
+    deprecated_in="1.8",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The get_config method is deprecated. Use read_config_file instead.",
+)
+def get_config(infile=None, configspec=None, *args, **kwargs):  # noqa: D103
+    return _get_config(infile, configspec, *args, **kwargs)
 
 
 def load_config(root=None, local=False):
@@ -132,7 +154,7 @@ def load_config(root=None, local=False):
                 config["project_dir"] = os.path.dirname(fn)
                 break
     else:
-        for fn in search_standard_dirs():
+        for fn in _search_standard_dirs():
             config.merge(read_config_file(fn))
         for fn in search_tree(root):
             tmp = read_config_file(fn)

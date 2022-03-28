@@ -5,8 +5,7 @@ import getpass
 import logging
 import warnings
 
-from deprecation import deprecated
-
+from ..common.deprecation import deprecated
 from ..core import json
 from ..version import __version__
 from .config import load_config

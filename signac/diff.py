@@ -30,7 +30,7 @@ def diff_jobs(*jobs):
     Examples
     --------
     >>> import signac
-    >>> project = signac.init_project('project_name')
+    >>> project = signac.init_project()
     >>> job1 = project.open_job({'constant': 42, 'diff1': 0, 'diff2': 1}).init()
     >>> job2 = project.open_job({'constant': 42, 'diff1': 1, 'diff2': 1}).init()
     >>> job3 = project.open_job({'constant': 42, 'diff1': 2, 'diff2': 2}).init()

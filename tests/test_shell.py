@@ -171,7 +171,7 @@ class TestBasicShell:
         project = signac.Project()
         project.open_job({"a": 0}).init()
         assert len(project) == 1
-        with pytest.deprecated_call():
+        with pytest.warns(FutureWarning):
             assert len(list(project.index())) == 1
             assert len(list(signac.index())) == 1
         doc = json.loads(self.call("python -m signac index".split()))
@@ -311,7 +311,7 @@ class TestBasicShell:
                 == next(iter(project.find_jobs({"a": i}))).id
             )
 
-        with pytest.deprecated_call():
+        with pytest.warns(FutureWarning):
             for i in range(3):
                 assert (
                     self.call(
@@ -320,7 +320,7 @@ class TestBasicShell:
                     == list(project.find_job_ids(doc_filter={"a": i}))[0]
                 )
 
-        with pytest.deprecated_call():
+        with pytest.warns(FutureWarning):
             for i in range(1, 4):
                 assert (
                     self.call(
@@ -866,15 +866,10 @@ class TestBasicShell:
         cfg = self.call("python -m signac config --local show".split())
         assert "Mongo" not in cfg
 
-    @pytest.mark.skipif(
-        not PYMONGO, reason="pymongo is required for host configuration"
-    )
     def test_config_verify(self):
         # no config file
         with pytest.raises(ExitCodeError):
-            err = self.call(
-                "python -m signac config --local verify".split(), error=True
-            )
+            self.call("python -m signac config --local verify".split(), error=True)
         err = self.call(
             "python -m signac config --local verify".split(),
             error=True,
@@ -885,6 +880,11 @@ class TestBasicShell:
         err = self.call("python -m signac config --local verify".split(), error=True)
         assert "Passed" in err
 
+    @pytest.mark.skipif(
+        not PYMONGO, reason="pymongo is required for host configuration"
+    )
+    def test_config_verify_mongo(self):
+        self.call("python -m signac init my_project".split())
         self.call("python -m signac config --local host Mongo -u abc -p 123".split())
         err = self.call("python -m signac config --local verify".split(), error=True)
         assert "hosts.Mongo.password_config.[missing section]" in err

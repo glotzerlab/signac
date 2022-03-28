@@ -37,6 +37,8 @@ ARRAY_EXPRESSIONS = [
 
 LOGICAL_EXPRESSIONS = [
     ({"$and": []}, ValueError),
+    ({"$and": {}}, ValueError),
+    ({"$and": ""}, ValueError),
     ({"a": {"$and": []}}, KeyError),
     ({"a": {"$and": [{"b": 0}]}}, KeyError),
     ({"$and": [{"a": n}]}, 1),
@@ -49,6 +51,14 @@ LOGICAL_EXPRESSIONS = [
     ({"$or": [{"$not": {"a": n}}]}, N - 1),
     ({"$or": [{"a": n}, {"a": n + 1}]}, 2),
     ({"$or": [{"a": n}, {"$not": {"a": n}}]}, N),
+]
+
+INVALID_SYNTAX_EXPRESSIONS = [
+    ({"a": {"$$lt": N}}, KeyError),  # Bad operator expression
+    ({"a": {"lt$": N}}, KeyError),  # Bad operator placement
+    ({"a": {"$exists": N}}, ValueError),  # Value of $exists must be boolean
+    ({"a": {"$nonexistent": N}}, KeyError),  # Unknown expression-operator
+    ({"a": {"$type": N}}, ValueError),  # Invalid $type argument
 ]
 
 
@@ -246,6 +256,14 @@ class TestCollection:
         assert len(self.c) == len(docs)
         assert len(self.c.find()) == len(docs)
         assert {doc["a"] for doc in docs} == {doc["a"] for doc in self.c.find()}
+
+    def test_find_id(self):
+        assert len(self.c.find()) == 0
+        assert len(self.c.find({"_id": "0"})) == 0
+        docs = [{"a": i, "_id": str(i)} for i in range(10)]
+        self.c.update(docs)
+        assert len(self.c.find()) == len(docs)
+        assert len(self.c.find({"_id": "0"})) == 1
 
     def test_find_integer(self):
         assert len(self.c.find()) == 0
@@ -586,6 +604,13 @@ class TestCollection:
                 assert len(self.c.find(expr)) == expectation
                 assert len(self.c.find({"$not": expr})) == N - expectation
                 assert len(self.c.find({"$not": {"$not": expr}})) == expectation
+
+    def test_find_invalid_syntax(self):
+        self.c.update(ARITHMETIC_DOCS)
+        assert len(self.c) == len(ARITHMETIC_DOCS)
+        for expr, expectation in INVALID_SYNTAX_EXPRESSIONS:
+            with pytest.raises(expectation):
+                self.c.find(expr)
 
 
 class TestCompressedCollection(TestCollection):

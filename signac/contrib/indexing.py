@@ -12,9 +12,8 @@ import warnings
 from collections import defaultdict
 from time import sleep
 
-from deprecation import deprecated
-
 from ..common import errors
+from ..common.deprecation import deprecated
 from ..core import json
 from ..version import __version__
 from .hashing import calc_id
@@ -620,7 +619,7 @@ class MasterCrawler(MainCrawler):
         warnings.warn(
             "The MasterCrawler class has been replaced by the MainCrawler class. "
             "Both classes are deprecated and will be removed in a future release.",
-            DeprecationWarning,
+            FutureWarning,
         )
         super().__init__(*args, **kwargs)
 

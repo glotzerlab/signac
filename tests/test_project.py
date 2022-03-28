@@ -20,12 +20,11 @@ from zipfile import ZipFile
 
 import pytest
 import test_h5store
-from conftest import deprecated_in_version
 from packaging import version
 from test_job import TestJobBase
 
 import signac
-from signac.common.config import get_config
+from signac.common.config import _get_config
 from signac.contrib.errors import (
     IncompatibleSchemaVersion,
     JobsCorruptedError,
@@ -89,8 +88,9 @@ class TestProject(TestProjectBase):
         pass
 
     def test_get_id(self):
-        with pytest.deprecated_call():
+        with pytest.warns(FutureWarning):
             assert self.project.get_id() == "testing_test_project"
+        with pytest.warns(FutureWarning):
             assert str(self.project) == self.project.get_id()
 
     def test_property_id(self):
@@ -223,7 +223,7 @@ class TestProject(TestProjectBase):
         read2 = list(self.project.read_statepoints())
         assert len(read2) == len(statepoints) + len(more_statepoints)
         for id_ in self.project.read_statepoints().keys():
-            with pytest.deprecated_call():
+            with pytest.warns(FutureWarning):
                 self.project.get_statepoint(id_)
 
     def test_workspace_path_normalization(self):
@@ -292,7 +292,7 @@ class TestProject(TestProjectBase):
         statepoints = [{"a": i} for i in range(5)]
         for sp in statepoints:
             self.project.open_job(sp).document["b"] = sp["a"]
-        with pytest.deprecated_call():
+        with pytest.warns(FutureWarning):
             assert len(statepoints) == len(list(self.project.find_job_ids()))
             assert 1 == len(list(self.project.find_job_ids({"a": 0})))
             assert 0 == len(list(self.project.find_job_ids({"a": 5})))
@@ -715,7 +715,7 @@ class TestProject(TestProjectBase):
                 return doc
 
         for p, fmt in formats.items():
-            with pytest.deprecated_call():
+            with pytest.warns(FutureWarning):
                 Crawler.define(p, fmt)
         index2 = {}
         for doc in Crawler(root=self.project.root_directory()).crawl():
@@ -1099,7 +1099,7 @@ class TestProject(TestProjectBase):
         assert not os.path.isdir(tmp_root_dir)
 
     def test_access_module(self):
-        with deprecated_in_version("1.5"):
+        with pytest.warns(FutureWarning):
             self.project.create_access_module()
 
 
@@ -2307,7 +2307,7 @@ class TestProjectInit:
             signac.get_project(root=root)
         project_name = "testproject" + string.printable
         project = signac.init_project(name=project_name, root=root)
-        with pytest.deprecated_call():
+        with pytest.warns(FutureWarning):
             assert project.get_id() == project_name
 
     def test_get_project_non_local(self):
@@ -2478,11 +2478,14 @@ class TestProjectInit:
 
 class TestProjectSchema(TestProjectBase):
     def test_project_schema_versions(self):
+        from signac.contrib.migration import apply_migrations
+
+        # Ensure that project initialization fails on an unsupported version.
         impossibly_high_schema_version = "9999"
         assert version.parse(self.project.config["schema_version"]) < version.parse(
             impossibly_high_schema_version
         )
-        config = get_config(self.project.fn("signac.rc"))
+        config = _get_config(self.project.fn("signac.rc"))
         config["schema_version"] = impossibly_high_schema_version
         config.write()
         with pytest.raises(IncompatibleSchemaVersion):
@@ -2490,19 +2493,37 @@ class TestProjectSchema(TestProjectBase):
                 name=str(self.project), root=self.project.root_directory()
             )
 
-    def test_project_schema_version_migration(self):
+        # Ensure that migration fails on an unsupported version.
+        with pytest.raises(RuntimeError):
+            apply_migrations(self.project.root_directory())
+
+        # Ensure that migration fails on an invalid version.
+        invalid_schema_version = "0.5"
+        config = _get_config(self.project.fn("signac.rc"))
+        config["schema_version"] = invalid_schema_version
+        config.write()
+        with pytest.raises(RuntimeError):
+            apply_migrations(self.project.root_directory())
+
+    @pytest.mark.parametrize("implicit_version", [True, False])
+    def test_project_schema_version_migration(self, implicit_version):
         from signac.contrib.migration import apply_migrations
 
-        apply_migrations(self.project)
-        self.project._config["schema_version"] = "0"
-        assert self.project._config["schema_version"] == "0"
+        config = _get_config(self.project.fn("signac.rc"))
+        if implicit_version:
+            del config["schema_version"]
+            assert "schema_version" not in config
+        else:
+            config["schema_version"] = "0"
+            assert config["schema_version"] == "0"
+        config.write()
         err = io.StringIO()
         with redirect_stderr(err):
-            for origin, destination in apply_migrations(self.project):
-                assert self.project._config["schema_version"] == destination
-                project = signac.get_project(root=self.project.root_directory())
-                assert project._config["schema_version"] == destination
-        assert self.project._config["schema_version"] == "1"
+            apply_migrations(self.project.root_directory())
+        config = _get_config(self.project.fn("signac.rc"))
+        assert config["schema_version"] == "1"
+        project = signac.get_project(root=self.project.root_directory())
+        assert project.config["schema_version"] == "1"
         assert "OK" in err.getvalue()
         assert "0 to 1" in err.getvalue()
 
@@ -2516,7 +2537,7 @@ class TestProjectSchema(TestProjectBase):
         # 2. Either update or remove this unit test.
         from signac.contrib.migration import _collect_migrations
 
-        migrations = list(_collect_migrations(self.project))
+        migrations = list(_collect_migrations(self.project.root_directory()))
         assert len(migrations) == 0
 
 

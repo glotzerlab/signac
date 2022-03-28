@@ -55,7 +55,7 @@ NESTED_HASH = "bd6f5828f4410b665bffcec46abeb8f3"
 
 def config_from_cfg(cfg):
     cfile = io.StringIO("\n".join(cfg))
-    return signac.common.config.get_config(cfile)
+    return signac.common.config._get_config(cfile)
 
 
 def testdata():
@@ -1064,7 +1064,7 @@ class TestJobDocument(TestJobBase):
         src_job.data[key] = d
         assert key in src_job.data
         assert len(src_job.data) == 1
-        with pytest.deprecated_call():
+        with pytest.warns(FutureWarning):
             self.project.reset_statepoint(src_job, dst)
         src_job = self.open_job(src)
         dst_job = self.open_job(dst)
@@ -1074,7 +1074,7 @@ class TestJobDocument(TestJobBase):
         assert key in dst_job.data
         assert len(dst_job.data) == 1
         assert key not in src_job.data
-        with pytest.deprecated_call():
+        with pytest.warns(FutureWarning):
             with pytest.raises(RuntimeError):
                 self.project.reset_statepoint(src_job, dst)
             with pytest.raises(DestinationExistsError):
@@ -1098,7 +1098,7 @@ class TestJobDocument(TestJobBase):
         src_job.data[key] = d
         assert key in src_job.data
         assert len(src_job.data) == 1
-        with pytest.deprecated_call():
+        with pytest.warns(FutureWarning):
             self.project.update_statepoint(src_job, extension)
         src_job = self.open_job(src)
         dst_job = self.open_job(dst)
@@ -1109,7 +1109,7 @@ class TestJobDocument(TestJobBase):
         assert key in dst_job.data
         assert len(dst_job.data) == 1
         assert key not in src_job.data
-        with pytest.deprecated_call():
+        with pytest.warns(FutureWarning):
             with pytest.raises(RuntimeError):
                 self.project.reset_statepoint(src_job, dst)
             with pytest.raises(DestinationExistsError):
@@ -1535,7 +1535,7 @@ class TestJobOpenData(TestJobBase):
             src_job.data[key] = d
             assert key in src_job.data
             assert len(src_job.data) == 1
-        with pytest.deprecated_call():
+        with pytest.warns(FutureWarning):
             self.project.reset_statepoint(src_job, dst)
         src_job = self.open_job(src)
         dst_job = self.open_job(dst)
@@ -1544,7 +1544,7 @@ class TestJobOpenData(TestJobBase):
             assert len(dst_job.data) == 1
         with self.open_data(src_job):
             assert key not in src_job.data
-        with pytest.deprecated_call():
+        with pytest.warns(FutureWarning):
             with pytest.raises(RuntimeError):
                 self.project.reset_statepoint(src_job, dst)
             with pytest.raises(DestinationExistsError):
@@ -1565,7 +1565,7 @@ class TestJobOpenData(TestJobBase):
             src_job.data[key] = d
             assert key in src_job.data
             assert len(src_job.data) == 1
-        with pytest.deprecated_call():
+        with pytest.warns(FutureWarning):
             self.project.update_statepoint(src_job, extension)
         src_job = self.open_job(src)
         dst_job = self.open_job(dst)
@@ -1575,12 +1575,12 @@ class TestJobOpenData(TestJobBase):
             assert len(dst_job.data) == 1
         with self.open_data(src_job):
             assert key not in src_job.data
-        with pytest.deprecated_call():
+        with pytest.warns(FutureWarning):
             with pytest.raises(RuntimeError):
                 self.project.reset_statepoint(src_job, dst)
             with pytest.raises(DestinationExistsError):
                 self.project.reset_statepoint(src_job, dst)
-        with pytest.deprecated_call():
+        with pytest.warns(FutureWarning):
             with pytest.raises(KeyError):
                 self.project.update_statepoint(dst_job, extension2)
             self.project.update_statepoint(dst_job, extension2, overwrite=True)

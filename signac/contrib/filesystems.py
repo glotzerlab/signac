@@ -9,8 +9,7 @@ import os
 import warnings
 from collections.abc import Iterable, Mapping
 
-from deprecation import deprecated
-
+from ..common.deprecation import deprecated
 from ..db import get_database
 from ..version import __version__
 from .utility import _mkdir_p
