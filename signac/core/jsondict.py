@@ -13,8 +13,7 @@ from contextlib import contextmanager
 from copy import copy
 from tempfile import mkstemp
 
-from deprecation import deprecated
-
+from ..common.deprecation import deprecated
 from ..version import __version__
 from . import json
 from .attrdict import SyncedAttrDict

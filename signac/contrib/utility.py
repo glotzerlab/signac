@@ -16,8 +16,7 @@ from datetime import timedelta
 from tempfile import TemporaryDirectory
 from time import time
 
-from deprecation import deprecated
-
+from ..common.deprecation import deprecated
 from ..version import __version__
 
 logger = logging.getLogger(__name__)

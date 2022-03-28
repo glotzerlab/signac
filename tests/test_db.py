@@ -6,7 +6,7 @@ import pytest
 import signac.db
 
 try:
-    with pytest.deprecated_call():
+    with pytest.warns(FutureWarning):
         signac.db.get_database("testing", hostname="testing")
 except signac.common.errors.ConfigError:
     SKIP_REASON = "No 'testing' host configured."
@@ -20,7 +20,7 @@ else:
 @pytest.mark.skipif(SKIP_REASON != "None", reason=SKIP_REASON)
 class TestDB:
     def get_test_db(self):
-        with pytest.deprecated_call():
+        with pytest.warns(FutureWarning):
             signac.db.get_database("testing", hostname="testing")
 
     def test_get_connector(self):

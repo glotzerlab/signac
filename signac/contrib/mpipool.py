@@ -23,7 +23,7 @@
 
 This 3rd party module is copied from https://github.com/adrn/mpipool."""
 
-from deprecation import deprecated
+from ..common.deprecation import deprecated
 
 __all__ = ["MPIPool"]
 __version__ = "0.0.1"
