@@ -8,7 +8,6 @@ import logging
 import os
 import random
 import uuid
-import warnings
 from contextlib import contextmanager
 from tempfile import TemporaryDirectory
 
@@ -77,8 +76,6 @@ class TestJobBase:
         self.project = self.project_class.init_project(
             name="testing_test_project", root=self._tmp_pr, workspace=self._tmp_wd
         )
-
-        warnings.filterwarnings("ignore", category=DeprecationWarning, module="signac")
 
     def tearDown(self):
         pass
@@ -438,11 +435,14 @@ class TestJobSpInterface(TestJobBase):
     def test_valid_sp_key_types(self):
         job = self.open_job(dict(invalid_key=True)).init()
 
-        class A:
-            pass
-
-        for key in ("0", 0, True, False, None):
+        for key in ("0",):
             job.sp[key] = "test"
+            assert str(key) in job.sp
+
+        # TODO: Non-string keys will not be supported in signac 2.0.
+        for key in (0, True, False, None):
+            with pytest.warns(FutureWarning):
+                job.sp[key] = "test"
             assert str(key) in job.sp
 
     def test_invalid_sp_key_types(self):
@@ -468,11 +468,14 @@ class TestJobSpInterface(TestJobBase):
     def test_valid_doc_key_types(self):
         job = self.open_job(dict(invalid_key=True)).init()
 
-        class A:
-            pass
-
-        for key in ("0", 0, True, False, None):
+        for key in ("0",):
             job.doc[key] = "test"
+            assert str(key) in job.doc
+
+        # TODO: Non-string keys will not be supported in signac 2.0.
+        for key in (0, True, False, None):
+            with pytest.warns(FutureWarning):
+                job.doc[key] = "test"
             assert str(key) in job.doc
 
     def test_invalid_doc_key_types(self):
