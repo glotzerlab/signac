@@ -240,7 +240,7 @@ class TestFileModifyProxyDocBackup:
         assert len(self.doc) == 0
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 class TestFileModifyProxyJSONDocBackup(TestFileModifyProxyDocBackup):
     @pytest.fixture(autouse=True)
     def setUp(self, request):

@@ -8,7 +8,6 @@ import logging
 import os
 import random
 import uuid
-import warnings
 from contextlib import contextmanager
 from tempfile import TemporaryDirectory
 
@@ -77,8 +76,6 @@ class TestJobBase:
         self.project = self.project_class.init_project(
             name="testing_test_project", root=self._tmp_pr, workspace=self._tmp_wd
         )
-
-        warnings.filterwarnings("ignore", category=DeprecationWarning, module="signac")
 
     def tearDown(self):
         pass

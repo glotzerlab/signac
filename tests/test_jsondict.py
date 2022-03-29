@@ -25,7 +25,7 @@ class TestJSONDictBase:
         self._fn_dict = os.path.join(self._tmp_dir.name, FN_DICT)
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 class TestJSONDict(TestJSONDictBase):
     def get_json_dict(self):
         return JSONDict(filename=self._fn_dict)
