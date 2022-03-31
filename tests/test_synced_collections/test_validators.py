@@ -39,7 +39,7 @@ class TestNoDotInKey:
     def test_valid_data(self, testdata):
         test_dict = {}
         # valid data
-        for key in ("valid_str", 1, False, None):
+        for key in ("valid_str", "another_valid_str"):
             test_dict[key] = testdata
             no_dot_in_key(test_dict)
             assert key in test_dict
