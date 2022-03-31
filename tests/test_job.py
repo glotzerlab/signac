@@ -432,20 +432,12 @@ class TestJobSpInterface(TestJobBase):
             assert job.sp == job2.sp
             assert job.id == job2.id
 
-    @pytest.mark.filterwarnings("ignore:Use of int as key is deprecated")
-    @pytest.mark.filterwarnings("ignore:Use of NoneType as key is deprecated")
-    @pytest.mark.filterwarnings("ignore:Use of bool as key is deprecated")
     def test_valid_sp_key_types(self):
-        job = self.open_job(dict(invalid_key=True)).init()
+        job = self.open_job(dict(valid_key=True)).init()
 
-        for key in ("0",):
+        # Only strings are permitted as keys
+        for key in ("0", "1"):
             job.sp[key] = "test"
-            assert str(key) in job.sp
-
-        # TODO: Non-string keys will not be supported in signac 2.0.
-        for key in (0, True, False, None):
-            with pytest.warns(FutureWarning):
-                job.sp[key] = "test"
             assert str(key) in job.sp
 
     def test_invalid_sp_key_types(self):
@@ -457,7 +449,7 @@ class TestJobSpInterface(TestJobBase):
 
         job = self.open_job(dict(invalid_key=True)).init()
 
-        for key in (0.0, A(), (1, 2, 3)):
+        for key in (1, True, False, None, 0.0, A(), (1, 2, 3)):
             with pytest.raises(KeyTypeError):
                 job.sp[key] = "test"
             with pytest.raises(KeyTypeError):
@@ -468,20 +460,12 @@ class TestJobSpInterface(TestJobBase):
             with pytest.raises(TypeError):
                 job.sp = {key: "test"}
 
-    @pytest.mark.filterwarnings("ignore:Use of int as key is deprecated")
-    @pytest.mark.filterwarnings("ignore:Use of NoneType as key is deprecated")
-    @pytest.mark.filterwarnings("ignore:Use of bool as key is deprecated")
     def test_valid_doc_key_types(self):
-        job = self.open_job(dict(invalid_key=True)).init()
+        job = self.open_job(dict(valid_key=True)).init()
 
-        for key in ("0",):
+        # Only strings are permitted as keys
+        for key in ("0", "1"):
             job.doc[key] = "test"
-            assert str(key) in job.doc
-
-        # TODO: Non-string keys will not be supported in signac 2.0.
-        for key in (0, True, False, None):
-            with pytest.warns(FutureWarning):
-                job.doc[key] = "test"
             assert str(key) in job.doc
 
     def test_invalid_doc_key_types(self):
@@ -490,7 +474,7 @@ class TestJobSpInterface(TestJobBase):
         class A:
             pass
 
-        for key in (0.0, A(), (1, 2, 3)):
+        for key in (1, True, False, None, 0.0, A(), (1, 2, 3)):
             with pytest.raises(KeyTypeError):
                 job.doc[key] = "test"
             with pytest.raises(KeyTypeError):
