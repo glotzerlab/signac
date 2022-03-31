@@ -293,11 +293,11 @@ def main_find(args):
         if args.doc is None:
             args.doc = []
 
-    def format_lines(cat, _id, s):
+    def format_lines(cat, id_, s):
         if args.one_line:
             if isinstance(s, dict):
                 s = json.dumps(s, sort_keys=True)
-            return f"{_id[:len_id]} {cat}\t{s}"
+            return f"{id_[:len_id]} {cat}\t{s}"
         else:
             return pformat(s, depth=args.pretty)
 
@@ -847,8 +847,8 @@ def main_shell(args):
         _jobs = find_with_filter(args)
 
         def jobs():
-            for _id in _jobs:
-                yield project.open_job(id=_id)
+            for id_ in _jobs:
+                yield project.open_job(id=id_)
 
         if len(_jobs) == 1:
             job = _open_job_by_id(project, list(_jobs)[0])
