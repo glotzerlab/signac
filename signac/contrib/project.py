@@ -324,11 +324,11 @@ class Project:
         tmp = set()
         for i in range(JOB_ID_LENGTH):
             tmp.clear()
-            for _id in job_ids:
-                if _id[:i] in tmp:
+            for id_ in job_ids:
+                if id_[:i] in tmp:
                     break
                 else:
-                    tmp.add(_id[:i])
+                    tmp.add(id_[:i])
             else:
                 break
         return i
@@ -537,7 +537,7 @@ class Project:
             return Job(project=self, statepoint=statepoint)
         try:
             # Optimal case (id is in the state point cache)
-            return Job(project=self, statepoint=self._sp_cache[id], _id=id)
+            return Job(project=self, statepoint=self._sp_cache[id], id_=id)
         except KeyError:
             # Worst case: no state point was provided and the state point cache
             # missed. The Job will register itself in self._sp_cache when the
@@ -545,7 +545,7 @@ class Project:
             if len(id) < JOB_ID_LENGTH:
                 # Resolve partial job ids (first few characters) into a full job id
                 job_ids = self._find_job_ids()
-                matches = [_id for _id in job_ids if _id.startswith(id)]
+                matches = [id_ for id_ in job_ids if id_.startswith(id)]
                 if len(matches) == 1:
                     id = matches[0]
                 elif len(matches) > 1:
@@ -556,7 +556,7 @@ class Project:
             elif not self._contains_job_id(id):
                 # id does not exist in the project data space
                 raise KeyError(id)
-            return Job(project=self, _id=id)
+            return Job(project=self, id_=id)
 
     def _job_dirs(self):
         """Generate ids of jobs in the workspace.
@@ -677,7 +677,7 @@ class Project:
         index = _SearchIndexer(self._build_index(include_job_document=False))
         if subset is not None:
             subset = {str(s) for s in subset}.intersection(index.keys())
-            index = _SearchIndexer((_id, index[_id]) for _id in subset)
+            index = _SearchIndexer((id_, index[id_]) for id_ in subset)
         statepoint_index = _build_job_statepoint_index(
             exclude_const=exclude_const, index=index
         )
@@ -840,18 +840,18 @@ class Project:
         """
         return self.find_jobs().to_dataframe(*args, **kwargs)
 
-    def _register(self, _id, statepoint):
+    def _register(self, id_, statepoint):
         """Register the job state point in the project state point cache.
 
         Parameters
         ----------
-        _id : str
+        id_ : str
             A job identifier.
         statepoint : dict
             A validated job state point.
 
         """
-        self._sp_cache[_id] = statepoint
+        self._sp_cache[id_] = statepoint
 
     def _get_statepoint_from_workspace(self, job_id):
         """Attempt to read the state point from the workspace.
@@ -1379,11 +1379,11 @@ class Project:
         to_add = job_ids.difference(cached_ids)
         to_remove = cached_ids.difference(job_ids)
         if to_add or to_remove:
-            for _id in to_remove:
-                del self._sp_cache[_id]
+            for id_ in to_remove:
+                del self._sp_cache[id_]
 
-            def _add(_id):
-                self._sp_cache[_id] = self._get_statepoint_from_workspace(_id)
+            def _add(id_):
+                self._sp_cache[id_] = self._get_statepoint_from_workspace(id_)
 
             to_add_chunks = _split_and_print_progress(
                 iterable=list(to_add),
