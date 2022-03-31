@@ -14,6 +14,7 @@ Changed
 +++++++
 
  - Functions raising ``AssertionError`` now raise ``RuntimeError`` (#612).
+ - State points and documents require keys to be of type ``str`` (#719).
  - The keyword ``_id`` of the Job constructor has been renamed to ``id_`` (#681).
 
 Removed
