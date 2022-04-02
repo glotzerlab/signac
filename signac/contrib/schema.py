@@ -10,9 +10,9 @@ from collections.abc import Mapping
 from numbers import Number
 from pprint import pformat
 
-from deprecation import deprecated
 from packaging import version
 
+from ..common.deprecation import deprecated
 from ..version import __version__
 
 
