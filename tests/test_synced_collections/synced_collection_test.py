@@ -440,7 +440,7 @@ class SyncedDictTest(SyncedCollectionTest):
             assert key in synced_collection
             assert synced_collection[key] == testdata
 
-    # (issue #729) TODO: This test should only be applied for backends where JSON-formatting
+    # This test should only be applied for backends where JSON-formatting
     # is required.
     def test_keys_invalid_type(self, synced_collection, testdata):
         class A:
