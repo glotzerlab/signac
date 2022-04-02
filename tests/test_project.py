@@ -11,7 +11,6 @@ import re
 import string
 import sys
 import uuid
-import warnings
 from contextlib import contextmanager, redirect_stderr
 from tarfile import TarFile
 from tempfile import TemporaryDirectory
@@ -2604,7 +2603,6 @@ class TestProjectStoreBase(test_h5store.TestH5StoreBase):
             name="testing_test_project", root=self._tmp_pr, workspace=self._tmp_wd
         )
 
-        warnings.filterwarnings("ignore", category=DeprecationWarning, module="signac")
         self._fn_store = os.path.join(self._tmp_dir.name, "signac_data.h5")
         self._fn_store_other = os.path.join(self._tmp_dir.name, "other.h5")
 

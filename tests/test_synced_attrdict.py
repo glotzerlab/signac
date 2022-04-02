@@ -39,6 +39,7 @@ class _SyncPoint:
         self._saved += 1
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 class TestSyncedAttrDict:
     @pytest.fixture(autouse=True)
     def setUp(self):
