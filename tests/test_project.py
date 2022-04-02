@@ -72,7 +72,7 @@ test_token = {"test_token": str(uuid.uuid4())}
 
 
 # Use the major version to fail tests expected to fail in 3.0.
-_MAJOR_VERSION = version.parse(signac.__version__)
+_CURRENT_VERSION = version.parse(signac.__version__)
 _VERSION_3 = version.parse("3.0.0")
 _VERSION_2 = version.parse("2.0.0")
 
@@ -115,7 +115,7 @@ class TestProject(TestProjectBase):
         # deprecated as of 1.3, and will be removed in version 2.0.
         # This unit test should reflect that change beginning 2.0,
         # and check that the project configuration is immutable.
-        assert _MAJOR_VERSION < _VERSION_2
+        assert _CURRENT_VERSION < _VERSION_2
         with pytest.raises(ValueError):
             self.project.config["foo"] = "bar"
 
@@ -1013,7 +1013,7 @@ class TestProjectNameDeprecations:
         self._tmp_dir = TemporaryDirectory()
 
     def test_name_only_positional(self):
-        assert _MAJOR_VERSION < _VERSION_3
+        assert _CURRENT_VERSION < _VERSION_3
         with self.warning_context:
             project = signac.init_project("name", root=self._tmp_dir.name)
 
@@ -1027,14 +1027,14 @@ class TestProjectNameDeprecations:
                 signac.init_project("new_name", root=self._tmp_dir.name)
 
     def test_name_with_other_args_positional(self):
-        assert _MAJOR_VERSION < _VERSION_3
+        assert _CURRENT_VERSION < _VERSION_3
         with pytest.raises(
             TypeError, match="takes 0 positional arguments but 2 were given"
         ):
             signac.init_project("project", self._tmp_dir.name)
 
     def test_name_only_keyword(self):
-        assert _MAJOR_VERSION < _VERSION_3
+        assert _CURRENT_VERSION < _VERSION_3
         os.chdir(self._tmp_dir.name)
         with self.warning_context:
             project = signac.init_project(name="name")
@@ -1049,7 +1049,7 @@ class TestProjectNameDeprecations:
                 signac.init_project(name="new_name")
 
     def test_name_with_other_args_keyword(self):
-        assert _MAJOR_VERSION < _VERSION_3
+        assert _CURRENT_VERSION < _VERSION_3
         with pytest.raises(TypeError, match="got an unexpected keyword argument 'foo'"):
             signac.init_project(name="project", foo="bar")
 

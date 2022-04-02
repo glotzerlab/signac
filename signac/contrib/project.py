@@ -1552,9 +1552,7 @@ class Project:
             project = cls.get_project(root=root)
             if name is not None:
                 project.doc[name_key] = name
-            return project
-        else:
-            return project
+        return project
 
     @classmethod
     def get_project(cls, root=None, search=True, **kwargs):
