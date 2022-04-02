@@ -785,8 +785,8 @@ class Project:
             True if the job id is initialized for this project.
 
         """
-        # We can rely on the project workspace to be well-formed, so use
-        # os.sep.join instead of os.path.join for performance.
+        # We can rely on the project workspace to be well-formed, so just use
+        # str.join with os.sep instead of os.path.join for performance.
         return os.path.exists(os.sep.join((self.workspace, job_id)))
 
     def __contains__(self, job):
@@ -1631,7 +1631,7 @@ class Project:
         """
         dst = self.open_job(job.statepoint())
         try:
-            copytree(job.workspace(), dst.workspace())
+            copytree(job.path, dst.path)
         except OSError as error:
             if error.errno == errno.EEXIST:
                 raise DestinationExistsError(dst)

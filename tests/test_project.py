@@ -570,10 +570,10 @@ class TestProject(TestProjectBase):
         job = self.project.open_job(dict(a=0))
         job.init()
         # First, we move the job to the wrong directory.
-        wd = job.workspace()
+        wd = job.path
         wd_invalid = os.path.join(self.project.workspace, "0" * 32)
         os.replace(wd, wd_invalid)  # Move to incorrect id.
-        assert not os.path.exists(job.workspace())
+        assert not os.path.exists(job.path)
 
         try:
             logging.disable(logging.CRITICAL)
@@ -1753,7 +1753,7 @@ class TestLinkedViewProject(TestProjectBase):
             )
         )
         src = set(
-            map(lambda j: os.path.realpath(j.workspace()), self.project.find_jobs())
+            map(lambda j: os.path.realpath(j.path), self.project.find_jobs())
         )
         assert len(all_links) == self.project.num_jobs()
         self.project.create_linked_view(prefix=view_prefix)
@@ -1766,7 +1766,7 @@ class TestLinkedViewProject(TestProjectBase):
             )
         )
         src = set(
-            map(lambda j: os.path.realpath(j.workspace()), self.project.find_jobs())
+            map(lambda j: os.path.realpath(j.path), self.project.find_jobs())
         )
         assert src == dst
         # update with subset
@@ -1788,7 +1788,7 @@ class TestLinkedViewProject(TestProjectBase):
                 all_links,
             )
         )
-        src = set(map(lambda j: os.path.realpath(j.workspace()), job_subset))
+        src = set(map(lambda j: os.path.realpath(j.path), job_subset))
         assert src == dst
         # some jobs removed
         clean({"b": 0})
@@ -1801,7 +1801,7 @@ class TestLinkedViewProject(TestProjectBase):
             )
         )
         src = set(
-            map(lambda j: os.path.realpath(j.workspace()), self.project.find_jobs())
+            map(lambda j: os.path.realpath(j.path), self.project.find_jobs())
         )
         assert src == dst
         # all jobs removed
@@ -1815,7 +1815,7 @@ class TestLinkedViewProject(TestProjectBase):
             )
         )
         src = set(
-            map(lambda j: os.path.realpath(j.workspace()), self.project.find_jobs())
+            map(lambda j: os.path.realpath(j.path), self.project.find_jobs())
         )
         assert src == dst
 
@@ -2479,7 +2479,7 @@ class TestProjectInit:
         job_b = project_b.open_job({"b": 1})
         job_b.init()
         symlink_path = os.path.join(project_b.workspace, job_a._id)
-        os.symlink(job_a.ws, symlink_path)
+        os.symlink(job_a.path, symlink_path)
         assert project_a.get_job(symlink_path) == job_a
         assert project_b.get_job(symlink_path) == job_a
         assert signac.get_job(symlink_path) == job_a

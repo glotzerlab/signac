@@ -248,6 +248,11 @@ def find_with_filter(args):
 
 def main_project(args):
     """Handle project subcommand."""
+    warnings.warn(
+        "The `project` command is deprecated as of version 1.8 and will be removed in "
+        "version 2.0.",
+        FutureWarning,
+    )
     project = get_project()
     if args.access:
         fn = project.create_access_module()
@@ -286,7 +291,7 @@ def main_job(args):
         )
         args.path = True
     if args.path:
-        print(job.workspace())
+        print(job.path)
     else:
         print(job)
 

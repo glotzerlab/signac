@@ -132,14 +132,14 @@ class TestJob(TestJobBase):
 
             def __init__(self, job):
                 self.id = job.id
-                self._workspace = job.workspace()
+                self._workspace = job.path
 
         class JobSubclass(Job):
             """Minimal subclass that can be compared with Job objects."""
 
             def __init__(self, job):
                 self._id = job.id
-                self._workspace = job.workspace()
+                self._path = job.path
 
             def workspace(self):
                 return self._workspace
@@ -159,7 +159,7 @@ class TestJob(TestJobBase):
     def test_isfile(self):
         job = self.project.open_job({"a": 0})
         fn = "test.txt"
-        fn_ = os.path.join(job.workspace(), fn)
+        fn_ = os.path.join(job.path, fn)
         assert not job.isfile(fn)
         job.init()
         assert not job.isfile(fn)
@@ -526,21 +526,17 @@ class TestConfig(TestJobBase):
 class TestJobOpenAndClosing(TestJobBase):
     def test_init(self):
         job = self.open_job(test_token)
-        assert not os.path.isdir(job.workspace())
+        assert not os.path.isdir(job.path)
         job.init()
-        assert job.workspace() == job.ws
-        assert os.path.isdir(job.workspace())
-        assert os.path.isdir(job.ws)
-        assert os.path.exists(os.path.join(job.workspace(), job.FN_MANIFEST))
+        assert os.path.isdir(job.path)
+        assert os.path.exists(os.path.join(job.path, job.FN_MANIFEST))
 
     def test_chained_init(self):
         job = self.open_job(test_token)
-        assert not os.path.isdir(job.workspace())
+        assert not os.path.isdir(job.path)
         job = self.open_job(test_token).init()
-        assert job.workspace() == job.ws
-        assert os.path.isdir(job.workspace())
-        assert os.path.isdir(job.ws)
-        assert os.path.exists(os.path.join(job.workspace(), job.FN_MANIFEST))
+        assert os.path.isdir(job.path)
+        assert os.path.exists(os.path.join(job.path, job.FN_MANIFEST))
 
     def test_construction(self):
         from signac import Project  # noqa: F401
@@ -600,37 +596,37 @@ class TestJobOpenAndClosing(TestJobBase):
         cwd = rp(os.getcwd())
         job = self.open_job(test_token)
         with job:
-            assert rp(job.workspace()) == rp(os.getcwd())
+            assert rp(job.path) == rp(os.getcwd())
         assert cwd == rp(os.getcwd())
         with job:
-            assert rp(job.workspace()) == rp(os.getcwd())
+            assert rp(job.path) == rp(os.getcwd())
             os.chdir(self.project.root_directory())
         assert cwd == rp(os.getcwd())
         with job:
-            assert rp(job.workspace()) == rp(os.getcwd())
+            assert rp(job.path) == rp(os.getcwd())
             with job:
-                assert rp(job.workspace()) == rp(os.getcwd())
-            assert rp(job.workspace()) == rp(os.getcwd())
+                assert rp(job.path) == rp(os.getcwd())
+            assert rp(job.path) == rp(os.getcwd())
         assert cwd == rp(os.getcwd())
         with job:
-            assert rp(job.workspace()) == rp(os.getcwd())
+            assert rp(job.path) == rp(os.getcwd())
             os.chdir(self.project.root_directory())
             with job:
-                assert rp(job.workspace()) == rp(os.getcwd())
+                assert rp(job.path) == rp(os.getcwd())
             assert rp(os.getcwd()) == rp(self.project.root_directory())
         assert cwd == rp(os.getcwd())
         with job:
             job.close()
             assert cwd == rp(os.getcwd())
             with job:
-                assert rp(job.workspace()) == rp(os.getcwd())
+                assert rp(job.path) == rp(os.getcwd())
             assert cwd == rp(os.getcwd())
         assert cwd == rp(os.getcwd())
 
     def test_corrupt_workspace(self):
         job = self.open_job(test_token)
         job.init()
-        fn_manifest = os.path.join(job.workspace(), job.FN_MANIFEST)
+        fn_manifest = os.path.join(job.path, job.FN_MANIFEST)
         with open(fn_manifest, "w") as file:
             file.write("corrupted")
         job2 = self.open_job(test_token)
@@ -890,7 +886,7 @@ class TestJobDocument(TestJobBase):
         job.document[key] = d
         assert key in job.document
         assert len(job.document) == 1
-        fn_test = os.path.join(job.workspace(), "test")
+        fn_test = os.path.join(job.path, "test")
         with open(fn_test, "w") as file:
             file.write("test")
         assert os.path.isfile(fn_test)
@@ -1420,7 +1416,7 @@ class TestJobOpenData(TestJobBase):
             job.data[key] = d
             assert key in job.data
             assert len(job.data) == 1
-        fn_test = os.path.join(job.workspace(), "test")
+        fn_test = os.path.join(job.path, "test")
         with open(fn_test, "w") as file:
             file.write("test")
         assert os.path.isfile(fn_test)
@@ -1906,7 +1902,7 @@ class TestJobOpenCustomData(TestJobBase):
             job.stores.test[key] = d
             assert key in job.stores.test
             assert len(job.stores.test) == 1
-        fn_test = os.path.join(job.workspace(), "test")
+        fn_test = os.path.join(job.path, "test")
         with open(fn_test, "w") as file:
             file.write("test")
         assert os.path.isfile(fn_test)
