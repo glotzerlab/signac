@@ -324,9 +324,9 @@ class Job:
     def __eq__(self, other):
         if not isinstance(other, type(self)):
             return NotImplemented
-        return self.id == other.id and os.path.realpath(
-            self.path
-        ) == os.path.realpath(other.path)
+        return self.id == other.id and os.path.realpath(self.path) == os.path.realpath(
+            other.path
+        )
 
     def __str__(self):
         """Return the job's id."""

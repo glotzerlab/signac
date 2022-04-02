@@ -1752,9 +1752,7 @@ class TestLinkedViewProject(TestProjectBase):
                 all_links,
             )
         )
-        src = set(
-            map(lambda j: os.path.realpath(j.path), self.project.find_jobs())
-        )
+        src = set(map(lambda j: os.path.realpath(j.path), self.project.find_jobs()))
         assert len(all_links) == self.project.num_jobs()
         self.project.create_linked_view(prefix=view_prefix)
         all_links = list(_find_all_links(view_prefix))
@@ -1765,9 +1763,7 @@ class TestLinkedViewProject(TestProjectBase):
                 all_links,
             )
         )
-        src = set(
-            map(lambda j: os.path.realpath(j.path), self.project.find_jobs())
-        )
+        src = set(map(lambda j: os.path.realpath(j.path), self.project.find_jobs()))
         assert src == dst
         # update with subset
         job_subset = self.project.find_jobs({"b": 0})
@@ -1800,9 +1796,7 @@ class TestLinkedViewProject(TestProjectBase):
                 all_links,
             )
         )
-        src = set(
-            map(lambda j: os.path.realpath(j.path), self.project.find_jobs())
-        )
+        src = set(map(lambda j: os.path.realpath(j.path), self.project.find_jobs()))
         assert src == dst
         # all jobs removed
         clean()
@@ -1814,9 +1808,7 @@ class TestLinkedViewProject(TestProjectBase):
                 all_links,
             )
         )
-        src = set(
-            map(lambda j: os.path.realpath(j.path), self.project.find_jobs())
-        )
+        src = set(map(lambda j: os.path.realpath(j.path), self.project.find_jobs()))
         assert src == dst
 
     @pytest.mark.skipif(WINDOWS, reason="Linked views unsupported on Windows.")
