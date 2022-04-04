@@ -21,7 +21,7 @@ from .errors import Error
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_BUFFER_SIZE = 32 * 2 ** 20  # 32 MB
+DEFAULT_BUFFER_SIZE = 32 * 2**20  # 32 MB
 
 _BUFFERED_MODE = 0
 _BUFFERED_MODE_FORCE_WRITE = None

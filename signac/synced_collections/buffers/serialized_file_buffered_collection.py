@@ -79,7 +79,7 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
 
     """
 
-    _BUFFER_CAPACITY = 32 * 2 ** 20  # 32 MB
+    _BUFFER_CAPACITY = 32 * 2**20  # 32 MB
 
     def _flush(self, force=False):
         """Save buffered changes to the underlying file.

@@ -589,7 +589,7 @@ def _convert_schema_path_to_regex(schema_path):
             types[key] = m.groupdict()["type"] or "str"
             start, stop = m.span()
             schema_regex += schema_path[index : index + start].replace(".", r"\.")
-            schema_regex += fr"(?P<{key}>{RE_TYPES[types[key]]})"
+            schema_regex += rf"(?P<{key}>{RE_TYPES[types[key]]})"
             index += stop
             continue
         break
