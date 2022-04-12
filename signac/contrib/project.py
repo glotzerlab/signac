@@ -228,9 +228,6 @@ class _ProjectConfig(Config):
 
 def _invalidate_config_cache(project):
     """Invalidate cached properties derived from a project config."""
-    # TODO: Consider using functools.cached_property for these instead. That simplify our code,
-    # although at the expense of creating multiple locks (each cached_property has its own lock
-    # AFAICT from looking at the implementation).
     project._id = None
     project._path = None
     project._wd = None

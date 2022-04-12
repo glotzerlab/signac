@@ -280,9 +280,6 @@ class Job:
 
     def _initialize_lazy_properties(self):
         """Initialize all properties that are designed to be loaded lazily."""
-        # TODO: Consider using functools.cached_property for these instead.  That simplify our code,
-        # although at the expense of creating multiple locks (each cached_property has its own lock
-        # AFAICT from looking at the implementation).
         with self._lock:
             self._path = None
             self._document = None
