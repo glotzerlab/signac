@@ -239,13 +239,27 @@ workflows:
       - linux-python-310:
           post-steps:
             - codecov/upload
-      - linux-python-310-minimal
-      - linux-python-39
-      - linux-python-38
-      - linux-python-38-oldest
-      - linux-pypy-38
-      - windows-python-310
-      - macos-python-3
+      - linux-python-310-minimal:
+          post-steps:
+            - codecov/upload
+      - linux-python-39:
+          post-steps:
+            - codecov/upload
+      - linux-python-38:
+          post-steps:
+            - codecov/upload
+      - linux-python-38-oldest:
+          post-steps:
+            - codecov/upload
+      - linux-pypy-38:
+          post-steps:
+            - codecov/upload
+      - windows-python-310:
+          post-steps:
+            - codecov/upload
+      - macos-python-3:
+          post-steps:
+            - codecov/upload
       - check-metadata:
           filters:
             branches:
