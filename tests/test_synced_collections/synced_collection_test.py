@@ -13,6 +13,7 @@ from signac.synced_collections import SyncedCollection
 from signac.synced_collections.numpy_utils import NumpyConversionWarning
 
 PYPY = "PyPy" in platform.python_implementation()
+WINDOWS = "win" in platform.python_implementation()
 
 
 try:
@@ -454,6 +455,13 @@ class SyncedDictTest(SyncedCollectionTest):
             with pytest.raises(TypeError):
                 synced_collection[key] = testdata
 
+    @pytest.mark.skipif(
+        WINDOWS,
+        reason=(
+            "This test sometimes fails on Windows. This may indicate a race condition, but "
+            "attempts to reproduce on other platforms have failed thus far."
+        ),
+    )
     def test_multithreaded(self, synced_collection):
         """Test multithreaded runs of synced dicts."""
         if not type(synced_collection)._supports_threading:
