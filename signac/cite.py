@@ -7,6 +7,11 @@ import sys
 from .common.deprecation import deprecated
 from .version import __version__
 
+"""
+THIS MODULE IS DEPRECATED!
+"""
+
+
 ARXIV_BIBTEX = """@online{signac,
     author      = {Carl S. Adorf and Paul M. Dodd and Sharon C. Glotzer},
     title       = {signac - A Simple Data Management Framework},

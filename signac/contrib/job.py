@@ -102,8 +102,8 @@ class _StatePointDict(JSONAttrDict):
             # Move the state point to an intermediate location as a backup.
             os.replace(self.filename, tmp_statepoint_file)
             try:
-                new_workspace = os.path.join(job._project.workspace(), new_id)
-                os.replace(job.workspace(), new_workspace)
+                new_workspace = os.path.join(job._project.workspace, new_id)
+                os.replace(job.path, new_workspace)
             except OSError as error:
                 os.replace(tmp_statepoint_file, self.filename)  # rollback
                 if error.errno in (errno.EEXIST, errno.ENOTEMPTY, errno.EACCES):
@@ -281,7 +281,7 @@ class Job:
     def _initialize_lazy_properties(self):
         """Initialize all properties that are designed to be loaded lazily."""
         with self._lock:
-            self._wd = None
+            self._path = None
             self._document = None
             self._stores = None
             self._cwd = []
@@ -321,9 +321,9 @@ class Job:
     def __eq__(self, other):
         if not isinstance(other, type(self)):
             return NotImplemented
-        return self.id == other.id and os.path.realpath(
-            self.workspace()
-        ) == os.path.realpath(other.workspace())
+        return self.id == other.id and os.path.realpath(self.path) == os.path.realpath(
+            other.path
+        )
 
     def __str__(self):
         """Return the job's id."""
@@ -334,35 +334,54 @@ class Job:
             self.__class__.__name__, repr(self._project), self.statepoint
         )
 
+    @deprecated(
+        deprecated_in="1.8",
+        removed_in="2.0",
+        current_version=__version__,
+        details="Use Job.path instead.",
+    )
     def workspace(self):
-        """Return the job's unique workspace directory.
-
-        See :ref:`signac job -w <signac-cli-job>` for the command line equivalent.
-
-        Returns
-        -------
-        str
-            The path to the job's workspace directory.
-
-        """
-        if self._wd is None:
-            # We can rely on the project workspace to be well-formed, so just
-            # use str.join with os.sep instead of os.path.join for speed.
-            self._wd = os.sep.join((self._project.workspace(), self.id))
-        return self._wd
+        """Alias for :attr:`~Job.path`."""
+        return self.path
 
     @property
     def _statepoint_filename(self):
         """Get the path of the state point file for this job."""
         # We can rely on the job workspace to be well-formed, so just
         # use str.join with os.sep instead of os.path.join for speed.
-        return os.sep.join((self.workspace(), self.FN_MANIFEST))
+        return os.sep.join((self.path, self.FN_MANIFEST))
+
+    # Tell mypy to ignore type checking of the decorator because decorated
+    # properties aren't supported: https://github.com/python/mypy/issues/1362
+    @property  # type: ignore
+    @deprecated(
+        deprecated_in="1.8",
+        removed_in="2.0",
+        current_version=__version__,
+        details="Use Job.path instead.",
+    )
+    def ws(self):
+        """Alias for :attr:`~Job.path`."""
+        return self.path
 
     @property
-    def ws(self):
-        """Alias for :meth:`~Job.workspace`."""
-        return self.workspace()
+    def path(self):
+        """str: The path to the job directory.
 
+        See :ref:`signac job -w <signac-cli-job>` for the command line equivalent.
+        """
+        if self._path is None:
+            # We can rely on the project workspace to be well-formed, so just
+            # use str.join with os.sep instead of os.path.join for speed.
+            self._path = os.sep.join((self._project.workspace, self.id))
+        return self._path
+
+    @deprecated(
+        deprecated_in="1.8",
+        removed_in="2.0",
+        current_version=__version__,
+        details="Use job.statepoint = new_statepoint instead.",
+    )
     def reset_statepoint(self, new_statepoint):
         """Overwrite the state point of this job while preserving job data.
 
@@ -447,7 +466,13 @@ class Job:
 
     @property
     def statepoint(self):
-        """Get the job's state point.
+        """Get or set the job's state point.
+
+        Setting the state point to a different value will change the job id.
+
+        For more information, see
+        `Modifying the State Point
+        <https://docs.signac.io/en/latest/jobs.html#modifying-the-state-point>`_.
 
         .. warning::
 
@@ -462,11 +487,16 @@ class Job:
 
         See :ref:`signac statepoint <signac-cli-statepoint>` for the command line equivalent.
 
+        .. danger::
+
+            Use this function with caution! Resetting a job's state point
+            may sometimes be necessary, but can possibly lead to incoherent
+            data spaces.
+
         Returns
         -------
         dict
             Returns the job's state point.
-
         """
         with self._lock:
             if self._statepoint_requires_init:
@@ -490,7 +520,6 @@ class Job:
         ----------
         new_statepoint : dict
             The new state point to be assigned.
-
         """
         self.reset_statepoint(new_statepoint)
 
@@ -529,7 +558,7 @@ class Job:
         with self._lock:
             if self._document is None:
                 self.init()
-                fn_doc = os.path.join(self.workspace(), self.FN_DOCUMENT)
+                fn_doc = os.path.join(self.path, self.FN_DOCUMENT)
                 self._document = BufferedJSONAttrDict(
                     filename=fn_doc, write_concern=True
                 )
@@ -610,7 +639,7 @@ class Job:
         with self._lock:
             if self._stores is None:
                 self.init()
-                self._stores = H5StoreManager(self.workspace())
+                self._stores = H5StoreManager(self.path)
         return self.init()._stores
 
     @property
@@ -686,7 +715,7 @@ class Job:
 
                     # Create the workspace directory if it does not exist.
                     try:
-                        _mkdir_p(self.workspace())
+                        _mkdir_p(self.path)
                     except OSError:
                         logger.error(
                             "Error occurred while trying to create "
@@ -719,10 +748,10 @@ class Job:
 
         """
         try:
-            for fn in os.listdir(self.workspace()):
+            for fn in os.listdir(self.path):
                 if fn in (self.FN_MANIFEST, self.FN_DOCUMENT):
                     continue
-                path = os.path.join(self.workspace(), fn)
+                path = os.path.join(self.path, fn)
                 if os.path.isfile(path):
                     os.remove(path)
                 elif os.path.isdir(path):
@@ -753,7 +782,7 @@ class Job:
         """
         with self._lock:
             try:
-                shutil.rmtree(self.workspace())
+                shutil.rmtree(self.path)
             except OSError as error:
                 if error.errno != errno.ENOENT:
                     raise
@@ -784,9 +813,9 @@ class Job:
         with self._lock:
             statepoint = self.statepoint()
             dst = project.open_job(statepoint)
-            _mkdir_p(project.workspace())
+            _mkdir_p(project.workspace)
             try:
-                os.replace(self.workspace(), dst.workspace())
+                os.replace(self.path, dst.path)
             except OSError as error:
                 if error.errno == errno.ENOENT:
                     raise RuntimeError(
@@ -872,7 +901,7 @@ class Job:
             The full workspace path of the file.
 
         """
-        return os.path.join(self.workspace(), filename)
+        return os.path.join(self.path, filename)
 
     def isfile(self, filename):
         """Return True if file exists in the job's workspace.
@@ -906,8 +935,8 @@ class Job:
         """
         self._cwd.append(os.getcwd())
         self.init()
-        logger.info(f"Enter workspace '{self.workspace()}'.")
-        os.chdir(self.workspace())
+        logger.info(f"Enter workspace '{self.path}'.")
+        os.chdir(self.path)
 
     def close(self):
         """Close the job and switch to the previous working directory."""

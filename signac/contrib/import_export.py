@@ -344,7 +344,7 @@ def _export_jobs(jobs, path, copytree):
         # path_function is checked for uniqueness inside _make_path_function
 
     # Determine export path for each job.
-    paths = {job.workspace(): path_function(job) for job in jobs}
+    paths = {job.path: path_function(job) for job in jobs}
 
     # Check leaf/node consistency
     _check_directory_structure_validity(paths.values())
@@ -758,14 +758,14 @@ def _crawl_directory_data_space(root, project, schema_function):
 
     """
     # We compare paths to the 'realpath' of the project workspace to catch loops.
-    workspace_real_path = os.path.realpath(project.workspace())
+    workspace_real_path = os.path.realpath(project.workspace)
 
     for path, dirs, _ in os.walk(root):
         sp = schema_function(path)
         if sp is not None:
             del dirs[:]  # skip sub-directories
             job = project.open_job(sp)
-            dst = job.workspace()
+            dst = job.path
             if os.path.realpath(path) == os.path.realpath(dst):
                 continue  # skip (already part of the data space)
             elif os.path.realpath(path).startswith(workspace_real_path):
@@ -792,7 +792,7 @@ def _copy_to_job_workspace(src, job, copytree):
         Destination filename.
 
     """
-    dst = job.workspace()
+    dst = job.path
     try:
         copytree(src, dst)
     except OSError as error:
@@ -913,7 +913,7 @@ class _CopyFromZipFileExecutor:
             _mkdir_p(os.path.dirname(fn_dst))
             with open(fn_dst, "wb") as dst:
                 dst.write(self.zipfile.read(name))
-        return self.job.workspace()
+        return self.job.path
 
     def __str__(self):
         return f"{type(self).__name__}({self.root} -> {self.job})"
@@ -998,7 +998,7 @@ def _analyze_zipfile_for_import(zipfile, project, schema):
         sp = schema_function(name)
         if sp is not None:
             job = project.open_job(sp)
-            if os.path.exists(job.workspace()):
+            if os.path.exists(job.path):
                 raise DestinationExistsError(job)
             mappings[name] = job
             skip_subdirs.add(name)
@@ -1145,7 +1145,7 @@ def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
         sp = schema_function(name)
         if sp is not None:
             job = project.open_job(sp)
-            if os.path.exists(job.workspace()):
+            if os.path.exists(job.path):
                 raise DestinationExistsError(job)
             mappings[name] = job
             skip_subdirs.add(name)

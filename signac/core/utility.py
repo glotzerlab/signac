@@ -9,6 +9,10 @@ import subprocess
 from ..common.deprecation import deprecated
 from ..version import __version__
 
+"""
+THIS MODULE IS DEPRECATED!
+"""
+
 
 @deprecated(
     deprecated_in="1.3",
@@ -40,6 +44,12 @@ def get_subject_from_certificate(fn_certificate):  # noqa: D103, E261
         return lines[0][len("subject=") :].strip()
 
 
+@deprecated(
+    deprecated_in="1.8",
+    removed_in="2.0",
+    current_version=__version__,
+    details="Use packaging.version.parse instead.",
+)
 class Version(dict):
     """Utility class to manage revision control numbers."""
 
@@ -77,6 +87,12 @@ class Version(dict):
         return "Version({})".format(",".join((f"{k}={v}" for k, v in self.items())))
 
 
+@deprecated(
+    deprecated_in="1.8",
+    removed_in="2.0",
+    current_version=__version__,
+    details="Use packaging.version.Version instead.",
+)
 def parse_version(version_str):
     """Parse a version number into a version object."""
     p = re.compile(
