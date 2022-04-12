@@ -217,8 +217,8 @@ def _sync_job_workspaces(
         if exclude and any([re.match(p, fn) for p in exclude]):
             logger.debug(f"File named '{fn}' is skipped (excluded).")
             continue
-        fn_src = os.path.join(src.workspace(), subdir, fn)
-        fn_dst = os.path.join(dst.workspace(), subdir, fn)
+        fn_src = os.path.join(src.path, subdir, fn)
+        fn_dst = os.path.join(dst.path, subdir, fn)
         if os.path.isfile(fn_src):
             copy(fn_src, fn_dst)
         elif recursive:
@@ -232,8 +232,8 @@ def _sync_job_workspaces(
         if strategy is None:
             raise FileSyncConflict(fn)
         else:
-            fn_src = os.path.join(src.workspace(), subdir, fn)
-            fn_dst = os.path.join(dst.workspace(), subdir, fn)
+            fn_src = os.path.join(src.path, subdir, fn)
+            fn_dst = os.path.join(dst.path, subdir, fn)
             if strategy(src, dst, os.path.join(subdir, fn)):
                 copy(fn_src, fn_dst)
             else:
@@ -335,7 +335,7 @@ def sync_jobs(
 
     """
     # Check identity
-    if _identical_path(src.workspace(), dst.workspace()):
+    if _identical_path(src.path, dst.path):
         raise ValueError("Source and destination can't be the same!")
 
     # check src and dst compatiblity
@@ -363,7 +363,7 @@ def sync_jobs(
         proxy = dry_run
     else:
         proxy = _FileModifyProxy(
-            root=src.workspace(),
+            root=src.path,
             follow_symlinks=follow_symlinks,
             permissions=preserve_permissions,
             times=preserve_times,
@@ -376,7 +376,7 @@ def sync_jobs(
     else:
         logger.debug(f"Synchronizing job '{src}'...")
 
-    if os.path.isdir(src.workspace()):
+    if os.path.isdir(src.path):
         if not dry_run:
             dst.init()
         _sync_job_workspaces(
@@ -500,7 +500,7 @@ def sync_projects(
 
     # Setup data modification proxy
     proxy = _FileModifyProxy(
-        root=source.workspace(),
+        root=source.workspace,
         follow_symlinks=follow_symlinks,
         permissions=preserve_permissions,
         times=preserve_times,

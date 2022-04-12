@@ -41,7 +41,7 @@ from .filterparse import _add_prefix, _root_keys, parse_filter
 from .hashing import calc_id
 from .indexing import MainCrawler, SignacProjectCrawler
 from .job import Job
-from .schema import ProjectSchema
+from .schema import ProjectSchema, _collect_by_type
 from .utility import _mkdir_p, _nested_dicts_to_dotted_keys, split_and_print_progress
 
 logger = logging.getLogger(__name__)
@@ -85,6 +85,19 @@ DOC_FILTER_WARNING = (
 
 # Temporary default for project names until they are removed entirely in signac 2.0
 _DEFAULT_PROJECT_NAME = None
+
+
+class _CallableString(str):
+    # A string object that returns itself when called. Introduced temporarily
+    # to support deprecating Project.workspace, which will become a property.
+    def __call__(self):
+        assert version.parse(__version__) < version.parse("2.0.0")
+        warnings.warn(
+            "This method will soon become a property and should be used "
+            "without the call operator (parentheses).",
+            FutureWarning,
+        )
+        return self
 
 
 class JobSearchIndex:
@@ -216,7 +229,7 @@ class _ProjectConfig(Config):
 def _invalidate_config_cache(project):
     """Invalidate cached properties derived from a project config."""
     project._id = None
-    project._rd = None
+    project._path = None
     project._wd = None
 
 
@@ -263,9 +276,7 @@ class Project:
         self._lock = RLock()
 
         # Prepare cached properties derived from the project config.
-        self._id = None
-        self._rd = None
-        self._wd = None
+        _invalidate_config_cache(self)
 
         # Ensure that the project id is configured.
         if self.id is None:
@@ -286,9 +297,9 @@ class Project:
         self._stores = None
 
         # Prepare Workspace Directory
-        if not os.path.isdir(self.workspace()):
+        if not os.path.isdir(self.workspace):
             try:
-                _mkdir_p(self.workspace())
+                _mkdir_p(self.workspace)
             except OSError:
                 logger.error(
                     "Error occurred while trying to create "
@@ -332,7 +343,7 @@ class Project:
             "<p>"
             + f"<strong>Project:</strong> {self.id}<br>"
             + f"<strong>Root:</strong> {self.root_directory()}<br>"
-            + f"<strong>Workspace:</strong> {self.workspace()}<br>"
+            + f"<strong>Workspace:</strong> {self.workspace}<br>"
             + f"<strong>Size:</strong> {len(self)}"
             + "</p>"
             + self.find_jobs()._repr_html_jobs()
@@ -353,47 +364,35 @@ class Project:
         """
         return self._config
 
+    @deprecated(
+        deprecated_in="1.8",
+        removed_in="2.0",
+        current_version=__version__,
+        details="Use Project.path instead.",
+    )
     def root_directory(self):
-        """Return the project's root directory.
+        """Alias for :attr:`~Project.path`."""
+        return self.path
 
-        Returns
-        -------
-        str
-            Path of project directory.
+    @property
+    def path(self):
+        """str: The path to the project directory."""
+        if self._path is None:
+            self._path = self.config["project_dir"]
+        return self._path
 
-        """
-        if self._rd is None:
-            self._rd = self.config["project_dir"]
-        return self._rd
-
+    @property
     def workspace(self):
-        """Return the project's workspace directory.
-
-        The workspace defaults to `project_root/workspace`.
-        Configure this directory with the 'workspace_dir'
-        attribute.
-        If the specified directory is a relative path,
-        the absolute path is relative from the project's
-        root directory.
-
-        .. note::
-            The configuration will respect environment variables,
-            such as ``$HOME``.
+        """str: The project's workspace directory.
 
         See :ref:`signac project -w <signac-cli-project>` for the command line equivalent.
-
-        Returns
-        -------
-        str
-            Path of workspace directory.
-
         """
         if self._wd is None:
             wd = os.path.expandvars(self.config.get("workspace_dir", "workspace"))
             self._wd = (
                 wd if os.path.isabs(wd) else os.path.join(self.root_directory(), wd)
             )
-        return self._wd
+        return _CallableString(self._wd)
 
     @deprecated(
         deprecated_in="1.3",
@@ -517,18 +516,6 @@ class Project:
         """
         return os.path.isfile(self.fn(filename))
 
-    def _reset_document(self, new_doc):
-        """Reset document to new document passed.
-
-        Parameters
-        ----------
-        new_doc : dict
-            The new project document.
-
-        """
-        with self._lock:
-            self.document.reset(new_doc)
-
     @property
     def document(self):
         """Get document associated with this project.
@@ -557,7 +544,8 @@ class Project:
             The new project document.
 
         """
-        self._reset_document(new_doc)
+        with self._lock:
+            self.document.reset(new_doc)
 
     @property
     def doc(self):
@@ -731,32 +719,36 @@ class Project:
 
         """
         try:
-            for d in os.listdir(self.workspace()):
+            for d in os.listdir(self.workspace):
                 if JOB_ID_REGEX.match(d):
                     yield d
         except OSError as error:
             if error.errno == errno.ENOENT:
-                if os.path.islink(self.workspace()):
+                if os.path.islink(self.workspace):
                     raise WorkspaceError(
-                        f"The link '{self.workspace()}' pointing to the workspace is broken."
+                        f"The link '{self.workspace}' pointing to the workspace is broken."
                     )
-                elif not os.path.isdir(os.path.dirname(self.workspace())):
+                elif not os.path.isdir(os.path.dirname(self.workspace)):
                     logger.warning(
                         "The path to the workspace directory "
-                        "('{}') does not exist.".format(
-                            os.path.dirname(self.workspace())
-                        )
+                        "('{}') does not exist.".format(os.path.dirname(self.workspace))
                     )
                 else:
                     logger.info(
-                        f"The workspace directory '{self.workspace()}' does not exist!"
+                        f"The workspace directory '{self.workspace}' does not exist!"
                     )
             else:
                 logger.error(
-                    f"Unable to access the workspace directory '{self.workspace()}'."
+                    f"Unable to access the workspace directory '{self.workspace}'."
                 )
                 raise WorkspaceError(error)
 
+    @deprecated(
+        deprecated_in="1.8",
+        removed_in="2.0",
+        current_version=__version__,
+        details="The num_jobs method is deprecated. Use len(project) instead.",
+    )
     def num_jobs(self):
         """Return the number of initialized jobs.
 
@@ -766,14 +758,15 @@ class Project:
             Count of initialized jobs.
 
         """
+        return len(self)
+
+    def __len__(self):
         # We simply count the the number of valid directories and avoid building a list
         # for improved performance.
         i = 0
         for i, _ in enumerate(self._job_dirs(), 1):
             pass
         return i
-
-    __len__ = num_jobs
 
     def _contains_job_id(self, job_id):
         """Determine whether a job id is in the project's data space.
@@ -790,8 +783,8 @@ class Project:
 
         """
         # We can rely on the project workspace to be well-formed, so just use
-        # str.join with os.sep instead of os.path.join for speed.
-        return os.path.exists(os.sep.join((self.workspace(), job_id)))
+        # str.join with os.sep instead of os.path.join for performance.
+        return os.path.exists(os.sep.join((self.workspace, job_id)))
 
     def __contains__(self, job):
         """Determine whether a job is in the project's data space.
@@ -926,7 +919,9 @@ class Project:
         statepoint_index = _build_job_statepoint_index(
             exclude_const=exclude_const, index=index
         )
-        return ProjectSchema.detect(statepoint_index)
+        return ProjectSchema(
+            {key: _collect_by_type(value) for key, value in statepoint_index}
+        )
 
     @deprecated(
         deprecated_in="1.3",
@@ -1344,12 +1339,12 @@ class Project:
         """
         # We can rely on the project workspace to be well-formed, so just use
         # str.join with os.sep instead of os.path.join for speed.
-        fn_manifest = os.sep.join((self.workspace(), job_id, self.Job.FN_MANIFEST))
+        fn_manifest = os.sep.join((self.workspace, job_id, self.Job.FN_MANIFEST))
         try:
             with open(fn_manifest, "rb") as manifest:
                 return json.loads(manifest.read().decode())
         except (OSError, ValueError) as error:
-            if os.path.isdir(os.sep.join((self.workspace(), job_id))):
+            if os.path.isdir(os.sep.join((self.workspace, job_id))):
                 logger.error(
                     "Error while trying to access state "
                     "point manifest file of job '{}': '{}'.".format(job_id, error)
@@ -1530,7 +1525,7 @@ class Project:
         deprecated_in="1.3",
         removed_in="2.0",
         current_version=__version__,
-        details="Use job.reset_statepoint() instead.",
+        details="Use job.statepoint = new_statepoint instead.",
     )
     def reset_statepoint(self, job, new_statepoint):
         """Overwrite the state point of this job while preserving job data.
@@ -1633,7 +1628,7 @@ class Project:
         """
         dst = self.open_job(job.statepoint())
         try:
-            copytree(job.workspace(), dst.workspace())
+            copytree(job.path, dst.path)
         except OSError as error:
             if error.errno == errno.EEXIST:
                 raise DestinationExistsError(dst)
@@ -1935,8 +1930,8 @@ class Project:
                         "The job id of job '{}' is incorrect; "
                         "it should be '{}'.".format(job_id, correct_id)
                     )
-                    invalid_wd = os.path.join(self.workspace(), job_id)
-                    correct_wd = os.path.join(self.workspace(), correct_id)
+                    invalid_wd = os.path.join(self.workspace, job_id)
+                    correct_wd = os.path.join(self.workspace, correct_id)
                     try:
                         os.replace(invalid_wd, correct_wd)
                     except OSError as error:
@@ -2002,7 +1997,7 @@ class Project:
             False).
 
         """
-        wd = self.workspace() if self.Job is Job else None
+        wd = self.workspace if self.Job is Job else None
         for _id in self._find_job_ids():
             doc = dict(_id=_id, sp=self._get_statepoint(_id))
             if include_job_document:
@@ -2157,7 +2152,7 @@ class Project:
 
         """
         if formats is None:
-            root = self.workspace()
+            root = self.workspace
 
             def _full_doc(doc):
                 """Add `signac_id` and `root` to the index document.
@@ -2276,8 +2271,8 @@ class Project:
         if name is None:
             name = os.path.join(self.id, str(uuid.uuid4()))
         if dir is None:
-            dir = self.workspace()
-        _mkdir_p(self.workspace())  # ensure workspace exists
+            dir = self.workspace
+        _mkdir_p(self.workspace)  # ensure workspace exists
         with TemporaryProject(name=name, cls=type(self), dir=dir) as tmp_project:
             yield tmp_project
 
@@ -2350,7 +2345,7 @@ class Project:
                 assert project.id == str(name)
                 if workspace is not None:
                     assert os.path.realpath(workspace) == os.path.realpath(
-                        project.workspace()
+                        project.workspace
                     )
                 return project
             except AssertionError:
@@ -2638,17 +2633,19 @@ class JobsCursor:
             self._project, self._project._find_job_ids(self._filter)
         )
 
+    @deprecated(
+        deprecated_in="0.9.6",
+        removed_in="2.0",
+        current_version=__version__,
+        details="Use next(iter(...)) instead.",
+    )
     def next(self):
         """Return the next element.
 
-        This function is deprecated. Users should use ``next(iter(..))`` instead.
+        This function is deprecated. Users should use ``next(iter(...))`` instead.
         .. deprecated:: 0.9.6
 
         """
-        warnings.warn(
-            "Calling next() directly on a JobsCursor is deprecated! Use next(iter(..)) instead.",
-            FutureWarning,
-        )
         if self._next_iter is None:
             self._next_iter = iter(self)
         try:

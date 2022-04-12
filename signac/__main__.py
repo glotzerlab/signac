@@ -248,6 +248,11 @@ def find_with_filter(args):
 
 def main_project(args):
     """Handle project subcommand."""
+    warnings.warn(
+        "The `project` command is deprecated as of version 1.8 and will be removed in "
+        "version 2.0.",
+        FutureWarning,
+    )
     project = get_project()
     if args.access:
         fn = project.create_access_module()
@@ -258,7 +263,7 @@ def main_project(args):
             print(json.dumps(doc))
         return
     if args.workspace:
-        print(project.workspace())
+        print(project.workspace)
     else:
         print(project)
 
@@ -279,7 +284,14 @@ def main_job(args):
     if args.create:
         job.init()
     if args.workspace:
-        print(job.workspace())
+        warnings.warn(
+            "The `-w/--workspace` parameter is deprecated as of version 1.8 and will be removed in "
+            "version 2.0. Use -p/--path instead",
+            FutureWarning,
+        )
+        args.path = True
+    if args.path:
+        print(job.path)
     else:
         print(job)
 
@@ -658,7 +670,7 @@ def _main_import_interactive(project, origin, args):
                     project_id=project.get_id(),
                     job_banner="",
                     root_path=project.root_directory(),
-                    workspace_path=project.workspace(),
+                    workspace_path=project.workspace,
                     size=len(project),
                     origin=args.origin,
                 ),
@@ -1169,7 +1181,7 @@ def main_shell(args):
                     project_id=project.id,
                     job_banner=f"\nJob:\t\t{job.id}" if job is not None else "",
                     root_path=project.root_directory(),
-                    workspace_path=project.workspace(),
+                    workspace_path=project.workspace,
                     size=len(project),
                 ),
             )
@@ -1243,6 +1255,12 @@ def main():
         "--workspace",
         action="store_true",
         help="Print the job's workspace path instead of the job id.",
+    )
+    parser_job.add_argument(
+        "-p",
+        "--path",
+        action="store_true",
+        help="Print the job's path instead of the job id.",
     )
     parser_job.add_argument(
         "-c",

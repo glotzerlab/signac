@@ -4,10 +4,16 @@
 """Project Schema."""
 
 import itertools
+import warnings
 from collections import defaultdict as ddict
 from collections.abc import Mapping
 from numbers import Number
 from pprint import pformat
+
+from packaging import version
+
+from ..common.deprecation import deprecated
+from ..version import __version__
 
 
 class _Vividict(dict):
@@ -36,6 +42,8 @@ def _collect_by_type(values):
         A mapping of types to a set of input values of that type.
 
     """
+    # TODO: This function should be moved to project.py in version 2.0.
+    assert version.parse(__version__) < version.parse("2.0.0")
     values_by_type = ddict(set)
     for v in values:
         values_by_type[type(v)].add(v)
@@ -103,7 +111,7 @@ def _build_job_statepoint_index(exclude_const, index):
         yield statepoint_key, statepoint_values
 
 
-class ProjectSchema:
+class ProjectSchema(Mapping):
     """A description of a project's state point schema.
 
     Parameters
@@ -118,6 +126,11 @@ class ProjectSchema:
             schema = {}
         self._schema = schema
 
+    @deprecated(
+        deprecated_in="1.8",
+        removed_in="2.0",
+        current_version=__version__,
+    )
     @classmethod
     def detect(cls, statepoint_index):
         """Detect Project's state point schema.
@@ -267,42 +280,35 @@ class ProjectSchema:
         output += "<pre>" + str(self) + "</pre>"
         return output
 
+    # TODO: This method can be removed in signac 2.0 once support for list keys
+    # is removed.
     def __contains__(self, key_or_keys):
-        if isinstance(key_or_keys, str):
-            return key_or_keys in self._schema
-        key_or_keys = ".".join(key_or_keys)
+        # NotOverride default __contains__ to support sequence and str inputs.
+        assert version.parse(__version__) < version.parse("2.0.0")
+        if not isinstance(key_or_keys, str):
+            warnings.warn(
+                "Support for checking nested keys in a schema using a list of keys is deprecated "
+                "and will be removed in signac 2.0. Construct the nested key using '.'.join(keys) "
+                "instead.",
+                FutureWarning,
+            )
+            key_or_keys = ".".join(key_or_keys)
         return key_or_keys in self._schema
 
     def __getitem__(self, key_or_keys):
-        if isinstance(key_or_keys, str):
-            return self._schema[key_or_keys]
-        return self._schema[".".join(key_or_keys)]
+        assert version.parse(__version__) < version.parse("2.0.0")
+        if not isinstance(key_or_keys, str):
+            warnings.warn(
+                "Support for checking nested keys in a schema using a list of keys is deprecated "
+                "and will be removed in signac 2.0. Construct the nested key using '.'.join(keys) "
+                "instead.",
+                FutureWarning,
+            )
+            key_or_keys = ".".join(key_or_keys)
+        return self._schema[key_or_keys]
 
     def __iter__(self):
         return iter(self._schema)
-
-    def keys(self):
-        """Return schema keys."""
-        return self._schema.keys()
-
-    def values(self):
-        """Return schema values."""
-        return self._schema.values()
-
-    def items(self):
-        """Return schema items."""
-        return self._schema.items()
-
-    def __eq__(self, other):
-        """Check if two schemas are the same.
-
-        Returns
-        -------
-        bool
-            True if both schemas have the same keys and values.
-
-        """
-        return self._schema == other._schema
 
     def difference(self, other, ignore_values=False):
         """Determine the difference between this and another project schema.
@@ -332,6 +338,11 @@ class ProjectSchema:
             )
         return ret
 
+    @deprecated(
+        deprecated_in="1.8",
+        removed_in="2.0",
+        current_version=__version__,
+    )
     def __call__(self, jobs_or_statepoints):
         """Evaluate the schema for the given state points.
 

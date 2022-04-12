@@ -218,7 +218,7 @@ class TestBasicShell:
         for sp in sps:
             assert os.path.isdir("view/job")
             assert os.path.realpath("view/job") == os.path.realpath(
-                project.open_job(sp).workspace()
+                project.open_job(sp).path
             )
 
     @pytest.mark.skipif(WINDOWS, reason="Symbolic links are unsupported on Windows.")
@@ -235,7 +235,7 @@ class TestBasicShell:
             assert os.path.isdir("view/a/{}/job".format(sp["a"]))
             assert os.path.realpath(
                 "view/a/{}/job".format(sp["a"])
-            ) == os.path.realpath(project.open_job(sp).workspace())
+            ) == os.path.realpath(project.open_job(sp).path)
 
     @pytest.mark.skipif(WINDOWS, reason="Symbolic links are unsupported on Windows.")
     def test_view_incomplete_path_spec(self):

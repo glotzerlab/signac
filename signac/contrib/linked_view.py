@@ -103,10 +103,10 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
     links = {}
     for job in jobs:
         paths = os.path.join(path_function(job), "job")
-        links[paths] = job.workspace()
+        links[paths] = job.path
     if not links:  # data space contains less than two elements
         for job in project.find_jobs():
-            links["./job"] = job.workspace()
+            links["./job"] = job.path
         assert len(links) < 2
     _check_directory_structure_validity(links.keys())
     _update_view(prefix, links)
