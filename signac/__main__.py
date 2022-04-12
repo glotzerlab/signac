@@ -29,7 +29,7 @@ except ImportError:
 else:
     READLINE = True
 
-from . import Project, get_project, init_project
+from . import get_project, init_project
 from .common import config
 from .common.configobj import Section, flatten_errors
 from .contrib.filterparse import _add_prefix, parse_filter_arg
@@ -74,7 +74,6 @@ SHELL_BANNER = """Python {python_version}
 signac {signac_version} 🎨
 
 Project:\t{root_path}{job_banner}
-Workspace:\t{workspace_path}
 Size:\t\t{size}
 
 Interact with the project interface using the "project" or "pr" variable.
@@ -355,7 +354,7 @@ def main_view(args):
 
 def main_init(args):
     """Handle init subcommand."""
-    init_project(name=args.project_id, root=os.getcwd(), workspace=args.workspace)
+    init_project(name=args.project_id, root=os.getcwd())
     _print_err("Initialized project.")
 
 
@@ -423,16 +422,8 @@ def main_sync(args):
     try:
         destination = get_project(root=args.destination)
     except LookupError:
-        if args.allow_workspace:
-            # TODO: Remove allow_workspace entirely.
-            destination = Project(os.path.relpath(args.destination))
-        else:
-            _print_err(
-                "WARNING: The destination appears to not be a project path. "
-                "Use the '-w/--allow-workspace' option if you want to "
-                "synchronize to a workspace directory directly."
-            )
-            raise
+        _print_err("WARNING: The destination does not appear to be a project path.")
+        raise
     selection = find_with_filter_or_none(args)
 
     if args.strategy:
@@ -560,7 +551,6 @@ def _main_import_interactive(project, origin, args):
                     signac_version=__version__,
                     job_banner="",
                     root_path=project.root_directory(),
-                    workspace_path=project.workspace,
                     size=len(project),
                     origin=args.origin,
                 ),
@@ -902,7 +892,6 @@ def main_shell(args):
                     signac_version=__version__,
                     job_banner=f"\nJob:\t\t{job.id}" if job is not None else "",
                     root_path=project.root_directory(),
-                    workspace_path=project.workspace,
                     size=len(project),
                 ),
             )
@@ -931,13 +920,6 @@ def main():
 
     parser_init = subparsers.add_parser("init")
     parser_init.add_argument("project_id", nargs="?", help=argparse.SUPPRESS)
-    parser_init.add_argument(
-        "-w",
-        "--workspace",
-        type=str,
-        default="workspace",
-        help="The path to the workspace directory.",
-    )
     parser_init.set_defaults(func=main_init)
 
     parser_project = subparsers.add_parser("project")
@@ -1493,13 +1475,6 @@ def main():
         "--no-keys", action="store_true", help="Never overwrite any conflicting keys."
     )
 
-    parser_sync.add_argument(
-        "-w",
-        "--allow-workspace",
-        action="store_true",
-        help="Allow the specification of a workspace (instead of a project) directory "
-        "as the destination path.",
-    )
     parser_sync.add_argument(
         "--force", action="store_true", help="Ignore all warnings, just synchronize."
     )

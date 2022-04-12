@@ -19,7 +19,6 @@ from .v0_to_v1 import _load_config_v1
 # A minimal v2 config.
 _cfg = """
 schema_version = string(default='0')
-workspace_dir = string(default='workspace')
 """
 
 
@@ -37,10 +36,28 @@ def _load_config_v2(root_directory):
 
 def _migrate_v1_to_v2(root_directory):
     """Migrate from schema version 1 to version 2."""
-    # Delete project name from config and store in project doc.
+    # Load the v1 config.
     cfg = _load_config_v1(root_directory)
     fn_doc = os.path.join(root_directory, Project.FN_DOCUMENT)
     doc = BufferedJSONAttrDict(filename=fn_doc, write_concern=True)
+
+    # Try to migrate a custom workspace directory if one exists.
+    current_workspace_name = cfg.get("workspace_dir")
+    if current_workspace_name is not None:
+        if current_workspace_name != "workspace":
+            current_workspace = os.path.join(root_directory, current_workspace_name)
+            new_workspace = os.path.join(root_directory, "workspace")
+            if os.path.exists(new_workspace):
+                raise RuntimeError(
+                    "Workspace directories are no longer configurable in schema version 2, and "
+                    f"must be 'workspace', but {new_workspace} already exists. Please remove or "
+                    f"move it so that the currently configured workspace directory "
+                    f"{current_workspace} can be moved to {new_workspace}."
+                )
+            os.replace(current_workspace, new_workspace)
+        del cfg["workspace_dir"]
+
+    # Delete project name from config and store in project doc.
     doc["signac_project_name"] = cfg["project"]
     del cfg["project"]
     cfg.write()
