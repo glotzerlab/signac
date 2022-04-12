@@ -27,8 +27,8 @@ import signac
 from signac.common.config import (
     PROJECT_CONFIG_FN,
     _get_project_config_fn,
-    load_config,
-    read_config_file,
+    _load_config,
+    _read_config_file,
 )
 from signac.contrib.errors import (
     IncompatibleSchemaVersion,
@@ -71,6 +71,12 @@ WINDOWS = sys.platform == "win32"
 test_token = {"test_token": str(uuid.uuid4())}
 
 
+# Use the major version to fail tests expected to fail in 3.0.
+_CURRENT_VERSION = version.parse(signac.__version__)
+_VERSION_3 = version.parse("3.0.0")
+_VERSION_2 = version.parse("2.0.0")
+
+
 S_FORMAT1 = """{
  'a': 'int([0, 1, 2, ..., 8, 9], 10)',
  'b.b2': 'int([0, 1, 2, ..., 8, 9], 10)',
@@ -102,28 +108,16 @@ class TestProject(TestProjectBase):
         assert self._tmp_pr == self.project.path
 
     def test_workspace_directory(self):
-        assert self._tmp_wd == self.project.workspace
+        assert os.path.join(self._tmp_pr, "workspace") == self.project.workspace
 
     def test_config_modification(self):
         # In-memory modification of the project configuration is
         # deprecated as of 1.3, and will be removed in version 2.0.
         # This unit test should reflect that change beginning 2.0,
         # and check that the project configuration is immutable.
+        assert _CURRENT_VERSION < _VERSION_2
         with pytest.raises(ValueError):
             self.project.config["foo"] = "bar"
-
-    def test_workspace_directory_with_env_variable(self):
-        try:
-            with TemporaryDirectory() as tmp_dir:
-                os.environ["SIGNAC_ENV_DIR_TEST"] = os.path.join(tmp_dir, "work_here")
-                project = self.project_class.init_project(
-                    root=tmp_dir,
-                    workspace="${SIGNAC_ENV_DIR_TEST}",
-                )
-                assert project.workspace == os.environ["SIGNAC_ENV_DIR_TEST"]
-        finally:
-            if "SIGNAC_ENV_DIR_TEST" in os.environ:
-                del os.environ["SIGNAC_ENV_DIR_TEST"]
 
     def test_workspace_directory_exists(self):
         assert os.path.exists(self.project.workspace)
@@ -213,24 +207,6 @@ class TestProject(TestProjectBase):
         self.project.data = {"a": {"b": 45}}
         assert self.project.data == {"a": {"b": 45}}
 
-    def test_workspace_path_normalization(self):
-        def norm_path(p):
-            return os.path.abspath(os.path.expandvars(p))
-
-        assert self.project.workspace == norm_path(self._tmp_wd)
-
-        with TemporaryDirectory() as tmp_dir:
-            abs_path = os.path.join(tmp_dir, "path", "to", "workspace")
-            project = self.project_class.init_project(root=tmp_dir, workspace=abs_path)
-            assert project.workspace == norm_path(abs_path)
-
-        with TemporaryDirectory() as tmp_dir:
-            rel_path = norm_path(os.path.join("path", "to", "workspace"))
-            project = self.project_class.init_project(root=tmp_dir, workspace=rel_path)
-            assert project.workspace == norm_path(
-                os.path.join(project.root_directory(), rel_path)
-            )
-
     def test_no_workspace_warn_on_find(self, caplog):
         if os.path.exists(self.project.workspace):
             os.rmdir(self.project.workspace)
@@ -245,13 +221,11 @@ class TestProject(TestProjectBase):
     @pytest.mark.skipif(WINDOWS, reason="Symbolic links are unsupported on Windows.")
     def test_workspace_broken_link_error_on_find(self):
         with TemporaryDirectory() as tmp_dir:
-            project = self.project_class.init_project(
-                root=tmp_dir, workspace="workspace-link"
-            )
-            os.rmdir(os.path.join(tmp_dir, "workspace-link"))
+            project = self.project_class.init_project(root=tmp_dir)
+            os.rmdir(project.workspace)
             os.symlink(
                 os.path.join(tmp_dir, "workspace~"),
-                os.path.join(tmp_dir, "workspace-link"),
+                project.workspace,
             )
             with pytest.raises(WorkspaceError):
                 list(project.find_jobs())
@@ -276,7 +250,6 @@ class TestProject(TestProjectBase):
         finally:
             logging.disable(logging.NOTSET)
 
-        assert not os.path.isdir(self._tmp_wd)
         assert not os.path.isdir(self.project.workspace)
 
     def test_find_jobs(self):
@@ -1037,11 +1010,6 @@ class TestProject(TestProjectBase):
         assert not os.path.isdir(tmp_root_dir)
 
 
-# Use the major version to fail tests expected to fail in 3.0.
-_MAJOR_VERSION = version.parse(signac.__version__)
-_VERSION_3 = version.parse("3.0.0")
-
-
 class TestProjectNameDeprecations:
     warning_context = pytest.warns(
         FutureWarning, match="Project names were removed in signac 2.0"
@@ -1052,7 +1020,7 @@ class TestProjectNameDeprecations:
         self._tmp_dir = TemporaryDirectory()
 
     def test_name_only_positional(self):
-        assert _MAJOR_VERSION < _VERSION_3
+        assert _CURRENT_VERSION < _VERSION_3
         with self.warning_context:
             project = signac.init_project("name", root=self._tmp_dir.name)
 
@@ -1066,14 +1034,14 @@ class TestProjectNameDeprecations:
                 signac.init_project("new_name", root=self._tmp_dir.name)
 
     def test_name_with_other_args_positional(self):
-        assert _MAJOR_VERSION < _VERSION_3
+        assert _CURRENT_VERSION < _VERSION_3
         with pytest.raises(
             TypeError, match="takes 0 positional arguments but 2 were given"
         ):
             signac.init_project("project", self._tmp_dir.name)
 
     def test_name_only_keyword(self):
-        assert _MAJOR_VERSION < _VERSION_3
+        assert _CURRENT_VERSION < _VERSION_3
         os.chdir(self._tmp_dir.name)
         with self.warning_context:
             project = signac.init_project(name="name")
@@ -1088,7 +1056,7 @@ class TestProjectNameDeprecations:
                 signac.init_project(name="new_name")
 
     def test_name_with_other_args_keyword(self):
-        assert _MAJOR_VERSION < _VERSION_3
+        assert _CURRENT_VERSION < _VERSION_3
         with pytest.raises(TypeError, match="got an unexpected keyword argument 'foo'"):
             signac.init_project(name="project", foo="bar")
 
@@ -2327,9 +2295,6 @@ class TestProjectInit:
         project = signac.Project.get_project(root=root)
         assert project.workspace == os.path.join(root, "workspace")
         assert project.path == root
-        # Deviating initialization parameters should result in errors.
-        with pytest.raises(RuntimeError):
-            signac.init_project(root=root, workspace="workspace2")
 
     def test_nested_project(self):
         def check_root(root=None):
@@ -2458,7 +2423,9 @@ class TestProjectSchema(TestProjectBase):
         assert version.parse(self.project.config["schema_version"]) < version.parse(
             impossibly_high_schema_version
         )
-        config = read_config_file(_get_project_config_fn(self.project.root_directory()))
+        config = _read_config_file(
+            _get_project_config_fn(self.project.root_directory())
+        )
         config["schema_version"] = impossibly_high_schema_version
         config.write()
         with pytest.raises(IncompatibleSchemaVersion):
@@ -2484,21 +2451,28 @@ class TestProjectSchema(TestProjectBase):
 
 class TestSchemaMigration:
     @pytest.mark.parametrize("implicit_version", [True, False])
-    def test_project_schema_version_migration(self, implicit_version):
+    @pytest.mark.parametrize("workspace_exists", [True, False])
+    def test_project_schema_version_migration(self, implicit_version, workspace_exists):
         from signac.contrib.migration import apply_migrations
 
         with TemporaryDirectory() as dirname:
             # Create v1 config file.
             cfg_fn = os.path.join(dirname, "signac.rc")
+            workspace_dir = "workspace_dir"
             with open(cfg_fn, "w") as f:
                 f.write(
                     textwrap.dedent(
-                        """\
+                        f"""\
                         project = project
-                        workspace_dir = workspace
+                        workspace_dir = {workspace_dir}
                         schema_version = 0"""
                     )
                 )
+
+            # Create a custom workspace
+            os.makedirs(os.path.join(dirname, workspace_dir))
+            if workspace_exists:
+                os.makedirs(os.path.join(dirname, "workspace"))
 
             # Create a shell history file.
             history_fn = os.path.join(dirname, ".signac_shell_history")
@@ -2515,7 +2489,7 @@ class TestSchemaMigration:
 
             # If no schema version is present in the config it is equivalent to
             # version 0, so we test both explicit and implicit versions.
-            config = read_config_file(cfg_fn)
+            config = _read_config_file(cfg_fn)
             if implicit_version:
                 del config["schema_version"]
                 assert "schema_version" not in config
@@ -2523,10 +2497,16 @@ class TestSchemaMigration:
                 assert config["schema_version"] == "0"
             config.write()
 
+            # If the 'workspace' directory already exists the migration should fail.
+            if workspace_exists:
+                with pytest.raises(RuntimeError):
+                    apply_migrations(dirname)
+                return
+
             err = io.StringIO()
             with redirect_stderr(err):
                 apply_migrations(dirname)
-            config = load_config(dirname)
+            config = _load_config(dirname)
             assert config["schema_version"] == "2"
             project = signac.get_project(root=dirname)
             assert project.config["schema_version"] == "2"
@@ -2584,12 +2564,9 @@ class TestProjectStoreBase(test_h5store.TestH5StoreBase):
         self._tmp_dir = TemporaryDirectory(prefix="signac_")
         request.addfinalizer(self._tmp_dir.cleanup)
         self._tmp_pr = os.path.join(self._tmp_dir.name, "pr")
-        self._tmp_wd = os.path.join(self._tmp_dir.name, "wd")
         os.mkdir(self._tmp_pr)
-        self.config = signac.common.config._load_config()
-        self.project = self.project_class.init_project(
-            root=self._tmp_pr, workspace=self._tmp_wd
-        )
+        self.config = _load_config()
+        self.project = self.project_class.init_project(root=self._tmp_pr)
 
         self._fn_store = os.path.join(self._tmp_dir.name, "signac_data.h5")
         self._fn_store_other = os.path.join(self._tmp_dir.name, "other.h5")
