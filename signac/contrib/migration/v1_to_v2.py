@@ -5,6 +5,12 @@
 
 This migration involves the following changes:
     - Moving the signac.rc config file to .signac/config
+    - Moving .signac_shell_history to .signac/shell_history
+    - Moving .signac_sp_cache.json.gz to .signac/statepoint_cache.json.gz
+    - Removing the project name from the config. Projects are now identified
+      solely by their directories.
+    - Removing the workspace_dir key from the config. The workspace directory
+      is no longer configurable.
 """
 
 import os
