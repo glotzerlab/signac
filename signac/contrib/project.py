@@ -158,7 +158,9 @@ class Project:
         # Prepare root directory and workspace paths.
         # os.path is used instead of pathlib.Path for performance.
         self._root_directory = os.path.abspath(root)
-        self._workspace = _CallableString(os.path.join(self._root_directory, "workspace"))
+        self._workspace = _CallableString(
+            os.path.join(self._root_directory, "workspace")
+        )
 
         # Prepare workspace directory.
         if not os.path.isdir(self.workspace):
@@ -1339,9 +1341,7 @@ class Project:
                     # workspace, job id, and document file name to be
                     # well-formed, so just use str.join with os.sep instead of
                     # os.path.join for speed.
-                    fn_document = os.sep.join(
-                        (self.workspace, job_id, Job.FN_DOCUMENT)
-                    )
+                    fn_document = os.sep.join((self.workspace, job_id, Job.FN_DOCUMENT))
                     with open(fn_document, "rb") as file:
                         doc["doc"] = json.loads(file.read().decode())
                 except OSError as error:
