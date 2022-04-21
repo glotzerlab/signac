@@ -16,6 +16,12 @@ Changed
  - Functions raising ``AssertionError`` now raise ``RuntimeError`` (#612).
  - State points and documents require keys to be of type ``str`` (#719).
  - The keyword ``_id`` of the Job constructor has been renamed to ``id_`` (#681).
+ - The signac schema to use version 2. This update involves a number of changes:
+   - The project configuration is now stored at .signac/config instead of signac.rc or .signacrc (#678).
+   - Schema versions are now identified by simple integers rather than semantic versioning style versions (#688).
+   - Projects no longer have names and are identified solely by their root directories. This change also affects a number of public APIs where names are including, most prominently ``signac.init_project`` and ``Project.init_project``. Projects can now be constructed with just a root directory rather than a preloaded config (#677, #684, #706).
+   - Project workspaces are no longer configurable, but are instead always defined as a subdirectory of the Project's root directory called ``workspace`` (#714).
+ - Rather than searching upwards until the root, ``load_config`` will only load configuration files in the specified directory, which is assumed to be a project directory, as well as the user's home directory (#711).
 
 Removed
 +++++++
