@@ -934,7 +934,8 @@ class Job:
         .. code-block:: python
 
             with project.open_job(my_statepoint) as job:
-                # manipulate your job data
+                # Manipulate your job data
+                pass
 
         Opening the context will switch into the job's workspace,
         leaving it will switch back to the previous working directory.

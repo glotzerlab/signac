@@ -30,7 +30,6 @@ The Project
     Project.fn
     Project.groupby
     Project.import_from
-    Project.id
     Project.isfile
     Project.min_len_unique_id
     Project.num_jobs
