@@ -528,19 +528,21 @@ class H5Store(MutableMapping):
 class H5StoreManager(DictManager):
     """Helper class to manage multiple instances of :class:`~.H5Store` within a directory.
 
-    Example (assuming that the 'stores/' directory exists):
+    Parameters
+    ----------
+    prefix : str
+        The directory prefix shared by all files managed by this class.
 
-    .. code-block:: python
+    Examples
+    --------
+    Assuming that the ``stores/`` directory exists:
 
-        >>> stores = H5StoreManager('stores/')
-        >>> stores.data
-        <H5Store(filename=stores/data.h5)>
-        >>> stores.data.foo = True
-        >>> dict(stores.data)
-        {'foo': True}
-
-    :param prefix:
-        The directory prefix shared by all stores managed by this class.
+    >>> stores = H5StoreManager('stores/')
+    >>> stores.data
+    <H5Store(filename=stores/data.h5)>
+    >>> stores.data.foo = True
+    >>> dict(stores.data)
+    {'foo': True}
     """
 
     cls = H5Store  # type: ignore
