@@ -55,19 +55,6 @@ JOB_ID_REGEX = re.compile(f"[a-f0-9]{{{JOB_ID_LENGTH}}}")
 _DEFAULT_PROJECT_NAME = None
 
 
-class _CallableString(str):
-    # A string object that returns itself when called. Introduced temporarily
-    # to support deprecating Project.workspace, which will become a property.
-    def __call__(self):
-        assert version.parse(__version__) < version.parse("2.0.0")
-        warnings.warn(
-            "This method will soon become a property and should be used "
-            "without the call operator (parentheses).",
-            FutureWarning,
-        )
-        return self
-
-
 class _ProjectConfig(Config):
     r"""Extends the project config to make it immutable.
 
@@ -145,9 +132,7 @@ class Project:
         # Prepare root directory and workspace paths.
         # os.path is used instead of pathlib.Path for performance.
         self._root_directory = os.path.abspath(root)
-        self._workspace = _CallableString(
-            os.path.join(self._root_directory, "workspace")
-        )
+        self._workspace = os.path.join(self._root_directory, "workspace")
 
         # Prepare workspace directory.
         if not os.path.isdir(self.workspace):
