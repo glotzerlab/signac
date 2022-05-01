@@ -51,19 +51,6 @@ logger = logging.getLogger(__name__)
 JOB_ID_LENGTH = 32
 JOB_ID_REGEX = re.compile(f"[a-f0-9]{{{JOB_ID_LENGTH}}}")
 
-# The warning used for doc filter deprecation everywhere. Don't use
-# triple-quoted multi-line string to avoid inserting newlines.
-# (issue #725) TODO: In signac 2.0, remove all docstrings for doc_filter parameters. The
-# doc_filter parameters will only be preserved for backwards compatibility but
-# not advertised as part of the API in signac 2.0.
-DOC_FILTER_WARNING = (
-    "The doc_filter argument is deprecated as of version 1.7 and will be removed "
-    "in version 3.0. Users should instead use a filter with a 'doc.' prefix. For "
-    "example, `doc_filter={'foo': 'bar'}` is equivalent to `filter={'doc.foo': 'bar'}`. "
-    "See https://docs.signac.io/en/latest/query.html#query-namespaces for more "
-    "information."
-)
-
 # Temporary default for project names until they are removed entirely in signac 2.0
 _DEFAULT_PROJECT_NAME = None
 
@@ -695,7 +682,7 @@ class Project:
         )
         return list(index.find(filter))
 
-    def find_jobs(self, filter=None, *args, **kwargs):
+    def find_jobs(self, filter=None):
         """Find all jobs in the project's workspace.
 
         The filter argument must be a JSON-serializable Mapping of key-value
@@ -725,14 +712,7 @@ class Project:
             If the filters are invalid.
 
         """
-        doc_filter = next(iter(args), None) or kwargs.pop("doc_filter", None)
-        if len(args) > 1 or len(kwargs):
-            raise TypeError("Unsupported arguments were provided.")
-        filter = dict(parse_filter(_add_prefix("sp.", filter)))
-        if doc_filter:
-            warnings.warn(DOC_FILTER_WARNING, FutureWarning)
-            filter.update(parse_filter(_add_prefix("doc.", doc_filter)))
-        return JobsCursor(self, filter)
+        return JobsCursor(self, dict(parse_filter(_add_prefix("sp.", filter))))
 
     def __iter__(self):
         return iter(self.find_jobs())
