@@ -19,8 +19,6 @@ from multiprocessing.pool import ThreadPool
 from tempfile import TemporaryDirectory
 from threading import RLock
 
-from packaging import version
-
 from ..common.config import (
     Config,
     _get_project_config_fn,
@@ -1433,7 +1431,7 @@ class Project:
             yield tmp_project
 
     @classmethod
-    def init_project(cls, *args, root=None, **kwargs):
+    def init_project(cls, *, root=None):
         """Initialize a project in the provided root directory.
 
         It is safe to call this function multiple times with the same
@@ -1461,61 +1459,11 @@ class Project:
             configuration.
 
         """
-        # TODO: Remove both the `if args` and `if kwargs` blocks in version 3.0
-        # when we remove backwards compatibility for project name APIs.
-        name = None
-        # The key used to store project names in the project document.
-        name_key = "signac_project_name"
-        if args:
-            num_args = len(args)
-            if num_args == 1:
-                name = args[0]
-            else:
-                # Match the usual error from misusing keyword-only args.
-                raise TypeError(
-                    f"init_project() takes 0 positional arguments but {num_args} were given"
-                )
-        if kwargs:
-            name = kwargs.pop("name", None)
-            if kwargs:
-                # Match the usual error from extra keyword args.
-                raise TypeError(
-                    f"init_project() got an unexpected keyword argument '{next(iter(kwargs))}'"
-                )
-
-        if name is not None:
-            assert version.parse(__version__) < version.parse("3.0.0")
-            warnings.warn(
-                "Project names were removed in signac 2.0. If you intended to call "
-                "`init_project` with a root directory as the sole positional argument, please "
-                f"provide it as a keyword argument: `init_project(root={name})`. If your "
-                "project name contains important information, consider storing it in the "
-                "project document instead. The name provided will be stored in the project "
-                f"document with the key `{name_key}`. Calling `init_project` with a name will "
-                "become an error in signac 3.0.",
-                FutureWarning,
-            )
-
         if root is None:
             root = os.getcwd()
 
-        if name is not None:
-            warnings.warn(
-                "Project names are deprecated and will be removed in signac 2.0 in favor of using "
-                "the project root directory to identify projects. The name argument to "
-                "init_project should be removed.",
-                FutureWarning,
-            )
-        else:
-            name = _DEFAULT_PROJECT_NAME
         try:
             project = cls.get_project(root=root, search=False)
-            existing_name = project.doc.get(name_key)
-            if name is not None and name != existing_name:
-                raise ValueError(
-                    "The name provided to `init_project` does not match the existing "
-                    f"project document in which {name_key}={existing_name}."
-                )
         except LookupError:
             fn_config = _get_project_config_fn(root)
             _mkdir_p(os.path.dirname(fn_config))
@@ -1523,8 +1471,6 @@ class Project:
             config["schema_version"] = SCHEMA_VERSION
             config.write()
             project = cls.get_project(root=root)
-            if name is not None:
-                project.doc[name_key] = name
         return project
 
     @classmethod
