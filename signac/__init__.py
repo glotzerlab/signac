@@ -31,16 +31,42 @@ from .core.jsondict import flush_all as flush
 from .db import get_database
 from .diff import diff_jobs
 from .synced_collections.backends.collection_json import (
-    BufferedJSONAttrDict as JSONDict,
+    BufferedJSONAttrDict as _JSONDict,
 )
 from .version import __version__
 
+
 # Alias some properties related to buffering into the signac namespace.
+class JSONDict(_JSONDict):
+    def __init__(
+        self,
+        filename=None,
+        write_concern=False,
+        data=None,
+        parent=None,
+        *args,
+        **kwargs,
+    ):
+        warnings.warn(
+            "The JSONDict object is deprecated and will be removed in a future release.",
+            FutureWarning
+        )
+        super().__init__(
+            filename=filename,
+            write_concern=write_concern,
+            data=data,
+            parent=parent,
+            *args,
+            **kwargs,
+        )
+
+
 buffered = JSONDict.buffer_backend
 is_buffered = JSONDict.backend_is_buffered
 get_buffer_load = JSONDict.get_current_buffer_size
 get_buffer_size = JSONDict.get_buffer_capacity
 set_buffer_size = JSONDict.set_buffer_capacity
+
 
 __all__ = [
     "__version__",
