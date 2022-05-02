@@ -333,7 +333,7 @@ def main_view(args):
 
 def main_init(args):
     """Handle init subcommand."""
-    init_project(name=args.project_id, root=os.getcwd())
+    init_project(root=os.getcwd())
     _print_err("Initialized project.")
 
 
@@ -529,7 +529,7 @@ def _main_import_interactive(project, origin, args):
                     python_version=sys.version,
                     signac_version=__version__,
                     job_banner="",
-                    root_path=project.root_directory(),
+                    root_path=project.path,
                     size=len(project),
                     origin=args.origin,
                 ),
@@ -870,7 +870,7 @@ def main_shell(args):
                     python_version=sys.version,
                     signac_version=__version__,
                     job_banner=f"\nJob:\t\t{job.id}" if job is not None else "",
-                    root_path=project.root_directory(),
+                    root_path=project.path,
                     size=len(project),
                 ),
             )
@@ -898,7 +898,6 @@ def main():
     subparsers = parser.add_subparsers()
 
     parser_init = subparsers.add_parser("init")
-    parser_init.add_argument("project_id", nargs="?", help=argparse.SUPPRESS)
     parser_init.set_defaults(func=main_init)
 
     parser_job = subparsers.add_parser("job")

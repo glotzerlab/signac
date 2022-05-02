@@ -26,7 +26,6 @@ from ..common.config import (
     load_config,
     read_config_file,
 )
-from ..common.deprecation import deprecated
 from ..core.h5store import H5StoreManager
 from ..sync import sync_projects
 from ..synced_collections.backends.collection_json import BufferedJSONAttrDict
@@ -139,7 +138,7 @@ class Project:
             except OSError:
                 logger.error(
                     "Error occurred while trying to create workspace directory for project at root "
-                    f"{self.root_directory()}."
+                    f"{self.path}."
                 )
                 raise
 
@@ -157,10 +156,10 @@ class Project:
         )
 
     def __str__(self):
-        return str(self.root_directory())
+        return str(self.path)
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({repr(self.root_directory())})"
+        return f"{self.__class__.__name__}({repr(self.path)})"
 
     def _repr_html_(self):
         """Project details in HTML format for use in IPython environment.
@@ -200,16 +199,6 @@ class Project:
 
         """
         return self._config
-
-    @deprecated(
-        deprecated_in="1.8",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Use Project.path instead.",
-    )
-    def root_directory(self):
-        """Alias for :attr:`~Project.path`."""
-        return self.path
 
     @property
     def path(self):
@@ -291,7 +280,7 @@ class Project:
             The joined path of project root directory and filename.
 
         """
-        return os.path.join(self.root_directory(), filename)
+        return os.path.join(self.path, filename)
 
     def isfile(self, filename):
         """Check if a filename exists in the project's root directory.
@@ -321,7 +310,7 @@ class Project:
         """
         with self._lock:
             if self._document is None:
-                fn_doc = os.path.join(self.root_directory(), self.FN_DOCUMENT)
+                fn_doc = os.path.join(self.path, self.FN_DOCUMENT)
                 self._document = BufferedJSONAttrDict(
                     filename=fn_doc, write_concern=True
                 )
@@ -401,7 +390,7 @@ class Project:
         """
         with self._lock:
             if self._stores is None:
-                self._stores = H5StoreManager(self.root_directory())
+                self._stores = H5StoreManager(self.path)
         return self._stores
 
     @property
@@ -535,23 +524,6 @@ class Project:
                     f"Unable to access the workspace directory '{self.workspace}'."
                 )
                 raise WorkspaceError(error)
-
-    @deprecated(
-        deprecated_in="1.8",
-        removed_in="2.0",
-        current_version=__version__,
-        details="The num_jobs method is deprecated. Use len(project) instead.",
-    )
-    def num_jobs(self):
-        """Return the number of initialized jobs.
-
-        Returns
-        -------
-        int
-            Count of initialized jobs.
-
-        """
-        return len(self)
 
     def __len__(self):
         # We simply count the the number of valid directories and avoid building a list
@@ -1672,10 +1644,6 @@ class JobsCursor:
         # Replace empty filters with None for performance
         if self._filter == {}:
             self._filter = None
-
-        # This private attribute allows us to implement the deprecated
-        # next() method for this class.
-        self._next_iter = None
 
     def __eq__(self, other):
         return self._project == other._project and self._filter == other._filter

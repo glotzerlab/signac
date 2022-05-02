@@ -240,9 +240,6 @@ class ProjectSchema(Mapping):
         output += "<pre>" + str(self) + "</pre>"
         return output
 
-    # def __contains__(self, key_or_keys):
-    #     return key_or_keys in self._schema
-
     def __getitem__(self, key_or_keys):
         return self._schema[key_or_keys]
 
