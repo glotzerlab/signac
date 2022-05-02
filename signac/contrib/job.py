@@ -453,7 +453,6 @@ class Job:
 
         self._project._register(self.id, new_statepoint)
 
-
     @property
     def sp(self):
         """Alias for :attr:`~Job.statepoint`."""

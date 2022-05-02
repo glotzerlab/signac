@@ -107,9 +107,7 @@ class TestBasicShell:
             self.tmpdir.name, "workspace", "9bfd29df07674bc4aa960cf661b5acd2"
         )
         assert os.path.realpath(
-            self.call(
-                ["python", "-m", "signac", "job", "--path", '{"a": 0}']
-            ).strip()
+            self.call(["python", "-m", "signac", "job", "--path", '{"a": 0}']).strip()
         ) == os.path.realpath(wd_path)
 
     def test_job_with_argument_create_workspace(self):
