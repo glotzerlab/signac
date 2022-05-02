@@ -16,6 +16,7 @@ Added
  - Official support for Python 3.10 (#631).
  - Benchmarks can be run using the ``asv`` (airspeed velocity) tool (#629).
  - Continuous integration tests run in parallel with ``pytest-xdist`` (#705).
+ - The ``Project.path`` and ``Job.path`` properties (#685).
 
 Changed
 +++++++
@@ -23,6 +24,7 @@ Changed
  - Schema migration is now performed on directories rather than signac projects and supports a wider range of schemas (#654).
  - Deprecated features now use ``FutureWarning`` instead of ``DeprecationWarning``, which is hidden by default (#687, #691).
  - Project names have a default in anticipation of removing names entirely. Project names will be removed in signac 2.0 (#644).
+ - ``Project.workspace`` is now a property, not a method (#685).
 
 Deprecated
 ++++++++++
@@ -33,6 +35,9 @@ Deprecated
  - ``index`` argument is deprecated in ``Project`` methods (#602, #588).
  - ``signac.cite`` module is deprecated (#611, #592).
  - ``config.get_config`` method is deprecated (#675).
+ - Accessing ``Project.workspace`` as a method, it should be accessed as a property (#685).
+ - ``Project.num_jobs`` (#685).
+ - ``ProjectSchema.__call__``, ``ProjectSchema.detect`` (#685).
 
 Fixed
 +++++
