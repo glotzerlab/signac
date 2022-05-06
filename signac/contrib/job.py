@@ -12,7 +12,6 @@ from json import JSONDecodeError
 from threading import RLock
 from typing import FrozenSet
 
-from ..common.deprecation import deprecated
 from ..core.h5store import H5StoreManager
 from ..sync import sync_jobs
 from ..synced_collections.backends.collection_json import (
@@ -21,7 +20,6 @@ from ..synced_collections.backends.collection_json import (
     json_attr_dict_validator,
 )
 from ..synced_collections.errors import KeyTypeError
-from ..version import __version__
 from .errors import DestinationExistsError, JobsCorruptedError
 from .hashing import calc_id
 from .utility import _mkdir_p
@@ -317,16 +315,6 @@ class Job:
             self.__class__.__name__, repr(self._project), self.statepoint
         )
 
-    @deprecated(
-        deprecated_in="1.8",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Use Job.path instead.",
-    )
-    def workspace(self):
-        """Alias for :attr:`~Job.path`."""
-        return self.path
-
     @property
     def _statepoint_filename(self):
         """Get the path of the state point file for this job."""
@@ -334,19 +322,6 @@ class Job:
         # point file name to be well-formed, so just use str.join with os.sep
         # instead of os.path.join for speed.
         return os.sep.join((self.path, self.FN_STATE_POINT))
-
-    # Tell mypy to ignore type checking of the decorator because decorated
-    # properties aren't supported: https://github.com/python/mypy/issues/1362
-    @property  # type: ignore
-    @deprecated(
-        deprecated_in="1.8",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Use Job.path instead.",
-    )
-    def ws(self):
-        """Alias for :attr:`~Job.path`."""
-        return self.path
 
     @property
     def path(self):
@@ -359,45 +334,6 @@ class Job:
             # use str.join with os.sep instead of os.path.join for speed.
             self._path = os.sep.join((self._project.workspace, self.id))
         return self._path
-
-    @deprecated(
-        deprecated_in="1.8",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Use job.statepoint = new_statepoint instead.",
-    )
-    def reset_statepoint(self, new_statepoint):
-        """Overwrite the state point of this job while preserving job data.
-
-        This method will change the job id if the state point has been altered.
-
-        For more information, see
-        `Modifying the State Point
-        <https://docs.signac.io/en/latest/jobs.html#modifying-the-state-point>`_.
-
-        .. danger::
-
-            Use this function with caution! Resetting a job's state point
-            may sometimes be necessary, but can possibly lead to incoherent
-            data spaces.
-
-        Parameters
-        ----------
-        new_statepoint : dict
-            The job's new state point.
-
-        """
-        with self._lock:
-            if self._statepoint_requires_init:
-                # Instantiate state point data lazily - no load is required, since
-                # we are provided with the new state point data.
-                self._statepoint = _StatePointDict(
-                    jobs=[self], filename=self._statepoint_filename
-                )
-                self._statepoint_requires_init = False
-            self.statepoint.reset(new_statepoint)
-
-        self._project._register(self.id, new_statepoint)
 
     def update_statepoint(self, update, overwrite=False):
         """Change the state point of this job while preserving job data.
@@ -446,7 +382,7 @@ class Job:
                         "mapping with another value."
                     )
         statepoint.update(update)
-        self.reset_statepoint(statepoint)
+        self.statepoint = statepoint
 
     @property
     def statepoint(self):
@@ -505,7 +441,17 @@ class Job:
         new_statepoint : dict
             The new state point to be assigned.
         """
-        self.reset_statepoint(new_statepoint)
+        with self._lock:
+            if self._statepoint_requires_init:
+                # Instantiate state point data lazily - no load is required, since
+                # we are provided with the new state point data.
+                self._statepoint = _StatePointDict(
+                    jobs=[self], filename=self._statepoint_filename
+                )
+                self._statepoint_requires_init = False
+            self.statepoint.reset(new_statepoint)
+
+        self._project._register(self.id, new_statepoint)
 
     @property
     def sp(self):

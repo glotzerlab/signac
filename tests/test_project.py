@@ -102,10 +102,10 @@ class TestProject(TestProjectBase):
         assert p == self.project
 
     def test_str(self):
-        assert str(self.project) == self.project.root_directory()
+        assert str(self.project) == self.project.path
 
     def test_root_directory(self):
-        assert self._tmp_pr == self.project.root_directory()
+        assert self._tmp_pr == self.project.path
 
     def test_workspace_directory(self):
         assert os.path.join(self._tmp_pr, "workspace") == self.project.workspace
@@ -124,7 +124,7 @@ class TestProject(TestProjectBase):
 
     def test_fn(self):
         assert self.project.fn("test/abc") == os.path.join(
-            self.project.root_directory(), "test/abc"
+            self.project.path, "test/abc"
         )
 
     def test_isfile(self):
@@ -139,7 +139,7 @@ class TestProject(TestProjectBase):
         self.project.document["a"] = 42
         assert len(self.project.document) == 1
         assert self.project.document
-        prj2 = type(self.project).get_project(root=self.project.root_directory())
+        prj2 = type(self.project).get_project(root=self.project.path)
         assert prj2.document
         assert len(prj2.document) == 1
         self.project.document.clear()
@@ -160,7 +160,7 @@ class TestProject(TestProjectBase):
         self.project.doc["a"] = 42
         assert len(self.project.doc) == 1
         assert self.project.doc
-        prj2 = type(self.project).get_project(root=self.project.root_directory())
+        prj2 = type(self.project).get_project(root=self.project.path)
         assert prj2.doc
         assert len(prj2.doc) == 1
         self.project.doc.clear()
@@ -184,7 +184,7 @@ class TestProject(TestProjectBase):
             self.project.data["a"] = 42
             assert len(self.project.data) == 1
             assert self.project.data
-        prj2 = type(self.project).get_project(root=self.project.root_directory())
+        prj2 = type(self.project).get_project(root=self.project.path)
         with prj2.data:
             assert prj2.data
             assert len(prj2.data) == 1
@@ -261,64 +261,18 @@ class TestProject(TestProjectBase):
         assert len(statepoints) == len(list(self.project.find_jobs({})))
         assert 1 == len(list(self.project.find_jobs({"a": 0})))
         assert 0 == len(list(self.project.find_jobs({"a": 5})))
-        assert 1 == len(list(self.project.find_jobs({"a": 0}, None)))
-        assert 0 == len(list(self.project.find_jobs({"a": 5}, None)))
-        assert 1 == len(list(self.project.find_jobs({"a": 0}, doc_filter=None)))
-        assert 0 == len(list(self.project.find_jobs({"a": 5}, doc_filter=None)))
-        assert 1 == len(list(self.project.find_jobs(filter={"a": 0}, doc_filter=None)))
-        assert 0 == len(list(self.project.find_jobs(filter={"a": 5}, doc_filter=None)))
+        assert 1 == len(list(self.project.find_jobs({"a": 0})))
+        assert 0 == len(list(self.project.find_jobs({"a": 5})))
         assert 1 == len(list(self.project.find_jobs({"sp.a": 0})))
         assert 0 == len(list(self.project.find_jobs({"sp.a": 5})))
-        with pytest.warns(FutureWarning):
-            assert 1 == len(list(self.project.find_jobs(doc_filter={"b": 0})))
-        with pytest.warns(FutureWarning):
-            assert 0 == len(list(self.project.find_jobs(doc_filter={"b": 5})))
-        with pytest.warns(FutureWarning):
-            assert 1 == len(list(self.project.find_jobs(None, doc_filter={"b": 0})))
-        with pytest.warns(FutureWarning):
-            assert 0 == len(list(self.project.find_jobs(None, doc_filter={"b": 5})))
-        with pytest.warns(FutureWarning):
-            assert 1 == len(
-                list(self.project.find_jobs(filter=None, doc_filter={"b": 0}))
-            )
-        with pytest.warns(FutureWarning):
-            assert 0 == len(
-                list(self.project.find_jobs(filter=None, doc_filter={"b": 5}))
-            )
-        with pytest.warns(FutureWarning):
-            assert 1 == len(list(self.project.find_jobs(None, {"b": 0})))
-        with pytest.warns(FutureWarning):
-            assert 0 == len(list(self.project.find_jobs(None, {"b": 5})))
         assert 1 == len(list(self.project.find_jobs({"doc.b": 0})))
         assert 0 == len(list(self.project.find_jobs({"doc.b": 5})))
         assert 1 == len(list(self.project.find_jobs({"a": 0, "doc.b": 0})))
-        with pytest.warns(FutureWarning):
-            assert 1 == len(list(self.project.find_jobs({"a": 0}, {"b": 0})))
-        with pytest.warns(FutureWarning):
-            assert 1 == len(
-                list(self.project.find_jobs(filter={"a": 0}, doc_filter={"b": 0}))
-            )
-        with pytest.warns(FutureWarning):
-            assert 1 == len(list(self.project.find_jobs({"a": 0}, doc_filter={"b": 0})))
         assert 1 == len(list(self.project.find_jobs({"sp.a": 0, "doc.b": 0})))
         assert 0 == len(list(self.project.find_jobs({"a": 0, "doc.b": 5})))
-        with pytest.warns(FutureWarning):
-            assert 0 == len(list(self.project.find_jobs({"a": 0}, {"b": 5})))
-        with pytest.warns(FutureWarning):
-            assert 0 == len(
-                list(self.project.find_jobs(filter={"a": 0}, doc_filter={"b": 5}))
-            )
-        with pytest.warns(FutureWarning):
-            assert 0 == len(list(self.project.find_jobs({"a": 0}, doc_filter={"b": 5})))
         assert 0 == len(list(self.project.find_jobs({"sp.a": 0, "doc.b": 5})))
         assert 0 == len(list(self.project.find_jobs({"sp.a": 5, "doc.b": 0})))
         assert 0 == len(list(self.project.find_jobs({"sp.a": 5, "doc.b": 5})))
-        with pytest.raises(TypeError):
-            self.project.find_jobs({"a": 0}, {"b": 5}, "invalid positional arg")
-        with pytest.raises(TypeError):
-            self.project.find_jobs({"a": 0}, invalid_kwarg="invalid argument")
-        with pytest.raises(TypeError):
-            self.project.find_jobs({"a": 0}, {"b": 0}, doc_filter={"b": 0})
         for job in self.project.find_jobs():
             assert self.project.open_job(id=job.id).id == job.id
 
@@ -338,11 +292,6 @@ class TestProject(TestProjectBase):
         cursor_doc = self.project.find_jobs({"doc.test": True})
         for sp in statepoints:
             assert self.project.open_job(sp) in cursor_doc
-
-        with pytest.warns(FutureWarning):
-            cursor_doc = self.project.find_jobs(doc_filter={"test": True})
-            for sp in statepoints:
-                assert self.project.open_job(sp) in cursor_doc
 
     def test_find_jobs_arithmetic_operators(self):
         for i in range(10):
@@ -446,11 +395,10 @@ class TestProject(TestProjectBase):
         assert_result_len({"$and": [{"sp.a": 0}, {"doc.d": 1}]}, 0)
         assert_result_len({"$or": [{"sp.a": 0}, {"doc.d": 1}]}, 2)
 
-    def test_num_jobs(self):
+    def test_len_project(self):
         statepoints = [{"a": i} for i in range(5)]
         for sp in statepoints:
             self.project.open_job(sp).init()
-        assert len(statepoints) == self.project.num_jobs()
         assert len(statepoints) == len(self.project)
         assert len(statepoints) == len(self.project.find_jobs())
 
@@ -653,7 +601,7 @@ class TestProject(TestProjectBase):
         class CustomProject(signac.Project):
             pass
 
-        project = CustomProject.get_project(root=self.project.root_directory())
+        project = CustomProject.get_project(root=self.project.path)
         assert isinstance(project, signac.Project)
         assert isinstance(project, CustomProject)
 
@@ -763,14 +711,8 @@ class TestProject(TestProjectBase):
             "f.f2",
         ):
             assert k in s
-            if "." in k:
-                with pytest.warns(FutureWarning):
-                    assert k.split(".") in s
-            # The following calls should not error out.
+            # The following call should not error out.
             s[k]
-            if "." in k:
-                with pytest.warns(FutureWarning):
-                    s[k.split(".")]
         repr(s)
         assert s.format() == str(s)
         s = self.project.detect_schema(exclude_const=True)
@@ -794,16 +736,6 @@ class TestProject(TestProjectBase):
             subset=[job.id for job in self.project.find_jobs({"a.$lt": 5})]
         )
         assert s == s_sub
-
-    def test_schema_eval(self):
-        for i in range(10):
-            for j in range(10):
-                self.project.open_job(dict(a=i, b=j)).init()
-        s = self.project.detect_schema()
-        assert s == s(self.project)
-        assert s == s([job.sp for job in self.project])
-        # Check that it works with iterables that can only be consumed once
-        assert s == s(job.sp for job in self.project)
 
     def test_schema_difference(self):
         def get_sp(i):
@@ -998,63 +930,12 @@ class TestProject(TestProjectBase):
     def test_temp_project(self):
         with self.project.temporary_project() as tmp_project:
             assert len(tmp_project) == 0
-            tmp_root_dir = tmp_project.root_directory()
+            tmp_root_dir = tmp_project.path
             assert os.path.isdir(tmp_root_dir)
             for i in range(10):  # init some jobs
                 tmp_project.open_job(dict(a=i)).init()
             assert len(tmp_project) == 10
         assert not os.path.isdir(tmp_root_dir)
-
-
-class TestProjectNameDeprecations:
-    warning_context = pytest.warns(
-        FutureWarning, match="Project names were removed in signac 2.0"
-    )
-
-    @pytest.fixture(autouse=True)
-    def setUp(self, request):
-        self._tmp_dir = TemporaryDirectory()
-
-    def test_name_only_positional(self):
-        assert _CURRENT_VERSION < _VERSION_3
-        with self.warning_context:
-            project = signac.init_project("name", root=self._tmp_dir.name)
-
-        # Check that the name was stored as expected, and that trying to open
-        # again with a different name raises the expected exception.
-        assert "signac_project_name" in project.doc
-        with self.warning_context:
-            signac.init_project("name", root=self._tmp_dir.name)
-        with pytest.raises(ValueError, match="does not match the existing"):
-            with self.warning_context:
-                signac.init_project("new_name", root=self._tmp_dir.name)
-
-    def test_name_with_other_args_positional(self):
-        assert _CURRENT_VERSION < _VERSION_3
-        with pytest.raises(
-            TypeError, match="takes 0 positional arguments but 2 were given"
-        ):
-            signac.init_project("project", self._tmp_dir.name)
-
-    def test_name_only_keyword(self):
-        assert _CURRENT_VERSION < _VERSION_3
-        os.chdir(self._tmp_dir.name)
-        with self.warning_context:
-            project = signac.init_project(name="name")
-
-        # Check that the name was stored as expected, and that trying to open
-        # again with a different name raises the expected exception.
-        assert "signac_project_name" in project.doc
-        with self.warning_context:
-            signac.init_project(name="name")
-        with pytest.raises(ValueError, match="does not match the existing"):
-            with self.warning_context:
-                signac.init_project(name="new_name")
-
-    def test_name_with_other_args_keyword(self):
-        assert _CURRENT_VERSION < _VERSION_3
-        with pytest.raises(TypeError, match="got an unexpected keyword argument 'foo'"):
-            signac.init_project(name="project", foo="bar")
 
 
 class TestProjectExportImport(TestProjectBase):
@@ -1697,10 +1578,10 @@ class TestLinkedViewProject(TestProjectBase):
             )
         )
         src = set(map(lambda j: os.path.realpath(j.path), self.project.find_jobs()))
-        assert len(all_links) == self.project.num_jobs()
+        assert len(all_links) == len(self.project)
         self.project.create_linked_view(prefix=view_prefix)
         all_links = list(_find_all_links(view_prefix))
-        assert len(all_links) == self.project.num_jobs()
+        assert len(all_links) == len(self.project)
         dst = set(
             map(
                 lambda l: os.path.realpath(os.path.join(view_prefix, l, "job")),
@@ -1727,7 +1608,7 @@ class TestLinkedViewProject(TestProjectBase):
         # some jobs removed
         clean({"b": 0})
         all_links = list(_find_all_links(view_prefix))
-        assert len(all_links) == self.project.num_jobs()
+        assert len(all_links) == len(self.project)
         dst = set(
             map(
                 lambda l: os.path.realpath(os.path.join(view_prefix, l, "job")),
@@ -1739,7 +1620,7 @@ class TestLinkedViewProject(TestProjectBase):
         # all jobs removed
         clean()
         all_links = list(_find_all_links(view_prefix))
-        assert len(all_links) == self.project.num_jobs()
+        assert len(all_links) == len(self.project)
         dst = set(
             map(
                 lambda l: os.path.realpath(os.path.join(view_prefix, l, "job")),
@@ -2233,16 +2114,16 @@ class TestProjectInit:
             signac.get_project(root=root)
         project = signac.init_project(root=root)
         assert project.workspace == os.path.join(root, "workspace")
-        assert project.root_directory() == root
+        assert project.path == root
         project = signac.Project.init_project(root=root)
         assert project.workspace == os.path.join(root, "workspace")
-        assert project.root_directory() == root
+        assert project.path == root
         project = signac.get_project(root=root)
         assert project.workspace == os.path.join(root, "workspace")
-        assert project.root_directory() == root
+        assert project.path == root
         project = signac.Project.get_project(root=root)
         assert project.workspace == os.path.join(root, "workspace")
-        assert project.root_directory() == root
+        assert project.path == root
 
     def test_get_project_non_local(self):
         root = self._tmp_dir.name
@@ -2280,22 +2161,22 @@ class TestProjectInit:
             signac.get_project(root=root)
         project = signac.init_project(root=root)
         assert project.workspace == os.path.join(root, "workspace")
-        assert project.root_directory() == root
+        assert project.path == root
         # Second initialization should not make any difference.
         project = signac.init_project(root=root)
         project = signac.get_project(root=root)
         assert project.workspace == os.path.join(root, "workspace")
-        assert project.root_directory() == root
+        assert project.path == root
         project = signac.Project.get_project(root=root)
         assert project.workspace == os.path.join(root, "workspace")
-        assert project.root_directory() == root
+        assert project.path == root
 
     def test_nested_project(self):
         def check_root(root=None):
             if root is None:
                 root = os.getcwd()
             assert os.path.realpath(
-                signac.get_project(root=root).root_directory()
+                signac.get_project(root=root).path
             ) == os.path.realpath(root)
 
         root = self._tmp_dir.name
@@ -2417,15 +2298,15 @@ class TestProjectSchema(TestProjectBase):
         assert version.parse(self.project.config["schema_version"]) < version.parse(
             impossibly_high_schema_version
         )
-        config = read_config_file(_get_project_config_fn(self.project.root_directory()))
+        config = read_config_file(_get_project_config_fn(self.project.path))
         config["schema_version"] = impossibly_high_schema_version
         config.write()
         with pytest.raises(IncompatibleSchemaVersion):
-            signac.init_project(root=self.project.root_directory())
+            signac.init_project(root=self.project.path)
 
         # Ensure that migration fails on an unsupported version.
         with pytest.raises(RuntimeError):
-            apply_migrations(self.project.root_directory())
+            apply_migrations(self.project.path)
 
     def test_no_migration(self):
         # This unit test should fail as long as there are no schema migrations
@@ -2437,7 +2318,7 @@ class TestProjectSchema(TestProjectBase):
         # 2. Either update or remove this unit test.
         from signac.contrib.migration import _collect_migrations
 
-        migrations = list(_collect_migrations(self.project.root_directory()))
+        migrations = list(_collect_migrations(self.project.path))
         assert len(migrations) == 0
 
 

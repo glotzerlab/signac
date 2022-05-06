@@ -29,8 +29,8 @@ Removed
  - The pre-SyncedCollection synchronized dictionary classes, including SyncedDict, SyncedAttrDict, and JSONDict (#577).
  - The old custom JSON encoder and dumps wrapper (#577).
  - The MPIPool and the filesystems.py module (#575).
- - The following Project methods: ``get_id``, ``build_job_search_index``, ``build_job_statepoint_index``, ``find_job_ids``, ``reset_statepoint``, ``update_statepoint``, ``create_access_module``, ``index``, ``dump_statepoints``, ``get_statepoint``, ``read_statepoints``, ``write_statepoints``, ``groupbydoc`` (#574, #593, #599, #601).
- - The following Job methods: ``get_id`` (#578).
+ - The following Project methods: ``get_id``, ``build_job_search_index``, ``build_job_statepoint_index``, ``find_job_ids``, ``reset_statepoint``, ``update_statepoint``, ``create_access_module``, ``index``, ``dump_statepoints``, ``get_statepoint``, ``read_statepoints``, ``write_statepoints``, ``groupbydoc``, ``root_directory``, ``num_jobs`` (#574, #593, #599, #601, #752).
+ - The following Job methods: ``get_id``, ``workspace``, ``ws``, ``reset_statepoint`` (#578, #752).
  - The ``syncutil.copytree`` method (#581).
  - All Crawlers, including ``RegexFileCrawler``, ``MainCrawler``, ``MasterCrawler``, ``SignacProjectCrawler``, and ``BaseCrawler``, in addition to all associated functionality in indexing.py (#580).
  - The cite.py module (#594).
@@ -40,9 +40,13 @@ Removed
  - The ability to pass indexes to various ``Project`` methods (#599).
  - The following ``JobsCursor`` methods: ``groupbydoc``, ``next`` (#601, #604).
  - The ``Project.config`` property is no longer mutable. Use the command line ``$ signac config`` to modify configuration (#608, #246, #244).
- - The following config related functions: ``get_config_file``, ``search_standard_dirs`` (#674).
+ - The following config related functions: ``get_config``, ``search_standard_dirs`` (#674).
  - ``Project`` subclasses can no longer define a ``Job`` subclass to use (#588, #693).
- - The ``Collection`` class has been removed (#664, #667, #683).
+ - The ``Collection`` class (#664, #667, #683).
+ - The ``project`` CLI subcommand (#752).
+ - The ``--workspace`` option for the command line ``job`` subcommand (#752).
+ - The ability to call ``Project.workspace``, it is strictly a property now (#752).
+ - ``ProjectSchema.__call__``, ``ProjectSchema.detect`` (#752).
 
 Version 1
 =========
