@@ -102,7 +102,7 @@ class TestProject(TestProjectBase):
         assert p == self.project
 
     def test_str(self):
-        assert str(self.project) == self.project.root_directory()
+        assert str(self.project) == self.project.path
 
     def test_path(self):
         assert self._tmp_pr == self.project.path
@@ -261,64 +261,18 @@ class TestProject(TestProjectBase):
         assert len(statepoints) == len(list(self.project.find_jobs({})))
         assert 1 == len(list(self.project.find_jobs({"a": 0})))
         assert 0 == len(list(self.project.find_jobs({"a": 5})))
-        assert 1 == len(list(self.project.find_jobs({"a": 0}, None)))
-        assert 0 == len(list(self.project.find_jobs({"a": 5}, None)))
-        assert 1 == len(list(self.project.find_jobs({"a": 0}, doc_filter=None)))
-        assert 0 == len(list(self.project.find_jobs({"a": 5}, doc_filter=None)))
-        assert 1 == len(list(self.project.find_jobs(filter={"a": 0}, doc_filter=None)))
-        assert 0 == len(list(self.project.find_jobs(filter={"a": 5}, doc_filter=None)))
+        assert 1 == len(list(self.project.find_jobs({"a": 0})))
+        assert 0 == len(list(self.project.find_jobs({"a": 5})))
         assert 1 == len(list(self.project.find_jobs({"sp.a": 0})))
         assert 0 == len(list(self.project.find_jobs({"sp.a": 5})))
-        with pytest.warns(FutureWarning):
-            assert 1 == len(list(self.project.find_jobs(doc_filter={"b": 0})))
-        with pytest.warns(FutureWarning):
-            assert 0 == len(list(self.project.find_jobs(doc_filter={"b": 5})))
-        with pytest.warns(FutureWarning):
-            assert 1 == len(list(self.project.find_jobs(None, doc_filter={"b": 0})))
-        with pytest.warns(FutureWarning):
-            assert 0 == len(list(self.project.find_jobs(None, doc_filter={"b": 5})))
-        with pytest.warns(FutureWarning):
-            assert 1 == len(
-                list(self.project.find_jobs(filter=None, doc_filter={"b": 0}))
-            )
-        with pytest.warns(FutureWarning):
-            assert 0 == len(
-                list(self.project.find_jobs(filter=None, doc_filter={"b": 5}))
-            )
-        with pytest.warns(FutureWarning):
-            assert 1 == len(list(self.project.find_jobs(None, {"b": 0})))
-        with pytest.warns(FutureWarning):
-            assert 0 == len(list(self.project.find_jobs(None, {"b": 5})))
         assert 1 == len(list(self.project.find_jobs({"doc.b": 0})))
         assert 0 == len(list(self.project.find_jobs({"doc.b": 5})))
         assert 1 == len(list(self.project.find_jobs({"a": 0, "doc.b": 0})))
-        with pytest.warns(FutureWarning):
-            assert 1 == len(list(self.project.find_jobs({"a": 0}, {"b": 0})))
-        with pytest.warns(FutureWarning):
-            assert 1 == len(
-                list(self.project.find_jobs(filter={"a": 0}, doc_filter={"b": 0}))
-            )
-        with pytest.warns(FutureWarning):
-            assert 1 == len(list(self.project.find_jobs({"a": 0}, doc_filter={"b": 0})))
         assert 1 == len(list(self.project.find_jobs({"sp.a": 0, "doc.b": 0})))
         assert 0 == len(list(self.project.find_jobs({"a": 0, "doc.b": 5})))
-        with pytest.warns(FutureWarning):
-            assert 0 == len(list(self.project.find_jobs({"a": 0}, {"b": 5})))
-        with pytest.warns(FutureWarning):
-            assert 0 == len(
-                list(self.project.find_jobs(filter={"a": 0}, doc_filter={"b": 5}))
-            )
-        with pytest.warns(FutureWarning):
-            assert 0 == len(list(self.project.find_jobs({"a": 0}, doc_filter={"b": 5})))
         assert 0 == len(list(self.project.find_jobs({"sp.a": 0, "doc.b": 5})))
         assert 0 == len(list(self.project.find_jobs({"sp.a": 5, "doc.b": 0})))
         assert 0 == len(list(self.project.find_jobs({"sp.a": 5, "doc.b": 5})))
-        with pytest.raises(TypeError):
-            self.project.find_jobs({"a": 0}, {"b": 5}, "invalid positional arg")
-        with pytest.raises(TypeError):
-            self.project.find_jobs({"a": 0}, invalid_kwarg="invalid argument")
-        with pytest.raises(TypeError):
-            self.project.find_jobs({"a": 0}, {"b": 0}, doc_filter={"b": 0})
         for job in self.project.find_jobs():
             assert self.project.open_job(id=job.id).id == job.id
 
@@ -338,11 +292,6 @@ class TestProject(TestProjectBase):
         cursor_doc = self.project.find_jobs({"doc.test": True})
         for sp in statepoints:
             assert self.project.open_job(sp) in cursor_doc
-
-        with pytest.warns(FutureWarning):
-            cursor_doc = self.project.find_jobs(doc_filter={"test": True})
-            for sp in statepoints:
-                assert self.project.open_job(sp) in cursor_doc
 
     def test_find_jobs_arithmetic_operators(self):
         for i in range(10):
@@ -446,12 +395,10 @@ class TestProject(TestProjectBase):
         assert_result_len({"$and": [{"sp.a": 0}, {"doc.d": 1}]}, 0)
         assert_result_len({"$or": [{"sp.a": 0}, {"doc.d": 1}]}, 2)
 
-    @pytest.mark.filterwarnings("ignore:num_jobs")
-    def test_num_jobs(self):
+    def test_len_project(self):
         statepoints = [{"a": i} for i in range(5)]
         for sp in statepoints:
             self.project.open_job(sp).init()
-        assert len(statepoints) == self.project.num_jobs()
         assert len(statepoints) == len(self.project)
         assert len(statepoints) == len(self.project.find_jobs())
 
@@ -766,14 +713,8 @@ class TestProject(TestProjectBase):
             "f.f2",
         ):
             assert k in s
-            if "." in k:
-                with pytest.warns(FutureWarning):
-                    assert k.split(".") in s
-            # The following calls should not error out.
+            # The following call should not error out.
             s[k]
-            if "." in k:
-                with pytest.warns(FutureWarning):
-                    s[k.split(".")]
         repr(s)
         assert s.format() == str(s)
         s = self.project.detect_schema(exclude_const=True)
@@ -797,17 +738,6 @@ class TestProject(TestProjectBase):
             subset=[job.id for job in self.project.find_jobs({"a.$lt": 5})]
         )
         assert s == s_sub
-
-    @pytest.mark.filterwarnings("ignore:__call__")
-    def test_schema_eval(self):
-        for i in range(10):
-            for j in range(10):
-                self.project.open_job(dict(a=i, b=j)).init()
-        s = self.project.detect_schema()
-        assert s == s(self.project)
-        assert s == s([job.sp for job in self.project])
-        # Check that it works with iterables that can only be consumed once
-        assert s == s(job.sp for job in self.project)
 
     def test_schema_difference(self):
         def get_sp(i):
@@ -1008,57 +938,6 @@ class TestProject(TestProjectBase):
                 tmp_project.open_job(dict(a=i)).init()
             assert len(tmp_project) == 10
         assert not os.path.isdir(tmp_root_dir)
-
-
-class TestProjectNameDeprecations:
-    warning_context = pytest.warns(
-        FutureWarning, match="Project names were removed in signac 2.0"
-    )
-
-    @pytest.fixture(autouse=True)
-    def setUp(self, request):
-        self._tmp_dir = TemporaryDirectory()
-
-    def test_name_only_positional(self):
-        assert _CURRENT_VERSION < _VERSION_3
-        with self.warning_context:
-            project = signac.init_project("name", root=self._tmp_dir.name)
-
-        # Check that the name was stored as expected, and that trying to open
-        # again with a different name raises the expected exception.
-        assert "signac_project_name" in project.doc
-        with self.warning_context:
-            signac.init_project("name", root=self._tmp_dir.name)
-        with pytest.raises(ValueError, match="does not match the existing"):
-            with self.warning_context:
-                signac.init_project("new_name", root=self._tmp_dir.name)
-
-    def test_name_with_other_args_positional(self):
-        assert _CURRENT_VERSION < _VERSION_3
-        with pytest.raises(
-            TypeError, match="takes 0 positional arguments but 2 were given"
-        ):
-            signac.init_project("project", self._tmp_dir.name)
-
-    def test_name_only_keyword(self):
-        assert _CURRENT_VERSION < _VERSION_3
-        os.chdir(self._tmp_dir.name)
-        with self.warning_context:
-            project = signac.init_project(name="name")
-
-        # Check that the name was stored as expected, and that trying to open
-        # again with a different name raises the expected exception.
-        assert "signac_project_name" in project.doc
-        with self.warning_context:
-            signac.init_project(name="name")
-        with pytest.raises(ValueError, match="does not match the existing"):
-            with self.warning_context:
-                signac.init_project(name="new_name")
-
-    def test_name_with_other_args_keyword(self):
-        assert _CURRENT_VERSION < _VERSION_3
-        with pytest.raises(TypeError, match="got an unexpected keyword argument 'foo'"):
-            signac.init_project(name="project", foo="bar")
 
 
 class TestProjectExportImport(TestProjectBase):
@@ -2423,9 +2302,7 @@ class TestProjectSchema(TestProjectBase):
         assert version.parse(self.project.config["schema_version"]) < version.parse(
             impossibly_high_schema_version
         )
-        config = _read_config_file(
-            _get_project_config_fn(self.project.root_directory())
-        )
+        config = _read_config_file(_get_project_config_fn(self.project.path))
         config["schema_version"] = impossibly_high_schema_version
         config.write()
         with pytest.raises(IncompatibleSchemaVersion):
