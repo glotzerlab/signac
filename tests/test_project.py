@@ -711,6 +711,7 @@ class TestProject(TestProjectBase):
             "f.f2",
         ):
             assert k in s
+            # The following call should not error out.
             s[k]
         repr(s)
         assert s.format() == str(s)

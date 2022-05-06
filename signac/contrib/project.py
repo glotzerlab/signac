@@ -48,9 +48,6 @@ logger = logging.getLogger(__name__)
 JOB_ID_LENGTH = 32
 JOB_ID_REGEX = re.compile(f"[a-f0-9]{{{JOB_ID_LENGTH}}}")
 
-# Temporary default for project names until they are removed entirely in signac 2.0
-_DEFAULT_PROJECT_NAME = None
-
 
 class _ProjectConfig(Config):
     r"""Extends the project config to make it immutable.
@@ -128,8 +125,8 @@ class Project:
 
         # Prepare root directory and workspace paths.
         # os.path is used instead of pathlib.Path for performance.
-        self._root_directory = os.path.abspath(root)
-        self._workspace = os.path.join(self._root_directory, "workspace")
+        self._path = os.path.abspath(root)
+        self._workspace = os.path.join(self._path, "workspace")
 
         # Prepare workspace directory.
         if not os.path.isdir(self.workspace):
@@ -203,7 +200,7 @@ class Project:
     @property
     def path(self):
         """str: The path to the project directory."""
-        return self._root_directory
+        return self._path
 
     @property
     def workspace(self):

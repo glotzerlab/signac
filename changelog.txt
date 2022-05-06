@@ -43,8 +43,8 @@ Removed
  - The following config related functions: ``get_config``, ``search_standard_dirs`` (#674).
  - ``Project`` subclasses can no longer define a ``Job`` subclass to use (#588, #693).
  - The ``Collection`` class (#664, #667, #683).
- - The ``project`` command line command (#752).
- - The ``workspace parameter to the command line ``job`` command (#752).
+ - The ``project`` CLI subcommand (#752).
+ - The ``--workspace`` option for the command line ``job`` subcommand (#752).
  - The ability to call ``Project.workspace``, it is strictly a property now (#752).
  - ``ProjectSchema.__call__``, ``ProjectSchema.detect`` (#752).
 
