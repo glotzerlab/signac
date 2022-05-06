@@ -966,7 +966,7 @@ class TestJobDocument(TestJobBase):
         src_job.data[key] = d
         assert key in src_job.data
         assert len(src_job.data) == 1
-        src_job.sp = dst
+        src_job.statepoint = dst
         src_job = self.open_job(src)
         dst_job = self.open_job(dst)
         assert key in dst_job.document
@@ -976,9 +976,9 @@ class TestJobDocument(TestJobBase):
         assert len(dst_job.data) == 1
         assert key not in src_job.data
         with pytest.raises(RuntimeError):
-            src_job.sp = dst
+            src_job.statepoint = dst
         with pytest.raises(DestinationExistsError):
-            src_job.sp = dst
+            src_job.statepoint = dst
 
     @pytest.mark.skipif(not H5PY, reason="test requires the h5py package")
     def test_reset_statepoint_job_lazy_access(self):
@@ -1000,7 +1000,7 @@ class TestJobDocument(TestJobBase):
         # Check that the state point will be instantiated lazily during the
         # call to reset_statepoint
         assert src_job_by_id._statepoint_requires_init
-        src_job_by_id.sp = dst
+        src_job_by_id.statepoint = dst
         src_job = self.open_job(src)
         dst_job = self.open_job(dst)
         assert key in dst_job.document
@@ -1010,9 +1010,9 @@ class TestJobDocument(TestJobBase):
         assert len(dst_job.data) == 1
         assert key not in src_job.data
         with pytest.raises(RuntimeError):
-            src_job.sp = dst
+            src_job.statepoint = dst
         with pytest.raises(DestinationExistsError):
-            src_job.sp = dst
+            src_job.statepoint = dst
 
     @pytest.mark.filterwarnings("ignore:reset_statepoint")
     @pytest.mark.skipif(not H5PY, reason="test requires the h5py package")
@@ -1044,9 +1044,9 @@ class TestJobDocument(TestJobBase):
         assert len(dst_job.data) == 1
         assert key not in src_job.data
         with pytest.raises(RuntimeError):
-            src_job.reset_statepoint(dst)
+            src_job.statepoint = dst
         with pytest.raises(DestinationExistsError):
-            src_job.reset_statepoint(dst)
+            src_job.statepoint = dst
         with pytest.raises(KeyError):
             dst_job.update_statepoint(extension2)
         dst_job.update_statepoint(extension2, overwrite=True)
@@ -1444,7 +1444,7 @@ class TestJobOpenData(TestJobBase):
             src_job.data[key] = d
             assert key in src_job.data
             assert len(src_job.data) == 1
-        src_job.sp = dst
+        src_job.statepoint = dst
         src_job = self.open_job(src)
         dst_job = self.open_job(dst)
         with self.open_data(dst_job):
@@ -1453,9 +1453,9 @@ class TestJobOpenData(TestJobBase):
         with self.open_data(src_job):
             assert key not in src_job.data
         with pytest.raises(RuntimeError):
-            src_job.sp = dst
+            src_job.statepoint = dst
         with pytest.raises(DestinationExistsError):
-            src_job.sp = dst
+            src_job.statepoint = dst
 
     def test_update_statepoint(self):
         key = "move_job"
@@ -1482,9 +1482,9 @@ class TestJobOpenData(TestJobBase):
         with self.open_data(src_job):
             assert key not in src_job.data
         with pytest.raises(RuntimeError):
-            src_job.reset_statepoint(dst)
+            src_job.statepoint = dst
         with pytest.raises(DestinationExistsError):
-            src_job.reset_statepoint(dst)
+            src_job.statepoint = dst
         with pytest.raises(KeyError):
             dst_job.update_statepoint(extension2)
         dst_job.update_statepoint(extension2, overwrite=True)

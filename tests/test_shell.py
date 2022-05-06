@@ -92,13 +92,7 @@ class TestBasicShell:
 
     def test_init_project(self):
         self.call("python -m signac init".split())
-        assert signac.get_project().root_directory() == os.getcwd()
-
-    def test_project_workspace(self):
-        self.call("python -m signac init".split())
-        assert os.path.realpath(
-            self.call("python -m signac project --workspace".split()).strip()
-        ) == os.path.realpath(os.path.join(self.tmpdir.name, "workspace"))
+        assert signac.get_project().path == os.getcwd()
 
     def test_job_with_argument(self):
         self.call("python -m signac init".split())
@@ -113,9 +107,7 @@ class TestBasicShell:
             self.tmpdir.name, "workspace", "9bfd29df07674bc4aa960cf661b5acd2"
         )
         assert os.path.realpath(
-            self.call(
-                ["python", "-m", "signac", "job", "--workspace", '{"a": 0}']
-            ).strip()
+            self.call(["python", "-m", "signac", "job", "--path", '{"a": 0}']).strip()
         ) == os.path.realpath(wd_path)
 
     def test_job_with_argument_create_workspace(self):
@@ -795,7 +787,7 @@ class TestBasicShell:
         err = self.call("python -m signac config --local verify".split(), error=True)
         assert "Did not find a local configuration file" in err
 
-        self.call("python -m signac init my_project".split())
+        self.call("python -m signac init".split())
         err = self.call("python -m signac config --local verify".split(), error=True)
         assert "Passed" in err
 
