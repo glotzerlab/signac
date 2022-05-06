@@ -161,20 +161,6 @@ def find_with_filter(args):
     return project._find_job_ids(filter=filter_)
 
 
-def main_project(args):
-    """Handle project subcommand."""
-    warnings.warn(
-        "The `project` command is deprecated as of version 1.8 and will be removed in "
-        "version 2.0.",
-        FutureWarning,
-    )
-    project = get_project()
-    if args.workspace:
-        print(project.workspace)
-    else:
-        print(project)
-
-
 def main_job(args):
     """Handle job subcommand."""
     project = get_project()
@@ -190,13 +176,6 @@ def main_job(args):
     job = project.open_job(statepoint)
     if args.create:
         job.init()
-    if args.workspace:
-        warnings.warn(
-            "The `-w/--workspace` parameter is deprecated as of version 1.8 and will be removed in "
-            "version 2.0. Use -p/--path instead",
-            FutureWarning,
-        )
-        args.path = True
     if args.path:
         print(job.path)
     else:
@@ -354,7 +333,7 @@ def main_view(args):
 
 def main_init(args):
     """Handle init subcommand."""
-    init_project(name=args.project_id, root=os.getcwd())
+    init_project(root=os.getcwd())
     _print_err("Initialized project.")
 
 
@@ -550,7 +529,7 @@ def _main_import_interactive(project, origin, args):
                     python_version=sys.version,
                     signac_version=__version__,
                     job_banner="",
-                    root_path=project.root_directory(),
+                    root_path=project.path,
                     size=len(project),
                     origin=args.origin,
                 ),
@@ -891,7 +870,7 @@ def main_shell(args):
                     python_version=sys.version,
                     signac_version=__version__,
                     job_banner=f"\nJob:\t\t{job.id}" if job is not None else "",
-                    root_path=project.root_directory(),
+                    root_path=project.path,
                     size=len(project),
                 ),
             )
@@ -919,17 +898,7 @@ def main():
     subparsers = parser.add_subparsers()
 
     parser_init = subparsers.add_parser("init")
-    parser_init.add_argument("project_id", nargs="?", help=argparse.SUPPRESS)
     parser_init.set_defaults(func=main_init)
-
-    parser_project = subparsers.add_parser("project")
-    parser_project.add_argument(
-        "-w",
-        "--workspace",
-        action="store_true",
-        help="Print the project's workspace path instead of the project id.",
-    )
-    parser_project.set_defaults(func=main_project)
 
     parser_job = subparsers.add_parser("job")
     parser_job.add_argument(

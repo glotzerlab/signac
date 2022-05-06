@@ -19,8 +19,6 @@ from multiprocessing.pool import ThreadPool
 from tempfile import TemporaryDirectory
 from threading import RLock
 
-from packaging import version
-
 from ..common.config import (
     Config,
     _get_project_config_fn,
@@ -28,7 +26,6 @@ from ..common.config import (
     load_config,
     read_config_file,
 )
-from ..common.deprecation import deprecated
 from ..core.h5store import H5StoreManager
 from ..sync import sync_projects
 from ..synced_collections.backends.collection_json import BufferedJSONAttrDict
@@ -50,35 +47,6 @@ logger = logging.getLogger(__name__)
 
 JOB_ID_LENGTH = 32
 JOB_ID_REGEX = re.compile(f"[a-f0-9]{{{JOB_ID_LENGTH}}}")
-
-# The warning used for doc filter deprecation everywhere. Don't use
-# triple-quoted multi-line string to avoid inserting newlines.
-# (issue #725) TODO: In signac 2.0, remove all docstrings for doc_filter parameters. The
-# doc_filter parameters will only be preserved for backwards compatibility but
-# not advertised as part of the API in signac 2.0.
-DOC_FILTER_WARNING = (
-    "The doc_filter argument is deprecated as of version 1.7 and will be removed "
-    "in version 3.0. Users should instead use a filter with a 'doc.' prefix. For "
-    "example, `doc_filter={'foo': 'bar'}` is equivalent to `filter={'doc.foo': 'bar'}`. "
-    "See https://docs.signac.io/en/latest/query.html#query-namespaces for more "
-    "information."
-)
-
-# Temporary default for project names until they are removed entirely in signac 2.0
-_DEFAULT_PROJECT_NAME = None
-
-
-class _CallableString(str):
-    # A string object that returns itself when called. Introduced temporarily
-    # to support deprecating Project.workspace, which will become a property.
-    def __call__(self):
-        assert version.parse(__version__) < version.parse("2.0.0")
-        warnings.warn(
-            "This method will soon become a property and should be used "
-            "without the call operator (parentheses).",
-            FutureWarning,
-        )
-        return self
 
 
 class _ProjectConfig(Config):
@@ -157,10 +125,8 @@ class Project:
 
         # Prepare root directory and workspace paths.
         # os.path is used instead of pathlib.Path for performance.
-        self._root_directory = os.path.abspath(root)
-        self._workspace = _CallableString(
-            os.path.join(self._root_directory, "workspace")
-        )
+        self._path = os.path.abspath(root)
+        self._workspace = os.path.join(self._path, "workspace")
 
         # Prepare workspace directory.
         if not os.path.isdir(self.workspace):
@@ -169,7 +135,7 @@ class Project:
             except OSError:
                 logger.error(
                     "Error occurred while trying to create workspace directory for project at root "
-                    f"{self.root_directory()}."
+                    f"{self.path}."
                 )
                 raise
 
@@ -187,10 +153,10 @@ class Project:
         )
 
     def __str__(self):
-        return str(self.root_directory())
+        return str(self.path)
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({repr(self.root_directory())})"
+        return f"{self.__class__.__name__}({repr(self.path)})"
 
     def _repr_html_(self):
         """Project details in HTML format for use in IPython environment.
@@ -231,20 +197,10 @@ class Project:
         """
         return self._config
 
-    @deprecated(
-        deprecated_in="1.8",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Use Project.path instead.",
-    )
-    def root_directory(self):
-        """Alias for :attr:`~Project.path`."""
-        return self.path
-
     @property
     def path(self):
         """str: The path to the project directory."""
-        return self._root_directory
+        return self._path
 
     @property
     def workspace(self):
@@ -321,7 +277,7 @@ class Project:
             The joined path of project root directory and filename.
 
         """
-        return os.path.join(self.root_directory(), filename)
+        return os.path.join(self.path, filename)
 
     def isfile(self, filename):
         """Check if a filename exists in the project's root directory.
@@ -351,7 +307,7 @@ class Project:
         """
         with self._lock:
             if self._document is None:
-                fn_doc = os.path.join(self.root_directory(), self.FN_DOCUMENT)
+                fn_doc = os.path.join(self.path, self.FN_DOCUMENT)
                 self._document = BufferedJSONAttrDict(
                     filename=fn_doc, write_concern=True
                 )
@@ -431,7 +387,7 @@ class Project:
         """
         with self._lock:
             if self._stores is None:
-                self._stores = H5StoreManager(self.root_directory())
+                self._stores = H5StoreManager(self.path)
         return self._stores
 
     @property
@@ -566,23 +522,6 @@ class Project:
                 )
                 raise WorkspaceError(error)
 
-    @deprecated(
-        deprecated_in="1.8",
-        removed_in="2.0",
-        current_version=__version__,
-        details="The num_jobs method is deprecated. Use len(project) instead.",
-    )
-    def num_jobs(self):
-        """Return the number of initialized jobs.
-
-        Returns
-        -------
-        int
-            Count of initialized jobs.
-
-        """
-        return len(self)
-
     def __len__(self):
         # We simply count the the number of valid directories and avoid building a list
         # for improved performance.
@@ -695,7 +634,7 @@ class Project:
         )
         return list(index.find(filter))
 
-    def find_jobs(self, filter=None, *args, **kwargs):
+    def find_jobs(self, filter=None):
         """Find all jobs in the project's workspace.
 
         The filter argument must be a JSON-serializable Mapping of key-value
@@ -725,14 +664,7 @@ class Project:
             If the filters are invalid.
 
         """
-        doc_filter = next(iter(args), None) or kwargs.pop("doc_filter", None)
-        if len(args) > 1 or len(kwargs):
-            raise TypeError("Unsupported arguments were provided.")
-        filter = dict(parse_filter(_add_prefix("sp.", filter)))
-        if doc_filter:
-            warnings.warn(DOC_FILTER_WARNING, FutureWarning)
-            filter.update(parse_filter(_add_prefix("doc.", doc_filter)))
-        return JobsCursor(self, filter)
+        return JobsCursor(self, dict(parse_filter(_add_prefix("sp.", filter))))
 
     def __iter__(self):
         return iter(self.find_jobs())
@@ -1468,7 +1400,7 @@ class Project:
             yield tmp_project
 
     @classmethod
-    def init_project(cls, *args, root=None, **kwargs):
+    def init_project(cls, *, root=None):
         """Initialize a project in the provided root directory.
 
         It is safe to call this function multiple times with the same
@@ -1496,61 +1428,11 @@ class Project:
             configuration.
 
         """
-        # TODO: Remove both the `if args` and `if kwargs` blocks in version 3.0
-        # when we remove backwards compatibility for project name APIs.
-        name = None
-        # The key used to store project names in the project document.
-        name_key = "signac_project_name"
-        if args:
-            num_args = len(args)
-            if num_args == 1:
-                name = args[0]
-            else:
-                # Match the usual error from misusing keyword-only args.
-                raise TypeError(
-                    f"init_project() takes 0 positional arguments but {num_args} were given"
-                )
-        if kwargs:
-            name = kwargs.pop("name", None)
-            if kwargs:
-                # Match the usual error from extra keyword args.
-                raise TypeError(
-                    f"init_project() got an unexpected keyword argument '{next(iter(kwargs))}'"
-                )
-
-        if name is not None:
-            assert version.parse(__version__) < version.parse("3.0.0")
-            warnings.warn(
-                "Project names were removed in signac 2.0. If you intended to call "
-                "`init_project` with a root directory as the sole positional argument, please "
-                f"provide it as a keyword argument: `init_project(root={name})`. If your "
-                "project name contains important information, consider storing it in the "
-                "project document instead. The name provided will be stored in the project "
-                f"document with the key `{name_key}`. Calling `init_project` with a name will "
-                "become an error in signac 3.0.",
-                FutureWarning,
-            )
-
         if root is None:
             root = os.getcwd()
 
-        if name is not None:
-            warnings.warn(
-                "Project names are deprecated and will be removed in signac 2.0 in favor of using "
-                "the project root directory to identify projects. The name argument to "
-                "init_project should be removed.",
-                FutureWarning,
-            )
-        else:
-            name = _DEFAULT_PROJECT_NAME
         try:
             project = cls.get_project(root=root, search=False)
-            existing_name = project.doc.get(name_key)
-            if name is not None and name != existing_name:
-                raise ValueError(
-                    "The name provided to `init_project` does not match the existing "
-                    f"project document in which {name_key}={existing_name}."
-                )
         except LookupError:
             fn_config = _get_project_config_fn(root)
             _mkdir_p(os.path.dirname(fn_config))
@@ -1558,8 +1440,6 @@ class Project:
             config["schema_version"] = SCHEMA_VERSION
             config.write()
             project = cls.get_project(root=root)
-            if name is not None:
-                project.doc[name_key] = name
         return project
 
     @classmethod
@@ -1761,10 +1641,6 @@ class JobsCursor:
         # Replace empty filters with None for performance
         if self._filter == {}:
             self._filter = None
-
-        # This private attribute allows us to implement the deprecated
-        # next() method for this class.
-        self._next_iter = None
 
     def __eq__(self, other):
         return self._project == other._project and self._filter == other._filter
