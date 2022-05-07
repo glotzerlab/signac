@@ -16,7 +16,10 @@ from .errors import AuthenticationError, ConfigError
 logger = logging.getLogger(__name__)
 
 
-SESSION_PASSWORD_HASH_CACHE = SimpleKeyring()
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    SESSION_PASSWORD_HASH_CACHE = SimpleKeyring()
+
 SESSION_USERNAME_CACHE = {}  # type: ignore
 
 """
