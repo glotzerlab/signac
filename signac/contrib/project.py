@@ -78,13 +78,13 @@ class Project:
     A :class:`Project` may only be constructed in a directory that is already a
     signac project, i.e. a directory in which :func:`~signac.init_project` has
     already been run. If project discovery (searching upwards in the folder
-    hierarchy until a project root is discovered) is desired, users should
+    hierarchy until a project is discovered) is desired, users should
     instead invoke :func:`~signac.get_project` or :meth:`Project.get_project`.
 
     Parameters
     ----------
-    root : str, optional
-        The project root directory. By default, the current working directory
+    path : str, optional
+        The project directory. By default, the current working directory
         (Default value = None).
 
     """
@@ -100,17 +100,17 @@ class Project:
 
     _use_pandas_for_html_repr = True  # toggle use of pandas for html repr
 
-    def __init__(self, root=None):
-        if root is None:
-            root = os.getcwd()
-        if not os.path.isfile(_get_project_config_fn(root)):
+    def __init__(self, path=None):
+        if path is None:
+            path = os.getcwd()
+        if not os.path.isfile(_get_project_config_fn(path)):
             raise LookupError(
-                f"Unable to find project at path '{os.path.abspath(root)}'."
+                f"Unable to find project at path '{os.path.abspath(path)}'."
             )
 
-        # Project constructor does not search upward, so the provided root must
+        # Project constructor does not search upward, so the provided path must
         # be a project directory.
-        config = load_config(root)
+        config = load_config(path)
         self._config = _ProjectConfig(config)
         self._lock = RLock()
 
@@ -123,9 +123,9 @@ class Project:
         # Prepare project H5StoreManager
         self._stores = None
 
-        # Prepare root directory and workspace paths.
+        # Prepare project and workspace directories.
         # os.path is used instead of pathlib.Path for performance.
-        self._path = os.path.abspath(root)
+        self._path = os.path.abspath(path)
         self._workspace = os.path.join(self._path, "workspace")
 
         # Prepare workspace directory.
@@ -134,7 +134,7 @@ class Project:
                 _mkdir_p(self.workspace)
             except OSError:
                 logger.error(
-                    "Error occurred while trying to create workspace directory for project at root "
+                    "Error occurred while trying to create workspace directory for project at path "
                     f"{self.path}."
                 )
                 raise
@@ -264,7 +264,7 @@ class Project:
         return i
 
     def fn(self, filename):
-        """Prepend a filename with the project's root directory path.
+        """Prepend a filename with the project's path.
 
         Parameters
         ----------
@@ -274,13 +274,13 @@ class Project:
         Returns
         -------
         str
-            The joined path of project root directory and filename.
+            The joined path of project path and filename.
 
         """
         return os.path.join(self.path, filename)
 
     def isfile(self, filename):
-        """Check if a filename exists in the project's root directory.
+        """Check if a filename exists in the project directory.
 
         Parameters
         ----------
@@ -290,7 +290,7 @@ class Project:
         Returns
         -------
         bool
-            True if filename exists in the project's root directory.
+            True if filename exists in the project directory.
 
         """
         return os.path.isfile(self.fn(filename))
@@ -356,11 +356,11 @@ class Project:
     def stores(self):
         """Get HDF5-stores associated with this project.
 
-        Use this property to access an HDF5 file within the project's root
+        Use this property to access an HDF5 file within the project
         directory using the H5Store dict-like interface.
 
         This is an example for accessing an HDF5 file called ``'my_data.h5'``
-        within the project's root directory:
+        within the project directory:
 
         .. code-block:: python
 
@@ -1318,7 +1318,7 @@ class Project:
         """Update the persistent state point cache.
 
         This function updates a persistent state point cache, which
-        is stored in the project root directory. Most data space operations,
+        is stored in the project directory. Most data space operations,
         including iteration and filtering or selection are expected
         to be significantly faster after calling this function, especially
         for large data spaces.
@@ -1370,7 +1370,7 @@ class Project:
     def temporary_project(self, dir=None):
         """Context manager for the initialization of a temporary project.
 
-        The temporary project is by default created within the root project's
+        The temporary project is by default created within the parent project's
         workspace to ensure that they share the same file system. This is an example
         for how this method can be used for the import and synchronization of
         external data spaces.
@@ -1384,7 +1384,7 @@ class Project:
         Parameters
         ----------
         dir : str
-            Optionally specify where the temporary project root directory is to be
+            Optionally specify where the temporary project directory is to be
             created. Defaults to the project's workspace directory.
 
         Returns
@@ -1400,8 +1400,8 @@ class Project:
             yield tmp_project
 
     @classmethod
-    def init_project(cls, *, root=None):
-        """Initialize a project in the provided root directory.
+    def init_project(cls, path=None):
+        """Initialize a project in the provided directory.
 
         It is safe to call this function multiple times with the same
         arguments. However, a `RuntimeError` is raised if an existing project
@@ -1412,8 +1412,8 @@ class Project:
 
         Parameters
         ----------
-        root : str, optional
-            The root directory for the project.
+        path : str, optional
+            The directory for the project.
             Defaults to the current working directory.
 
         Returns
@@ -1424,38 +1424,38 @@ class Project:
         Raises
         ------
         RuntimeError
-            If the project root path already contains a conflicting project
+            If the project path already contains a conflicting project
             configuration.
 
         """
-        if root is None:
-            root = os.getcwd()
+        if path is None:
+            path = os.getcwd()
 
         try:
-            project = cls.get_project(root=root, search=False)
+            project = cls.get_project(path=path, search=False)
         except LookupError:
-            fn_config = _get_project_config_fn(root)
+            fn_config = _get_project_config_fn(path)
             _mkdir_p(os.path.dirname(fn_config))
             config = read_config_file(fn_config)
             config["schema_version"] = SCHEMA_VERSION
             config.write()
-            project = cls.get_project(root=root)
+            project = cls.get_project(path=path)
         return project
 
     @classmethod
-    def get_project(cls, root=None, search=True, **kwargs):
+    def get_project(cls, path=None, search=True, **kwargs):
         r"""Find a project configuration and return the associated project.
 
         Parameters
         ----------
-        root : str
+        path : str
             The starting point to search for a project, defaults to the
             current working directory.
         search : bool
             If True, search for project configurations inside and above
-            the specified root directory, otherwise only return projects
-            with a root directory identical to the specified root argument
-            (Default value = True).
+            the specified directory, otherwise only return projects with
+            a directory whose path is identical to the specified path
+            argument (Default value = True).
         \*\*kwargs :
             Optional keyword arguments that are forwarded to the
             :class:`.Project` class constructor.
@@ -1471,32 +1471,31 @@ class Project:
             When project configuration cannot be found.
 
         """
-        if root is None:
-            root = os.getcwd()
+        if path is None:
+            path = os.getcwd()
 
-        old_root = root
-        if not search and not os.path.isfile(_get_project_config_fn(root)):
-            root = None
+        old_path = path
+        if not search and not os.path.isfile(_get_project_config_fn(path)):
+            path = None
         else:
-            root = _locate_config_dir(root)
+            path = _locate_config_dir(path)
 
-        if not root:
+        if not path:
             raise LookupError(
-                f"Unable to find project at path '{os.path.abspath(old_root)}'."
+                f"Unable to find project at path '{os.path.abspath(old_path)}'."
             )
 
-        return cls(root=root, **kwargs)
+        return cls(path=path, **kwargs)
 
     @classmethod
-    def get_job(cls, root=None):
+    def get_job(cls, path=None):
         """Find a Job in or above the current working directory (or provided path).
 
         Parameters
         ----------
-        root : str
-            The job root directory.
-            If no root directory is given, the current working directory is
-            assumed to be the job directory (Default value = None).
+        path : str
+            The job directory. If no path is given, the current working
+            directory is used (Default value = None).
 
         Returns
         -------
@@ -1509,24 +1508,24 @@ class Project:
             When job cannot be found.
 
         """
-        if root is None:
-            root = os.getcwd()
-        root = os.path.abspath(root)
+        if path is None:
+            path = os.getcwd()
+        path = os.path.abspath(path)
 
-        # Ensure the root path exists, which is not guaranteed by the regex match
-        if not os.path.exists(root):
-            raise LookupError(f"Path does not exist: '{root}'.")
+        # Ensure the path exists, which is not guaranteed by the regex match
+        if not os.path.exists(path):
+            raise LookupError(f"Path does not exist: '{path}'.")
 
         # Find the last match instance of a job id
-        results = list(re.finditer(JOB_ID_REGEX, root))
+        results = list(re.finditer(JOB_ID_REGEX, path))
         if len(results) == 0:
-            raise LookupError(f"Could not find a job id in path '{root}'.")
+            raise LookupError(f"Could not find a job id in path '{path}'.")
         match = results[-1]
         job_id = match.group(0)
-        job_root = root[: match.end()]
+        job_path = path[: match.end()]
 
-        # Find a project *above* the root directory (avoid finding nested projects)
-        project = cls.get_project(os.path.join(job_root, os.pardir))
+        # Find a project *above* the path (avoid finding nested projects)
+        project = cls.get_project(os.path.join(job_path, os.pardir))
 
         # Return the matched job id from the found project
         return project.open_job(id=job_id)
@@ -1561,8 +1560,9 @@ def TemporaryProject(cls=None, **kwargs):
         The class of the temporary project.
         Defaults to :class:`~signac.Project`.
     \*\*kwargs :
-        Optional keyword arguments that are forwarded to the TemporaryDirectory class
-        constructor, which is used to create a temporary root directory.
+        Optional keyword arguments that are forwarded to the
+        TemporaryDirectory class constructor, which is used to create a
+        temporary project directory.
 
     Yields
     ------
@@ -1573,7 +1573,7 @@ def TemporaryProject(cls=None, **kwargs):
     if cls is None:
         cls = Project
     with TemporaryDirectory(**kwargs) as tmp_dir:
-        yield cls.init_project(root=tmp_dir)
+        yield cls.init_project(path=tmp_dir)
 
 
 def _skip_errors(iterable, log=print):
@@ -1999,7 +1999,7 @@ class JobsCursor:
         return repr(self) + self._repr_html_jobs()
 
 
-def init_project(*args, root=None, **kwargs):
+def init_project(path=None):
     """Initialize a project.
 
     It is safe to call this function multiple times with the same arguments.
@@ -2008,8 +2008,8 @@ def init_project(*args, root=None, **kwargs):
 
     Parameters
     ----------
-    root : str, optional
-        The root directory for the project.
+    path : str, optional
+        The directory for the project.
         Defaults to the current working directory.
 
     Returns
@@ -2020,26 +2020,25 @@ def init_project(*args, root=None, **kwargs):
     Raises
     ------
     RuntimeError
-        If the project root path already contains a conflicting project
+        If the project path already contains a conflicting project
         configuration.
 
     """
-    return Project.init_project(*args, root=root, **kwargs)
+    return Project.init_project(path=path)
 
 
-def get_project(root=None, search=True, **kwargs):
+def get_project(path=None, search=True, **kwargs):
     r"""Find a project configuration and return the associated project.
 
     Parameters
     ----------
-    root : str
+    path : str
         The starting point to search for a project, defaults to the current
         working directory.
     search : bool
         If True, search for project configurations inside and above the
-        specified root directory, otherwise only return projects with a root
-        directory identical to the specified root argument (Default value =
-        True).
+        specified path, otherwise only return a project in the specified
+        path (Default value = True).
     \*\*kwargs :
         Optional keyword arguments that are forwarded to
         :meth:`~signac.Project.get_project`.
@@ -2055,18 +2054,18 @@ def get_project(root=None, search=True, **kwargs):
         If no project configuration can be found.
 
     """
-    return Project.get_project(root=root, search=search, **kwargs)
+    return Project.get_project(path=path, search=search, **kwargs)
 
 
-def get_job(root=None):
+def get_job(path=None):
     """Find a Job in or above the current working directory (or provided path).
 
     Parameters
     ----------
-    root : str
-        The job root directory.
-        If no root directory is given, the current working directory is
-        assumed to be within the current job workspace directory (Default value = None).
+    path : str
+        The job directory. If no path is given, the current working
+        directory is assumed to be within the current job workspace
+        directory (Default value = None).
 
     Returns
     -------
@@ -2086,4 +2085,4 @@ def get_job(root=None):
     signac.contrib.job.Job(project=..., statepoint={...})
 
     """
-    return Project.get_job(root=root)
+    return Project.get_job(path=path)
