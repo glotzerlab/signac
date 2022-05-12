@@ -2064,8 +2064,8 @@ def get_job(path=None):
     ----------
     path : str
         The job directory. If no path is given, the current working
-        directory is assumed to be within the current job workspace
-        directory (Default value = None).
+        directory is assumed to be within the current job directory
+        (Default value = None).
 
     Returns
     -------
