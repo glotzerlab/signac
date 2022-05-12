@@ -77,9 +77,9 @@ class Project:
 
     A :class:`Project` may only be constructed in a directory that is already a
     signac project, i.e. a directory in which :func:`~signac.init_project` has
-    already been run. If project discovery (searching upwards in the folder
-    hierarchy until a project is discovered) is desired, users should
-    instead invoke :func:`~signac.get_project` or :meth:`Project.get_project`.
+    already been run. To search upwards in the folder hierarchy until a project
+    is found, instead invoke :func:`~signac.get_project` or
+    :meth:`Project.get_project`.
 
     Parameters
     ----------
@@ -2058,13 +2058,13 @@ def get_project(path=None, search=True, **kwargs):
 
 
 def get_job(path=None):
-    """Find a Job in or above the current working directory (or provided path).
+    """Find a Job in or above the provided path (or the current working directory).
 
     Parameters
     ----------
     path : str
-        The job directory. If no path is given, the current working
-        directory is assumed to be within the current job directory
+        The job directory. If no path is given, returns the job whose directory
+        is the current working directory.
         (Default value = None).
 
     Returns
