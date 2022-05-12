@@ -839,7 +839,7 @@ class Project:
 
         Similar to :meth:`~signac.Project.export_to`, this function expands the data space
         for the selected jobs, but instead of copying data will create symbolic links to the
-        individual job workspace directories. This is primarily useful for browsing through
+        individual job directories. This is primarily useful for browsing through
         the data space using a file-browser with human-interpretable directory paths.
 
         By default, the paths of the view will be based on variable state point keys as part
