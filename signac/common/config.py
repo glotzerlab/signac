@@ -24,7 +24,7 @@ def _get_project_config_fn(path):
 
 
 def _locate_config_dir(search_path):
-    """Locates root directory containing a signac configuration file in a directory hierarchy.
+    """Locates directory containing a signac configuration file in a directory hierarchy.
 
     Parameters
     ----------
@@ -34,17 +34,17 @@ def _locate_config_dir(search_path):
     Returns
     --------
     str or None
-        The root directory containing the configuration file if one is found, otherwise None.
+        The directory containing the configuration file if one is found, otherwise None.
     """
-    root = os.path.abspath(search_path)
+    search_path = os.path.abspath(search_path)
     while True:
-        if os.path.isfile(_get_project_config_fn(root)):
-            return root
-        if (up := os.path.dirname(root)) == root:
+        if os.path.isfile(_get_project_config_fn(search_path)):
+            return search_path
+        if (up := os.path.dirname(search_path)) == search_path:
             logger.debug("Reached filesystem root, no config found.")
             return None
         else:
-            root = up
+            search_path = up
 
 
 def read_config_file(filename):
