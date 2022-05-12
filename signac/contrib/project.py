@@ -2079,7 +2079,7 @@ def get_job(path=None):
 
     Examples
     --------
-    When the current directory is a job workspace directory:
+    When the current directory is a job directory:
 
     >>> signac.get_job()
     signac.contrib.job.Job(project=..., statepoint={...})
