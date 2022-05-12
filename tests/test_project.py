@@ -2242,7 +2242,7 @@ class TestProjectInit:
 
     def test_get_job_nested_project_subdir(self):
         # Test case: Get a job from a sub-directory of the job workspace dir
-        # when the job workspace is also a project dir.
+        # when the job directory is also a project directory
         path = self._tmp_dir.name
         project = signac.init_project(path=path)
         job = project.open_job({"a": 1})
