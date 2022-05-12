@@ -264,7 +264,7 @@ class Project:
         return i
 
     def fn(self, filename):
-        """Prepend a filename with the project's path.
+        """Prepend a filename with the project path.
 
         Parameters
         ----------
@@ -274,13 +274,13 @@ class Project:
         Returns
         -------
         str
-            The joined path of project path and filename.
+            The absolute path of the file.
 
         """
         return os.path.join(self.path, filename)
 
     def isfile(self, filename):
-        """Check if a filename exists in the project directory.
+        """Check if a filename exists in the project path.
 
         Parameters
         ----------
@@ -290,7 +290,7 @@ class Project:
         Returns
         -------
         bool
-            True if filename exists in the project directory.
+            True if filename exists in the project path.
 
         """
         return os.path.isfile(self.fn(filename))
