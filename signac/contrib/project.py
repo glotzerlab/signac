@@ -2063,8 +2063,7 @@ def get_job(path=None):
     Parameters
     ----------
     path : str
-        The job directory. If no path is given, returns the job whose directory
-        is the current working directory.
+        The path from which to search. Returns the first job found in or above this path.
         (Default value = None).
 
     Returns
