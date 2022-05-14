@@ -303,7 +303,7 @@ def sync_jobs(
         callable with signature ``strategy(src, dst, filepath)`` where ``src``
         and ``dst`` are the source and destination instances of
         :py:class:`~signac.Project` and ``filepath`` is the filepath relative
-        to the project root. If no strategy is provided, a
+        to the project path. If no strategy is provided, a
         :class:`.errors.SyncConflict` exception will be raised upon conflict.
         (Default value = None)
     exclude : str
@@ -435,7 +435,7 @@ def sync_projects(
         callable with signature ``strategy(src, dst, filepath)`` where ``src``
         and ``dst`` are the source and destination instances of
         :py:class:`~signac.Project` and ``filepath`` is the filepath relative
-        to the project root. If no strategy is provided, a
+        to the project path. If no strategy is provided, a
         :class:`.errors.SyncConflict` exception will be raised upon conflict.
         (Default value = None)
     exclude : str
