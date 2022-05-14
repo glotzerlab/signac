@@ -818,7 +818,7 @@ class Job:
         )
 
     def fn(self, filename):
-        """Prepend a filename with the job's workspace directory path.
+        """Prepend a filename with the job path.
 
         Parameters
         ----------
@@ -828,13 +828,13 @@ class Job:
         Returns
         -------
         str
-            The full workspace path of the file.
+            The absolute path to the file.
 
         """
         return os.path.join(self.path, filename)
 
     def isfile(self, filename):
-        """Return True if file exists in the job's workspace.
+        """Check if a filename exists in the job directory.
 
         Parameters
         ----------
@@ -844,7 +844,7 @@ class Job:
         Returns
         -------
         bool
-            True if file with filename exists in workspace.
+            True if filename exists in the job directory.
 
         """
         return os.path.isfile(self.fn(filename))
