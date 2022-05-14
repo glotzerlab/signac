@@ -291,7 +291,7 @@ class TestBasicShell:
     def test_clone(self):
         self.call("python -m signac init".split())
         project_a = signac.Project()
-        project_b = signac.init_project(root=os.path.join(self.tmpdir.name, "b"))
+        project_b = signac.init_project(path=os.path.join(self.tmpdir.name, "b"))
         job = project_a.open_job({"a": 0})
         job.init()
         assert len(project_a) == 1
@@ -333,7 +333,7 @@ class TestBasicShell:
     def test_move(self):
         self.call("python -m signac init".split())
         project_a = signac.Project()
-        project_b = signac.init_project(root=os.path.join(self.tmpdir.name, "b"))
+        project_b = signac.init_project(path=os.path.join(self.tmpdir.name, "b"))
         job = project_a.open_job({"a": 0})
         job.init()
         assert len(project_a) == 1
@@ -415,7 +415,7 @@ class TestBasicShell:
         assert s.format() == out.strip().replace(os.linesep, "\n")
 
     def test_sync(self):
-        project_b = signac.init_project(root=os.path.join(self.tmpdir.name, "b"))
+        project_b = signac.init_project(path=os.path.join(self.tmpdir.name, "b"))
         self.call("python -m signac init".split())
         project_a = signac.Project()
         for i in range(4):
@@ -460,7 +460,7 @@ class TestBasicShell:
             )
 
     def test_sync_merge(self):
-        project_b = signac.init_project(root=os.path.join(self.tmpdir.name, "b"))
+        project_b = signac.init_project(path=os.path.join(self.tmpdir.name, "b"))
         self.call("python -m signac init".split())
         project_a = signac.Project()
         for i in range(4):
@@ -493,7 +493,7 @@ class TestBasicShell:
     def test_sync_document(self):
         self.call("python -m signac init".split())
         project_a = signac.Project()
-        project_b = signac.init_project(root=os.path.join(self.tmpdir.name, "b"))
+        project_b = signac.init_project(path=os.path.join(self.tmpdir.name, "b"))
         job_src = project_a.open_job({"a": 0})
         job_dst = project_b.open_job({"a": 0})
 
@@ -563,7 +563,7 @@ class TestBasicShell:
     def test_sync_file(self):
         self.call("python -m signac init".split())
         project_a = signac.Project()
-        project_b = signac.init_project(root=os.path.join(self.tmpdir.name, "b"))
+        project_b = signac.init_project(path=os.path.join(self.tmpdir.name, "b"))
         job_src = project_a.open_job({"a": 0}).init()
         job_dst = project_b.open_job({"a": 0}).init()
         for i, job in enumerate([job_src, job_dst]):
@@ -641,7 +641,7 @@ class TestBasicShell:
             )
 
     def test_import_sync(self):
-        project_b = signac.init_project(root=os.path.join(self.tmpdir.name, "b"))
+        project_b = signac.init_project(path=os.path.join(self.tmpdir.name, "b"))
         self.call("python -m signac init".split())
         prefix_data = os.path.join(self.tmpdir.name, "data")
         project_a = signac.Project()

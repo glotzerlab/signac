@@ -19,35 +19,32 @@ USER_CONFIG_FN = os.path.expanduser(os.path.join("~", ".signacrc"))
 # functions from the public API.
 
 
-def _get_project_config_fn(root):
-    return os.path.abspath(os.path.join(root, PROJECT_CONFIG_FN))
+def _get_project_config_fn(path):
+    return os.path.abspath(os.path.join(path, PROJECT_CONFIG_FN))
 
 
 def _locate_config_dir(search_path):
-    """Locates root directory containing a signac configuration file in a directory hierarchy.
+    """Locates directory containing a signac configuration file in a directory hierarchy.
 
     Parameters
     ----------
-    root : str
+    search_path : str
         Starting path to search.
 
     Returns
     --------
     str or None
-        The root directory containing the configuration file if one is found, otherwise None.
+        The directory containing the configuration file if one is found, otherwise None.
     """
-    root = os.path.abspath(search_path)
+    search_path = os.path.abspath(search_path)
     while True:
-        if os.path.isfile(_get_project_config_fn(root)):
-            return root
-        # TODO: Could use the walrus operator here when we completely drop
-        # Python 3.7 support if we like the operator.
-        up = os.path.dirname(root)
-        if up == root:
+        if os.path.isfile(_get_project_config_fn(search_path)):
+            return search_path
+        if (up := os.path.dirname(search_path)) == search_path:
             logger.debug("Reached filesystem root, no config found.")
             return None
         else:
-            root = up
+            search_path = up
 
 
 def _read_config_file(filename):
@@ -81,12 +78,12 @@ def _read_config_file(filename):
     return config
 
 
-def _load_config(root=None):
+def _load_config(path=None):
     """Load configuration from a project directory.
 
     Parameters
     ----------
-    root : str
+    path : str
         The project path to pull project-local configuration data from.
 
     Returns
@@ -96,8 +93,8 @@ def _load_config(root=None):
         config data if requested. Note that because this config is a composite,
         modifications to the returned value will not be reflected in the files.
     """
-    if root is None:
-        root = os.getcwd()
+    if path is None:
+        path = os.getcwd()
     config = Config(configspec=cfg.split("\n"))
 
     # Add in any global or user config files. For now this only finds user-specific
@@ -106,8 +103,8 @@ def _load_config(root=None):
         if os.path.isfile(fn):
             config.merge(_read_config_file(fn))
 
-    if os.path.isfile(_get_project_config_fn(root)):
-        config.merge(_read_config_file(_get_project_config_fn(root)))
+    if os.path.isfile(_get_project_config_fn(path)):
+        config.merge(_read_config_file(_get_project_config_fn(path)))
     return config
 
 
