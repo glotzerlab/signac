@@ -104,7 +104,7 @@ class TestProject(TestProjectBase):
     def test_str(self):
         assert str(self.project) == self.project.path
 
-    def test_root_directory(self):
+    def test_path(self):
         assert self._tmp_pr == self.project.path
 
     def test_workspace_directory(self):
@@ -139,7 +139,7 @@ class TestProject(TestProjectBase):
         self.project.document["a"] = 42
         assert len(self.project.document) == 1
         assert self.project.document
-        prj2 = type(self.project).get_project(root=self.project.path)
+        prj2 = type(self.project).get_project(path=self.project.path)
         assert prj2.document
         assert len(prj2.document) == 1
         self.project.document.clear()
@@ -160,7 +160,7 @@ class TestProject(TestProjectBase):
         self.project.doc["a"] = 42
         assert len(self.project.doc) == 1
         assert self.project.doc
-        prj2 = type(self.project).get_project(root=self.project.path)
+        prj2 = type(self.project).get_project(path=self.project.path)
         assert prj2.doc
         assert len(prj2.doc) == 1
         self.project.doc.clear()
@@ -184,7 +184,7 @@ class TestProject(TestProjectBase):
             self.project.data["a"] = 42
             assert len(self.project.data) == 1
             assert self.project.data
-        prj2 = type(self.project).get_project(root=self.project.path)
+        prj2 = type(self.project).get_project(path=self.project.path)
         with prj2.data:
             assert prj2.data
             assert len(prj2.data) == 1
@@ -221,7 +221,7 @@ class TestProject(TestProjectBase):
     @pytest.mark.skipif(WINDOWS, reason="Symbolic links are unsupported on Windows.")
     def test_workspace_broken_link_error_on_find(self):
         with TemporaryDirectory() as tmp_dir:
-            project = self.project_class.init_project(root=tmp_dir)
+            project = self.project_class.init_project(path=tmp_dir)
             os.rmdir(project.workspace)
             os.symlink(
                 os.path.join(tmp_dir, "workspace~"),
@@ -601,7 +601,7 @@ class TestProject(TestProjectBase):
         class CustomProject(signac.Project):
             pass
 
-        project = CustomProject.get_project(root=self.project.path)
+        project = CustomProject.get_project(path=self.project.path)
         assert isinstance(project, signac.Project)
         assert isinstance(project, CustomProject)
 
@@ -619,9 +619,9 @@ class TestProject(TestProjectBase):
         assert job in cursor
 
     def test_job_move(self):
-        root = self._tmp_dir.name
-        project_a = signac.init_project(root=os.path.join(root, "a"))
-        project_b = signac.init_project(root=os.path.join(root, "b"))
+        path = self._tmp_dir.name
+        project_a = signac.init_project(path=os.path.join(path, "a"))
+        project_b = signac.init_project(path=os.path.join(path, "b"))
         job = project_a.open_job(dict(a=0))
         job_b = project_b.open_job(dict(a=0))
         assert job != job_b
@@ -648,9 +648,9 @@ class TestProject(TestProjectBase):
         assert job_.document["a"] == 0
 
     def test_job_clone(self):
-        root = self._tmp_dir.name
-        project_a = signac.init_project(root=os.path.join(root, "a"))
-        project_b = signac.init_project(root=os.path.join(root, "b"))
+        path = self._tmp_dir.name
+        project_a = signac.init_project(path=os.path.join(path, "a"))
+        project_b = signac.init_project(path=os.path.join(path, "b"))
         job_a = project_a.open_job(dict(a=0))
         assert job_a not in project_a
         assert job_a not in project_b
@@ -930,12 +930,12 @@ class TestProject(TestProjectBase):
     def test_temp_project(self):
         with self.project.temporary_project() as tmp_project:
             assert len(tmp_project) == 0
-            tmp_root_dir = tmp_project.path
-            assert os.path.isdir(tmp_root_dir)
+            tmp_path = tmp_project.path
+            assert os.path.isdir(tmp_path)
             for i in range(10):  # init some jobs
                 tmp_project.open_job(dict(a=i)).init()
             assert len(tmp_project) == 10
-        assert not os.path.isdir(tmp_root_dir)
+        assert not os.path.isdir(tmp_path)
 
 
 class TestProjectExportImport(TestProjectBase):
@@ -2109,87 +2109,87 @@ class TestProjectInit:
         request.addfinalizer(self._tmp_dir.cleanup)
 
     def test_get_project(self):
-        root = self._tmp_dir.name
+        path = self._tmp_dir.name
         with pytest.raises(LookupError):
-            signac.get_project(root=root)
-        project = signac.init_project(root=root)
-        assert project.workspace == os.path.join(root, "workspace")
-        assert project.path == root
-        project = signac.Project.init_project(root=root)
-        assert project.workspace == os.path.join(root, "workspace")
-        assert project.path == root
-        project = signac.get_project(root=root)
-        assert project.workspace == os.path.join(root, "workspace")
-        assert project.path == root
-        project = signac.Project.get_project(root=root)
-        assert project.workspace == os.path.join(root, "workspace")
-        assert project.path == root
+            signac.get_project(path=path)
+        project = signac.init_project(path=path)
+        assert project.workspace == os.path.join(path, "workspace")
+        assert project.path == path
+        project = signac.Project.init_project(path=path)
+        assert project.workspace == os.path.join(path, "workspace")
+        assert project.path == path
+        project = signac.get_project(path=path)
+        assert project.workspace == os.path.join(path, "workspace")
+        assert project.path == path
+        project = signac.Project.get_project(path=path)
+        assert project.workspace == os.path.join(path, "workspace")
+        assert project.path == path
 
     def test_get_project_non_local(self):
-        root = self._tmp_dir.name
-        subdir = os.path.join(root, "subdir")
+        path = self._tmp_dir.name
+        subdir = os.path.join(path, "subdir")
         os.mkdir(subdir)
-        project = signac.init_project(root=root)
-        assert project == project.get_project(root=root)
-        assert project == signac.get_project(root=root)
-        assert project == project.get_project(root=root, search=False)
-        assert project == signac.get_project(root=root, search=False)
-        assert project == project.get_project(root=os.path.relpath(root), search=False)
-        assert project == signac.get_project(root=os.path.relpath(root), search=False)
+        project = signac.init_project(path=path)
+        assert project == project.get_project(path=path)
+        assert project == signac.get_project(path=path)
+        assert project == project.get_project(path=path, search=False)
+        assert project == signac.get_project(path=path, search=False)
+        assert project == project.get_project(path=os.path.relpath(path), search=False)
+        assert project == signac.get_project(path=os.path.relpath(path), search=False)
         with pytest.raises(LookupError):
-            assert project == project.get_project(root=subdir, search=False)
+            assert project == project.get_project(path=subdir, search=False)
         with pytest.raises(LookupError):
-            assert project == signac.get_project(root=subdir, search=False)
-        assert project == project.get_project(root=subdir, search=True)
-        assert project == signac.get_project(root=subdir, search=True)
+            assert project == signac.get_project(path=subdir, search=False)
+        assert project == project.get_project(path=subdir, search=True)
+        assert project == signac.get_project(path=subdir, search=True)
 
     def test_init(self):
-        root = self._tmp_dir.name
+        path = self._tmp_dir.name
         with pytest.raises(LookupError):
-            signac.get_project(root=root)
-        project = signac.init_project(root=root)
-        assert project.workspace == os.path.join(root, "workspace")
-        assert project.path == root
+            signac.get_project(path=path)
+        project = signac.init_project(path=path)
+        assert project.workspace == os.path.join(path, "workspace")
+        assert project.path == path
         # Second initialization should not make any difference.
-        project = signac.init_project(root=root)
-        project = signac.get_project(root=root)
-        assert project.workspace == os.path.join(root, "workspace")
-        assert project.path == root
-        project = signac.Project.get_project(root=root)
-        assert project.workspace == os.path.join(root, "workspace")
-        assert project.path == root
+        project = signac.init_project(path=path)
+        project = signac.get_project(path=path)
+        assert project.workspace == os.path.join(path, "workspace")
+        assert project.path == path
+        project = signac.Project.get_project(path=path)
+        assert project.workspace == os.path.join(path, "workspace")
+        assert project.path == path
 
     def test_nested_project(self):
-        def check_root(root=None):
-            if root is None:
-                root = os.getcwd()
+        def check_path(path=None):
+            if path is None:
+                path = os.getcwd()
             assert os.path.realpath(
-                signac.get_project(root=root).path
-            ) == os.path.realpath(root)
+                signac.get_project(path=path).path
+            ) == os.path.realpath(path)
 
-        root = self._tmp_dir.name
-        root_a = os.path.join(root, "project_a")
-        root_b = os.path.join(root_a, "project_b")
-        signac.init_project(root=root_a)
-        check_root(root_a)
-        signac.init_project(root=root_b)
-        check_root(root_b)
+        path = self._tmp_dir.name
+        path_a = os.path.join(path, "project_a")
+        path_b = os.path.join(path_a, "project_b")
+        signac.init_project(path=path_a)
+        check_path(path_a)
+        signac.init_project(path=path_b)
+        check_path(path_b)
         cwd = os.getcwd()
         try:
-            os.chdir(root_a)
-            check_root()
+            os.chdir(path_a)
+            check_path()
         finally:
             os.chdir(cwd)
         try:
-            os.chdir(root_b)
-            check_root()
+            os.chdir(path_b)
+            check_path()
         finally:
             os.chdir(cwd)
 
     def test_get_job_valid_workspace(self):
-        # Test case: The root-path is the job workspace path.
-        root = self._tmp_dir.name
-        project = signac.init_project(root=root)
+        # Test case: The path is the job workspace path.
+        path = self._tmp_dir.name
+        project = signac.init_project(path=path)
         job = project.open_job({"a": 1})
         job.init()
         with job:
@@ -2198,9 +2198,9 @@ class TestProjectInit:
             assert signac.get_job() == job
 
     def test_get_job_invalid_workspace(self):
-        # Test case: The root-path is not the job workspace path.
-        root = self._tmp_dir.name
-        project = signac.init_project(root=root)
+        # Test case: The path is not the job workspace path.
+        path = self._tmp_dir.name
+        project = signac.init_project(path=path)
         job = project.open_job({"a": 1})
         job.init()
         # We shouldn't be able to find a job while in the workspace directory,
@@ -2216,9 +2216,9 @@ class TestProjectInit:
             os.chdir(cwd)
 
     def test_get_job_nested_project(self):
-        # Test case: The job workspace dir is also a project root dir.
-        root = self._tmp_dir.name
-        project = signac.init_project(root=root)
+        # Test case: The job workspace dir is also a project dir.
+        path = self._tmp_dir.name
+        project = signac.init_project(path=path)
         job = project.open_job({"a": 1})
         job.init()
         with job:
@@ -2229,8 +2229,8 @@ class TestProjectInit:
 
     def test_get_job_subdir(self):
         # Test case: Get a job from a sub-directory of the job workspace dir.
-        root = self._tmp_dir.name
-        project = signac.init_project(root=root)
+        path = self._tmp_dir.name
+        project = signac.init_project(path=path)
         job = project.open_job({"a": 1})
         job.init()
         with job:
@@ -2242,9 +2242,9 @@ class TestProjectInit:
 
     def test_get_job_nested_project_subdir(self):
         # Test case: Get a job from a sub-directory of the job workspace dir
-        # when the job workspace is also a project root dir
-        root = self._tmp_dir.name
-        project = signac.init_project(root=root)
+        # when the job directory is also a project directory
+        path = self._tmp_dir.name
+        project = signac.init_project(path=path)
         job = project.open_job({"a": 1})
         job.init()
         with job:
@@ -2259,13 +2259,13 @@ class TestProjectInit:
     @pytest.mark.skipif(WINDOWS, reason="Symbolic links are unsupported on Windows.")
     def test_get_job_symlink_other_project(self):
         # Test case: Get a job from a symlink in another project workspace
-        root = self._tmp_dir.name
-        project_a_dir = os.path.join(root, "project_a")
-        project_b_dir = os.path.join(root, "project_b")
+        path = self._tmp_dir.name
+        project_a_dir = os.path.join(path, "project_a")
+        project_b_dir = os.path.join(path, "project_b")
         os.mkdir(project_a_dir)
         os.mkdir(project_b_dir)
-        project_a = signac.init_project(root=project_a_dir)
-        project_b = signac.init_project(root=project_b_dir)
+        project_a = signac.init_project(path=project_a_dir)
+        project_b = signac.init_project(path=project_b_dir)
         job_a = project_a.open_job({"a": 1})
         job_a.init()
         job_b = project_b.open_job({"b": 1})
@@ -2290,7 +2290,7 @@ class TestProjectSchema(TestProjectBase):
         config["schema_version"] = impossibly_high_schema_version
         config.write()
         with pytest.raises(IncompatibleSchemaVersion):
-            signac.init_project(root=self.project.path)
+            signac.init_project(path=self.project.path)
 
         # Ensure that migration fails on an unsupported version.
         with pytest.raises(RuntimeError):
@@ -2369,7 +2369,7 @@ class TestSchemaMigration:
                 apply_migrations(dirname)
             config = load_config(dirname)
             assert config["schema_version"] == "2"
-            project = signac.get_project(root=dirname)
+            project = signac.get_project(path=dirname)
             assert project.config["schema_version"] == "2"
             assert "OK" in err.getvalue()
             assert "0 to 1" in err.getvalue()
@@ -2427,7 +2427,7 @@ class TestProjectStoreBase(test_h5store.TestH5StoreBase):
         self._tmp_pr = os.path.join(self._tmp_dir.name, "pr")
         os.mkdir(self._tmp_pr)
         self.config = load_config()
-        self.project = self.project_class.init_project(root=self._tmp_pr)
+        self.project = self.project_class.init_project(path=self._tmp_pr)
 
         self._fn_store = os.path.join(self._tmp_dir.name, "signac_data.h5")
         self._fn_store_other = os.path.join(self._tmp_dir.name, "other.h5")

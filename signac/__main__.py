@@ -73,7 +73,7 @@ Total transfer volume:       {stats.volume}
 SHELL_BANNER = """Python {python_version}
 signac {signac_version} 🎨
 
-Project:\t{root_path}{job_banner}
+Project:\t{path}{job_banner}
 Size:\t\t{size}
 
 Interact with the project interface using the "project" or "pr" variable.
@@ -230,7 +230,7 @@ def main_remove(args):
 def main_move(args):
     """Handle move subcommand."""
     project = get_project()
-    dst_project = get_project(root=args.project)
+    dst_project = get_project(path=args.project)
     for job_id in args.job_id:
         try:
             job = _open_job_by_id(project, job_id)
@@ -244,7 +244,7 @@ def main_move(args):
 def main_clone(args):
     """Handle clone subcommand."""
     project = get_project()
-    dst_project = get_project(root=args.project)
+    dst_project = get_project(path=args.project)
     for job_id in args.job_id:
         try:
             job = _open_job_by_id(project, job_id)
@@ -333,7 +333,7 @@ def main_view(args):
 
 def main_init(args):
     """Handle init subcommand."""
-    init_project(root=os.getcwd())
+    init_project(path=os.getcwd())
     _print_err("Initialized project.")
 
 
@@ -397,9 +397,9 @@ def main_sync(args):
     # Setup synchronization process
     #
 
-    source = get_project(root=args.source)
+    source = get_project(path=args.source)
     try:
-        destination = get_project(root=args.destination)
+        destination = get_project(path=args.destination)
     except LookupError:
         _print_err("WARNING: The destination does not appear to be a project path.")
         raise
@@ -529,7 +529,7 @@ def _main_import_interactive(project, origin, args):
                     python_version=sys.version,
                     signac_version=__version__,
                     job_banner="",
-                    root_path=project.path,
+                    path=project.path,
                     size=len(project),
                     origin=args.origin,
                 ),
@@ -870,7 +870,7 @@ def main_shell(args):
                     python_version=sys.version,
                     signac_version=__version__,
                     job_banner=f"\nJob:\t\t{job.id}" if job is not None else "",
-                    root_path=project.path,
+                    path=project.path,
                     size=len(project),
                 ),
             )
@@ -1085,7 +1085,7 @@ def main():
     parser_move.add_argument(
         "project",
         type=str,
-        help="The root directory of the project to move one or more jobs to.",
+        help="The destination project directory.",
     )
     parser_move.add_argument(
         "job_id",
@@ -1099,7 +1099,7 @@ def main():
     parser_clone.add_argument(
         "project",
         type=str,
-        help="The root directory of the project to clone one or more jobs in.",
+        help="The directory of the project to clone one or more jobs in.",
     )
     parser_clone.add_argument(
         "job_id",
@@ -1322,12 +1322,12 @@ job documents."
     )
     parser_sync.add_argument(
         "source",
-        help="The root directory of the project that this project should be synchronized with.",
+        help="The directory of the project that this project should be synchronized with.",
     )
     parser_sync.add_argument(
         "destination",
         nargs="?",
-        help="Optional: The root directory of the project that should be modified for "
+        help="Optional: The directory of the project that should be modified for "
         "synchronization, defaults to the local project.",
     )
     _add_verbosity_argument(parser_sync, default=2)
