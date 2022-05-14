@@ -22,6 +22,7 @@ Changed
    - Projects no longer have names and are identified solely by their root directories. This change also affects a number of public APIs where names are including, most prominently ``signac.init_project`` and ``Project.init_project``. Projects can now be constructed with just a root directory rather than a preloaded config (#677, #684, #706).
    - Project workspaces are no longer configurable, but are instead always defined as a subdirectory of the Project's root directory called ``workspace`` (#714).
  - Rather than searching upwards until the root, ``load_config`` will only load configuration files in the specified directory, which is assumed to be a project directory, as well as the user's home directory (#711).
+ - Changed the ``root`` parameter to ``path`` in the ``signac.get_project`` and ``signac.init_project`` functions and corresponding ``Project`` methods (#757, #758).
 
 Removed
 +++++++
