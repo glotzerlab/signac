@@ -32,10 +32,9 @@ The Project
     Project.import_from
     Project.isfile
     Project.min_len_unique_id
-    Project.num_jobs
     Project.open_job
+    Project.path
     Project.repair
-    Project.root_directory
     Project.stores
     Project.sync
     Project.update_cache
@@ -90,16 +89,14 @@ The Job class
     Job.isfile
     Job.move
     Job.open
+    Job.path
     Job.remove
     Job.reset
-    Job.reset_statepoint
     Job.sp
     Job.statepoint
     Job.stores
     Job.sync
     Job.update_statepoint
-    Job.workspace
-    Job.ws
 
 .. autoclass:: Job
     :members:
