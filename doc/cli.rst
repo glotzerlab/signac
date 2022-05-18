@@ -26,7 +26,6 @@ Using a project:
 Modifying a project:
     * `init`_
     * `config`_
-    * `project`_
     * `job`_
     * `rm`_
     * `update-cache`_
@@ -117,14 +116,6 @@ move
 ====
 
 .. command-output:: signac move --help
-
-
-.. _signac-cli-project:
-
-project
-=======
-
-.. command-output:: signac project --help
 
 
 .. _signac-cli-rm:
