@@ -1469,8 +1469,10 @@ def main():
     parser_find = subparsers.add_parser(
         "find",
         description="""All filter arguments may be provided either directly in JSON
-                       encoding or in a simplified form, e.g., -- $ signac find a 42 --
-                       is equivalent to -- $ signac find '{"a": 42}'.""",
+                       encoding or in a simplified form using the query API. See
+                       https://docs.signac.io/en/latest/query.html#simplified-syntax-on-the-command-line.
+                       $ signac find a 42
+                       is equivalent to $ signac find '{"a": 42}'.""",  # noqa:E501
     )
     parser_find.add_argument(
         "filter",
@@ -1532,7 +1534,10 @@ def main():
                            view/param_name_1/param_value_1/param_name_2/param_value_2/job.
                            The leaf nodes of this directory structure are
                            symlinks (named "job") into the workspace directory
-                           for that parameter combination. Note that all
+                           for that parameter combination. The jobs can be filtered using
+                           the same query API used by the find command. See
+                           https://docs.signac.io/en/latest/query.html#simplified-syntax-on-the-command-line.
+                           Note that all
                            positional arguments must be provided before any
                            keyword arguments. In particular, the prefix and
                            path must be specified before arguments such as the
