@@ -1469,7 +1469,7 @@ def main():
 
     parser_find = subparsers.add_parser(
         "find",
-        formatter_class = FlexiFormatter,
+        formatter_class=FlexiFormatter,
         description="""
         All filter arguments may be provided either directly in JSON
         encoding or in a simplified form using the query API. For
@@ -1536,7 +1536,7 @@ def main():
 
     parser_view = subparsers.add_parser(
         "view",
-        formatter_class = FlexiFormatter,
+        formatter_class=FlexiFormatter,
         description="""
         Generate a human readable set of paths
         representing state points in the workspace,
@@ -1689,7 +1689,7 @@ def main():
 
     parser_sync = subparsers.add_parser(
         "sync",
-        formatter_class = FlexiFormatter,
+        formatter_class=FlexiFormatter,
         description="""
         Use this command to synchronize this project with another
         project; similar to the synchronization of two directories
