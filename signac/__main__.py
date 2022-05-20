@@ -17,6 +17,7 @@ import platform
 import re
 import shutil
 import sys
+from textwrap import dedent
 import warnings
 from pprint import pformat, pprint
 from rlcompleter import Completer
@@ -1468,11 +1469,17 @@ def main():
 
     parser_find = subparsers.add_parser(
         "find",
-        description="""All filter arguments may be provided either directly in JSON
-                       encoding or in a simplified form using the query API. See
-                       https://docs.signac.io/en/latest/query.html#simplified-syntax-on-the-command-line.
-                       $ signac find a 42
-                       is equivalent to $ signac find '{"a": 42}'.""",  # noqa:E501
+        formatter_class = argparse.RawDescriptionHelpFormatter,
+        description=dedent("""\
+        All filter arguments may be provided either directly in JSON
+        encoding or in a simplified form using the query API. For
+        example, the following two bash commands are equivalent:
+
+        $ signac find key 42
+        $ signac find '{"a": 42}'
+
+        For the full syntax, see:
+        https://docs.signac.io/en/latest/query.html#simplified-filter"""),  # noqa:E501
     )
     parser_find.add_argument(
         "filter",
@@ -1529,20 +1536,23 @@ def main():
 
     parser_view = subparsers.add_parser(
         "view",
-        description="""Generate a human readable set of paths representing
-                           state points in the workspace, e.g.
-                           view/param_name_1/param_value_1/param_name_2/param_value_2/job.
-                           The leaf nodes of this directory structure are
-                           symlinks (named "job") into the workspace directory
-                           for that parameter combination. The jobs can be filtered using
-                           the same query API used by the find command. See
-                           https://docs.signac.io/en/latest/query.html#simplified-syntax-on-the-command-line.
-                           Note that all
-                           positional arguments must be provided before any
-                           keyword arguments. In particular, the prefix and
-                           path must be specified before arguments such as the
-                           filters, e.g.  signac view $PREFIX $VIEW_PATH -f
-                           FILTERS -d DOC_FILTERS.""",  # noqa:E501
+        formatter_class = argparse.RawDescriptionHelpFormatter,
+        description=dedent("""\
+        Generate a human readable set of paths
+        representing state points in the workspace,
+        e.g. view/param_name_1/param_value_1/param_name_2/param_value_2/job.
+
+        The leaf nodes of this directory structure are symlinks (named
+        "job") into the corresponding job directory.
+
+        The jobs can be filtered using the query API used by the find
+        command. See
+        https://docs.signac.io/en/latest/query.html#simplified-filter
+
+        All positional arguments must be provided before any keyword
+        arguments. In particular, the prefix and path must be
+        specified before arguments such as the filters, e.g. signac
+        view $PREFIX $VIEW_PATH -f FILTERS -d DOC_FILTERS."""),  # noqa:E501
     )
     parser_view.add_argument(
         "prefix",
