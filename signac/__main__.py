@@ -1267,7 +1267,7 @@ def main():
         "-c",
         "--create",
         action="store_true",
-        help="Create the job's workspace directory if necessary.",
+        help="Create the job directory if necessary.",
     )
     parser_job.set_defaults(func=main_job)
 
