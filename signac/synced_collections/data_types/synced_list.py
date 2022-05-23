@@ -124,10 +124,10 @@ class SyncedList(SyncedCollection, MutableSequence):
 
         Parameters
         ----------
-        data : collections.abc.Sequence
+        data : collections.abc.Sequence, optional
             The data to be assigned to this list. If ``None``, the data is left
             unchanged (Default value = None).
-        _validate : bool
+        _validate : bool, optional
             If True, the data will not be validated (Default value = False).
 
         """

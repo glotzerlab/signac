@@ -242,7 +242,7 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
 
         Parameters
         ----------
-        modified : bool
+        modified : bool, optional
             Whether or not the data has been modified from the version on disk
             (Default value = False).
 
