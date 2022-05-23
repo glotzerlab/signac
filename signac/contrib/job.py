@@ -232,9 +232,9 @@ class Job:
     ----------
     project : :class:`~signac.Project`
         Project handle.
-    statepoint : dict
+    statepoint : dict, optional
         State point for the job. (Default value = None)
-    id_ : str
+    id_ : str, optional
         The job identifier. (Default value = None)
 
     """
@@ -618,7 +618,7 @@ class Job:
 
         Parameters
         ----------
-        force : bool
+        force : bool, optional
             Overwrite any existing state point files, e.g., to repair them if
             they got corrupted (Default value = False).
 
@@ -786,21 +786,21 @@ class Job:
         ----------
         other : Job
             The other job to synchronize from.
-        strategy :
+        strategy : callable, optional
             A synchronization strategy for file conflicts. If no strategy is provided, a
             :class:`~signac.errors.SyncConflict` exception will be raised upon conflict
             (Default value = None).
-        exclude : str
-            An filename exclude pattern. All files matching this pattern will be
+        exclude : str, optional
+            A filename exclude pattern. All files matching this pattern will be
             excluded from synchronization (Default value = None).
-        doc_sync :
+        doc_sync : attribute or callable from :py:class:`~signac.sync.DocSync`, optional
             A synchronization strategy for document keys. If this argument is None, by default
-            no keys will be synchronized upon conflict.
-        dry_run :
+            no keys will be synchronized upon conflict (Default value = None).
+        dry_run : bool, optional
             If True, do not actually perform the synchronization.
         \*\*kwargs :
-            Extra keyword arguments will be forward to the :meth:`~signac.sync.sync_jobs`
-            function which actually excutes the synchronization operation.
+            Extra keyword arguments will be forwarded to the :meth:`~signac.sync.sync_jobs`
+            function which actually executes the synchronization operation.
 
         Raises
         ------

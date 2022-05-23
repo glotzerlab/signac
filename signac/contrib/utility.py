@@ -27,7 +27,7 @@ def _query_yes_no(question, default="yes"):  # pragma: no cover
     ----------
     question : str
         Question presented to the user.
-    default : str
+    default : str, optional
         Presumed answer if the user just hits <Enter> (Default value = "yes").
 
     Returns
@@ -112,11 +112,12 @@ def _split_and_print_progress(iterable, num_chunks=10, write=None, desc="Progres
     ----------
     iterable : list
         List of values to be chunked.
-    num_chunks : int
+    num_chunks : int, optional
         Number of chunks to split the given iterable (Default value = 10).
-    write :
-        Logging level used to log messages (Default value = None).
-    desc : str
+    write : callable, optional
+        Callable used to log messages. If None, ``print`` is used (Default
+        value = None).
+    desc : str, optional
         Prefix of message to log (Default value = 'Progress: ').
 
     Yields

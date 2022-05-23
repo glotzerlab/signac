@@ -114,10 +114,10 @@ class SyncedDict(SyncedCollection, MutableMapping):
 
         Parameters
         ----------
-        data : collections.abc.Mapping
+        data : collections.abc.Mapping, optional
             The data to be assigned to this dict. If ``None``, the data is left
             unchanged (Default value = None).
-        _validate : bool
+        _validate : bool, optional
             If True, the data will not be validated (Default value = False).
 
         """
