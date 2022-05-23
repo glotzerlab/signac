@@ -14,12 +14,12 @@ def init_jobs(project, nested=False, listed=False, heterogeneous=False):
     ----------
     project : :class:`~signac.Project`
         The project where jobs will be added.
-    nested : bool
+    nested : bool, optional
         If True, included nested state points (Default value = False).
-    listed : bool
+    listed : bool, optional
         If True, include lists as values of state point parameters (Default
         value = False).
-    heterogeneous : bool
+    heterogeneous : bool, optional
         If True, include heterogeneous state point parameters (Default value =
         False).
 

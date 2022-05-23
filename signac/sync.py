@@ -298,7 +298,7 @@ def sync_jobs(
         The src job, data will be copied from this job's workspace.
     dst : :class:`~signac.contrib.job.Job`
         The dst job, data will be copied to this job's workspace.
-    strategy : callable
+    strategy : callable, optional
         A synchronization strategy for file conflicts. The strategy should be a
         callable with signature ``strategy(src, dst, filepath)`` where ``src``
         and ``dst`` are the source and destination instances of
@@ -306,31 +306,31 @@ def sync_jobs(
         to the project path. If no strategy is provided, a
         :class:`.errors.SyncConflict` exception will be raised upon conflict.
         (Default value = None)
-    exclude : str
+    exclude : str, optional
         A filename exclusion pattern. All files matching this pattern will be
         excluded from the synchronization process. (Default value = None)
-    doc_sync : attribute or callable from :py:class:`~signac.sync.DocSync`
+    doc_sync : attribute or callable from :py:class:`~signac.sync.DocSync`, optional
         A synchronization strategy for document keys. The default is to use a
         safe key-by-key strategy that will not overwrite any values on
         conflict, but instead raises a :class:`~.errors.DocumentSyncConflict`
         exception.
-    recursive : bool
+    recursive : bool, optional
         Recursively synchronize sub-directories encountered within the job
         workspace directories. (Default value = False)
-    follow_symlinks : bool
+    follow_symlinks : bool, optional
         Follow and copy the target of symbolic links. (Default value = True)
-    preserve_permissions : bool
+    preserve_permissions : bool, optional
         Preserve file permissions (Default value = False)
-    preserve_times : bool
+    preserve_times : bool, optional
         Preserve file modification times (Default value = False)
-    preserve_owner : bool
+    preserve_owner : bool, optional
         Preserve file owner (Default value = False)
-    preserve_group : bool
+    preserve_group : bool, optional
         Preserve file group ownership (Default value = False)
-    dry_run : bool
+    dry_run : bool, optional
         If True, do not actually perform any synchronization operations.
         (Default value = False)
-    deep : bool
+    deep : bool, optional
         (Default value = False)
 
     """
@@ -430,7 +430,7 @@ def sync_projects(
         The project presenting the source for synchronization.
     destination : class:`~.Project`
         The project that is modified for synchronization.
-    strategy : callable
+    strategy : callable, optional
         A synchronization strategy for file conflicts. The strategy should be a
         callable with signature ``strategy(src, dst, filepath)`` where ``src``
         and ``dst`` are the source and destination instances of
@@ -438,7 +438,7 @@ def sync_projects(
         to the project path. If no strategy is provided, a
         :class:`.errors.SyncConflict` exception will be raised upon conflict.
         (Default value = None)
-    exclude : str
+    exclude : str, optional
         A filename exclusion pattern. All files matching this pattern will be
         excluded from the synchronization process. (Default value = None)
     doc_sync : attribute or callable from :py:class:`~signac.sync.DocSync`
@@ -446,34 +446,34 @@ def sync_projects(
         safe key-by-key strategy that will not overwrite any values on
         conflict, but instead raises a :class:`~.errors.DocumentSyncConflict`
         exception.
-    selection : sequence of :class:`~signac.contrib.job.Job` or job ids (str)
+    selection : sequence of :class:`~signac.contrib.job.Job` or job ids (str), optional
         Only synchronize the given selection of jobs. (Default value = None)
-    check_schema : bool
+    check_schema : bool, optional
         If True, only synchronize if this and the other project have a matching
         state point schema. See also: :meth:`~.detect_schema`. (Default value =
         True)
-    recursive : bool
+    recursive : bool, optional
         Recursively synchronize sub-directories encountered within the job
         workspace directories. (Default value = False)
-    follow_symlinks : bool
+    follow_symlinks : bool, optional
         Follow and copy the target of symbolic links. (Default value = True)
-    preserve_permissions : bool
+    preserve_permissions : bool, optional
         Preserve file permissions (Default value = False)
-    preserve_times : bool
+    preserve_times : bool, optional
         Preserve file modification times (Default value = False)
-    preserve_owner : bool
+    preserve_owner : bool, optional
         Preserve file owner (Default value = False)
-    preserve_group : bool
+    preserve_group : bool, optional
         Preserve file group ownership (Default value = False)
-    dry_run : bool
+    dry_run : bool, optional
         If True, do not actually perform the synchronization operation, just
         log what would happen theoretically. Useful to test synchronization
         strategies without the risk of data loss. (Default value = False)
-    deep : bool
+    deep : bool, optional
         (Default value = False)
-    parallel : bool
+    parallel : bool, optional
         (Default value = False)
-    collect_stats : bool
+    collect_stats : bool, optional
         (Default value = False)
 
     Returns

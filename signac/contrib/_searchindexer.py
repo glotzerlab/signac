@@ -98,7 +98,7 @@ class _TypedSetDefaultDict(dict):
         ----------
         key : str, float
             The key to get the value.
-        default :
+        default : object, optional
             Default value if type of key is not float (Default value = None).
 
         Returns
@@ -380,7 +380,7 @@ class _SearchIndexer(dict):
         Parameters
         ----------
         expr : dict
-            The filter of expressions to match (Default value = None).
+            The filter of expressions to match.
 
         Returns
         -------
@@ -471,7 +471,7 @@ class _SearchIndexer(dict):
 
         Parameters
         ----------
-        filter_ : dict
+        filter_ : dict, optional
             The filter of expressions to match (Default value = None).
 
         Returns
