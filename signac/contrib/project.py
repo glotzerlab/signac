@@ -1448,14 +1448,13 @@ class Project:
 
         Parameters
         ----------
-        path : str
-            The starting point to search for a project, defaults to the
-            current working directory.
-        search : bool
-            If True, search for project configurations inside and above
-            the specified directory, otherwise only return projects with
-            a directory whose path is identical to the specified path
-            argument (Default value = True).
+        path : str, optional
+            The starting point to search for a project. If None, the current
+            working directory is used (Default value = None).
+        search : bool, optional
+            If True, search for project configurations inside and above the
+            specified path, otherwise only return a project in the specified
+            path (Default value = True).
         \*\*kwargs :
             Optional keyword arguments that are forwarded to the
             :class:`.Project` class constructor.
@@ -1468,7 +1467,7 @@ class Project:
         Raises
         ------
         LookupError
-            When project configuration cannot be found.
+            If no project configuration can be found.
 
         """
         if path is None:
@@ -1498,19 +1497,19 @@ class Project:
 
         Parameters
         ----------
-        path : str
-            The job directory. If no path is given, the current working
-            directory is used (Default value = None).
+        path : str, optional
+            The starting point to search for a job. If None, the current
+            working directory is used (Default value = None).
 
         Returns
         -------
         :class:`~signac.contrib.job.Job`
-            The job instance.
+            The first job found in or above the provided path.
 
         Raises
         ------
         LookupError
-            When job cannot be found.
+            If a job cannot be found.
 
         """
         if path is None:
@@ -1579,30 +1578,6 @@ def TemporaryProject(cls=None, **kwargs):
         cls = Project
     with TemporaryDirectory(**kwargs) as tmp_dir:
         yield cls.init_project(path=tmp_dir)
-
-
-def _skip_errors(iterable, log=print):
-    """Skip errors.
-
-    Parameters
-    ----------
-    iterable : dict
-        An iterable.
-    log : callable
-        The function to call when logging errors (Default value = print)
-
-    Yields
-    ------
-    Elements from the iterable, with exceptions ignored.
-
-    """
-    while True:
-        try:
-            yield next(iterable)
-        except StopIteration:
-            return
-        except Exception as error:
-            log(error)
 
 
 class _JobsCursorIterator:
@@ -2037,10 +2012,10 @@ def get_project(path=None, search=True, **kwargs):
 
     Parameters
     ----------
-    path : str
-        The starting point to search for a project, defaults to the current
-        working directory.
-    search : bool
+    path : str, optional
+        The starting point to search for a project. If None, the current
+        working directory is used (Default value = None).
+    search : bool, optional
         If True, search for project configurations inside and above the
         specified path, otherwise only return a project in the specified
         path (Default value = True).
@@ -2067,19 +2042,19 @@ def get_job(path=None):
 
     Parameters
     ----------
-    path : str
-        The path from which to search. Returns the first job found in or above this path.
-        (Default value = None).
+    path : str, optional
+        The starting point to search for a job. If None, the current
+        working directory is used (Default value = None).
 
     Returns
     -------
     :class:`~signac.contrib.job.Job`
-        Job handle.
+        The first job found in or above the provided path.
 
     Raises
     ------
     LookupError
-        If this job cannot be found.
+        If a job cannot be found.
 
     Examples
     --------
