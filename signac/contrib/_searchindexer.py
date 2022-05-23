@@ -380,7 +380,7 @@ class _SearchIndexer(dict):
         Parameters
         ----------
         expr : dict
-            The filter of expressions to match (Default value = None).
+            The filter of expressions to match.
 
         Returns
         -------

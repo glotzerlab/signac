@@ -322,7 +322,7 @@ def _export_jobs(jobs, path, copytree):
     jobs : iterable of :class:`~signac.contrib.job.Job`
         A sequence of jobs (instance of :class:`~signac.contrib.job.Job`).
     path : str or callable
-        The path (function) used to structure the exported data space (Default value = None).
+        The path (function) used to structure the exported data space.
     copytree : callable
         The function used for copying directory tree structures.
 
