@@ -21,12 +21,12 @@ def create_linked_view(project, prefix=None, job_ids=None, path=None):
     ----------
     project : signac.Project
         Project handle.
-    prefix : str
+    prefix : str, optional
         The path where the linked view will be created or updated (Default value = None).
-    job_ids : iterable
+    job_ids : iterable, optional
         If None (the default), create the view for the complete data space,
         otherwise only for this iterable of job ids.
-    path :
+    path : str or callable, optional
         The path (function) used to structure the linked data space (Default value = None).
 
     Returns
@@ -304,8 +304,8 @@ def _find_dead_branches(root, branch=None):
     ----------
     root : :class:`~signac.contrib.linked_view._Node`
         Root node.
-    branch : list
-        The current list of branches that has been collected,
+    branch : list, optional
+        The current list of branches that have been collected,
         used in recursive calls to build up the branches starting
         at the root (Default value = None).
 
