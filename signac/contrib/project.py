@@ -893,7 +893,7 @@ class Project:
 
         return create_linked_view(self, prefix, job_ids, path)
 
-    def clone(self, job, copytree=shutil.copytree):
+    def clone(self, job, copytree=None):
         """Clone job into this project.
 
         Create an identical copy of job within this project.
@@ -904,8 +904,10 @@ class Project:
         ----------
         job : :class:`~signac.contrib.job.Job`
             The job to copy into this project.
-        copytree :
-             (Default value = :func:`shutil.copytree`)
+        copytree : callable, optional
+            The function used for copying directory tree structures. Uses
+            :func:`shutil.copytree` if ``None`` (Default value = None). The function
+            requires that the target is a directory.
 
         Returns
         -------
@@ -919,6 +921,8 @@ class Project:
             initialized within this project.
 
         """
+        if copytree is None:
+            copytree = shutil.copytree
         dst = self.open_job(job.statepoint())
         try:
             copytree(job.path, dst.path)
@@ -952,15 +956,18 @@ class Project:
         ----------
         other : :class:`~signac.Project`
             The other project to synchronize this project with.
-        strategy :
-            A file synchronization strategy (Default value = None).
-        exclude :
-            Files with names matching the given pattern will be excluded
-            from the synchronization (Default value = None).
-        doc_sync :
-            The function applied for synchronizing documents (Default value = None).
-        selection :
-            Only sync the given jobs (Default value = None).
+        strategy : callable, optional
+            A synchronization strategy for file conflicts. If no strategy is provided, a
+            :class:`~signac.errors.SyncConflict` exception will be raised upon conflict
+            (Default value = None).
+        exclude : str, optional
+            A filename exclude pattern. All files matching this pattern will be
+            excluded from synchronization (Default value = None).
+        doc_sync : attribute or callable from :py:class:`~signac.sync.DocSync`, optional
+            A synchronization strategy for document keys. If this argument is None, by default
+            no keys will be synchronized upon conflict (Default value = None).
+        selection : sequence of :class:`~signac.contrib.job.Job` or job ids (str), optional
+            Only synchronize the given selection of jobs (Default value = None).
         \*\*kwargs :
             This method also accepts the same keyword arguments as the
             :meth:`~signac.sync.sync_projects` function.
@@ -1054,10 +1061,10 @@ class Project:
             of `job`, a string where fields are replaced using the job-state point dictionary,
             or `False`, which means that we just use the job-id as path.
             Defaults to the equivalent of ``{{auto}}``.
-        copytree :
-            The function used for the actual copying of directory tree
-            structures. Defaults to :func:`shutil.copytree`.
-            Can only be used when the target is a directory.
+        copytree : callable, optional
+            The function used for copying directory tree structures. Uses
+            :func:`shutil.copytree` if ``None`` (Default value = None). The function
+            requires that the target is a directory.
 
         Returns
         -------
@@ -1113,9 +1120,10 @@ class Project:
             If ``True``, the project will be synchronized with the imported data space. If a
             dict of keyword arguments is provided, the arguments will be used for
             :meth:`~signac.Project.sync` (Default value = None).
-        copytree :
-            Specify which exact function to use for the actual copytree operation.
-            Defaults to :func:`shutil.copytree`.
+        copytree : callable, optional
+            The function used for copying directory tree structures. Uses
+            :func:`shutil.copytree` if ``None`` (Default value = None). The function
+            requires that the target is a directory.
 
         Returns
         -------
@@ -1854,10 +1862,10 @@ class JobsCursor:
         path : str or callable
             The path (function) used to structure the exported data space
             (Default value = None).
-        copytree : callable
-            The function used for copying of directory tree structures.
-            Defaults to :func:`shutil.copytree`. Can only be used when the
-            target is a directory (Default value = None).
+        copytree : callable, optional
+            The function used for copying directory tree structures. Uses
+            :func:`shutil.copytree` if ``None`` (Default value = None). The function
+            requires that the target is a directory.
 
         Returns
         -------
