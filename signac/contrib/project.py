@@ -441,9 +441,9 @@ class Project:
 
         Parameters
         ----------
-        statepoint : dict
+        statepoint : dict, optional
             The job's unique set of state point parameters (Default value = None).
-        id : str
+        id : str, optional
             The job id (Default value = None).
 
         Returns
@@ -572,10 +572,10 @@ class Project:
 
         Parameters
         ----------
-        exclude_const : bool
+        exclude_const : bool, optional
             Exclude all state point keys that are shared by all jobs within this project
             (Default value = False).
-        subset :
+        subset : sequence[Job or str], optional
             A sequence of jobs or job ids specifying a subset over which the state point
             schema should be detected (Default value = None).
 
@@ -609,7 +609,7 @@ class Project:
 
         Parameters
         ----------
-        filter : Mapping
+        filter : Mapping, optional
             A mapping of key-value pairs used for the query (Default value =
             None).
 
@@ -647,7 +647,7 @@ class Project:
 
         Parameters
         ----------
-        filter : Mapping
+        filter : Mapping, optional
             A mapping of key-value pairs used for the query (Default value =
             None).
 
@@ -707,11 +707,11 @@ class Project:
 
         Parameters
         ----------
-        key : str, iterable, or callable
+        key : str, iterable, or callable, optional
             The state point grouping parameter(s) passed as a string,
             iterable of strings, or a callable that will be passed one
             argument, the job (Default value = None).
-        default :
+        default : object, optional
             A default value to be used when a given state point key is not
             present. The value must be sortable and is only used if not None
             (Default value = None).
@@ -874,12 +874,12 @@ class Project:
 
         Parameters
         ----------
-        prefix : str
+        prefix : str, optional
             The path where the linked view will be created or updated (Default value = None).
-        job_ids : iterable
+        job_ids : iterable, optional
             If None (the default), create the view for the complete data space,
             otherwise only for this iterable of job ids.
-        path :
+        path : str or callable, optional
             The path (function) used to structure the linked data space (Default value = None).
 
         Returns
@@ -1043,12 +1043,12 @@ class Project:
 
         Parameters
         ----------
-        target :
+        target : str
             A path to a directory to export to. The target can not already exist.
             Besides directories, possible targets are tar files (`.tar`), gzipped tar files
             (`.tar.gz`), zip files (`.zip`), bzip2-compressed files (`.bz2`),
             and xz-compressed files (`.xz`).
-        path :
+        path : str or callable, optional
             The path (function) used to structure the exported data space.
             This argument must either be a callable which returns a path (str) as a function
             of `job`, a string where fields are replaced using the job-state point dictionary,
@@ -1102,14 +1102,14 @@ class Project:
 
         Parameters
         ----------
-        origin :
+        origin : str, optional
             The path to the data space origin, which is to be imported. This may be a path to
             a directory, a zip file, or a tarball archive (Default value = None).
-        schema :
+        schema : callable, optional
             An optional schema function, which is either a string or a function that accepts a
             path as its first and only argument and returns the corresponding state point as dict.
             (Default value = None).
-        sync :
+        sync : bool or dict, optional
             If ``True``, the project will be synchronized with the imported data space. If a
             dict of keyword arguments is provided, the arguments will be used for
             :meth:`~signac.Project.sync` (Default value = None).
@@ -1175,7 +1175,7 @@ class Project:
 
         Parameters
         ----------
-        job_ids :
+        job_ids : iterable[str], optional
             An iterable of job ids that should get repaired. Defaults to all jobs.
 
         Raises
@@ -1245,7 +1245,7 @@ class Project:
 
         Parameters
         ----------
-        include_job_document : bool
+        include_job_document : bool, optional
             Whether to include the job document in the index (Default value =
             False).
 
@@ -1383,7 +1383,7 @@ class Project:
 
         Parameters
         ----------
-        dir : str
+        dir : str, optional
             Optionally specify where the temporary project directory is to be
             created. Defaults to the project's workspace directory.
 
@@ -1556,7 +1556,7 @@ def TemporaryProject(cls=None, **kwargs):
 
     Parameters
     ----------
-    cls :
+    cls : object, optional
         The class of the temporary project.
         Defaults to :class:`~signac.Project`.
     \*\*kwargs :
@@ -1727,11 +1727,12 @@ class JobsCursor:
 
         Parameters
         ----------
-        key : str, iterable, or callable
+        key : str, iterable, or callable, optional
             The state point grouping parameter(s) passed as a string,
             iterable of strings, or a callable that will be passed one
-            argument, the job (Default value = None).
-        default :
+            argument, the job. If None, the job id is used (Default value =
+            None).
+        default : object, optional
             A default value to be used when a given state point key is not
             present. The value must be sortable and is only used if not None
             (Default value = None).
@@ -1826,7 +1827,7 @@ class JobsCursor:
         elif key is None:
             # Must return a type that can be ordered with <, >
             def keyfunction(job):
-                return str(job)
+                return job.id
 
         else:
             # Pass the job document to a callable

@@ -251,7 +251,7 @@ class ProjectSchema(Mapping):
 
         Parameters
         ----------
-        ignore_values : bool
+        ignore_values : bool, optional
             Ignore if the value (range) of a specific keys differ,
             only return missing keys (Default value = False).
         other : :class:`~ProjectSchema`

@@ -144,7 +144,7 @@ def _parse_single(key, value=None):
     ----------
     key : str
         The filter key.
-    value :
+    value : object, optional
         The filter value. If None, the filter returns
         True if the provided key exists (Default value = None).
 

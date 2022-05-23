@@ -46,9 +46,9 @@ def _make_schema_based_path_function(jobs, exclude_keys=None, delimiter_nested="
     ----------
     jobs : iterable of :class:`~signac.contrib.job.Job`
         A sequence of jobs (instances of :class:`~signac.contrib.job.Job`).
-    exclude_keys : sequence[str]
+    exclude_keys : sequence[str], optional
         A sequence of keys to exclude (Default value = None).
-    delimiter_nested : str
+    delimiter_nested : str, optional
         Delimiter used for nesting keys (Default value = '.').
 
     Returns
@@ -87,7 +87,7 @@ def _make_schema_based_path_function(jobs, exclude_keys=None, delimiter_nested="
         ----------
         job : :class:`~signac.contrib.job.Job`
             An instance of :class:`~signac.contrib.job.Job`.
-        sep : str
+        sep : str, optional
             (Default value = None)
 
         Returns
@@ -366,9 +366,9 @@ def export_to_directory(jobs, target, path=None, copytree=None):
         A sequence of jobs (instances of :class:`~signac.contrib.job.Job`).
     target : str
         A path to a directory to export to. The directory can not already exist.
-    path : str or callable
+    path : str or callable, optional
         The path (function) used to structure the exported data space (Default value = None).
-    copytree : callable
+    copytree : callable, optional
         The function used for copying directory tree structures. Uses
         :func:`shutil.copytree` if ``None`` (Default value = None). The function
         requires that the target is a directory.
@@ -409,7 +409,7 @@ def export_to_tarfile(jobs, tarfile, path=None):
         A sequence of jobs (instances of :class:`~signac.contrib.job.Job`).
     tarfile : :class:`tarfile.TarFile`
         An instance of :class:`tarfile.TarFile`.
-    path : str or callable
+    path : str or callable, optional
         The path (function) used to structure the exported data space (Default value = None).
 
     Returns
@@ -430,7 +430,7 @@ def export_to_zipfile(jobs, zipfile, path=None):
         A sequence of jobs (instances of :class:`~signac.contrib.job.Job`).
     zipfile : :class:`zipfile.ZipFile`
         An instance of :class:`zipfile.ZipFile`.
-    path : str or callable
+    path : str or callable, optional
         The path (function) used to structure the exported data space (Default value = None).
 
     Returns
@@ -472,7 +472,7 @@ def export_jobs(jobs, target, path=None, copytree=None):
         A sequence of jobs(instance of :class:`~signac.contrib.job.Job`).
     target : str
         A path to a directory or archive file to export to.
-    path : str or callable
+    path : str or callable, optional
         The path (function) used to structure the exported data space. (Default value = None)
     copytree : callable
         The function used for copying of directory tree
@@ -1180,7 +1180,7 @@ def _prepare_import_into_project(origin, project, schema=None):
         Path to current working directory.
     project : :class:`~signac.Project`
         The project to import the data into.
-    schema : str or callable
+    schema : str or callable, optional
         An optional schema function, which is either a string or a function that accepts a
         path as its first and only argument and returns the corresponding state point as dict
         (Default value = None).
@@ -1246,7 +1246,7 @@ def import_into_project(origin, project, schema=None, copytree=None):
         a directory, a zipfile, or a tarball archive.
     project : :class:`~signac.Project`
         The project to import the data into.
-    schema : str or callable
+    schema : str or callable, optional
         An optional schema function, which is either a string or a function that accepts a
         path as its first and only argument and returns the corresponding state point as dict
         (Default value = None).
