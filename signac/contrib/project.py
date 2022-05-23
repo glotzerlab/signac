@@ -1575,30 +1575,6 @@ def TemporaryProject(cls=None, **kwargs):
         yield cls.init_project(path=tmp_dir)
 
 
-def _skip_errors(iterable, log=print):
-    """Skip errors.
-
-    Parameters
-    ----------
-    iterable : dict
-        An iterable.
-    log : callable
-        The function to call when logging errors (Default value = print)
-
-    Yields
-    ------
-    Elements from the iterable, with exceptions ignored.
-
-    """
-    while True:
-        try:
-            yield next(iterable)
-        except StopIteration:
-            return
-        except Exception as error:
-            log(error)
-
-
 class _JobsCursorIterator:
     """Iterator for JobsCursor."""
 
