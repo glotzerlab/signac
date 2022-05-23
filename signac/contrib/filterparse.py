@@ -4,40 +4,9 @@
 """Parse the filter arguments."""
 
 import json
-import sys
 from collections.abc import Mapping
 
-
-def _print_err(msg=None):
-    """Print the provided message to stderr.
-
-    Parameters
-    ----------
-    msg : str
-        Error message to be printed (Default value = None).
-
-    """
-    print(msg, file=sys.stderr)
-
-
-def _with_message(query, file):
-    """Print the interpreted filter arguments to the provided file.
-
-    Parameters
-    ----------
-    query : dict
-        Filter arguments.
-    file :
-        The file where the filter interpretation is printed.
-
-    Returns
-    -------
-    query : dict
-        Filter arguments.
-
-    """
-    print(f"Interpreted filter arguments as '{json.dumps(query)}'.", file=file)
-    return query
+from .utility import _print_err
 
 
 def _is_json_like(q):
@@ -125,7 +94,7 @@ def _cast(x):
     """
     try:
         if x in CAST_MAPPING_WARNING:
-            print(f"Did you mean {CAST_MAPPING_WARNING[x]}?", file=sys.stderr)
+            _print_err(f"Did you mean {CAST_MAPPING_WARNING[x]}?")
         return CAST_MAPPING[x]
     except KeyError:
         try:
@@ -196,15 +165,13 @@ def parse_simple(tokens):
         yield _parse_single(key, value)
 
 
-def parse_filter_arg(args, file=sys.stderr):
+def parse_filter_arg(args):
     """Parse a series of filter arguments into a dictionary.
 
     Parameters
     ----------
     args : sequence of str
         Filter arguments to parse.
-    file :
-        The file to write message (Default value = sys.stderr).
 
     Returns
     -------
@@ -219,10 +186,11 @@ def parse_filter_arg(args, file=sys.stderr):
             return _parse_json(args[0])
         else:
             key, value = _parse_single(args[0])
-            return _with_message({key: value}, file)
+            query = {key: value}
     else:
-        q = dict(parse_simple(args))
-        return _with_message(q, file)
+        query = dict(parse_simple(args))
+    _print_err(f"Interpreted filter arguments as '{json.dumps(query)}'.")
+    return query
 
 
 def _add_prefix(prefix, filter):

@@ -13,6 +13,10 @@ from time import time
 logger = logging.getLogger(__name__)
 
 
+def _print_err(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
+
 def _query_yes_no(question, default="yes"):  # pragma: no cover
     """Ask a yes/no question via input() and return their answer.
 
