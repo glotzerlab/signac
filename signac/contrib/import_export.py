@@ -701,45 +701,6 @@ def _with_consistency_check(schema_function, read_statepoint_file):
     return _check
 
 
-def _parse_workspaces(fn_statepoint):
-    """Generate a schema function based on parsing state point files.
-
-    Parameters
-    ----------
-    fn_statepoint : str
-        State point file name.
-
-    Returns
-    -------
-    callable
-        Function to parse a state point, given a path.
-
-    """
-
-    def _parse_workspace(path):
-        """Parse a state point, given a path.
-
-        Parameters
-        ----------
-        path : str
-            Path containing state point file.
-
-        Returns
-        -------
-        dict
-            Parsed state point contents.
-
-        """
-        try:
-            with open(os.path.join(path, fn_statepoint), "rb") as file:
-                return json.loads(file.read().decode())
-        except OSError as error:
-            if error.errno != errno.ENOENT:
-                raise error
-
-    return _parse_workspace
-
-
 def _crawl_directory_data_space(root, project, schema_function):
     """Crawl the directory data space.
 
@@ -838,10 +799,11 @@ def _analyze_directory_for_import(root, project, schema):
         Path of the root directory.
     project : :class:`~signac.Project`
         The signac project.
-    schema : str or callable
-        An optional schema function, which is either a string or a function that accepts a
-        path as its first and only argument and returns the corresponding state point as dict
-        (Default value = None).
+    schema : str, callable, or None
+        A schema function, which is either a string, None, or a function that
+        accepts a path as its first and only argument and returns the
+        corresponding state point as dict. If None, a state point file will be
+        read from the given path.
 
     Yields
     ------
@@ -858,8 +820,29 @@ def _analyze_directory_for_import(root, project, schema):
         If the jobs identified with the given schema function are not unique.
 
     """
+
+    def read_statepoint_file(path):
+        """Read a state point file.
+
+        Parameters
+        ----------
+        path : str
+            Path containing state point file.
+
+        Returns
+        -------
+        dict
+            Parsed state point contents.
+
+        """
+        try:
+            with open(os.path.join(path, Job.FN_STATE_POINT), "rb") as file:
+                return json.loads(file.read().decode())
+        except OSError as error:
+            if error.errno != errno.ENOENT:
+                raise error
+
     # Determine schema function
-    read_statepoint_file = _parse_workspaces(Job.FN_STATE_POINT)
     if schema is None:
         schema_function = read_statepoint_file
     elif callable(schema):
@@ -931,10 +914,11 @@ def _analyze_zipfile_for_import(zipfile, project, schema):
         An instance of ZipFile.
     project : :class:`~signac.Project`
         The signac project.
-    schema : str or callable
-        An optional schema function, which is either a string or a function that accepts a
-        path as its first and only argument and returns the corresponding state point as dict
-        (Default value = None).
+    schema : str, callable, or None
+        A schema function, which is either a string, None, or a function that
+        accepts a path as its first and only argument and returns the
+        corresponding state point as dict. If None, a state point file will be
+        read from the given path.
 
     Yields
     ------
@@ -961,7 +945,7 @@ def _analyze_zipfile_for_import(zipfile, project, schema):
         Parameters
         ----------
         path : str
-            Path to state point file.
+            Path containing state point file.
 
         Returns
         -------
@@ -974,6 +958,7 @@ def _analyze_zipfile_for_import(zipfile, project, schema):
         if fn_statepoint in names:
             return json.loads(zipfile.read(fn_statepoint).decode())
 
+    # Determine schema function
     if schema is None:
         schema_function = read_statepoint_file
     elif callable(schema):
@@ -1074,10 +1059,11 @@ def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
         tarfile to analyze.
     project : :class:`~signac.Project`
         The project to import the data into.
-    schema : str or callable
-        An optional schema function, which is either a string or a function that accepts a
-        path as its first and only argument and returns the corresponding state point as dict.
-        (Default value = None).
+    schema : str, callable, or None
+        A schema function, which is either a string, None, or a function that
+        accepts a path as its first and only argument and returns the
+        corresponding state point as dict. If None, a state point file will be
+        read from the given path.
     tmpdir : :class:`tempfile.TemporaryDirectory`
         Temporary directory, an instance of ``TemporaryDirectory``.
 
@@ -1107,7 +1093,7 @@ def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
         Parameters
         ----------
         path : str
-            Path to state point file.
+            Path containing state point file.
 
         Returns
         -------
@@ -1123,6 +1109,7 @@ def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
         except KeyError:
             pass
 
+    # Determine schema function
     if schema is None:
         schema_function = read_statepoint_file
     elif callable(schema):
