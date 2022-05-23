@@ -50,7 +50,7 @@ class _DocProxy:
     ----------
     doc : dict
         Document data.
-    dry_run : bool
+    dry_run : bool, optional
         Do not actually perform any data modification operation, but still log
         the action (Default value = False).
 
@@ -109,22 +109,22 @@ class _FileModifyProxy:
 
     Parameters
     ----------
-    root :
+    root : str, optional
         Root path.
-    follow_symlinks : bool
+    follow_symlinks : bool, optional
         Whether to follow symlinks (Default value = True).
-    permissions : bool
+    permissions : bool, optional
         Whether to preserve permissions (Default value = False).
-    times : bool
+    times : bool, optional
         Whether to preserve timestamps (Default value = False).
-    owner : bool
+    owner : bool, optional
         Whether to preserve owner (Default value = False).
-    group : bool
+    group : bool, optional
         Whether to preserve group (Default value = False).
-    dry_run : bool
+    dry_run : bool, optional
         If True, do not actually perform any data modification operation, but still log
         the action (Default value = False).
-    collect_stats : bool
+    collect_stats : bool, optional
         Whether to collect stats (Default value = False).
 
     """
