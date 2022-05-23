@@ -232,15 +232,13 @@ def _encode_tree(x):
         return x
 
 
-def _nested_dicts_to_dotted_keys(t, encode=_encode_tree, key=None):
+def _nested_dicts_to_dotted_keys(d, key=None):
     """Generate tuples of key in dotted string format and value from nested dict.
 
     Parameters
     ----------
-    t : dict
+    d : dict
         A mapping instance with nested dicts, e.g. {'a': {'b': 'c'}}.
-    encode :
-        By default, values are encoded to be hashable. Use ``None`` to skip encoding.
     key : str
         Key of root at current point in the recursion, used to
         build up nested keys in the top-level dict through
@@ -252,14 +250,13 @@ def _nested_dicts_to_dotted_keys(t, encode=_encode_tree, key=None):
         Tuples of dotted key and values e.g. ('a.b', 'c')
 
     """
-    if encode is not None:
-        t = encode(t)
-    if isinstance(t, Mapping):
-        if t:
-            for k in t:
+    d = _encode_tree(d)
+    if isinstance(d, Mapping):
+        if d:
+            for k in d:
                 k_ = k if key is None else ".".join((key, k))
-                yield from _nested_dicts_to_dotted_keys(t[k], encode=encode, key=k_)
+                yield from _nested_dicts_to_dotted_keys(d[k], key=k_)
         elif key is not None:
-            yield key, t
+            yield key, d
     else:
-        yield key, t
+        yield key, d
