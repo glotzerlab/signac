@@ -197,7 +197,7 @@ class TestBasicShell:
         # An error should be raised if the user-provided path function
         # doesn't make a 1-1 mapping.
         err = self.call(
-            "python -m signac view view non_unique".split(),
+            "python -m signac view non_unique".split(),
             error=True,
             raise_error=False,
         )
