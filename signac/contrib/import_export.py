@@ -474,10 +474,10 @@ def export_jobs(jobs, target, path=None, copytree=None):
         A path to a directory or archive file to export to.
     path : str or callable, optional
         The path (function) used to structure the exported data space. (Default value = None)
-    copytree : callable
-        The function used for copying of directory tree
-        structures. Defaults to :func:`shutil.copytree`.
-        Can only be used when the target is a directory.
+    copytree : callable, optional
+        The function used for copying directory tree structures. Uses
+        :func:`shutil.copytree` if ``None`` (Default value = None). The function
+        requires that the target is a directory.
 
     Yields
     ------
@@ -786,8 +786,7 @@ def _copy_to_job_workspace(src, job, copytree):
     job : :class:`~signac.contrib.job.Job`
         An instance of :class:`~signac.contrib.job.Job`.
     copytree : callable
-        Function to use for the copytree operation. Defaults to
-        :func:`shutil.copytree`.
+        The function used for copying directory tree structures.
 
     Returns
     -------
@@ -1250,8 +1249,10 @@ def import_into_project(origin, project, schema=None, copytree=None):
         An optional schema function, which is either a string or a function that accepts a
         path as its first and only argument and returns the corresponding state point as dict
         (Default value = None).
-    copytree : callable
-        Function to use for the copytree operation. Defaults to :func:`shutil.copytree`.
+    copytree : callable, optional
+        The function used for copying directory tree structures. Uses
+        :func:`shutil.copytree` if ``None`` (Default value = None). The function
+        requires that the target is a directory.
 
     Yields
     ------
