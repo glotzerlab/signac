@@ -185,6 +185,19 @@ class TestBasicShell:
                 "view/a/{}/job".format(sp["a"])
             ) == os.path.realpath(project.open_job(sp).path)
 
+    """@pytest.mark.skipif(WINDOWS, reason="Symbolic links are unsupported on Windows.")
+    def test_view_prefix(self):
+        self.call("python -m signac init my_project".split())
+        project = signac.Project()
+        sps = [{"a": i} for i in range(3)]
+        for sp in sps:
+            project.open_job(sp).init()
+        os.mkdir("view")
+        out = self.call("python -m signac view -p path".split())
+        assert os.path.isdir(out)
+        # Probably dictate a path and then see if view finds it?
+        # Figure out what view outputs and syntax for view"""
+
     @pytest.mark.skipif(WINDOWS, reason="Symbolic links are unsupported on Windows.")
     def test_view_incomplete_path_spec(self):
         self.call("python -m signac init".split())
