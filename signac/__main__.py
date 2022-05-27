@@ -34,7 +34,7 @@ from .common import config
 from .common.configobj import Section, flatten_errors
 from .contrib.filterparse import _add_prefix, parse_filter_arg
 from .contrib.import_export import _SchemaPathEvaluationError, export_jobs
-from .contrib.utility import _add_verbosity_argument, _query_yes_no
+from .contrib.utility import _add_verbosity_argument, _print_err, _query_yes_no
 from .diff import diff_jobs
 from .errors import (
     DestinationExistsError,
@@ -95,10 +95,6 @@ Synchronize your project with the temporary project, for example with:
 SHELL_HISTORY_FN = os.sep.join((".signac", "shell_history"))
 
 warnings.simplefilter("default")
-
-
-def _print_err(msg=None, *args):
-    print(msg, *args, file=sys.stderr)
 
 
 def _fmt_bytes(nbytes, suffix="B"):
@@ -1674,7 +1670,6 @@ def main():
     try:
         args.func(args)
     except KeyboardInterrupt:
-        _print_err()
         _print_err("Interrupted.")
         if args.debug:
             raise
