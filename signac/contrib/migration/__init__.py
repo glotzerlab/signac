@@ -4,11 +4,11 @@
 """Handle migrations of signac schema versions."""
 
 import os
-import sys
 
 from filelock import FileLock
 
 from ...version import SCHEMA_VERSION, __version__
+from ..utility import _print_err
 from .v0_to_v1 import _load_config_v1, _migrate_v0_to_v1
 from .v1_to_v2 import _load_config_v2, _migrate_v1_to_v2
 
@@ -110,10 +110,9 @@ def apply_migrations(root_directory):
         with lock:
             for (origin, destination), migrate in _collect_migrations(root_directory):
                 try:
-                    print(
+                    _print_err(
                         f"Applying migration for version {origin} to {destination}... ",
                         end="",
-                        file=sys.stderr,
                     )
                     migrate(root_directory)
                 except Exception as e:
@@ -124,8 +123,7 @@ def apply_migrations(root_directory):
                     config = _CONFIG_LOADERS[destination](root_directory)
                     config["schema_version"] = destination
                     config.write()
-
-                    print("OK", file=sys.stderr)
+                    _print_err("OK")
     finally:
         try:
             os.unlink(lock.lock_file)
