@@ -213,25 +213,6 @@ def _to_hashable(obj):
         return obj
 
 
-def _encode_tree(x):
-    """Encode if type of x is list.
-
-    Parameters
-    ----------
-    x :
-        type to encode.
-
-    Returns
-    -------
-    Hashable version of ``x``.
-
-    """
-    if type(x) is list:
-        return _to_hashable(x)
-    else:
-        return x
-
-
 def _nested_dicts_to_dotted_keys(d, key=None):
     """Generate tuples of key in dotted string format and value from nested dict.
 
@@ -250,7 +231,6 @@ def _nested_dicts_to_dotted_keys(d, key=None):
         Tuples of dotted key and values e.g. ('a.b', 'c')
 
     """
-    d = _encode_tree(d)
     if isinstance(d, Mapping):
         if d:
             for k in d:
@@ -259,4 +239,6 @@ def _nested_dicts_to_dotted_keys(d, key=None):
         elif key is not None:
             yield key, d
     else:
+        if type(d) is list:
+            d = _to_hashable(d)
         yield key, d
