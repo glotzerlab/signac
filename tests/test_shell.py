@@ -186,6 +186,19 @@ class TestBasicShell:
             ) == os.path.realpath(project.open_job(sp).path)
 
     @pytest.mark.skipif(WINDOWS, reason="Symbolic links are unsupported on Windows.")
+    def test_view_prefix(self):
+        self.call("python -m signac init my_project".split())
+        project = signac.Project()
+        sps = [{"a": i for i in range(3)}]
+        for sp in sps:
+            project.open_job(sp).init()
+        os.mkdir("view")
+        self.call("signac view --prefix test")
+        # for sp in sps:
+        #    assert os.path.isdir("view/test".format(sp["a"]))
+        # assert os.path.isdir("view/a/{}/job".format(sp["a"]))
+
+    @pytest.mark.skipif(WINDOWS, reason="Symbolic links are unsupported on Windows.")
     def test_view_incomplete_path_spec(self):
         self.call("python -m signac init".split())
         project = signac.Project()
@@ -202,20 +215,6 @@ class TestBasicShell:
             raise_error=False,
         )
         assert "duplicate paths" in err
-
-        err2 = self.call(
-            "python -m signac view non_unique -p".split(),
-            error=True,
-            raise_error=False,
-        )
-        assert "duplicate paths" in err2
-
-        err3 = self.call(
-            "python -m signac view non_unique --prefix".split(),
-            error=True,
-            raise_error=False,
-        )
-        assert "duplicate paths" in err3
 
     @pytest.mark.filterwarnings("ignore:The doc_filter argument is deprecated")
     def test_find(self):
