@@ -189,14 +189,17 @@ class TestBasicShell:
     def test_view_prefix(self):
         self.call("python -m signac init my_project".split())
         project = signac.Project()
-        sps = [{"a": i for i in range(3)}]
+        sps = [{"a": i} for i in range(3)]
         for sp in sps:
             project.open_job(sp).init()
         os.mkdir("view")
-        self.call("signac view --prefix test")
-        # for sp in sps:
-        #    assert os.path.isdir("view/test".format(sp["a"]))
-        # assert os.path.isdir("view/a/{}/job".format(sp["a"]))
+        self.call("python -m signac view --prefix view/test_dir".split())
+        for sp in sps:
+            assert os.path.isdir("view/test_dir/a/{}".format(sp["a"]))
+            assert os.path.isdir("view/test_dir/a/{}/job".format(sp["a"]))
+            assert os.path.realpath(
+                "view/test_dir/a/{}/job".format(sp["a"])
+            ) == os.path.realpath(project.open_job(sp).path)
 
     @pytest.mark.skipif(WINDOWS, reason="Symbolic links are unsupported on Windows.")
     def test_view_incomplete_path_spec(self):
