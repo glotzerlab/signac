@@ -12,6 +12,7 @@ from threading import RLock
 
 from ..errors import InvalidKeyError
 from .dict_manager import DictManager
+from .utility import _safe_relpath
 
 __all__ = [
     "H5Store",
@@ -124,7 +125,7 @@ def _h5set(store, grp, key, value, path=None):
         if _is_pandas_type(value):
             _requires_tables()
             store.close()
-            with _pandas.HDFStore(store._filename, mode="a") as store_:
+            with _pandas.HDFStore(store.filename, mode="a") as store_:
                 store_[path] = value
             store.open()
         else:
@@ -337,13 +338,11 @@ class H5Store(MutableMapping):
         return self._filename
 
     def __repr__(self):
-        return "{}(filename={})".format(
-            type(self).__name__, repr(os.path.relpath(self._filename))
-        )
+        return f"{type(self).__name__}(filename={repr(_safe_relpath(self.filename))})"
 
     def __str__(self):
         return "{}(filename={})".format(
-            type(self).__name__, repr(os.path.basename(self._filename))
+            type(self).__name__, repr(os.path.basename(self.filename))
         )
 
     def __del__(self):
@@ -374,7 +373,7 @@ class H5Store(MutableMapping):
 
         self._thread_lock.acquire()
         try:
-            self._file = h5py.File(self._filename, **parameters)
+            self._file = h5py.File(self.filename, **parameters)
         except:  # noqa We need to release under **all** circumstances upon error!
             self._thread_lock.release()
             raise
@@ -427,7 +426,7 @@ class H5Store(MutableMapping):
             When the store is closed at the time of accessing this property.
         """
         if self._file is None:
-            raise H5StoreClosedError(self._filename)
+            raise H5StoreClosedError(self.filename)
         else:
             return self._file
 
@@ -439,7 +438,7 @@ class H5Store(MutableMapping):
     def flush(self):
         """Flush the underlying HDF5 file."""
         if self._file is None:
-            raise H5StoreClosedError(self._filename)
+            raise H5StoreClosedError(self.filename)
         else:
             self._file.flush()
 
