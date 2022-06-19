@@ -11,7 +11,7 @@ class Error(Exception):
 
 
 class H5StoreClosedError(Error, RuntimeError):
-    """Raised when trying to access a closed store."""
+    """Raised when trying to access a closed HDF5 file."""
 
 
 class H5StoreAlreadyOpenError(Error, OSError):
