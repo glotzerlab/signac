@@ -119,4 +119,8 @@ contributors:
     given-names: "Matthew"
     affiliation: "University of Wisconsin-Madison"
     orcid: "https://orcid.org/0000-0003-4124-7862"
+  -
+    family-names: Takada
+    given-names: Kody
+    affiliation: "University of Michigan"
 ...
