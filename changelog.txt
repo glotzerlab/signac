@@ -10,6 +10,10 @@ Version 2
 [2.0.0] -- 2021-xx-xx
 ---------------------
 
+Added
++++++
+ - ``H5Store`` related errors are now included in the public API (#775).
+
 Changed
 +++++++
 
