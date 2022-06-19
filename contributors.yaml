@@ -130,4 +130,8 @@ contributors:
     given-names: Alain
     affiliation: "University of Michigan"
     orcid: "https://orcid.org/0000-0002-0522-4199"
+  -
+    family-names: Takada
+    given-names: Kody
+    affiliation: "University of Michigan"
 ...
