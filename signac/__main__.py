@@ -1185,7 +1185,8 @@ def main():
         "$ signac view $PREFIX $VIEW_PATH -f $FILTERS -d $DOC_FILTERS.",
     )
     parser_view.add_argument(
-        "prefix",
+        "-p",
+        "--prefix",
         type=str,
         nargs="?",
         default="view",

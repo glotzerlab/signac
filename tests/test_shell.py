@@ -186,6 +186,22 @@ class TestBasicShell:
             ) == os.path.realpath(project.open_job(sp).path)
 
     @pytest.mark.skipif(WINDOWS, reason="Symbolic links are unsupported on Windows.")
+    def test_view_prefix(self):
+        self.call("python -m signac init".split())
+        project = signac.Project()
+        sps = [{"a": i} for i in range(3)]
+        for sp in sps:
+            project.open_job(sp).init()
+        os.mkdir("view")
+        self.call("python -m signac view --prefix view/test_dir".split())
+        for sp in sps:
+            assert os.path.isdir("view/test_dir/a/{}".format(sp["a"]))
+            assert os.path.isdir("view/test_dir/a/{}/job".format(sp["a"]))
+            assert os.path.realpath(
+                "view/test_dir/a/{}/job".format(sp["a"])
+            ) == os.path.realpath(project.open_job(sp).path)
+
+    @pytest.mark.skipif(WINDOWS, reason="Symbolic links are unsupported on Windows.")
     def test_view_incomplete_path_spec(self):
         self.call("python -m signac init".split())
         project = signac.Project()
@@ -197,7 +213,7 @@ class TestBasicShell:
         # An error should be raised if the user-provided path function
         # doesn't make a 1-1 mapping.
         err = self.call(
-            "python -m signac view view non_unique".split(),
+            "python -m signac view non_unique".split(),
             error=True,
             raise_error=False,
         )
