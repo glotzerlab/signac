@@ -26,6 +26,7 @@ from signac.synced_collections.errors import BufferedError, MetadataError
 
 WINDOWS = sys.platform == "win32"
 
+
 class BufferedJSONCollectionTest(JSONCollectionTest):
     def load(self, collection):
         """Load the data corresponding to a SyncedCollection from disk."""
