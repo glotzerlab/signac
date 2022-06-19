@@ -37,6 +37,7 @@ from .common.crypt import get_crypt_context, get_keyring, parse_pwhash
 from .contrib.filterparse import parse_filter_arg
 from .contrib.import_export import _SchemaPathEvaluationError, export_jobs
 from .contrib.utility import add_verbosity_argument, prompt_password, query_yes_no
+from .core.utility import _safe_relpath
 from .diff import diff_jobs
 from .errors import (
     DestinationExistsError,
@@ -530,7 +531,7 @@ def main_sync(args):
         if args.allow_workspace:
             destination = Project(
                 config={
-                    "project": os.path.relpath(args.destination),
+                    "project": _safe_relpath(args.destination),
                     "project_dir": args.destination,
                     "workspace_dir": ".",
                 }
@@ -1158,7 +1159,7 @@ def main_shell(args):
                     except PermissionError:
                         print(
                             "Warning: Shell history could not be read from "
-                            "{}.".format(os.path.relpath(fn_hist))
+                            "{}.".format(_safe_relpath(fn_hist))
                         )
 
                     def write_history_file():
@@ -1167,7 +1168,7 @@ def main_shell(args):
                         except PermissionError:
                             print(
                                 "Warning: Shell history could not be written to "
-                                "{}.".format(os.path.relpath(fn_hist))
+                                "{}.".format(_safe_relpath(fn_hist))
                             )
 
                     atexit.register(write_history_file)

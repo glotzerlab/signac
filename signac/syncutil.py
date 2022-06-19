@@ -12,6 +12,7 @@ from copy import deepcopy
 from filecmp import dircmp
 
 from .common.deprecation import deprecated
+from .core.utility import _safe_relpath
 from .version import __version__
 
 LEVEL_MORE = logging.INFO - 5
@@ -226,18 +227,18 @@ class _FileModifyProxy:
 
     def remove(self, path):
         """Remove path."""
-        logger.more(f"Remove path '{os.path.relpath(path)}'.")
+        logger.more(f"Remove path '{_safe_relpath(path)}'.")
         self._remove(path)
 
     def copy(self, src, dst):
         """Copy src to dst."""
         if self.dry_run and self.root is not None:
-            print(os.path.relpath(src, self.root))
+            print(_safe_relpath(src, self.root))
         if os.path.islink(src) and not self.follow_symlinks:
             link_target = os.readlink(src)
             logger.more(
                 "Creating link '{}' -> '{}'.".format(
-                    os.path.relpath(dst), os.path.relpath(link_target)
+                    _safe_relpath(dst), _safe_relpath(link_target)
                 )
             )
             if os.path.isfile(dst):
@@ -246,7 +247,7 @@ class _FileModifyProxy:
                 os.symlink(link_target, dst)
         else:
             msg = "Copy file{{}} '{}' -> '{}'.".format(
-                os.path.relpath(src), os.path.relpath(dst)
+                _safe_relpath(src), _safe_relpath(dst)
             )
             if self.permissions and self.times:
                 logger.more(msg.format(" (preserving: permissions, times)"))
@@ -267,7 +268,7 @@ class _FileModifyProxy:
                 if self.owner or self.group:
                     logger.more(
                         "Copy owner/group '{}' -> '{}'".format(
-                            os.path.relpath(src), os.path.relpath(dst)
+                            _safe_relpath(src), _safe_relpath(dst)
                         )
                     )
                     if not self.dry_run:
@@ -279,18 +280,18 @@ class _FileModifyProxy:
 
     def copytree(self, src, dst, **kwargs):
         """Copy tree src to dst."""
-        logger.more(f"Copy tree '{os.path.relpath(src)}' -> '{os.path.relpath(dst)}'.")
+        logger.more(f"Copy tree '{_safe_relpath(src)}' -> '{_safe_relpath(dst)}'.")
         copytree(src, dst, copy_function=self.copy, **kwargs)
 
     @contextmanager
     def create_backup(self, path):
         """Create a backup of path."""
-        logger.debug(f"Create backup of '{os.path.relpath(path)}'.")
+        logger.debug(f"Create backup of '{_safe_relpath(path)}'.")
         path_backup = path + "~"
         if os.path.isfile(path_backup):
             raise RuntimeError(
                 "Failed to create backup, file already exists: '{}'.".format(
-                    os.path.relpath(path_backup)
+                    _safe_relpath(path_backup)
                 )
             )
         try:
@@ -301,7 +302,7 @@ class _FileModifyProxy:
             self._copy2(path_backup, path)
             raise
         finally:
-            logger.debug(f"Remove backup of '{os.path.relpath(path)}'.")
+            logger.debug(f"Remove backup of '{_safe_relpath(path)}'.")
             self._remove(path_backup)
 
     @contextmanager
