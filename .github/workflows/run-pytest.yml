@@ -36,11 +36,11 @@ jobs:
         pip install -r requirements/requirements-test.txt
         pip install -r requirements/requirements-test-optional.txt
       if: ${{ matrix.config.dependencies == 'newest' }}
-    - name: Install newest dependencies
+    - name: Install minimal dependencies
       run: |
         pip install -r requirements/requirements-test.txt
       if: ${{ matrix.config.dependencies == 'minimal' }}
-    - name: Install newest dependencies
+    - name: Install oldest supported dependencies
       run: |
         pip install -r .circleci/ci-oldest-reqs.txt
       if: ${{ matrix.config.dependencies == 'oldest' }}
