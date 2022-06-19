@@ -2320,8 +2320,16 @@ class TestProjectInit:
         assert project == signac.get_project(root=root)
         assert project == project.get_project(root=root, search=False)
         assert project == signac.get_project(root=root, search=False)
-        assert project == project.get_project(root=os.path.relpath(root), search=False)
-        assert project == signac.get_project(root=os.path.relpath(root), search=False)
+        try:
+            assert project == project.get_project(root=os.path.relpath(root), search=False)
+        except ValueError:
+            # A relative path may not exist on Windows if it crosses drives.
+            pass
+        try:
+            assert project == signac.get_project(root=os.path.relpath(root), search=False)
+        except ValueError:
+            # A relative path may not exist on Windows if it crosses drives.
+            pass
         with pytest.raises(LookupError):
             assert project == project.get_project(root=subdir, search=False)
         with pytest.raises(LookupError):
