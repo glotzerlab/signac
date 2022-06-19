@@ -246,7 +246,7 @@ class _FileModifyProxy:
             if not self.dry_run:
                 os.symlink(link_target, dst)
         else:
-            msg = "Copy file{{}} '{}' -> '{}'.".format(
+            msg = "Copy file '{}' -> '{}'.".format(
                 _safe_relpath(src), _safe_relpath(dst)
             )
             if self.permissions and self.times:
