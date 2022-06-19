@@ -1,6 +1,16 @@
-name: Run pytest
+name: Run Unit Tests
 
-on: [push, pull_request]
+on:
+  # trigger on pull requests
+  pull_request:
+
+  # trigger on all commits to master
+  push:
+    branches:
+      - "master"
+
+  # trigger on request
+  workflow_dispatch:
 
 jobs:
   test:
@@ -19,8 +29,8 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install the package
       run: |
-        pip install -e requirements/requirements-test.txt
-        pip install -e requirements/requirements-test-optional.txt
+        pip install -r requirements/requirements-test.txt
+        pip install -r requirements/requirements-test-optional.txt
         pip install -e .
     - name: Run MongoDB
       uses: supercharge/mongodb-github-action@1.7.0
@@ -45,7 +55,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install the package
       run: |
-        pip install -e requirements/requirements-test.txt
+        pip install -r requirements/requirements-test.txt
         pip install -e .
     - name: Test with pytest
       run: |
