@@ -52,7 +52,6 @@ try:
         numpy.longdouble,
         numpy.float32,
         numpy.float64,
-        numpy.float128,
         numpy.float_,
     )
 
