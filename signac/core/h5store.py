@@ -68,7 +68,7 @@ class H5StoreClosedError(RuntimeError):
 
 
 class H5StoreAlreadyOpenError(OSError):
-    """Indicates that the underlying HDF5 file is already openend."""
+    """Indicates that the underlying HDF5 file is already open."""
 
 
 def _h5set(store, grp, key, value, path=None):
@@ -296,28 +296,25 @@ class H5Store(MutableMapping):
     ...     assert 'foo' in h5s
     ...     assert h5s.foo == 'bar'
     ...     assert h5s['foo'] == 'bar'
-    >>>
 
     The H5Store can be used as a context manager to ensure that the underlying
     file is opened, however most built-in types (excluding arrays) can be read
-    and stored without the need to _explicitly_ open the file. **To
+    and stored without the need to *explicitly* open the file. **To
     access arrays (reading or writing), the file must always be opened!**
 
     To open a file in read-only mode, use the :py:meth:`.open` method with ``mode='r'``:
 
     >>> with H5Store('file.h5').open(mode='r') as h5s:
     ...     pass
-    >>>
 
     Parameters
     ----------
     filename : str
         The filename of the underlying HDF5 file.
     \*\*kwargs
-        Additional keyword arguments to be forwarded to the ``h5py.File``
-        constructor. See the documentation for the `h5py.File constructor
-        <https://docs.h5py.org/en/latest/high/file.html#File>`_ for more
-        information.
+        Additional keyword arguments to be forwarded to the
+        :py:class:`h5py.File` constructor. See the :py:class:`h5py.File`
+        documentation for more information.
 
     """
     __slots__ = ["_filename", "_file", "_kwargs"]
@@ -383,9 +380,14 @@ class H5Store(MutableMapping):
     def open(self, mode=None):
         """Open the underlying HDF5 file.
 
-        :param mode:
+        Parameters
+        ----------
+        mode : str
             The file open mode to use. Defaults to 'a' (append).
-        :returns:
+
+        Returns
+        -------
+        H5Store
             This H5Store instance.
         """
         if mode is None:
@@ -410,21 +412,25 @@ class H5Store(MutableMapping):
 
     @property
     def file(self):
-        """Access the underlying instance of h5py.File.
+        """Access the underlying instance of :py:class:`h5py.File`.
 
-        This property exposes the underlying ``h5py.File`` object enabling
-        use of functions such as ``create_dataset()`` or ``requires_dataset()``.
+        This property exposes the underlying :py:class:`h5py.File` object enabling
+        use of functions such as :py:meth:`h5py.Group.create_dataset` or
+        :py:meth:`h5py.Group.require_dataset`.
 
         .. note::
 
             The store must be open to access this property!
 
-        :returns:
-            The ``h5py`` file-object that this store is operating on.
-        :rtype:
-            ``h5py.File``
-        :raises H5StoreClosedError:
-            When the store is closed at the time of accessing this property.
+        Returns
+        -------
+        h5py.File
+            The :py:class:`h5py.File` object that this store is operating on.
+
+        Raises
+        ------
+        :py:class:`~.H5StoreClosedError`
+            If the store is closed.
         """
         if self._file is None:
             raise H5StoreClosedError(self._filename)
