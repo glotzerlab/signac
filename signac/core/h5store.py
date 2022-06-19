@@ -421,7 +421,7 @@ class H5Store(MutableMapping):
 
         Raises
         ------
-        :py:class:`~.H5StoreClosedError`
+        H5StoreClosedError
             If the store is closed.
         """
         if self._file is None:
