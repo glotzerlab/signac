@@ -187,7 +187,7 @@ class TestBasicShell:
 
     @pytest.mark.skipif(WINDOWS, reason="Symbolic links are unsupported on Windows.")
     def test_view_prefix(self):
-        self.call("python -m signac init my_project".split())
+        self.call("python -m signac init".split())
         project = signac.Project()
         sps = [{"a": i} for i in range(3)]
         for sp in sps:
