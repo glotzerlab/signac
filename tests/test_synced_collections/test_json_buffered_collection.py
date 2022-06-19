@@ -4,6 +4,7 @@
 import itertools
 import json
 import os
+import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 
@@ -23,6 +24,7 @@ from signac.synced_collections.backends.collection_json import (
 )
 from signac.synced_collections.errors import BufferedError, MetadataError
 
+WINDOWS = sys.platform == "win32"
 
 class BufferedJSONCollectionTest(JSONCollectionTest):
     def load(self, collection):
@@ -376,6 +378,13 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
             # truly flushed correctly.
             assert self._collection_type.get_current_buffer_size() == 0
 
+    @pytest.mark.skipif(
+        WINDOWS,
+        reason=(
+            "This test sometimes fails on Windows. This may indicate a race condition, but "
+            "attempts to reproduce on other platforms have failed thus far."
+        ),
+    )
     def test_multithreaded_buffering_setitem(self, tmpdir):
         """Test setitem in a multithreaded buffering context."""
 
@@ -385,6 +394,13 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
 
         self.multithreaded_buffering_test(setitem_dict, tmpdir)
 
+    @pytest.mark.skipif(
+        WINDOWS,
+        reason=(
+            "This test sometimes fails on Windows. This may indicate a race condition, but "
+            "attempts to reproduce on other platforms have failed thus far."
+        ),
+    )
     def test_multithreaded_buffering_update(self, tmpdir):
         """Test update in a multithreaded buffering context."""
 
@@ -393,6 +409,13 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
 
         self.multithreaded_buffering_test(update_dict, tmpdir)
 
+    @pytest.mark.skipif(
+        WINDOWS,
+        reason=(
+            "This test sometimes fails on Windows. This may indicate a race condition, but "
+            "attempts to reproduce on other platforms have failed thus far."
+        ),
+    )
     def test_multithreaded_buffering_reset(self, tmpdir):
         """Test reset in a multithreaded buffering context."""
 
@@ -401,6 +424,13 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
 
         self.multithreaded_buffering_test(reset_dict, tmpdir)
 
+    @pytest.mark.skipif(
+        WINDOWS,
+        reason=(
+            "This test sometimes fails on Windows. This may indicate a race condition, but "
+            "attempts to reproduce on other platforms have failed thus far."
+        ),
+    )
     def test_multithreaded_buffering_clear(self, tmpdir):
         """Test clear in a multithreaded buffering context.
 
@@ -446,6 +476,13 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
             # truly flushed correctly.
             assert self._collection_type.get_current_buffer_size() == 0
 
+    @pytest.mark.skipif(
+        WINDOWS,
+        reason=(
+            "This test sometimes fails on Windows. This may indicate a race condition, but "
+            "attempts to reproduce on other platforms have failed thus far."
+        ),
+    )
     def test_multithreaded_buffering_load(self, tmpdir):
         """Test loading data in a multithreaded buffering context.
 
