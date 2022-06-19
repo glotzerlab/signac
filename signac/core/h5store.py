@@ -10,7 +10,7 @@ import warnings
 from collections.abc import Mapping, MutableMapping
 from threading import RLock
 
-from ..errors import InvalidKeyError
+from ..errors import H5StoreAlreadyOpenError, H5StoreClosedError, InvalidKeyError
 from .dict_manager import DictManager
 
 __all__ = [
@@ -61,14 +61,6 @@ def _requires_tables():
 
 
 logger = logging.getLogger(__name__)
-
-
-class H5StoreClosedError(RuntimeError):
-    """Raised when trying to access a closed store."""
-
-
-class H5StoreAlreadyOpenError(OSError):
-    """Indicates that the underlying HDF5 file is already open."""
 
 
 def _h5set(store, grp, key, value, path=None):
