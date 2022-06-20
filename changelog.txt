@@ -23,6 +23,7 @@ Changed
    - Project workspaces are no longer configurable, but are instead always defined as a subdirectory of the Project's root directory called ``workspace`` (#714).
  - Rather than searching upwards until the root, ``load_config`` will only load configuration files in the specified directory, which is assumed to be a project directory, as well as the user's home directory (#711).
  - Changed the ``root`` parameter to ``path`` in the ``signac.get_project`` and ``signac.init_project`` functions and corresponding ``Project`` methods (#757, #758).
+ - The prefix argument to ``$ signac view`` is now optional and can be provided with ``-p/--prefix`` (#653, #774).
 
 Removed
 +++++++
