@@ -2,7 +2,6 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import platform
-import sys
 from collections.abc import MutableMapping, MutableSequence
 from copy import deepcopy
 from typing import Any, Tuple, Type
@@ -14,7 +13,6 @@ from signac.synced_collections import SyncedCollection
 from signac.synced_collections.numpy_utils import NumpyConversionWarning
 
 PYPY = "PyPy" in platform.python_implementation()
-WINDOWS = sys.platform == "win32"
 
 
 try:
@@ -455,11 +453,11 @@ class SyncedDictTest(SyncedCollectionTest):
             with pytest.raises(TypeError):
                 synced_collection[key] = testdata
 
-    @pytest.mark.skipif(
-        WINDOWS,
+    @pytest.mark.skip(
         reason=(
-            "This test sometimes fails on Windows. This may indicate a race condition, but "
-            "attempts to reproduce on other platforms have failed thus far."
+            "This test sometimes fails. This may indicate a race condition. "
+            "The test fails more consistently on Windows but also appears on "
+            "Linux in CI."
         ),
     )
     def test_multithreaded(self, synced_collection):
@@ -774,11 +772,11 @@ class SyncedListTest(SyncedCollectionTest):
         assert isinstance(child2, SyncedCollection)
         assert isinstance(child1, SyncedCollection)
 
-    @pytest.mark.skipif(
-        WINDOWS,
+    @pytest.mark.skip(
         reason=(
-            "This test sometimes fails on Windows. This may indicate a race condition, but "
-            "attempts to reproduce on other platforms have failed thus far."
+            "This test sometimes fails. This may indicate a race condition. "
+            "The test fails more consistently on Windows but also appears on "
+            "Linux in CI."
         ),
     )
     def test_multithreaded(self, synced_collection):
