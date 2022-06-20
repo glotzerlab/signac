@@ -24,6 +24,13 @@ jobs:
                   {python: '3.10', dependencies: 'newest'},
                   {python: '3.10', dependencies: 'minimal'},
                   {python: '3.8', dependencies: 'oldest'} ]
+        exclude:
+          # macOS, Python 3.10 is excluded because zarr dependency numcodecs is
+          # not yet available as a wheel for that configuration and fails to
+          # build from source. See
+          # https://github.com/zarr-developers/numcodecs/issues/326
+          - os: macos-latest
+            config: {python: '3.10', dependencies: 'newest'}
 
     steps:
     - uses: actions/checkout@v3
