@@ -45,6 +45,7 @@ Fixed
  - ``H5Store.mode`` returns the file mode (#607).
  - User-provided path functions now raise an error if not unique (#666).
  - ``Collection`` class no longer raises an error when searching by a primary key that does not exist (#676).
+ - Relative paths on Windows are not used if the current directory has no common prefix (#777).
 
 Removed
 +++++++
