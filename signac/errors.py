@@ -15,7 +15,7 @@ from .contrib.errors import (
     StatepointParsingError,
     WorkspaceError,
 )
-from .core.errors import Error
+from .core.errors import Error, H5StoreAlreadyOpenError, H5StoreClosedError
 from .synced_collections.errors import InvalidKeyError, KeyTypeError
 
 
@@ -64,6 +64,8 @@ __all__ = [
     "DocumentSyncConflict",
     "Error",
     "FileSyncConflict",
+    "H5StoreAlreadyOpenError",
+    "H5StoreClosedError",
     "IncompatibleSchemaVersion",
     "InvalidKeyError",
     "JobsCorruptedError",
