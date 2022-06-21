@@ -406,7 +406,7 @@ class H5Store(MutableMapping):
     def file(self):
         """Access the underlying instance of :py:class:`h5py.File`.
 
-        This property exposes the underlying :py:class:`h5py.File` object enabling
+        This property exposes the underlying :py:class:`h5py.File` object, enabling
         use of functions such as :py:meth:`h5py.Group.create_dataset` or
         :py:meth:`h5py.Group.require_dataset`.
 
