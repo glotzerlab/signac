@@ -354,10 +354,10 @@ class Project:
 
     @property
     def stores(self):
-        """Get HDF5-stores associated with this project.
+        """Get HDF5 stores associated with this project.
 
         Use this property to access an HDF5 file within the project
-        directory using the H5Store dict-like interface.
+        directory using the :py:class:`~.H5Store` dict-like interface.
 
         This is an example for accessing an HDF5 file called ``'my_data.h5'``
         within the project directory:
@@ -382,7 +382,7 @@ class Project:
         Returns
         -------
         :class:`~signac.H5StoreManager`
-            The HDF5-Store manager for this project.
+            The HDF5 store manager for this project.
 
         """
         with self._lock:
