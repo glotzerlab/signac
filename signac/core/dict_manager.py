@@ -8,6 +8,8 @@ import os
 import re
 import uuid
 
+from .utility import _safe_relpath
+
 
 class DictManager:
     """Helper class to manage multiple instances of dict-like classes.
@@ -43,9 +45,7 @@ class DictManager:
         )
 
     def __repr__(self):
-        return "{}(prefix={})".format(
-            type(self).__name__, repr(os.path.relpath(self.prefix))
-        )
+        return f"{type(self).__name__}(prefix={repr(_safe_relpath(self.prefix))})"
 
     __str__ = __repr__
 
