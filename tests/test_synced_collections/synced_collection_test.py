@@ -453,7 +453,7 @@ class SyncedDictTest(SyncedCollectionTest):
             with pytest.raises(TypeError):
                 synced_collection[key] = testdata
 
-    @pytest.mark.skip(
+    @pytest.mark.xfail(
         reason=(
             "This test sometimes fails. This may indicate a race condition. "
             "The test fails more consistently on Windows but also appears on "
@@ -772,7 +772,7 @@ class SyncedListTest(SyncedCollectionTest):
         assert isinstance(child2, SyncedCollection)
         assert isinstance(child1, SyncedCollection)
 
-    @pytest.mark.skip(
+    @pytest.mark.xfail(
         reason=(
             "This test sometimes fails. This may indicate a race condition. "
             "The test fails more consistently on Windows but also appears on "
