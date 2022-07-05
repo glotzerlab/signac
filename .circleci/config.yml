@@ -5,7 +5,6 @@
 version: 2.1
 
 orbs:
-  win: circleci/windows@2.2.0  # Enables Windows executors
   codecov: codecov/codecov@3.2.2
 
 references:
@@ -142,35 +141,6 @@ jobs:
       DEPENDENCIES: "NEWEST"
       PYTHON: pypy3
 
-  windows-python-310:
-    executor:
-      name: win/default
-      shell: bash.exe
-    environment:
-      PYTHON: C:\Python310\python
-    steps:
-      - checkout
-      - run:
-          name: Install Python
-          command: |
-            choco install python --version 3.10.2 --limit-output --no-progress
-      - run:
-          name: Install dependencies
-          command: |
-            ${PYTHON} -m pip install --progress-bar off -U pip>=20.3
-            ${PYTHON} -m pip install --progress-bar off -U -r requirements/requirements-test.txt
-
-            # For some reason Zarr doesn't install correctly on Windows (runs
-            # into pip SSL errors), so we skip that test.
-            grep -v zarr requirements-test-optional.txt > requirements-test-optional-windows.txt
-            ${PYTHON} -m pip install --progress-bar off -U -r requirements-test-optional-windows.txt
-
-            ${PYTHON} -m pip install --progress-bar off -U -e .
-      - run:
-          name: Run tests
-          command: |
-            ${PYTHON} -m pytest -n 2 --dist loadfile --cov=signac --cov-report=xml tests/ -v
-
   macos-python-3:
     macos:  # executor type
       xcode: 13.2.0
@@ -254,9 +224,6 @@ workflows:
       - linux-pypy-38:
           post-steps:
             - codecov/upload
-      - windows-python-310:
-          post-steps:
-            - codecov/upload
       - macos-python-3:
           post-steps:
             - codecov/upload
@@ -275,7 +242,6 @@ workflows:
             - linux-python-38
             - linux-python-38-oldest
             - linux-pypy-38
-            - windows-python-310
   deploy:
     jobs:
       - deploy-pypi:
