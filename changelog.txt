@@ -6,6 +6,11 @@ The **signac** package follows `semantic versioning <https://semver.org/>`_.
 
 Version 1
 =========
+next
+----
+
+- Fix issue get_project() "root" keyword failing silently
+
 
 [1.8.0] -- 2021-xx-xx
 ---------------------

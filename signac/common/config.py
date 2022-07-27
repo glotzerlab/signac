@@ -6,6 +6,7 @@
 import logging
 import os
 import stat
+import pytest
 
 from ..common.deprecation import deprecated
 from ..version import __version__
@@ -145,6 +146,9 @@ def load_config(root=None, local=False):
     """Load configuration, searching upward from a root path."""
     if root is None:
         root = os.getcwd()
+    if not os.path.isdir(root):
+        with pytest.raises(ValueError):
+            raise ValueError(f"The root directory '{root}' does not exist.")
     config = Config(configspec=cfg.split("\n"))
     if local:
         for fn in _search_local(root):
