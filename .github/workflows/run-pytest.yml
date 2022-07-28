@@ -51,7 +51,7 @@ jobs:
       if: ${{ matrix.config.dependencies == 'minimal' }}
     - name: Install oldest supported dependencies
       run: |
-        pip install -r .circleci/ci-oldest-reqs.txt
+        pip install -r requirements/ci-oldest-reqs.txt
       if: ${{ matrix.config.dependencies == 'oldest' }}
     - name: Install the package
       run: |
