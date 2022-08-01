@@ -53,6 +53,7 @@ Removed
  - The ``--workspace`` option for the command line ``job`` subcommand (#752).
  - The ability to call ``Project.workspace``, it is strictly a property now (#752).
  - ``ProjectSchema.__call__``, ``ProjectSchema.detect`` (#752).
+ - The ``--doc-filter`` option for several command line subcommands (#613, #795).
 
 Version 1
 =========
