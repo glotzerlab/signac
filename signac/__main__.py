@@ -166,7 +166,7 @@ def main_job(args):
     try:
         statepoint = json.loads(sp)
     except ValueError:
-        _print_err(f"Error while reading statepoint: '{sp}'")
+        _print_err(f"Error while reading state point: '{sp}'")
         raise
     job = project.open_job(statepoint)
     if args.create:
@@ -901,7 +901,7 @@ def main():
         nargs="?",
         default="-",
         type=str,
-        help="The job's statepoint in JSON format. Omit this argument to read from STDIN.",
+        help="The job's state point in JSON format. Omit this argument to read from STDIN.",
     )
     parser_job.add_argument(
         "-w",
@@ -925,7 +925,7 @@ def main():
 
     parser_statepoint = subparsers.add_parser(
         "statepoint",
-        description="Print the statepoint(s) corresponding to one or more job ids.",
+        description="Print the state point(s) corresponding to one or more job ids.",
     )
     parser_statepoint.add_argument(
         "job_id",
@@ -1105,7 +1105,7 @@ def main():
         "filter",
         type=str,
         nargs="*",
-        help="A JSON encoded filter (key-value pairs).",
+        help="Find jobs matching the filter.",
     )
     parser_find.add_argument(
         "-s",
