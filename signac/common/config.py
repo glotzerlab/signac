@@ -147,8 +147,7 @@ def load_config(root=None, local=False):
     if root is None:
         root = os.getcwd()
     if not os.path.isdir(root):
-        with pytest.raises(ValueError):
-            raise ValueError(f"The root directory '{root}' does not exist.")
+        raise ValueError(f"The root directory '{root}' does not exist.")
     config = Config(configspec=cfg.split("\n"))
     if local:
         for fn in _search_local(root):

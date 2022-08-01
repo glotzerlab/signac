@@ -2283,6 +2283,8 @@ class TestProjectInit:
 
     def test_get_project(self):
         root = self._tmp_dir.name
+        with pytest.raises(ValueError):
+            signac.get_project(root="a/path/that/does/not/exist")
         with pytest.raises(LookupError):
             signac.get_project(root=root)
         project = signac.init_project(name="testproject", root=root)
