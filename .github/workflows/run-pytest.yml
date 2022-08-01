@@ -50,8 +50,12 @@ jobs:
         pip install -r requirements/requirements-test.txt
       if: ${{ matrix.config.dependencies == 'minimal' }}
     - name: Install oldest supported dependencies
+      # To prevent Dependabot from updating the pinnings in this "oldest"
+      # dependency list, we have to avoid the word "requirements" in the
+      # filename. That's why it is in the .github/ directory and named "reqs"
+      # instead of "requirements."
       run: |
-        pip install -r requirements/ci-oldest-reqs.txt
+        pip install -r .github/workflows/ci-oldest-reqs.txt
       if: ${{ matrix.config.dependencies == 'oldest' }}
     - name: Install the package
       run: |
