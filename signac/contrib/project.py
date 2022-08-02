@@ -2392,7 +2392,7 @@ class Project:
             raise LookupError(
                 f"Unable to determine project id for nonexistent path '{os.path.abspath(root)}'."
             )
-            
+
         config = load_config(root=root, local=False)
         if "project" not in config or (
             not search
