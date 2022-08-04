@@ -26,6 +26,7 @@ Changed
  - Deprecated features now use ``FutureWarning`` instead of ``DeprecationWarning``, which is hidden by default (#687, #691).
  - Project names have a default in anticipation of removing names entirely. Project names will be removed in signac 2.0 (#644).
  - ``Project.workspace`` is now a property, not a method (#685).
+ - Continuous integration uses GitHub Actions instead of CircleCI (#776, #788).
 
 Deprecated
 ++++++++++
