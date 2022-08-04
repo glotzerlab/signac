@@ -2399,8 +2399,8 @@ class Project:
             and os.path.realpath(config["project_dir"]) != os.path.realpath(root)
         ):
             raise LookupError(
-                    f"Unable to determine project id for path '{os.path.abspath(root)}'."
-                )
+                f"Unable to determine project id for path '{os.path.abspath(root)}'."
+            )
 
         return cls(config=config, **kwargs)
 
