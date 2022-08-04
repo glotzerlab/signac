@@ -6,10 +6,6 @@ The **signac** package follows `semantic versioning <https://semver.org/>`_.
 
 Version 1
 =========
-next
-----
-
-- Fix issue get_project() "root" keyword failing silently
 
 
 [1.8.0] -- 2021-xx-xx
@@ -51,6 +47,7 @@ Fixed
  - User-provided path functions now raise an error if not unique (#666).
  - ``Collection`` class no longer raises an error when searching by a primary key that does not exist (#676).
  - Relative paths on Windows are not used if the current directory has no common prefix (#777).
+ - ``get_project()`` now returns an error if provided with a project root that does not exist (#779, #792)
 
 Removed
 +++++++
