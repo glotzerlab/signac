@@ -145,12 +145,9 @@ def get_config(infile=None, configspec=None, *args, **kwargs):  # noqa: D103
 
 def load_config(root=None, local=False):
     """Load configuration, searching upward from a root path."""
-
     if root is None:
         root = os.getcwd()
-
     config = Config(configspec=cfg.split("\n"))
-
     if local:
         for fn in _search_local(root):
             tmp = read_config_file(fn)
