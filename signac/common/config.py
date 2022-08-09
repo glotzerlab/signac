@@ -7,8 +7,6 @@ import logging
 import os
 import stat
 
-import pytest
-
 from ..common.deprecation import deprecated
 from ..version import __version__
 from .configobj import ConfigObj, ConfigObjError
