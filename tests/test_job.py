@@ -238,6 +238,11 @@ class TestJob(TestJobBase):
         copied_job.sp.a = 3
         assert copied_job in self.project
 
+    def test_project(self):
+        job = self.project.open_job({"a": 0})
+        assert isinstance(job.project, signac.Project)
+        assert job in job.project
+        assert job.project.path == self._tmp_pr
 
 class TestJobSpInterface(TestJobBase):
     def test_interface_read_only(self):
