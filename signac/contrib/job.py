@@ -605,7 +605,7 @@ class Job:
 
         """
         self.stores[self.KEY_DATA] = new_data
-    
+
     @property
     def project(self):
         """Return the project that contains this job."""

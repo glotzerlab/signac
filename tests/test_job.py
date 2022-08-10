@@ -244,6 +244,7 @@ class TestJob(TestJobBase):
         assert job in job.project
         assert job.project.path == self._tmp_pr
 
+
 class TestJobSpInterface(TestJobBase):
     def test_interface_read_only(self):
         sp = self.nested_dict()
