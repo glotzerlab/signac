@@ -16,7 +16,7 @@ from .contrib.errors import (
     WorkspaceError,
 )
 from .core.errors import Error, H5StoreAlreadyOpenError, H5StoreClosedError
-from .synced_collections.errors import InvalidKeyError, KeyTypeError
+from ._synced_collections.errors import InvalidKeyError, KeyTypeError
 
 
 class SyncConflict(Error, RuntimeError):

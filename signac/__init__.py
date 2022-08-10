@@ -13,7 +13,7 @@ from . import contrib, errors, sync, testing, warnings
 from .contrib import Project, TemporaryProject, get_job, get_project, init_project
 from .core.h5store import H5Store, H5StoreManager
 from .diff import diff_jobs
-from .synced_collections.backends.collection_json import (
+from ._synced_collections.backends.collection_json import (
     BufferedJSONAttrDict as JSONDict,
 )
 from .version import __version__

@@ -28,7 +28,7 @@ from ..common.config import (
 )
 from ..core.h5store import H5StoreManager
 from ..sync import sync_projects
-from ..synced_collections.backends.collection_json import BufferedJSONAttrDict
+from .._synced_collections.backends.collection_json import BufferedJSONAttrDict
 from ..version import SCHEMA_VERSION, __version__
 from ._searchindexer import _SearchIndexer
 from .errors import (
@@ -301,7 +301,7 @@ class Project:
 
         Returns
         -------
-        :class:`~signac.synced_collections.backends.collection_json.BufferedJSONAttrDict`
+        :class:`~signac._synced_collections.backends.collection_json.BufferedJSONAttrDict`
             The project document.
 
         """
@@ -334,7 +334,7 @@ class Project:
 
         Returns
         -------
-        :class:`~signac.synced_collections.backends.collection_json.BufferedJSONAttrDict`
+        :class:`~signac._synced_collections.backends.collection_json.BufferedJSONAttrDict`
             The project document.
 
         """

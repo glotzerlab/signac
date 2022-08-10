@@ -18,7 +18,7 @@ import os
 from signac.common import configobj
 from signac.common.config import _get_project_config_fn
 from signac.contrib.project import Project
-from signac.synced_collections.backends.collection_json import BufferedJSONAttrDict
+from signac._synced_collections.backends.collection_json import BufferedJSONAttrDict
 
 from .v0_to_v1 import _load_config_v1
 
