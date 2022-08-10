@@ -8,9 +8,9 @@ from typing import Any, Tuple, Type
 
 import pytest
 
-from signac.errors import KeyTypeError
 from signac._synced_collections import SyncedCollection
 from signac._synced_collections.numpy_utils import NumpyConversionWarning
+from signac.errors import KeyTypeError
 
 PYPY = "PyPy" in platform.python_implementation()
 
