@@ -608,7 +608,13 @@ class Job:
 
     @property
     def project(self):
-        """Return the project that contains this job."""
+        """Get the project that contains this job.
+        
+        Returns
+        -------
+        signac.Project
+            Returns the project containing this job.
+        """
         return self._project
 
     def init(self, force=False):

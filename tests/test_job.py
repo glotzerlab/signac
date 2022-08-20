@@ -239,7 +239,7 @@ class TestJob(TestJobBase):
         assert copied_job in self.project
 
     def test_project(self):
-        job = self.project.open_job({"a": 0})
+        job = self.project.open_job({"a": 0}).init()
         assert isinstance(job.project, signac.Project)
         assert job in job.project
         assert job.project.path == self._tmp_pr
