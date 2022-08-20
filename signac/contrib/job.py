@@ -609,7 +609,7 @@ class Job:
     @property
     def project(self):
         """Get the project that contains this job.
-        
+
         Returns
         -------
         signac.Project
