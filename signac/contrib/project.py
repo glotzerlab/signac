@@ -2387,15 +2387,19 @@ class Project:
         """
         if root is None:
             root = os.getcwd()
+
+        if not os.path.exists(root):
+            raise LookupError(
+                f"Unable to determine project id for nonexistent path '{os.path.abspath(root)}'."
+            )
+
         config = load_config(root=root, local=False)
         if "project" not in config or (
             not search
             and os.path.realpath(config["project_dir"]) != os.path.realpath(root)
         ):
             raise LookupError(
-                "Unable to determine project id for path '{}'.".format(
-                    os.path.abspath(root)
-                )
+                f"Unable to determine project id for path '{os.path.abspath(root)}'."
             )
 
         return cls(config=config, **kwargs)
