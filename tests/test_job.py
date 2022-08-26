@@ -244,6 +244,16 @@ class TestJob(TestJobBase):
         assert job in job.project
         assert job.project.path == self._tmp_pr
 
+    def test_custom_project_access_from_job(self):
+        # Test a custom project subclass to ensure compatibility with signac-flow's FlowProject
+        class CustomProject(signac.Project):
+            pass
+        custom_project = CustomProject.get_project(self._tmp_pr)
+        job2 = custom_project.open_job({"a": 0}).init()
+        assert isinstance(job2.project, CustomProject)
+        assert job2 in custom_project
+        assert job2.project.path == self._tmp_pr
+
 
 class TestJobSpInterface(TestJobBase):
     def test_interface_read_only(self):
