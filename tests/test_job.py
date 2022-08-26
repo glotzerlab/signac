@@ -248,6 +248,7 @@ class TestJob(TestJobBase):
         # Test a custom project subclass to ensure compatibility with signac-flow's FlowProject
         class CustomProject(signac.Project):
             pass
+
         custom_project = CustomProject.get_project(self._tmp_pr)
         job2 = custom_project.open_job({"a": 0}).init()
         assert isinstance(job2.project, CustomProject)
