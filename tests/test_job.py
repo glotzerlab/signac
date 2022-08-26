@@ -250,10 +250,10 @@ class TestJob(TestJobBase):
             pass
 
         custom_project = CustomProject.get_project(self._tmp_pr)
-        job2 = custom_project.open_job({"a": 0}).init()
-        assert isinstance(job2.project, CustomProject)
-        assert job2 in custom_project
-        assert job2.project.path == self._tmp_pr
+        job = custom_project.open_job({"a": 0}).init()
+        assert isinstance(job.project, CustomProject)
+        assert job in job.project
+        assert job.project.path == self._tmp_pr
 
 
 class TestJobSpInterface(TestJobBase):
