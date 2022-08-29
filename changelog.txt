@@ -12,8 +12,10 @@ Version 2
 
 Added
 +++++
+
  - ``H5Store`` related errors are now included in the public API (#775).
  - Users can now access the project which a job belongs to from the job object.
+
 Changed
 +++++++
 
