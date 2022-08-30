@@ -90,6 +90,7 @@ The Job class
     Job.move
     Job.open
     Job.path
+    Job.project
     Job.remove
     Job.reset
     Job.sp
