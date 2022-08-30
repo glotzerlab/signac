@@ -238,6 +238,23 @@ class TestJob(TestJobBase):
         copied_job.sp.a = 3
         assert copied_job in self.project
 
+    def test_project_access_from_job(self):
+        job = self.project.open_job({"a": 0}).init()
+        assert isinstance(job.project, signac.Project)
+        assert job in job.project
+        assert job.project.path == self._tmp_pr
+
+    def test_custom_project_access_from_job(self):
+        # Test a custom project subclass to ensure compatibility with signac-flow's FlowProject
+        class CustomProject(signac.Project):
+            pass
+
+        custom_project = CustomProject.get_project(self._tmp_pr)
+        job = custom_project.open_job({"a": 0}).init()
+        assert isinstance(job.project, CustomProject)
+        assert job in job.project
+        assert job.project.path == self._tmp_pr
+
 
 class TestJobSpInterface(TestJobBase):
     def test_interface_read_only(self):
