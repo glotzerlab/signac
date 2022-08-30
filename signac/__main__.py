@@ -32,7 +32,7 @@ else:
 from . import get_project, init_project
 from .common import config
 from .common.configobj import Section, flatten_errors
-from .contrib.filterparse import _add_prefix, parse_filter_arg
+from .contrib.filterparse import parse_filter_arg
 from .contrib.import_export import _SchemaPathEvaluationError, export_jobs
 from .contrib.utility import _add_verbosity_argument, _print_err, _query_yes_no
 from .core.utility import _safe_relpath
@@ -135,7 +135,7 @@ def _open_job_by_id(project, job_id):
 
 def find_with_filter_or_none(args):
     """Return a filtered subset of jobs or None."""
-    if args.job_id or args.filter or args.doc_filter:
+    if args.job_id or args.filter:
         return find_with_filter(args)
     else:
         return None
@@ -144,15 +144,13 @@ def find_with_filter_or_none(args):
 def find_with_filter(args):
     """Return a filtered subset of jobs."""
     if getattr(args, "job_id", None):
-        if args.filter or args.doc_filter:
+        if args.filter:
             raise ValueError("Can't provide both 'job-id' and filter arguments!")
         else:
             return args.job_id
 
     project = get_project()
     filter_ = parse_filter_arg(args.filter) or {}
-    if args.doc_filter:
-        filter_.update(_add_prefix("doc.", parse_filter_arg(args.doc_filter)))
     if not filter_:
         filter_ = None
     return project._find_job_ids(filter=filter_)
@@ -168,7 +166,7 @@ def main_job(args):
     try:
         statepoint = json.loads(sp)
     except ValueError:
-        _print_err(f"Error while reading statepoint: '{sp}'")
+        _print_err(f"Error while reading state point: '{sp}'")
         raise
     job = project.open_job(statepoint)
     if args.create:
@@ -903,7 +901,7 @@ def main():
         nargs="?",
         default="-",
         type=str,
-        help="The job's statepoint in JSON format. Omit this argument to read from STDIN.",
+        help="The job's state point in JSON format. Omit this argument to read from STDIN.",
     )
     parser_job.add_argument(
         "-w",
@@ -927,7 +925,7 @@ def main():
 
     parser_statepoint = subparsers.add_parser(
         "statepoint",
-        description="Print the statepoint(s) corresponding to one or more job ids.",
+        description="Print the state point(s) corresponding to one or more job ids.",
     )
     parser_statepoint.add_argument(
         "job_id",
@@ -993,14 +991,7 @@ def main():
         "--filter",
         type=str,
         nargs="+",
-        help="Limit the diff to jobs matching this state point filter.",
-    )
-    parser_diff.add_argument(
-        "-d",
-        "--doc-filter",
-        type=str,
-        nargs="+",
-        help="Show documents of jobs matching this document filter.",
+        help="Limit the diff to jobs matching the filter.",
     )
     parser_diff.set_defaults(func=main_diff)
 
@@ -1043,14 +1034,7 @@ def main():
         "--filter",
         type=str,
         nargs="+",
-        help="Show documents of jobs matching this state point filter.",
-    )
-    parser_document.add_argument(
-        "-d",
-        "--doc-filter",
-        type=str,
-        nargs="+",
-        help="Show documents of job matching this document filter.",
+        help="Show documents of jobs matching the filter.",
     )
     parser_document.set_defaults(func=main_document)
 
@@ -1121,10 +1105,7 @@ def main():
         "filter",
         type=str,
         nargs="*",
-        help="A JSON encoded state point filter (key-value pairs).",
-    )
-    parser_find.add_argument(
-        "-d", "--doc-filter", type=str, nargs="+", help="A document filter."
+        help="Find jobs matching the filter.",
     )
     parser_find.add_argument(
         "-s",
@@ -1207,14 +1188,7 @@ def main():
         "--filter",
         type=str,
         nargs="+",
-        help="Limit the view to jobs matching this state point filter.",
-    )
-    selection_group.add_argument(
-        "-d",
-        "--doc-filter",
-        type=str,
-        nargs="+",
-        help="Limit the view to jobs matching this document filter.",
+        help="Limit the view to jobs matching the filter.",
     )
     selection_group.add_argument(
         "-j",
@@ -1260,14 +1234,7 @@ def main():
         "--filter",
         type=str,
         nargs="+",
-        help="Detect schema only for jobs that match the state point filter.",
-    )
-    selection_group.add_argument(
-        "-d",
-        "--doc-filter",
-        type=str,
-        nargs="+",
-        help="Detect schema only for jobs that match the document filter.",
+        help="Detect schema only for jobs matching the filter.",
     )
     selection_group.add_argument(
         "-j",
@@ -1297,21 +1264,14 @@ def main():
         "--filter",
         type=str,
         nargs="+",
-        help="Reduce selection to jobs that match the given filter.",
-    )
-    selection_group.add_argument(
-        "-d",
-        "--doc-filter",
-        type=str,
-        nargs="+",
-        help="Reduce selection to jobs that match the given document filter.",
+        help="Reduce selection to jobs matching the filter.",
     )
     selection_group.add_argument(
         "-j",
         "--job-id",
         type=str,
         nargs="+",
-        help="Reduce selection to jobs that match the given job ids.",
+        help="Reduce selection to jobs matching the given job ids.",
     )
     parser_shell.set_defaults(func=main_shell)
 
@@ -1479,14 +1439,7 @@ def main():
         "--filter",
         type=str,
         nargs="+",
-        help="Only synchronize jobs that match the state point filter.",
-    )
-    selection_group.add_argument(
-        "-d",
-        "--doc-filter",
-        type=str,
-        nargs="+",
-        help="Only synchronize jobs that match the document filter.",
+        help="Only synchronize jobs matching the filter.",
     )
     selection_group.add_argument(
         "-j",
@@ -1562,14 +1515,7 @@ def main():
         "--filter",
         type=str,
         nargs="+",
-        help="Limit the jobs to export to those matching the state point filter.",
-    )
-    selection_group.add_argument(
-        "-d",
-        "--doc-filter",
-        type=str,
-        nargs="+",
-        help="Limit the jobs to export to those matching this document filter.",
+        help="Limit the jobs to export to those matching the filter.",
     )
     selection_group.add_argument(
         "-j",
