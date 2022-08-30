@@ -219,7 +219,6 @@ class TestBasicShell:
         )
         assert "duplicate paths" in err
 
-    @pytest.mark.filterwarnings("ignore:The doc_filter argument is deprecated")
     def test_find(self):
         self.call("python -m signac init".split())
         project = signac.Project()
@@ -266,15 +265,6 @@ class TestBasicShell:
                 continue
             job.document["a"] = job.statepoint()["a"]
             job.document["b"] = job.statepoint()["a"] + 1
-
-        for i in range(3):
-            assert (
-                self.call(
-                    "python -m signac find --doc-filter".split()
-                    + ['{"a": ' + str(i) + "}"]
-                ).strip()
-                == next(iter(project.find_jobs({"a": i}))).id
-            )
 
         for i in range(3):
             assert (
