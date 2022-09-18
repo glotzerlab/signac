@@ -7,6 +7,7 @@
 # exceptions that are relevant beyond a single module. This top-level errors
 # module is used to expose user-facing exception classes.
 
+from ._synced_collections.errors import InvalidKeyError, KeyTypeError
 from .common.errors import ConfigError
 from .contrib.errors import (
     DestinationExistsError,
@@ -16,7 +17,6 @@ from .contrib.errors import (
     WorkspaceError,
 )
 from .core.errors import Error, H5StoreAlreadyOpenError, H5StoreClosedError
-from .synced_collections.errors import InvalidKeyError, KeyTypeError
 
 
 class SyncConflict(Error, RuntimeError):
