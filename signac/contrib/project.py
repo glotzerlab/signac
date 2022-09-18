@@ -104,6 +104,7 @@ class Project:
         if path is None:
             path = os.getcwd()
         if not os.path.isfile(_get_project_config_fn(path)):
+            # TODO: Need to check whether we have an old config if not found.
             raise LookupError(
                 f"Unable to find project at path '{os.path.abspath(path)}'."
             )
@@ -1435,13 +1436,6 @@ class Project:
         -------
         :class:`~signac.Project`
             Initialized project, an instance of :class:`~signac.Project`.
-
-        Raises
-        ------
-        RuntimeError
-            If the project path already contains a conflicting project
-            configuration.
-
         """
         if path is None:
             path = os.getcwd()
