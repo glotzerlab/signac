@@ -634,6 +634,7 @@ def main_update_cache(args):
         _print_err(f"Updated cache (size={n}).")
 
 
+# TODO: This can be uncommented now!
 # UNCOMMENT THE FOLLOWING BLOCK WHEN THE FIRST MIGRATION IS INTRODUCED.
 # def main_migrate(args):
 #     "Migrate the project's schema to the current schema version."
