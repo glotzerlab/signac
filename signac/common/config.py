@@ -17,9 +17,6 @@ logger = logging.getLogger(__name__)
 PROJECT_CONFIG_FN = os.path.join(".signac", "config")
 USER_CONFIG_FN = os.path.expanduser(os.path.join("~", ".signacrc"))
 
-# TODO: Consider making this entire module internal and removing all its
-# functions from the public API.
-
 
 def _get_project_config_fn(path):
     return os.path.abspath(os.path.join(path, PROJECT_CONFIG_FN))
@@ -38,15 +35,49 @@ def _locate_config_dir(search_path):
     str or None
         The directory containing the configuration file if one is found, otherwise None.
     """
+    orig_search_path = search_path
     search_path = os.path.abspath(search_path)
     while True:
         if os.path.isfile(_get_project_config_fn(search_path)):
             return search_path
         if (up := os.path.dirname(search_path)) == search_path:
-            logger.debug("Reached filesystem root, no config found.")
-            return None
+            break
         else:
             search_path = up
+
+    logger.debug(
+        "Reached filesystem root, no config found. Checking whether we "
+        "can instead find a project created with an older signac schema."
+    )
+
+    from ..contrib.errors import IncompatibleSchemaVersion
+    from ..contrib.migration import _get_config_schema_version
+    from ..version import SCHEMA_VERSION, __version__
+
+    schema_version = int(SCHEMA_VERSION)
+    search_path = orig_search_path
+
+    while True:
+        try:
+            schema_version = _get_config_schema_version(search_path, schema_version)
+            assert schema_version != SCHEMA_VERSION, (
+                "Migration schema loader succeeded in loading a config file "
+                "where normal loader failed. This indicates an internal "
+                "error, please contact the signac developers."
+            )
+            raise IncompatibleSchemaVersion(
+                "The signac schema version used by this project is "
+                f"{schema_version}, but signac {__version__} only "
+                f"supports up to schema version {SCHEMA_VERSION}. Try running "
+                "python -m signac migrate."
+            )
+        except RuntimeError:
+            # No config file was found at this level, go to the next one.
+            if (up := os.path.dirname(search_path)) == search_path:
+                logger.debug("Reached filesystem root, no config found.")
+                break
+            else:
+                search_path = up
 
 
 def _read_config_file(filename):
