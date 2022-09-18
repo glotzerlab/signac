@@ -104,8 +104,7 @@ def check_and_fix_permissions(filename):
             logger.debug("Fixed permissions.")
 
 
-def read_config_file(filename):
-    """Read a configuration file."""
+def _read_config_file(filename):
     logger.debug(f"Reading config file '{filename}'.")
     try:
         config = Config(filename, configspec=cfg.split("\n"))
@@ -124,6 +123,20 @@ def read_config_file(filename):
     return config
 
 
+@deprecated(
+    deprecated_in="1.8",
+    removed_in="2.0",
+    current_version=__version__,
+    details=(
+        "The read_config_file method is deprecated. Configs should only be "
+        "accessed via a Project instance.",
+    ),
+)
+def read_config_file(filename):
+    """Read a configuration file."""
+    return _read_config_file(filename)
+
+
 def _get_config(infile=None, configspec=None, *args, **kwargs):
     """Get configuration from a file."""
     if configspec is None:
@@ -135,34 +148,50 @@ def _get_config(infile=None, configspec=None, *args, **kwargs):
     deprecated_in="1.8",
     removed_in="2.0",
     current_version=__version__,
-    details="The get_config method is deprecated. Use read_config_file instead.",
+    details=(
+        "The get_config method is deprecated. Configs should only be "
+        "accessed via a Project instance.",
+    ),
 )
 def get_config(infile=None, configspec=None, *args, **kwargs):  # noqa: D103
     return _get_config(infile, configspec, *args, **kwargs)
 
 
-def load_config(root=None, local=False):
-    """Load configuration, searching upward from a root path."""
+def _load_config(root=None, local=False):
     if root is None:
         root = os.getcwd()
     config = Config(configspec=cfg.split("\n"))
     if local:
         for fn in _search_local(root):
-            tmp = read_config_file(fn)
+            tmp = _read_config_file(fn)
             config.merge(tmp)
             if "project" in tmp:
                 config["project_dir"] = os.path.dirname(fn)
                 break
     else:
         for fn in _search_standard_dirs():
-            config.merge(read_config_file(fn))
+            config.merge(_read_config_file(fn))
         for fn in search_tree(root):
-            tmp = read_config_file(fn)
+            tmp = _read_config_file(fn)
             config.merge(tmp)
             if "project" in tmp:
                 config["project_dir"] = os.path.dirname(fn)
                 break
     return config
+
+
+@deprecated(
+    deprecated_in="1.8",
+    removed_in="2.0",
+    current_version=__version__,
+    details=(
+        "The load_config method is deprecated. Configs should only be "
+        "accessed via a Project instance.",
+    ),
+)
+def load_config(root=None, local=False):
+    """Load configuration, searching upward from a root path."""
+    return _load_config(root, local)
 
 
 class Config(ConfigObj):
