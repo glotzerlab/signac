@@ -57,6 +57,7 @@ Removed
  - ``ProjectSchema.__call__``, ``ProjectSchema.detect`` (#752).
  - The ``--doc-filter`` option for several command line subcommands (#613, #795).
  - The public API of the ``synced_collection`` subpackage (#807, #790).
+ - The warnings module (#815).
 
 Version 1
 =========
