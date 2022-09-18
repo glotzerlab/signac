@@ -19,9 +19,12 @@ workspace_dir = string(default='workspace')
 
 
 def _load_config_v1(root_directory):
-    cfg = configobj.ConfigObj(
-        os.path.join(root_directory, "signac.rc"), configspec=_cfg.split("\n")
-    )
+    config_fn = os.path.join(root_directory, "signac.rc")
+    if not os.path.isfile(config_fn):
+        raise RuntimeError(
+            f"The directory {root_directory} does not contain a config file."
+        )
+    cfg = configobj.ConfigObj(config_fn, configspec=_cfg.split("\n"))
     validator = configobj.validate.Validator()
     if cfg.validate(validator) is not True:
         raise RuntimeError(

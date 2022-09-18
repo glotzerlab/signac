@@ -25,6 +25,7 @@ from ..common.config import (
     _get_project_config_fn,
     _load_config,
     _locate_config_dir,
+    _raise_if_older_schema,
     _read_config_file,
 )
 from ..core.h5store import H5StoreManager
@@ -104,7 +105,7 @@ class Project:
         if path is None:
             path = os.getcwd()
         if not os.path.isfile(_get_project_config_fn(path)):
-            # TODO: Need to check whether we have an old config if not found.
+            _raise_if_older_schema(path)
             raise LookupError(
                 f"Unable to find project at path '{os.path.abspath(path)}'."
             )

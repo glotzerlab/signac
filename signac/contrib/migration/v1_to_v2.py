@@ -29,9 +29,12 @@ schema_version = string(default='0')
 
 
 def _load_config_v2(root_directory):
-    cfg = configobj.ConfigObj(
-        os.path.join(root_directory, ".signac", "config"), configspec=_cfg.split("\n")
-    )
+    config_fn = os.path.join(root_directory, ".signac", "config")
+    if not os.path.isfile(config_fn):
+        raise RuntimeError(
+            f"The directory {root_directory} does not contain a config file."
+        )
+    cfg = configobj.ConfigObj(config_fn, configspec=_cfg.split("\n"))
     validator = configobj.validate.Validator()
     if cfg.validate(validator) is not True:
         raise RuntimeError(
