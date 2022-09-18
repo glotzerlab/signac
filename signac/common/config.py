@@ -154,10 +154,12 @@ def _get_config(infile=None, configspec=None, *args, **kwargs):
     ),
 )
 def get_config(infile=None, configspec=None, *args, **kwargs):  # noqa: D103
+    """Get configuration from a file."""
     return _get_config(infile, configspec, *args, **kwargs)
 
 
 def _load_config(root=None, local=False):
+    """Load configuration, searching upward from a root path."""
     if root is None:
         root = os.getcwd()
     config = Config(configspec=cfg.split("\n"))
