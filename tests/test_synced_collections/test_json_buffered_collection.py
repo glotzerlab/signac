@@ -11,7 +11,7 @@ import pytest
 from attr_dict_test import AttrDictTest, AttrListTest
 from test_json_collection import JSONCollectionTest, TestJSONDict, TestJSONList
 
-from signac.synced_collections.backends.collection_json import (
+from signac._synced_collections.backends.collection_json import (
     BufferedJSONAttrDict,
     BufferedJSONAttrList,
     BufferedJSONDict,
@@ -21,7 +21,7 @@ from signac.synced_collections.backends.collection_json import (
     MemoryBufferedJSONDict,
     MemoryBufferedJSONList,
 )
-from signac.synced_collections.errors import BufferedError, MetadataError
+from signac._synced_collections.errors import BufferedError, MetadataError
 
 
 class BufferedJSONCollectionTest(JSONCollectionTest):

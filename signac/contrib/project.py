@@ -19,6 +19,7 @@ from multiprocessing.pool import ThreadPool
 from tempfile import TemporaryDirectory
 from threading import RLock
 
+from .._synced_collections.backends.collection_json import BufferedJSONAttrDict
 from ..common.config import (
     Config,
     _get_project_config_fn,
@@ -28,7 +29,6 @@ from ..common.config import (
 )
 from ..core.h5store import H5StoreManager
 from ..sync import sync_projects
-from ..synced_collections.backends.collection_json import BufferedJSONAttrDict
 from ..version import SCHEMA_VERSION, __version__
 from ._searchindexer import _SearchIndexer
 from .errors import (
@@ -301,8 +301,8 @@ class Project:
 
         Returns
         -------
-        :class:`~signac.synced_collections.backends.collection_json.BufferedJSONAttrDict`
-            The project document.
+        MutableMapping
+            The project document. Supports attribute-based access to dict keys.
 
         """
         with self._lock:
@@ -334,8 +334,8 @@ class Project:
 
         Returns
         -------
-        :class:`~signac.synced_collections.backends.collection_json.BufferedJSONAttrDict`
-            The project document.
+        MutableMapping
+            The project document. Supports attribute-based access to dict keys.
 
         """
         return self.document

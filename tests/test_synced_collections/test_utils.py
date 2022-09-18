@@ -7,10 +7,10 @@ from collections.abc import Collection, MutableSequence
 
 import pytest
 
-from signac.synced_collections import SyncedList
-from signac.synced_collections.backends.collection_json import JSONDict
-from signac.synced_collections.numpy_utils import NumpyConversionWarning
-from signac.synced_collections.utils import (
+from signac._synced_collections import SyncedList
+from signac._synced_collections.backends.collection_json import JSONDict
+from signac._synced_collections.numpy_utils import NumpyConversionWarning
+from signac._synced_collections.utils import (
     AbstractTypeResolver,
     SyncedCollectionJSONEncoder,
 )

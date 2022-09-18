@@ -12,7 +12,7 @@ import pytest
 from test_project import TestProjectBase
 
 import signac
-from signac.synced_collections.errors import BufferedError
+from signac._synced_collections.errors import BufferedError
 
 PYPY = "PyPy" in platform.python_implementation()
 

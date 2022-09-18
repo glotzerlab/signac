@@ -67,7 +67,7 @@ class BufferedCollection(SyncedCollection):
 
         - :meth:`~._load_from_buffer`: Loads data while in buffered mode and returns
           it in an object satisfying
-          :meth:`~signac.synced_collections.data_types.synced_collection.SyncedCollection.is_base_type`.
+          :meth:`~signac._synced_collections.data_types.synced_collection.SyncedCollection.is_base_type`.
           The default behavior is to simply call
           :meth:`~._load_from_resource`.
         - :meth:`~._save_to_buffer`: Stores data while in buffered mode. The default behavior
@@ -159,7 +159,7 @@ class BufferedCollection(SyncedCollection):
         -------
         Collection
             An equivalent unsynced collection satisfying
-            :meth:`~signac.synced_collections.data_types.synced_collection.SyncedCollection.is_base_type` that
+            :meth:`~signac._synced_collections.data_types.synced_collection.SyncedCollection.is_base_type` that
             contains the buffered data. By default, the buffered data is just the
             data in the resource.
 
