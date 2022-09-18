@@ -415,8 +415,9 @@ class Job:
 
         Returns
         -------
-        dict
-            Returns the job's state point.
+        MutableMapping
+            Returns the job's state point. Supports attribute-based access to
+            dict keys.
         """
         with self._lock:
             if self._statepoint_requires_init:
@@ -481,8 +482,8 @@ class Job:
 
         Returns
         -------
-        :class:`~signac.JSONDict`
-            The job document handle.
+        MutableMapping
+            The job document handle. Supports attribute-based access to dict keys.
 
         """
         with self._lock:
@@ -522,8 +523,8 @@ class Job:
 
         Returns
         -------
-        :class:`~signac.JSONDict`
-            The job document handle.
+        MutableMapping
+            The job document handle. Supports attribute-based access to dict keys.
 
         """
         return self.document

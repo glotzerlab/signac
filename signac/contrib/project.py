@@ -301,8 +301,8 @@ class Project:
 
         Returns
         -------
-        :class:`~signac._synced_collections.backends.collection_json.BufferedJSONAttrDict`
-            The project document.
+        MutableMapping
+            The project document. Supports attribute-based access to dict keys.
 
         """
         with self._lock:
@@ -334,8 +334,8 @@ class Project:
 
         Returns
         -------
-        :class:`~signac._synced_collections.backends.collection_json.BufferedJSONAttrDict`
-            The project document.
+        MutableMapping
+            The project document. Supports attribute-based access to dict keys.
 
         """
         return self.document
