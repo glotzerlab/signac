@@ -9,7 +9,7 @@ data spaces, streamlines post-processing and analysis, and makes data
 collectively accessible.
 """
 
-from . import contrib, errors, sync, testing, warnings
+from . import contrib, errors, sync, testing
 from ._synced_collections.backends.collection_json import (
     BufferedJSONAttrDict as JSONDict,
 )
@@ -29,7 +29,6 @@ __all__ = [
     "__version__",
     "contrib",
     "errors",
-    "warnings",
     "sync",
     "Project",
     "TemporaryProject",
