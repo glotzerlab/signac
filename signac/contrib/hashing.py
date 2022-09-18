@@ -6,7 +6,7 @@
 import hashlib
 import json
 
-from ..synced_collections.utils import SyncedCollectionJSONEncoder
+from .._synced_collections.utils import SyncedCollectionJSONEncoder
 
 # We must use the standard library json for exact consistency in formatting
 
