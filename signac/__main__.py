@@ -634,36 +634,36 @@ def main_update_cache(args):
         _print_err(f"Updated cache (size={n}).")
 
 
-# TODO: This can be uncommented now!
-# UNCOMMENT THE FOLLOWING BLOCK WHEN THE FIRST MIGRATION IS INTRODUCED.
-# def main_migrate(args):
-#     "Migrate the project's schema to the current schema version."
-#     from .contrib.migration import apply_migrations, _get_config_schema_version
-#     from packaging import version
-#     from .version import SCHEMA_VERSION
-#     project = get_project(_ignore_schema_version=True)
-#
-#     root = args.root_directory if args.root_directory else os.getcwd()
-#
-#     schema_version = version.parse(SCHEMA_VERSION)
-#     config_schema_version = _get_config_schema_version(root, schema_version)
-#
-#     if config_schema_version > schema_version:
-#         _print_err(
-#             "The schema version of the project ({}) is newer than the schema "
-#             "version supported by signac version {}: {}. Try updating signac.".format(
-#                 config_schema_version, __version__, schema_version))
-#     elif config_schema_version == schema_version:
-#         _print_err(
-#             "The schema version of the project ({}) is up to date. "
-#             "Nothing to do.".format(config_schema_version))
-#     elif args.yes or _query_yes_no(
-#         "Do you want to migrate this project's schema version from '{}' to '{}'? "
-#         "WARNING: THIS PROCESS IS IRREVERSIBLE!".format(
-#             config_schema_version, schema_version), 'no'):
-#         apply_migrations(root)
-#
-#
+def main_migrate(args):
+    """Migrate the project's schema to the current schema version."""
+    from .contrib.migration import _get_config_schema_version, apply_migrations
+    from .version import SCHEMA_VERSION
+
+    root = args.root_directory if args.root_directory else os.getcwd()
+
+    schema_version = int(SCHEMA_VERSION)
+    config_schema_version = _get_config_schema_version(root, schema_version)
+
+    if config_schema_version > schema_version:
+        _print_err(
+            f"The schema version of the project ({config_schema_version}) is "
+            "newer than the schema version supported by signac version "
+            f"{__version__}: {schema_version}. Try updating signac."
+        )
+    elif config_schema_version == schema_version:
+        _print_err(
+            f"The schema version of the project ({config_schema_version}) is "
+            "up to date. Nothing to do."
+        )
+    elif args.yes or _query_yes_no(
+        "Do you want to migrate this project's schema version from "
+        f"'{config_schema_version}' to '{schema_version}'? WARNING: THIS "
+        "PROCESS IS IRREVERSIBLE!",
+        "no",
+    ):
+        apply_migrations(root)
+
+
 def verify_config(cfg, preserve_errors=True):
     """Verify provided configuration."""
     verification = cfg.verify(preserve_errors=preserve_errors)
@@ -1574,19 +1574,25 @@ def main():
     parser_verify = config_subparsers.add_parser("verify")
     parser_verify.set_defaults(func=main_config_verify)
 
-    # UNCOMMENT THE FOLLOWING BLOCK WHEN THE FIRST MIGRATION IS INTRODUCED.
-    # parser_migrate = subparsers.add_parser(
-    #     'migrate',
-    #     description="Irreversibly migrate this project's schema version to the "
-    #                 "supported version.")
-    # parser_migrate.add_argument(
-    #     "-r",
-    #     "--root-directory",
-    #     type=str,
-    #     default='',
-    #     help="The path to the project.",
-    # )
-    # parser_migrate.set_defaults(func=main_migrate)
+    parser_migrate = subparsers.add_parser(
+        "migrate",
+        description="Irreversibly migrate this project's schema version to the "
+        "supported version.",
+    )
+    parser_migrate.add_argument(
+        "-r",
+        "--root-directory",
+        type=str,
+        default="",
+        help="The path to the project.",
+    )
+    parser_migrate.add_argument(
+        "-y",
+        "--yes",
+        action="store_true",
+        help="Do not ask for confirmation.",
+    )
+    parser_migrate.set_defaults(func=main_migrate)
 
     # This is a hack, as argparse itself does not
     # allow to parse only --version without any
