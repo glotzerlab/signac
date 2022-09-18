@@ -12,7 +12,9 @@ Version 2
 
 Added
 +++++
+
  - ``H5Store`` related errors are now included in the public API (#775).
+ - Users can now access the project which a job belongs to from the job object.
 
 Changed
 +++++++
@@ -53,6 +55,7 @@ Removed
  - The ``--workspace`` option for the command line ``job`` subcommand (#752).
  - The ability to call ``Project.workspace``, it is strictly a property now (#752).
  - ``ProjectSchema.__call__``, ``ProjectSchema.detect`` (#752).
+ - The ``--doc-filter`` option for several command line subcommands (#613, #795).
  - The public API of the ``synced_collection`` subpackage (#807, #790).
 
 Version 1

@@ -606,6 +606,17 @@ class Job:
         """
         self.stores[self.KEY_DATA] = new_data
 
+    @property
+    def project(self):
+        """Get the project that contains this job.
+
+        Returns
+        -------
+        signac.Project
+            Returns the project containing this job.
+        """
+        return self._project
+
     def init(self, force=False):
         """Initialize the job's workspace directory.
 
