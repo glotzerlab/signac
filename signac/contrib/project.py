@@ -1135,11 +1135,12 @@ class Project:
             present. The value must be sortable and is only used if not None
             (Default value = None).
 
-        Returns
-        -------
-        Tuple[str, Iterable[Job]]
-            A pair whose first element is the grouped key and whose second element
-            is an iterable of `Job` instances matching the key.
+        Yields
+        ------
+        key :
+            Grouped key.
+        group : iterable of Jobs
+            Iterable of `Job` instances matching this group key.
 
         """
         return self.find_jobs().groupby(key, default=default)
@@ -2718,11 +2719,12 @@ class JobsCursor:
             present. The value must be sortable and is only used if not None
             (Default value = None).
 
-        Returns
-        -------
-        Tuple[str, Iterable[Job]]
-            A pair whose first element is the grouped key and whose second element
-            is an iterable of `Job` instances matching the key.
+        Yields
+        ------
+        key :
+            Grouped key.
+        group : iterable of Jobs
+            Iterable of `Job` instances matching this group key.
 
         """
         _filter = self._filter
