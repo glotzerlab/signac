@@ -600,7 +600,7 @@ class TestJobOpenAndClosing(TestJobBase):
         assert cwd == rp(os.getcwd())
         with job:
             assert rp(job.path) == rp(os.getcwd())
-            os.chdir(self.project.root_directory())
+            os.chdir(self.project.path)
         assert cwd == rp(os.getcwd())
         with job:
             assert rp(job.path) == rp(os.getcwd())
@@ -610,10 +610,10 @@ class TestJobOpenAndClosing(TestJobBase):
         assert cwd == rp(os.getcwd())
         with job:
             assert rp(job.path) == rp(os.getcwd())
-            os.chdir(self.project.root_directory())
+            os.chdir(self.project.path)
             with job:
                 assert rp(job.path) == rp(os.getcwd())
-            assert rp(os.getcwd()) == rp(self.project.root_directory())
+            assert rp(os.getcwd()) == rp(self.project.path)
         assert cwd == rp(os.getcwd())
         with job:
             job.close()

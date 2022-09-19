@@ -105,8 +105,8 @@ class TestProject(TestProjectBase):
     def test_str(self):
         str(self.project) == self.project.id
 
-    def test_root_directory(self):
-        assert self._tmp_pr == self.project.root_directory()
+    def test_path(self):
+        assert self._tmp_pr == self.project.path
 
     def test_workspace_directory(self):
         assert self._tmp_wd == self.project.workspace
@@ -133,7 +133,7 @@ class TestProject(TestProjectBase):
 
     def test_fn(self):
         assert self.project.fn("test/abc") == os.path.join(
-            self.project.root_directory(), "test/abc"
+            self.project.path, "test/abc"
         )
 
     def test_isfile(self):
@@ -148,7 +148,7 @@ class TestProject(TestProjectBase):
         self.project.document["a"] = 42
         assert len(self.project.document) == 1
         assert self.project.document
-        prj2 = type(self.project).get_project(root=self.project.root_directory())
+        prj2 = type(self.project).get_project(root=self.project.path)
         assert prj2.document
         assert len(prj2.document) == 1
         self.project.document.clear()
@@ -169,7 +169,7 @@ class TestProject(TestProjectBase):
         self.project.doc["a"] = 42
         assert len(self.project.doc) == 1
         assert self.project.doc
-        prj2 = type(self.project).get_project(root=self.project.root_directory())
+        prj2 = type(self.project).get_project(root=self.project.path)
         assert prj2.doc
         assert len(prj2.doc) == 1
         self.project.doc.clear()
@@ -193,7 +193,7 @@ class TestProject(TestProjectBase):
             self.project.data["a"] = 42
             assert len(self.project.data) == 1
             assert self.project.data
-        prj2 = type(self.project).get_project(root=self.project.root_directory())
+        prj2 = type(self.project).get_project(root=self.project.path)
         with prj2.data:
             assert prj2.data
             assert len(prj2.data) == 1
@@ -247,7 +247,7 @@ class TestProject(TestProjectBase):
         rel_path = norm_path(os.path.join("path", "to", "workspace"))
         self.project.config["workspace_dir"] = rel_path
         assert self.project.workspace == norm_path(
-            os.path.join(self.project.root_directory(), self.project.workspace)
+            os.path.join(self.project.path, self.project.workspace)
         )
 
     def test_no_workspace_warn_on_find(self, caplog):
@@ -691,7 +691,7 @@ class TestProject(TestProjectBase):
             index[doc["_id"]] = doc
         assert len(index) == len(job_ids)
         assert set(index.keys()) == set(job_ids)
-        crawler = signac.contrib.SignacProjectCrawler(self.project.root_directory())
+        crawler = signac.contrib.SignacProjectCrawler(self.project.path)
         index2 = {}
         for doc in crawler.crawl():
             index2[doc["_id"]] = doc
@@ -722,7 +722,7 @@ class TestProject(TestProjectBase):
             with pytest.warns(FutureWarning):
                 Crawler.define(p, fmt)
         index2 = {}
-        for doc in Crawler(root=self.project.root_directory()).crawl():
+        for doc in Crawler(root=self.project.path).crawl():
             index2[doc["_id"]] = doc
         assert index == index2
         assert Crawler.called
@@ -731,7 +731,7 @@ class TestProject(TestProjectBase):
         class CustomProject(signac.Project):
             pass
 
-        project = CustomProject.get_project(root=self.project.root_directory())
+        project = CustomProject.get_project(root=self.project.path)
         assert isinstance(project, signac.Project)
         assert isinstance(project, CustomProject)
 
@@ -743,7 +743,7 @@ class TestProject(TestProjectBase):
         class CustomProject(signac.Project):
             Job = CustomJob
 
-        project = CustomProject.get_project(root=self.project.root_directory())
+        project = CustomProject.get_project(root=self.project.path)
         assert isinstance(project, signac.Project)
         assert isinstance(project, CustomProject)
         job = project.open_job(dict(a=0))
@@ -1100,7 +1100,7 @@ class TestProject(TestProjectBase):
     def test_temp_project(self):
         with self.project.temporary_project() as tmp_project:
             assert len(tmp_project) == 0
-            tmp_root_dir = tmp_project.root_directory()
+            tmp_root_dir = tmp_project.path
             assert os.path.isdir(tmp_root_dir)
             for i in range(10):  # init some jobs
                 tmp_project.open_job(dict(a=i)).init()
@@ -2290,19 +2290,19 @@ class TestProjectInit:
         project = signac.init_project(name="testproject", root=root)
         assert project.id == "testproject"
         assert project.workspace == os.path.join(root, "workspace")
-        assert project.root_directory() == root
+        assert project.path == root
         project = signac.Project.init_project(name="testproject", root=root)
         assert project.id == "testproject"
         assert project.workspace == os.path.join(root, "workspace")
-        assert project.root_directory() == root
+        assert project.path == root
         project = signac.get_project(root=root)
         assert project.id == "testproject"
         assert project.workspace == os.path.join(root, "workspace")
-        assert project.root_directory() == root
+        assert project.path == root
         project = signac.Project.get_project(root=root)
         assert project.id == "testproject"
         assert project.workspace == os.path.join(root, "workspace")
-        assert project.root_directory() == root
+        assert project.path == root
 
     def test_get_project_all_printable_characters(self):
         root = self._tmp_dir.name
@@ -2350,17 +2350,17 @@ class TestProjectInit:
         project = signac.init_project(name="testproject", root=root)
         assert project.id == "testproject"
         assert project.workspace == os.path.join(root, "workspace")
-        assert project.root_directory() == root
+        assert project.path == root
         # Second initialization should not make any difference.
         project = signac.init_project(name="testproject", root=root)
         project = signac.get_project(root=root)
         assert project.id == "testproject"
         assert project.workspace == os.path.join(root, "workspace")
-        assert project.root_directory() == root
+        assert project.path == root
         project = signac.Project.get_project(root=root)
         assert project.id == "testproject"
         assert project.workspace == os.path.join(root, "workspace")
-        assert project.root_directory() == root
+        assert project.path == root
         # Deviating initialization parameters should result in errors.
         with pytest.raises(RuntimeError):
             signac.init_project(name="testproject2", root=root)
@@ -2374,7 +2374,7 @@ class TestProjectInit:
             if root is None:
                 root = os.getcwd()
             assert os.path.realpath(
-                signac.get_project(root=root).root_directory()
+                signac.get_project(root=root).path
             ) == os.path.realpath(root)
 
         root = self._tmp_dir.name
@@ -2504,13 +2504,11 @@ class TestProjectSchema(TestProjectBase):
         config["schema_version"] = impossibly_high_schema_version
         config.write()
         with pytest.raises(IncompatibleSchemaVersion):
-            signac.init_project(
-                name=str(self.project), root=self.project.root_directory()
-            )
+            signac.init_project(name=str(self.project), root=self.project.path)
 
         # Ensure that migration fails on an unsupported version.
         with pytest.raises(RuntimeError):
-            apply_migrations(self.project.root_directory())
+            apply_migrations(self.project.path)
 
         # Ensure that migration fails on an invalid version.
         invalid_schema_version = "0.5"
@@ -2518,7 +2516,7 @@ class TestProjectSchema(TestProjectBase):
         config["schema_version"] = invalid_schema_version
         config.write()
         with pytest.raises(RuntimeError):
-            apply_migrations(self.project.root_directory())
+            apply_migrations(self.project.path)
 
     @pytest.mark.parametrize("implicit_version", [True, False])
     def test_project_schema_version_migration(self, implicit_version):
@@ -2534,10 +2532,10 @@ class TestProjectSchema(TestProjectBase):
         config.write()
         err = io.StringIO()
         with redirect_stderr(err):
-            apply_migrations(self.project.root_directory())
+            apply_migrations(self.project.path)
         config = _get_config(self.project.fn("signac.rc"))
         assert config["schema_version"] == "1"
-        project = signac.get_project(root=self.project.root_directory())
+        project = signac.get_project(root=self.project.path)
         assert project.config["schema_version"] == "1"
         assert "OK" in err.getvalue()
         assert "0 to 1" in err.getvalue()
@@ -2552,7 +2550,7 @@ class TestProjectSchema(TestProjectBase):
         # 2. Either update or remove this unit test.
         from signac.contrib.migration import _collect_migrations
 
-        migrations = list(_collect_migrations(self.project.root_directory()))
+        migrations = list(_collect_migrations(self.project.path))
         assert len(migrations) == 0
 
 

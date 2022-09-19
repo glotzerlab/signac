@@ -327,7 +327,7 @@ class Project:
 
     def __repr__(self):
         return "{type}.get_project({root})".format(
-            type=self.__class__.__name__, root=repr(self.root_directory())
+            type=self.__class__.__name__, root=repr(self.path)
         )
 
     def _repr_html_(self):
@@ -342,7 +342,7 @@ class Project:
         return (
             "<p>"
             + f"<strong>Project:</strong> {self.id}<br>"
-            + f"<strong>Root:</strong> {self.root_directory()}<br>"
+            + f"<strong>Root:</strong> {self.path}<br>"
             + f"<strong>Workspace:</strong> {self.workspace}<br>"
             + f"<strong>Size:</strong> {len(self)}"
             + "</p>"
@@ -389,9 +389,7 @@ class Project:
         """
         if self._wd is None:
             wd = os.path.expandvars(self.config.get("workspace_dir", "workspace"))
-            self._wd = (
-                wd if os.path.isabs(wd) else os.path.join(self.root_directory(), wd)
-            )
+            self._wd = wd if os.path.isabs(wd) else os.path.join(self.path, wd)
         return _CallableString(self._wd)
 
     @deprecated(
@@ -498,7 +496,7 @@ class Project:
             The joined path of project root directory and filename.
 
         """
-        return os.path.join(self.root_directory(), filename)
+        return os.path.join(self.path, filename)
 
     def isfile(self, filename):
         """Check if a filename exists in the project's root directory.
@@ -528,7 +526,7 @@ class Project:
         """
         with self._lock:
             if self._document is None:
-                fn_doc = os.path.join(self.root_directory(), self.FN_DOCUMENT)
+                fn_doc = os.path.join(self.path, self.FN_DOCUMENT)
                 self._document = BufferedJSONAttrDict(
                     filename=fn_doc, write_concern=True
                 )
@@ -608,7 +606,7 @@ class Project:
         """
         with self._lock:
             if self._stores is None:
-                self._stores = H5StoreManager(self.root_directory())
+                self._stores = H5StoreManager(self.path)
         return self._stores
 
     @property
@@ -2190,7 +2188,7 @@ class Project:
 
             for pattern, fmt in formats.items():
                 Crawler.define(pattern, fmt)
-            crawler = Crawler(self.root_directory())
+            crawler = Crawler(self.path)
             docs = crawler.crawl(depth=depth)
         if skip_errors:
             docs = _skip_errors(docs, logger.critical)
@@ -2233,7 +2231,7 @@ class Project:
             main = master
 
         if filename is None:
-            filename = os.path.join(self.root_directory(), MainCrawler.FN_ACCESS_MODULE)
+            filename = os.path.join(self.path, MainCrawler.FN_ACCESS_MODULE)
         with open(filename, "x") as file:
             if main:
                 file.write(ACCESS_MODULE_MAIN)
