@@ -1143,7 +1143,7 @@ class Project:
             Iterable of `Job` instances matching this group key.
 
         """
-        return self.find_jobs().groupby(key, default=default)
+        yield from self.find_jobs().groupby(key, default=default)
 
     @deprecated(
         deprecated_in="1.7",
@@ -2815,7 +2815,7 @@ class JobsCursor:
             # Pass the job document to a callable
             keyfunction = key
 
-        return groupby(
+        yield from groupby(
             sorted(
                 iter(JobsCursor(self._project, _filter)),
                 key=keyfunction,
