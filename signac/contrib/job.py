@@ -403,6 +403,31 @@ class Job:
             The job's new state point.
 
         """
+        self._reset_statepoint(new_statepoint)
+
+        self._project._register(self.id, new_statepoint)
+
+    def _reset_statepoint(self, new_statepoint):
+        """Overwrite the state point of this job while preserving job data.
+
+        This method will change the job id if the state point has been altered.
+
+        For more information, see
+        `Modifying the State Point
+        <https://docs.signac.io/en/latest/jobs.html#modifying-the-state-point>`_.
+
+        .. danger::
+
+            Use this function with caution! Resetting a job's state point
+            may sometimes be necessary, but can possibly lead to incoherent
+            data spaces.
+
+        Parameters
+        ----------
+        new_statepoint : dict
+            The job's new state point.
+
+        """
         with self._lock:
             if self._statepoint_requires_init:
                 # Instantiate state point data lazily - no load is required, since
@@ -462,7 +487,7 @@ class Job:
                         "mapping with another value."
                     )
         statepoint.update(update)
-        self.reset_statepoint(statepoint)
+        self._reset_statepoint(statepoint)
 
     @property
     def statepoint(self):
@@ -521,7 +546,7 @@ class Job:
         new_statepoint : dict
             The new state point to be assigned.
         """
-        self.reset_statepoint(new_statepoint)
+        self._reset_statepoint(new_statepoint)
 
     @property
     def sp(self):

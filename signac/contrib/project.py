@@ -1558,7 +1558,7 @@ class Project:
             If the move failed due to an unknown system related error.
 
         """
-        job.reset_statepoint(new_statepoint=new_statepoint)
+        job._reset_statepoint(new_statepoint=new_statepoint)
 
     @deprecated(
         deprecated_in="1.3",
