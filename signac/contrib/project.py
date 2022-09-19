@@ -1117,6 +1117,10 @@ class Project:
 
         If `key` is None, jobs are grouped by id, placing one job into each group.
 
+        If `default` is None, only jobs with the `key` defined will be grouped.
+        Jobs without the `key` will be filtered out and not included in any
+        group.
+
         Parameters
         ----------
         key : str, iterable, or callable
@@ -2693,6 +2697,10 @@ class JobsCursor:
                 print(key, list(group))
 
         If `key` is None, jobs are grouped by id, placing one job into each group.
+
+        If `default` is None, only jobs with the `key` defined will be grouped.
+        Jobs without the `key` will be filtered out and not included in any
+        group.
 
         Parameters
         ----------
