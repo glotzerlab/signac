@@ -2721,10 +2721,9 @@ class JobsCursor:
 
         Returns
         -------
-        key : str
-            Grouped key.
-        group : iterable of Jobs
-            Iterable of `Job` instances matching this group key.
+        Tuple[str, Iterable[Job]]
+            A pair whose first element is the grouped key and whose second element
+            is an iterable of `Job` instances matching the key.
 
         """
         _filter = self._filter
