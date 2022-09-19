@@ -2719,6 +2719,13 @@ class JobsCursor:
             present. The value must be sortable and is only used if not None
             (Default value = None).
 
+        Returns
+        -------
+        key : str
+            Grouped key.
+        group : iterable of Jobs
+            Iterable of `Job` instances matching this group key.
+
         """
         _filter = self._filter
 
