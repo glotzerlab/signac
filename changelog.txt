@@ -35,7 +35,7 @@ Deprecated
  - ``JobSearchIndex`` class is deprecated (#600).
  - ``index`` argument is deprecated in ``Project`` methods (#602, #588).
  - ``signac.cite`` module is deprecated (#611, #592).
- - ``config.get_config`` method is deprecated (#675).
+ - The ``config`` module and all its methods are deprecated (#675, #753, #814).
  - Accessing ``Project.workspace`` as a method, it should be accessed as a property (#685).
  - ``Project.num_jobs`` (#685).
  - ``ProjectSchema.__call__``, ``ProjectSchema.detect`` (#685).
