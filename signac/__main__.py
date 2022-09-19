@@ -840,13 +840,13 @@ def main_config_show(args):
         for fn in config.CONFIG_FILENAMES:
             if os.path.isfile(fn):
                 if cfg is None:
-                    cfg = config.read_config_file(fn)
+                    cfg = config._read_config_file(fn)
                 else:
-                    cfg.merge(config.read_config_file(fn))
+                    cfg.merge(config._read_config_file(fn))
     elif args.globalcfg:
-        cfg = config.read_config_file(config.FN_CONFIG)
+        cfg = config._read_config_file(config.FN_CONFIG)
     else:
-        cfg = config.load_config()
+        cfg = config._load_config()
     if cfg is None:
         if args.local and args.globalcfg:
             mode = " local or global "
@@ -879,13 +879,13 @@ def main_config_verify(args):
         for fn in config.CONFIG_FILENAMES:
             if os.path.isfile(fn):
                 if cfg is None:
-                    cfg = config.read_config_file(fn)
+                    cfg = config._read_config_file(fn)
                 else:
-                    cfg.merge(config.read_config_file(fn))
+                    cfg.merge(config._read_config_file(fn))
     elif args.globalcfg:
-        cfg = config.read_config_file(config.FN_CONFIG)
+        cfg = config._read_config_file(config.FN_CONFIG)
     else:
-        cfg = config.load_config()
+        cfg = config._load_config()
     if cfg is None:
         if args.local and args.globalcfg:
             mode = " local or global "
@@ -920,7 +920,7 @@ def main_config_set(args):
             "to specify which configuration to modify."
         )
     try:
-        cfg = config.read_config_file(fn_config)
+        cfg = config._read_config_file(fn_config)
     except OSError:
         cfg = config._get_config(fn_config)
     keys = args.key.split(".")
@@ -971,7 +971,7 @@ def main_config_host(args):
             "to specify which configuration to modify."
         )
     try:
-        cfg = config.read_config_file(fn_config)
+        cfg = config._read_config_file(fn_config)
     except OSError:
         cfg = config._get_config(fn_config)
 

@@ -24,7 +24,7 @@ from threading import RLock
 
 from packaging import version
 
-from ..common.config import Config, _get_config, load_config
+from ..common.config import Config, _get_config, _load_config
 from ..common.deprecation import deprecated
 from ..core.h5store import H5StoreManager
 from ..sync import sync_projects
@@ -269,7 +269,7 @@ class Project:
 
     def __init__(self, config=None):
         if config is None:
-            config = load_config()
+            config = _load_config()
         self._config = _ProjectConfig(
             config, _mutate_hook=partial(_invalidate_config_cache, self)
         )
@@ -2397,7 +2397,7 @@ class Project:
                 f"Unable to determine project id for nonexistent path '{os.path.abspath(root)}'."
             )
 
-        config = load_config(root=root, local=False)
+        config = _load_config(root=root, local=False)
         if "project" not in config or (
             not search
             and os.path.realpath(config["project_dir"]) != os.path.realpath(root)
