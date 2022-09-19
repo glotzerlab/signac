@@ -2663,7 +2663,10 @@ class JobsCursor:
             raise
 
     def groupby(self, key=None, default=None):
-        """Group jobs according to one or more state point parameters.
+        """Group jobs according to one or more state point or document parameters.
+
+        Prepend the key with 'sp.' or 'doc.' to specify the query namespace. If no prefix
+        is specified, group by state point key.
 
         This method can be called on any :class:`~signac.contrib.project.JobsCursor` such as
         the one returned by :meth:`~signac.Project.find_jobs` or by iterating over a
@@ -2705,11 +2708,11 @@ class JobsCursor:
         Parameters
         ----------
         key : str, iterable, or callable
-            The state point grouping parameter(s) passed as a string,
+            The grouping key(s) passed as a string,
             iterable of strings, or a callable that will be passed one
             argument, the job (Default value = None).
         default :
-            A default value to be used when a given state point key is not
+            A default value to be used when a given key is not
             present. The value must be sortable and is only used if not None
             (Default value = None).
 
