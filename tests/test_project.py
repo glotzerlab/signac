@@ -313,7 +313,7 @@ class TestProject(TestProjectBase):
             assert 0 == len(list(self.project.find_job_ids({"sp.a": 5, "doc.b": 5})))
             for job_id in self.project.find_job_ids():
                 assert self.project.open_job(id=job_id).get_id() == job_id
-            index = list(self.project.index())
+            index = list(self.project._index())
             for job_id in self.project.find_job_ids(index=index):
                 assert self.project.open_job(id=job_id).get_id() == job_id
 
@@ -654,6 +654,7 @@ class TestProject(TestProjectBase):
         finally:
             logging.disable(logging.NOTSET)
 
+    @pytest.mark.filterwarnings("ignore:index")
     def test_index(self):
         docs = list(self.project.index(include_job_document=True))
         assert len(docs) == 0

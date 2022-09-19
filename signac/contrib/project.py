@@ -63,11 +63,11 @@ ACCESS_MODULE_MAIN = """#!/usr/bin/env python
 import signac
 
 def get_indexes(root):
-    yield signac.get_project(root).index()
+    yield signac.get_project(root)._index()
 
 if __name__ == '__main__':
     with signac.Collection.open('index.txt') as index:
-        signac.export(signac.index(), index, update=True)
+        signac.export(signac._index(), index, update=True)
 """
 
 # The warning used for doc filter deprecation everywhere. Don't use
@@ -908,7 +908,7 @@ class Project:
         from .schema import _build_job_statepoint_index
 
         if index is None:
-            index = self.index(include_job_document=False)
+            index = self._index(include_job_document=False)
         else:
             warnings.warn(INDEX_DEPRECATION_WARNING, FutureWarning)
         if subset is not None:
@@ -1026,9 +1026,9 @@ class Project:
             if doc_filter:
                 warnings.warn(DOC_FILTER_WARNING, FutureWarning)
                 filter.update(parse_filter(_add_prefix("doc.", doc_filter)))
-                index = self.index(include_job_document=True)
+                index = self._index(include_job_document=True)
             elif "doc" in _root_keys(filter):
-                index = self.index(include_job_document=True)
+                index = self._index(include_job_document=True)
             else:
                 index = self._sp_index()
         else:
@@ -2132,6 +2132,47 @@ class Project:
         .. code-block:: python
 
             for doc in project.index({r'.*\.txt', 'TextFile'}):
+                print(doc)
+
+        Parameters
+        ----------
+        formats : str, dict
+            The format definitions as a pattern string (e.g. ``r'.*\.txt'``)
+            or a mapping from pattern strings to formats (e.g.
+            ``'TextFile'``). If None, only the job document is indexed
+            (Default value = None).
+        depth : int
+            Specifies the crawling depth. A value of 0 means no limit
+            (Default value = 0).
+        skip_errors : bool
+            Skip all errors which occur during indexing. This is useful when
+            trying to repair a broken workspace (Default value = False).
+        include_job_document : bool
+            Include the contents of job documents (Default value = True).
+
+        Yields
+        ------
+        dict
+            Index document.
+
+        """
+        yield from self._index(formats, depth, skip_errors, include_job_document)
+
+    def _index(
+        self, formats=None, depth=0, skip_errors=False, include_job_document=True
+    ):
+        r"""Generate an index of the project's workspace.
+
+        This generator function indexes every file in the project's
+        workspace until the specified `depth`.
+        The job document if it exists, is always indexed, other
+        files need to be specified with the formats argument.
+
+        See :ref:`signac project -i <signac-cli-project>` for the command line equivalent.
+
+        .. code-block:: python
+
+            for doc in project._index({r'.*\.txt', 'TextFile'}):
                 print(doc)
 
         Parameters
