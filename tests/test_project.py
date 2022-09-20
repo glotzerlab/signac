@@ -464,6 +464,7 @@ class TestProject(TestProjectBase):
         assert_result_len({"$and": [{"sp.a": 0}, {"doc.d": 1}]}, 0)
         assert_result_len({"$or": [{"sp.a": 0}, {"doc.d": 1}]}, 2)
 
+    @pytest.mark.filterwarnings("ignore:num_jobs")
     def test_num_jobs(self):
         statepoints = [{"a": i} for i in range(5)]
         for sp in statepoints:
@@ -1754,10 +1755,10 @@ class TestLinkedViewProject(TestProjectBase):
             )
         )
         src = set(map(lambda j: os.path.realpath(j.path), self.project.find_jobs()))
-        assert len(all_links) == self.project.num_jobs()
+        assert len(all_links) == len(self.project)
         self.project.create_linked_view(prefix=view_prefix)
         all_links = list(_find_all_links(view_prefix))
-        assert len(all_links) == self.project.num_jobs()
+        assert len(all_links) == len(self.project)
         dst = set(
             map(
                 lambda l: os.path.realpath(os.path.join(view_prefix, l, "job")),
@@ -1790,7 +1791,7 @@ class TestLinkedViewProject(TestProjectBase):
         # some jobs removed
         clean({"b": 0})
         all_links = list(_find_all_links(view_prefix))
-        assert len(all_links) == self.project.num_jobs()
+        assert len(all_links) == len(self.project)
         dst = set(
             map(
                 lambda l: os.path.realpath(os.path.join(view_prefix, l, "job")),
@@ -1802,7 +1803,7 @@ class TestLinkedViewProject(TestProjectBase):
         # all jobs removed
         clean()
         all_links = list(_find_all_links(view_prefix))
-        assert len(all_links) == self.project.num_jobs()
+        assert len(all_links) == len(self.project)
         dst = set(
             map(
                 lambda l: os.path.realpath(os.path.join(view_prefix, l, "job")),
