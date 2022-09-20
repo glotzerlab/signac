@@ -101,6 +101,12 @@ class BaseCrawler:
         m.update(blob.encode("utf-8"))
         return m.hexdigest()
 
+    @deprecated(
+        deprecated_in="1.3",
+        removed_in="2.0",
+        current_version=__version__,
+        details="The indexing module is deprecated.",
+    )
     def crawl(self, depth=0):
         """Crawl through the `root` directory.
 
@@ -548,7 +554,7 @@ class MainCrawler(BaseCrawler):
 
     def _docs_from_module(self, dirpath, fn):
         name = os.path.join(dirpath, fn)
-        module = importlib.machinery.SourceFileLoader(name, name).load_module()
+        module = importlib.machinery.SourceFileLoader(name, name).exec_module()
 
         logger.info(f"Crawling from module '{module.__file__}'.")
 

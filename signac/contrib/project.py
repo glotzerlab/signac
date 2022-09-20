@@ -1304,7 +1304,9 @@ class Project:
         if fn is None:
             fn = self.fn(self.FN_STATEPOINTS)
         try:
-            tmp = self.read_statepoints(fn=fn)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                tmp = self.read_statepoints(fn=fn)
         except OSError as error:
             if error.errno != errno.ENOENT:
                 raise
@@ -1915,7 +1917,9 @@ class Project:
             # In signac 2.0, Project.read_statepoints will be removed.
             # Remove this code path (only use "self._read_cache()" above) and
             # update the method signature and docs to remove "fn_statepoints."
-            self._sp_cache.update(self.read_statepoints(fn=fn_statepoints))
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                self._sp_cache.update(self.read_statepoints(fn=fn_statepoints))
         except OSError as error:
             if error.errno != errno.ENOENT or fn_statepoints is not None:
                 raise
