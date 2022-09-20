@@ -6,6 +6,7 @@
 import os.path
 import re
 import subprocess
+import warnings
 
 from ..common.deprecation import deprecated
 from ..version import __version__
@@ -112,13 +113,15 @@ def parse_version(version_str):
     )
     r = p.match(version_str)
     v = r.groupdict()
-    version = Version(
-        **{
-            "major": int(v.get("major") or 0),
-            "minor": int(v.get("minor") or 0),
-            "change": int(v.get("change") or 0),
-            "postrelease": str(v.get("postrelease") or ""),
-            "prerelease": str(v.get("prerelease") or "final"),
-        }
-    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        version = Version(
+            **{
+                "major": int(v.get("major") or 0),
+                "minor": int(v.get("minor") or 0),
+                "change": int(v.get("change") or 0),
+                "postrelease": str(v.get("postrelease") or ""),
+                "prerelease": str(v.get("prerelease") or "final"),
+            }
+        )
     return version
