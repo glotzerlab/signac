@@ -405,8 +405,6 @@ class Job:
         """
         self._reset_statepoint(new_statepoint)
 
-        self._project._register(self.id, new_statepoint)
-
     def _reset_statepoint(self, new_statepoint):
         """Overwrite the state point of this job while preserving job data.
 
