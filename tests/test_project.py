@@ -216,6 +216,9 @@ class TestProject(TestProjectBase):
         self.project.data = {"a": {"b": 45}}
         assert self.project.data == {"a": {"b": 45}}
 
+    @pytest.mark.filterwarnings("ignore:dump_statepoint")
+    @pytest.mark.filterwarnings("ignore:write_statepoint")
+    @pytest.mark.filterwarnings("ignore:read_statepoint")
     def test_write_read_statepoint(self):
         statepoints = [{"a": i} for i in range(5)]
         self.project.dump_statepoints(statepoints)
@@ -607,6 +610,7 @@ class TestProject(TestProjectBase):
         finally:
             logging.disable(logging.NOTSET)
 
+    @pytest.mark.filterwarnings("ignore:write_statepoint")
     def test_repair_corrupted_workspace(self):
         statepoints = [{"a": i} for i in range(5)]
         for sp in statepoints:
@@ -683,6 +687,7 @@ class TestProject(TestProjectBase):
 
     # Index schema is changed
     @pytest.mark.xfail()
+    @pytest.mark.filterwarnings("ignore:index")
     def test_signac_project_crawler(self):
         statepoints = [{"a": i} for i in range(5)]
         for sp in statepoints:
@@ -880,6 +885,7 @@ class TestProject(TestProjectBase):
         )
         assert s == s_sub
 
+    @pytest.mark.filterwarnings("ignore:__call__")
     def test_schema_eval(self):
         for i in range(10):
             for j in range(10):
