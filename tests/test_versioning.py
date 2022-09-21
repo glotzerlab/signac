@@ -19,29 +19,24 @@ TEST_VERSIONS = [
 
 
 class TestVersionNumbering:
-    @pytest.mark.filterwarnings("ignore:Version")
     def test_init(self):
         Version()
 
-    @pytest.mark.filterwarnings("ignore:parse_version")
     def test_parsing(self):
         for vs, v in TEST_VERSIONS:
             assert v == parse_version(vs)
 
-    @pytest.mark.filterwarnings("ignore:parse_version")
     def test_equal(self):
         for vs, v in TEST_VERSIONS:
             p = parse_version(vs)
             assert p == p
 
-    @pytest.mark.filterwarnings("ignore:parse_version")
     def test_comparison(self):
         for i in range(0, len(TEST_VERSIONS) - 1):
             v0 = TEST_VERSIONS[i][0]
             v1 = TEST_VERSIONS[i + 1][0]
             assert parse_version(v0) < parse_version(v1)
 
-    @pytest.mark.filterwarnings("ignore:Version")
     def test_illegal_prelease_tag(self):
         with pytest.raises(ValueError):
             Version(prerelease="final1")
