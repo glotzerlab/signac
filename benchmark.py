@@ -196,7 +196,7 @@ def noop(*args, **kwargs):
 
 
 def benchmark_project(project, keys=None):
-    root = project.root_directory()
+    root = project.path
     setup = f"import signac; project = signac.get_project(root='{root}'); "
     setup += "from itertools import islice, repeat; import random; "
     setup += "from benchmark import noop; "

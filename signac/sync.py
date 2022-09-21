@@ -537,7 +537,7 @@ def sync_projects(
         )
     else:
         logger.info(f"Synchronizing project '{source}' to '{destination}'.")
-    logger.more(f"'{source.root_directory()}' -> '{destination.root_directory()}'")
+    logger.more(f"'{source.path}' -> '{destination.path}'")
     if dry_run:
         logger.info("Performing dry run!")
     if exclude is not None:

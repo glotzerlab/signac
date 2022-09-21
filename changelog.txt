@@ -26,6 +26,8 @@ Changed
  - Project names have a default in anticipation of removing names entirely. Project names will be removed in signac 2.0 (#644).
  - ``Project.workspace`` is now a property, not a method (#685).
  - Continuous integration uses GitHub Actions instead of CircleCI (#776, #788).
+ - Raise errors in testing when ``DeprecatedWarning``s or ``FutureWarning``s are raised (#713).
+ - Change GitHub PR to check for uncompleted tasks (i.e. unchecked checkboxes) (#686).
 
 Deprecated
 ++++++++++

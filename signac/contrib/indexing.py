@@ -8,6 +8,7 @@ import logging
 import math
 import os
 import re
+import types
 import warnings
 from collections import defaultdict
 from time import sleep
@@ -45,8 +46,8 @@ def md5(file):
     return m.hexdigest()
 
 
-def _is_blank_module(module):
-    with open(module.__file__) as file:
+def _is_blank_module(name):
+    with open(name) as file:
         return not bool(file.read().strip())
 
 
@@ -101,6 +102,12 @@ class BaseCrawler:
         m.update(blob.encode("utf-8"))
         return m.hexdigest()
 
+    @deprecated(
+        deprecated_in="1.3",
+        removed_in="2.0",
+        current_version=__version__,
+        details="The indexing module is deprecated.",
+    )
     def crawl(self, depth=0):
         """Crawl through the `root` directory.
 
@@ -548,9 +555,11 @@ class MainCrawler(BaseCrawler):
 
     def _docs_from_module(self, dirpath, fn):
         name = os.path.join(dirpath, fn)
-        module = importlib.machinery.SourceFileLoader(name, name).load_module()
+        loader = importlib.machinery.SourceFileLoader("access_module", name)
+        module = types.ModuleType(loader.name)
+        loader.exec_module(module)
 
-        logger.info(f"Crawling from module '{module.__file__}'.")
+        logger.info(f"Crawling from module '{name}'.")
 
         has_tags = self.tags is not None and len(set(self.tags))
 
@@ -571,7 +580,7 @@ class MainCrawler(BaseCrawler):
                     logger.info("Skipping, tag mismatch.")
                     return False
 
-        if not has_tags and _is_blank_module(module):
+        if not has_tags and _is_blank_module(name):
             from .project import get_project
 
             for doc in get_project(root=dirpath).index():

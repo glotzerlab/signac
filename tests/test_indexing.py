@@ -286,7 +286,8 @@ class TestIndexingBase:
 
     def test_main_crawler(self):
         self.setup_project()
-        crawler = indexing.MainCrawler(root=self._tmp_dir.name)
+        with pytest.warns(FutureWarning):
+            crawler = indexing.MainCrawler(root=self._tmp_dir.name)
         crawler.tags = {"test1"}
         no_find = True
         with pytest.warns(FutureWarning):
@@ -327,7 +328,8 @@ class TestIndexingBase:
             with pytest.raises(errors.FetchError):
                 signac.fetch(dict())
         self.setup_project()
-        crawler = indexing.MainCrawler(root=self._tmp_dir.name)
+        with pytest.warns(FutureWarning):
+            crawler = indexing.MainCrawler(root=self._tmp_dir.name)
         crawler.tags = {"test1"}
         with pytest.warns(FutureWarning):
             docs = list(crawler.crawl())
@@ -344,7 +346,8 @@ class TestIndexingBase:
 
     def test_export_one(self):
         self.setup_project()
-        crawler = indexing.MainCrawler(root=self._tmp_dir.name)
+        with pytest.warns(FutureWarning):
+            crawler = indexing.MainCrawler(root=self._tmp_dir.name)
         crawler.tags = {"test1"}
         index = self.get_index_collection()
         with pytest.warns(FutureWarning):
@@ -356,7 +359,8 @@ class TestIndexingBase:
 
     def test_export(self):
         self.setup_project()
-        crawler = indexing.MainCrawler(root=self._tmp_dir.name)
+        with pytest.warns(FutureWarning):
+            crawler = indexing.MainCrawler(root=self._tmp_dir.name)
         crawler.tags = {"test1"}
         index = self.get_index_collection()
         with pytest.warns(FutureWarning):

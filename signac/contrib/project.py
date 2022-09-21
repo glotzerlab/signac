@@ -63,11 +63,11 @@ ACCESS_MODULE_MAIN = """#!/usr/bin/env python
 import signac
 
 def get_indexes(root):
-    yield signac.get_project(root).index()
+    yield signac.get_project(root)._index()
 
 if __name__ == '__main__':
     with signac.Collection.open('index.txt') as index:
-        signac.export(signac.index(), index, update=True)
+        signac.export(signac._index(), index, update=True)
 """
 
 # The warning used for doc filter deprecation everywhere. Don't use
@@ -327,7 +327,7 @@ class Project:
 
     def __repr__(self):
         return "{type}.get_project({root})".format(
-            type=self.__class__.__name__, root=repr(self.root_directory())
+            type=self.__class__.__name__, root=repr(self.path)
         )
 
     def _repr_html_(self):
@@ -342,7 +342,7 @@ class Project:
         return (
             "<p>"
             + f"<strong>Project:</strong> {self.id}<br>"
-            + f"<strong>Root:</strong> {self.root_directory()}<br>"
+            + f"<strong>Root:</strong> {self.path}<br>"
             + f"<strong>Workspace:</strong> {self.workspace}<br>"
             + f"<strong>Size:</strong> {len(self)}"
             + "</p>"
@@ -389,9 +389,7 @@ class Project:
         """
         if self._wd is None:
             wd = os.path.expandvars(self.config.get("workspace_dir", "workspace"))
-            self._wd = (
-                wd if os.path.isabs(wd) else os.path.join(self.root_directory(), wd)
-            )
+            self._wd = wd if os.path.isabs(wd) else os.path.join(self.path, wd)
         return _CallableString(self._wd)
 
     @deprecated(
@@ -498,7 +496,7 @@ class Project:
             The joined path of project root directory and filename.
 
         """
-        return os.path.join(self.root_directory(), filename)
+        return os.path.join(self.path, filename)
 
     def isfile(self, filename):
         """Check if a filename exists in the project's root directory.
@@ -528,7 +526,7 @@ class Project:
         """
         with self._lock:
             if self._document is None:
-                fn_doc = os.path.join(self.root_directory(), self.FN_DOCUMENT)
+                fn_doc = os.path.join(self.path, self.FN_DOCUMENT)
                 self._document = BufferedJSONAttrDict(
                     filename=fn_doc, write_concern=True
                 )
@@ -608,7 +606,7 @@ class Project:
         """
         with self._lock:
             if self._stores is None:
-                self._stores = H5StoreManager(self.root_directory())
+                self._stores = H5StoreManager(self.path)
         return self._stores
 
     @property
@@ -910,7 +908,7 @@ class Project:
         from .schema import _build_job_statepoint_index
 
         if index is None:
-            index = self.index(include_job_document=False)
+            index = self._index(include_job_document=False)
         else:
             warnings.warn(INDEX_DEPRECATION_WARNING, FutureWarning)
         if subset is not None:
@@ -1028,9 +1026,9 @@ class Project:
             if doc_filter:
                 warnings.warn(DOC_FILTER_WARNING, FutureWarning)
                 filter.update(parse_filter(_add_prefix("doc.", doc_filter)))
-                index = self.index(include_job_document=True)
+                index = self._index(include_job_document=True)
             elif "doc" in _root_keys(filter):
-                index = self.index(include_job_document=True)
+                index = self._index(include_job_document=True)
             else:
                 index = self._sp_index()
         else:
@@ -1306,7 +1304,9 @@ class Project:
         if fn is None:
             fn = self.fn(self.FN_STATEPOINTS)
         try:
-            tmp = self.read_statepoints(fn=fn)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                tmp = self.read_statepoints(fn=fn)
         except OSError as error:
             if error.errno != errno.ENOENT:
                 raise
@@ -1560,7 +1560,7 @@ class Project:
             If the move failed due to an unknown system related error.
 
         """
-        job.reset_statepoint(new_statepoint=new_statepoint)
+        job._reset_statepoint(new_statepoint=new_statepoint)
 
     @deprecated(
         deprecated_in="1.3",
@@ -1917,7 +1917,9 @@ class Project:
             # In signac 2.0, Project.read_statepoints will be removed.
             # Remove this code path (only use "self._read_cache()" above) and
             # update the method signature and docs to remove "fn_statepoints."
-            self._sp_cache.update(self.read_statepoints(fn=fn_statepoints))
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                self._sp_cache.update(self.read_statepoints(fn=fn_statepoints))
         except OSError as error:
             if error.errno != errno.ENOENT or fn_statepoints is not None:
                 raise
@@ -2158,6 +2160,47 @@ class Project:
             Index document.
 
         """
+        yield from self._index(formats, depth, skip_errors, include_job_document)
+
+    def _index(
+        self, formats=None, depth=0, skip_errors=False, include_job_document=True
+    ):
+        r"""Generate an index of the project's workspace.
+
+        This generator function indexes every file in the project's
+        workspace until the specified `depth`.
+        The job document if it exists, is always indexed, other
+        files need to be specified with the formats argument.
+
+        See :ref:`signac project -i <signac-cli-project>` for the command line equivalent.
+
+        .. code-block:: python
+
+            for doc in project._index({r'.*\.txt', 'TextFile'}):
+                print(doc)
+
+        Parameters
+        ----------
+        formats : str, dict
+            The format definitions as a pattern string (e.g. ``r'.*\.txt'``)
+            or a mapping from pattern strings to formats (e.g.
+            ``'TextFile'``). If None, only the job document is indexed
+            (Default value = None).
+        depth : int
+            Specifies the crawling depth. A value of 0 means no limit
+            (Default value = 0).
+        skip_errors : bool
+            Skip all errors which occur during indexing. This is useful when
+            trying to repair a broken workspace (Default value = False).
+        include_job_document : bool
+            Include the contents of job documents (Default value = True).
+
+        Yields
+        ------
+        dict
+            Index document.
+
+        """
         if formats is None:
             root = self.workspace
 
@@ -2190,7 +2233,7 @@ class Project:
 
             for pattern, fmt in formats.items():
                 Crawler.define(pattern, fmt)
-            crawler = Crawler(self.root_directory())
+            crawler = Crawler(self.path)
             docs = crawler.crawl(depth=depth)
         if skip_errors:
             docs = _skip_errors(docs, logger.critical)
@@ -2233,7 +2276,7 @@ class Project:
             main = master
 
         if filename is None:
-            filename = os.path.join(self.root_directory(), MainCrawler.FN_ACCESS_MODULE)
+            filename = os.path.join(self.path, MainCrawler.FN_ACCESS_MODULE)
         with open(filename, "x") as file:
             if main:
                 file.write(ACCESS_MODULE_MAIN)
