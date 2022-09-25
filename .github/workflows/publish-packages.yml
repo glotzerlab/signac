@@ -40,8 +40,9 @@ jobs:
     - name: Run Redis
       uses: supercharge/redis-github-action@1.4.0
     - name: Test with pytest
-      run:
-        pytest --cov=signac --cov-config=setup.cfg --cov-report=xml tests/ -v
+      run: |
+        cd tests/
+        python -m pytest . -v
     - name: Publish package to TestPyPI
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
