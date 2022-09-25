@@ -24,8 +24,8 @@ jobs:
         python-version: 3.8  # TODO: Improve arbitrary choice of minor version.
     - name: Install dependencies
       run: |
-        pip install -r requirements/requirements-test.txt
-        pip install -r requirements/requirements-test-optional.txt
+        python -m pip install -r requirements/requirements-test.txt
+        python -m pip install -r requirements/requirements-test-optional.txt
     - name: Install pypa/build
       run:
         python -m pip install build --user
