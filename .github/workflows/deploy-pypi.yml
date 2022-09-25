@@ -10,7 +10,7 @@ on:
 
 jobs:
   build-and-test-sdist-and-wheels:
-    uses: glotzerlab/signac/.github/workflows/publish-packages.yml@master
+    uses: glotzerlab/signac/.github/workflows/publish-packages.yml@feature/actions_deploy_pypi
   deploy-pypi:
     runs-on: ubuntu-latest
     steps:
