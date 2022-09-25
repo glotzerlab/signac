@@ -42,7 +42,7 @@ jobs:
     - name: Test with pytest
       run: |
         # Uninstall deprecated, which seems to be getting installed somewhere...
-        python -m pip uninstall deprecated
+        python -m pip uninstall -y deprecated
         cd tests/
         python -m pytest . -v
     - name: Publish package to TestPyPI
