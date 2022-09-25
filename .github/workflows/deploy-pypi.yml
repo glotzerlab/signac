@@ -1,0 +1,21 @@
+name: Publish packages
+
+on:
+  #push:
+  #  tags:
+  #    - 'v.*'
+  push:
+    branches:
+      - 'feature/actions_deploy_pypi'
+
+jobs:
+  deploy-pypi:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Build and test sdist and wheels
+      uses: glotzerlab/signac/.github/workflows/publish-packages.yml
+    - name: Publish package to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: FAKE
+        #password: ${{ secrets.PYPI_API_TOKEN }}

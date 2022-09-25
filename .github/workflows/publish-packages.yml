@@ -1,13 +1,7 @@
 name: Publish packages
 
 on:
-  # TODO: Temporary for testing, change this to be on a tag.
-  push:
-    branches:
-      - 'feature/actions_deploy_pypi'
-
-  # trigger on request
-  workflow_dispatch:
+  workflow_call:
 
 concurrency:
   group: "${{ github.workflow }}-${{ github.ref }}"
@@ -17,7 +11,8 @@ jobs:
   publish-package:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - name: Check out repo
+      uses: actions/checkout@v3
     - name: Set up Python
       uses: actions/setup-python@v3
       with:
@@ -52,12 +47,3 @@ jobs:
     - name: Test with pytest
       run:
         python -m pytest -v tests/
-    - name: Publish package to TestPyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        password: ${{ secrets.TEST_PYPI_API_TOKEN }}
-        repository_url: https://test.pypi.org/legacy/
-    - name: Publish package to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        password: ${{ secrets.PYPI_API_TOKEN }}
