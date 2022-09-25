@@ -26,7 +26,7 @@ except OSError:
 
 setup(
     name="signac",
-    version="1.7.0",
+    version="1.7.1",
     packages=find_packages(),
     zip_safe=True,
     maintainer="signac Developers",
