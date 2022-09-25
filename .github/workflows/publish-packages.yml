@@ -9,10 +9,8 @@ on:
     secrets:
       TEST_PYPI_API_TOKEN:
         required: false
-        type: string
       PYPI_API_TOKEN:
         required: false
-        type: string
 
 jobs:
   publish-package:
