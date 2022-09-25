@@ -1,12 +1,9 @@
 name: Publish to PyPI
 
 on:
-  #push:
-  #  tags:
-  #    - 'v.*'
   push:
-    branches:
-      - 'feature/actions_deploy_pypi'
+    tags:
+      - 'v*'
 
 concurrency:
   group: "${{ github.workflow }}-${{ github.ref }}"

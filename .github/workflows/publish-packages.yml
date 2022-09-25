@@ -27,7 +27,9 @@ jobs:
         # We must explicitly install the requirements so that we can force
         # installation of the local wheel below (in case the version conflicts
         # with published wheels, typically only possible during testing).
-        # TODO: We can probably remove this when finalizing the workflow.
+        # We could remove this when finalizing the workflow and just rely on
+        # the version always being a new one whenever this workflow is
+        # triggered
         python -m pip install -r requirements.txt
         python -m pip install -r requirements/requirements-test.txt
         python -m pip install -r requirements/requirements-test-optional.txt
@@ -39,7 +41,7 @@ jobs:
         python -m build --sdist --wheel --outdir dist/ .
     - name: Install wheel
       run:
-        # TODO: When we remove the install of requirements.txt above we must
+        # If we choose to remove the install of requirements.txt above we must
         # also remove --no-index here, and we should probably include -U as
         # well. Note that the resulting job will fail if it is ever run on an
         # preexisting tag with an uploaded PyPI wheel since that will be
@@ -62,5 +64,4 @@ jobs:
       if: ${{ !inputs.upload_to_test }}
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
-        password: FAKE
-        #password: ${{ secrets.PYPI_API_TOKEN }}
+        password: ${{ secrets.PYPI_API_TOKEN }}
