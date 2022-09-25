@@ -13,6 +13,7 @@ jobs:
     uses: glotzerlab/signac/.github/workflows/publish-packages.yml@feature/actions_deploy_pypi
   deploy-pypi:
     runs-on: ubuntu-latest
+    needs: build-and-test-sdist-and-wheels
     steps:
     - name: Publish package to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
