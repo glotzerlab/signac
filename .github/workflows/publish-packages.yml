@@ -21,7 +21,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v3
       with:
-        python-version: 3.8
+        python-version: 3.10
         check-latest: true
     - name: Install dependencies
       run: |
@@ -56,5 +56,5 @@ jobs:
     - name: Publish package to TestPyPI
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
-        password: FAKEPWD  # TODO: Add real token when ready for upload
-        repository_url: https://test.pypi.org/legacy/  # TODO: Make this configurable
+        password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+        repository_url: https://test.pypi.org/legacy/
