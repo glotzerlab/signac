@@ -1,0 +1,47 @@
+name: Publish packages
+
+on:
+  # TODO: Temporary for testing, change this to be on a tag.
+  push:
+    branches:
+      - 'feature/actions_deploy_pypi'
+
+  # trigger on request
+  workflow_dispatch:
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: 3.8  # TODO: Improve arbitrary choice of minor version.
+    - name: Install dependencies
+      run: |
+        pip install -r requirements/requirements-test.txt
+        pip install -r requirements/requirements-test-optional.txt
+    - name: Build source distribution and wheel
+      run: |
+        python setup.py bdist_wheel
+        python setup.py sdist
+    - name: Install wheel
+      run:
+        python -m pip install signac --progress-bar off -U --force-reinstall -f dist/
+    - name: Run MongoDB
+      uses: supercharge/mongodb-github-action@1.7.0
+    - name: Run Redis
+      uses: supercharge/redis-github-action@1.4.0
+    - name: Test with pytest
+      run:
+        pytest tests/ -v
+    - name: Publish package to TestPyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: FAKEPWD  # TODO: Add real token when ready for upload
+        repository_url: https://test.pypi.org/legacy/  # TODO: Make this configurable
