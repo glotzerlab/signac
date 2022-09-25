@@ -8,6 +8,10 @@ on:
     branches:
       - 'feature/actions_deploy_pypi'
 
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
+
 jobs:
   build-and-test-sdist-and-wheels:
     uses: glotzerlab/signac/.github/workflows/publish-packages.yml@feature/actions_deploy_pypi
