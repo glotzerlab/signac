@@ -9,11 +9,11 @@ on:
       - 'feature/actions_deploy_pypi'
 
 jobs:
+  build-and-test-sdist-and-wheels:
+    uses: glotzerlab/signac/.github/workflows/publish-packages.yml@master
   deploy-pypi:
     runs-on: ubuntu-latest
     steps:
-    - name: Build and test sdist and wheels
-      uses: glotzerlab/signac/.github/workflows/publish-packages.yml@master
     - name: Publish package to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
