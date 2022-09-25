@@ -8,6 +8,7 @@ on:
   push:
     branches:
       - 'master'
+      - 'feature/actions_deploy_pypi'
 
   # trigger on request
   workflow_dispatch:
