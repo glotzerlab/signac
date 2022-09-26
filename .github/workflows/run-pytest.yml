@@ -29,7 +29,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.config.python }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4.2
       with:
         python-version: ${{ matrix.config.python }}
     - name: Install newest dependencies

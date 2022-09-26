@@ -19,33 +19,25 @@ jobs:
     - name: Check out repo
       uses: actions/checkout@v3
     - name: Set up Python
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4.2
       with:
-        python-version: 3.8
+        python-version: 3.10
     - name: Install dependencies
       run: |
         # We must explicitly install the requirements so that we can force
-        # installation of the local wheel below (in case the version conflicts
-        # with published wheels, typically only possible during testing).
-        # We could remove this when finalizing the workflow and just rely on
-        # the version always being a new one whenever this workflow is
-        # triggered
+        # installation of the local wheel below in case the version conflicts
+        # with published wheels (typically only possible during testing).
         python -m pip install -r requirements.txt
         python -m pip install -r requirements/requirements-test.txt
         python -m pip install -r requirements/requirements-test-optional.txt
     - name: Install pypa/build
       run:
-        python -m pip install build --user
+        python -m pip install build
     - name: Build a binary wheel and a source tarball
       run:
         python -m build --sdist --wheel --outdir dist/ .
     - name: Install wheel
       run:
-        # If we choose to remove the install of requirements.txt above we must
-        # also remove --no-index here, and we should probably include -U as
-        # well. Note that the resulting job will fail if it is ever run on an
-        # preexisting tag with an uploaded PyPI wheel since that will be
-        # preferred to the local one.
         python -m pip install signac --progress-bar off --no-index -f dist/
     - name: Run MongoDB
       uses: supercharge/mongodb-github-action@1.7.0

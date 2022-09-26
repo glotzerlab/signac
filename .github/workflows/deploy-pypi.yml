@@ -3,7 +3,10 @@ name: Publish to PyPI
 on:
   push:
     tags:
-      - 'v*'
+      - 'v*.*.*'
+
+  # trigger on request
+  workflow_dispatch:
 
 concurrency:
   group: "${{ github.workflow }}-${{ github.ref }}"
