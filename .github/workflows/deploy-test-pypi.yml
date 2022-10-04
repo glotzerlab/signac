@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   build-and-test-sdist-and-wheels:
-    uses: glotzerlab/signac/.github/workflows/publish-packages.yml@feature/actions_deploy_pypi
+    uses: glotzerlab/signac/.github/workflows/publish-packages.yml
     with:
       upload_to_test: true
     secrets:
