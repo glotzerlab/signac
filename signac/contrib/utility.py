@@ -381,7 +381,8 @@ def _extract(filename):
                     for member in tar.getmembers():
                         member_path = os.path.join(path, member.name)
                         if not is_within_directory(path, member_path):
-                            raise Exception("Attempted Path Traversal in Tar File")
+                            # Path traversal is not permitted to protect against CVE-2007-4559.
+                            raise RuntimeError("Paths extracted from the tar file must be in the current directory.")
 
                     tar.extractall(path, members, numeric_owner=numeric_owner)
 
