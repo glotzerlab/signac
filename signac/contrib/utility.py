@@ -8,12 +8,8 @@ import getpass
 import logging
 import os
 import sys
-import tarfile
-import zipfile
 from collections.abc import Mapping
-from contextlib import contextmanager
 from datetime import timedelta
-from tempfile import TemporaryDirectory
 from time import time
 
 from ..common.deprecation import deprecated
