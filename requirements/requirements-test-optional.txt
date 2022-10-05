@@ -1,8 +1,8 @@
 h5py==3.7.0; implementation_name=='cpython'
-numpy==1.23.2
-pandas==1.4.4; implementation_name=='cpython'
+numpy==1.23.3
+pandas==1.5.0; implementation_name=='cpython'
 pymongo==4.2.0; implementation_name=='cpython'
 redis==4.3.4
 ruamel.yaml==0.17.21
 tables==3.7.0; implementation_name=='cpython'
-zarr==2.12.0; platform_system!='Windows'
+zarr==2.13.2; platform_system!='Windows'
