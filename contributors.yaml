@@ -114,6 +114,7 @@ contributors:
   -
     family-names: Tork
     given-names: Parisa
+    affiliation: ""
   -
     family-names: "Feickert"
     given-names: "Matthew"
@@ -124,4 +125,9 @@ contributors:
     given-names: "Rachael S"
     affiliation: "Cornell University"
     orcid: "https://orcid.org/0000-0001-8639-3607"
+  -
+    family-names: Kadar
+    given-names: Alain
+    affiliation: "University of Michigan"
+    orcid: "https://orcid.org/0000-0002-0522-4199"
 ...
