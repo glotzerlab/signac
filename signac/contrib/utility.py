@@ -8,12 +8,8 @@ import getpass
 import logging
 import os
 import sys
-import tarfile
-import zipfile
 from collections.abc import Mapping
-from contextlib import contextmanager
 from datetime import timedelta
-from tempfile import TemporaryDirectory
 from time import time
 
 from ..common.deprecation import deprecated
@@ -337,39 +333,6 @@ def split_and_print_progress(iterable, num_chunks=10, write=None, desc="Progress
         write(f"{desc}100%")
     else:
         yield iterable
-
-
-@contextmanager
-def _extract(filename):
-    """Extract zipfile and tarfile.
-
-    Parameters
-    ----------
-    filename : str
-        Name of zipfile/tarfile to extract.
-
-    Yields
-    ------
-    str
-        Path to the extracted directory.
-
-    Raises
-    ------
-    RuntimeError
-        When the provided file is neither a zipfile nor a tarfile.
-
-    """
-    with TemporaryDirectory() as tmpdir:
-        if zipfile.is_zipfile(filename):
-            with zipfile.ZipFile(filename) as file:
-                file.extractall(tmpdir)
-                yield tmpdir
-        elif tarfile.is_tarfile(filename):
-            with tarfile.open(filename) as file:
-                file.extractall(path=tmpdir)
-                yield tmpdir
-        else:
-            raise RuntimeError(f"Unknown file type: '{filename}'.")
 
 
 def _dotted_dict_to_nested_dicts(dotted_dict, delimiter_nested="."):
