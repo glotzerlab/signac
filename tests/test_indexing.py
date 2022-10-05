@@ -87,7 +87,7 @@ class _TestFS:
 
         def close(self):
             self.cache[self.file_id] = self.getvalue()
-            super(_TestFS._Writer, self).close()
+            super().close()
 
     def __init__(self, _id="_testFS"):
         self._id = _id
