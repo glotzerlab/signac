@@ -382,7 +382,9 @@ def _extract(filename):
                         member_path = os.path.join(path, member.name)
                         if not is_within_directory(path, member_path):
                             # Path traversal is not permitted to protect against CVE-2007-4559.
-                            raise RuntimeError("Paths extracted from the tar file must be in the current directory.")
+                            raise RuntimeError(
+                                "Paths extracted from the tar file must be in the current directory."
+                            )
 
                     tar.extractall(path, members, numeric_owner=numeric_owner)
 
