@@ -1,6 +1,7 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+import gzip
 import io
 import itertools
 import json
@@ -8,8 +9,8 @@ import logging
 import os
 import pickle
 import re
-import string
 import sys
+import textwrap
 import uuid
 from contextlib import contextmanager, redirect_stderr
 from tarfile import TarFile
@@ -23,13 +24,19 @@ from packaging import version
 from test_job import TestJobBase
 
 import signac
-from signac.common.config import _get_config
+from signac.common.config import (
+    PROJECT_CONFIG_FN,
+    _get_project_config_fn,
+    _load_config,
+    _read_config_file,
+)
 from signac.contrib.errors import (
     IncompatibleSchemaVersion,
     JobsCorruptedError,
     StatepointParsingError,
     WorkspaceError,
 )
+from signac.contrib.hashing import calc_id
 from signac.contrib.linked_view import _find_all_links
 from signac.contrib.project import JobsCursor, Project  # noqa: F401
 from signac.contrib.schema import ProjectSchema
@@ -64,6 +71,12 @@ WINDOWS = sys.platform == "win32"
 test_token = {"test_token": str(uuid.uuid4())}
 
 
+# Use the major version to fail tests expected to fail in 3.0.
+_CURRENT_VERSION = version.parse(signac.__version__)
+_VERSION_3 = version.parse("3.0.0")
+_VERSION_2 = version.parse("2.0.0")
+
+
 S_FORMAT1 = """{
  'a': 'int([0, 1, 2, ..., 8, 9], 10)',
  'b.b2': 'int([0, 1, 2, ..., 8, 9], 10)',
@@ -83,50 +96,28 @@ class TestProjectBase(TestJobBase):
 
 
 class TestProject(TestProjectBase):
-    def test_get(self):
-        pass
-
-    def test_get_id(self):
-        with pytest.warns(FutureWarning):
-            assert self.project.get_id() == "testing_test_project"
-        with pytest.warns(FutureWarning):
-            assert str(self.project) == self.project.get_id()
-
-    def test_property_id(self):
-        assert self.project.id == "testing_test_project"
-        assert str(self.project) == self.project.id
-
     def test_repr(self):
-        repr(self.project)
         p = eval(repr(self.project))
         assert repr(p) == repr(self.project)
         assert p == self.project
 
     def test_str(self):
-        str(self.project) == self.project.id
+        assert str(self.project) == self.project.path
 
     def test_path(self):
         assert self._tmp_pr == self.project.path
 
     def test_workspace_directory(self):
-        assert self._tmp_wd == self.project.workspace
-
-    def test_workspace_property(self):
-        with pytest.warns(FutureWarning):
-            ws = self.project.workspace()
-        assert ws == self.project.workspace
+        assert os.path.join(self._tmp_pr, "workspace") == self.project.workspace
 
     def test_config_modification(self):
         # In-memory modification of the project configuration is
         # deprecated as of 1.3, and will be removed in version 2.0.
         # This unit test should reflect that change beginning 2.0,
         # and check that the project configuration is immutable.
-        self.project.config["foo"] = "bar"
-
-    def test_workspace_directory_with_env_variable(self):
-        os.environ["SIGNAC_ENV_DIR_TEST"] = self._tmp_wd
-        self.project.config["workspace_dir"] = "${SIGNAC_ENV_DIR_TEST}"
-        assert self._tmp_wd == self.project.workspace
+        assert _CURRENT_VERSION < _VERSION_2
+        with pytest.raises(ValueError):
+            self.project.config["foo"] = "bar"
 
     def test_workspace_directory_exists(self):
         assert os.path.exists(self.project.workspace)
@@ -148,7 +139,7 @@ class TestProject(TestProjectBase):
         self.project.document["a"] = 42
         assert len(self.project.document) == 1
         assert self.project.document
-        prj2 = type(self.project).get_project(root=self.project.path)
+        prj2 = type(self.project).get_project(path=self.project.path)
         assert prj2.document
         assert len(prj2.document) == 1
         self.project.document.clear()
@@ -169,7 +160,7 @@ class TestProject(TestProjectBase):
         self.project.doc["a"] = 42
         assert len(self.project.doc) == 1
         assert self.project.doc
-        prj2 = type(self.project).get_project(root=self.project.path)
+        prj2 = type(self.project).get_project(path=self.project.path)
         assert prj2.doc
         assert len(prj2.doc) == 1
         self.project.doc.clear()
@@ -193,7 +184,7 @@ class TestProject(TestProjectBase):
             self.project.data["a"] = 42
             assert len(self.project.data) == 1
             assert self.project.data
-        prj2 = type(self.project).get_project(root=self.project.path)
+        prj2 = type(self.project).get_project(path=self.project.path)
         with prj2.data:
             assert prj2.data
             assert len(prj2.data) == 1
@@ -216,43 +207,6 @@ class TestProject(TestProjectBase):
         self.project.data = {"a": {"b": 45}}
         assert self.project.data == {"a": {"b": 45}}
 
-    @pytest.mark.filterwarnings("ignore:dump_statepoint")
-    @pytest.mark.filterwarnings("ignore:write_statepoint")
-    @pytest.mark.filterwarnings("ignore:read_statepoint")
-    def test_write_read_statepoint(self):
-        statepoints = [{"a": i} for i in range(5)]
-        self.project.dump_statepoints(statepoints)
-        self.project.write_statepoints(statepoints)
-        read = list(self.project.read_statepoints().values())
-        assert len(read) == len(statepoints)
-        more_statepoints = [{"b": i} for i in range(5, 10)]
-        self.project.write_statepoints(more_statepoints)
-        read2 = list(self.project.read_statepoints())
-        assert len(read2) == len(statepoints) + len(more_statepoints)
-        for id_ in self.project.read_statepoints().keys():
-            with pytest.warns(FutureWarning):
-                self.project.get_statepoint(id_)
-
-    def test_workspace_path_normalization(self):
-        def norm_path(p):
-            return os.path.abspath(os.path.expandvars(p))
-
-        def root_path():
-            # Returns 'C:\\' on Windows, '/' on other platforms
-            return os.path.abspath(os.sep)
-
-        assert self.project.workspace == norm_path(self._tmp_wd)
-
-        abs_path = os.path.join(root_path(), "path", "to", "workspace")
-        self.project.config["workspace_dir"] = abs_path
-        assert self.project.workspace == norm_path(abs_path)
-
-        rel_path = norm_path(os.path.join("path", "to", "workspace"))
-        self.project.config["workspace_dir"] = rel_path
-        assert self.project.workspace == norm_path(
-            os.path.join(self.project.path, self.project.workspace)
-        )
-
     def test_no_workspace_warn_on_find(self, caplog):
         if os.path.exists(self.project.workspace):
             os.rmdir(self.project.workspace)
@@ -266,11 +220,15 @@ class TestProject(TestProjectBase):
 
     @pytest.mark.skipif(WINDOWS, reason="Symbolic links are unsupported on Windows.")
     def test_workspace_broken_link_error_on_find(self):
-        wd = self.project.workspace
-        os.symlink(wd + "~", self.project.fn("workspace-link"))
-        self.project.config["workspace_dir"] = "workspace-link"
-        with pytest.raises(WorkspaceError):
-            list(self.project.find_jobs())
+        with TemporaryDirectory() as tmp_dir:
+            project = self.project_class.init_project(path=tmp_dir)
+            os.rmdir(project.workspace)
+            os.symlink(
+                os.path.join(tmp_dir, "workspace~"),
+                project.workspace,
+            )
+            with pytest.raises(WorkspaceError):
+                list(project.find_jobs())
 
     def test_workspace_read_only_path(self):
         # Create file where workspace would be, thus preventing the creation
@@ -292,46 +250,31 @@ class TestProject(TestProjectBase):
         finally:
             logging.disable(logging.NOTSET)
 
-        assert not os.path.isdir(self._tmp_wd)
         assert not os.path.isdir(self.project.workspace)
-
-    def test_find_job_ids(self):
-        statepoints = [{"a": i} for i in range(5)]
-        for sp in statepoints:
-            self.project.open_job(sp).document["b"] = sp["a"]
-        with pytest.warns(FutureWarning):
-            assert len(statepoints) == len(list(self.project.find_job_ids()))
-            assert 1 == len(list(self.project.find_job_ids({"a": 0})))
-            assert 0 == len(list(self.project.find_job_ids({"a": 5})))
-            assert 1 == len(list(self.project.find_job_ids({"sp.a": 0})))
-            assert 0 == len(list(self.project.find_job_ids({"sp.a": 5})))
-            assert 1 == len(list(self.project.find_job_ids(doc_filter={"b": 0})))
-            assert 0 == len(list(self.project.find_job_ids(doc_filter={"b": 5})))
-            assert 1 == len(list(self.project.find_job_ids({"doc.b": 0})))
-            assert 0 == len(list(self.project.find_job_ids({"doc.b": 5})))
-            assert 1 == len(list(self.project.find_job_ids({"a": 0, "doc.b": 0})))
-            assert 1 == len(list(self.project.find_job_ids({"sp.a": 0, "doc.b": 0})))
-            assert 0 == len(list(self.project.find_job_ids({"sp.a": 0, "doc.b": 5})))
-            assert 0 == len(list(self.project.find_job_ids({"sp.a": 5, "doc.b": 0})))
-            assert 0 == len(list(self.project.find_job_ids({"sp.a": 5, "doc.b": 5})))
-            for job_id in self.project.find_job_ids():
-                assert self.project.open_job(id=job_id).get_id() == job_id
-            index = list(self.project._index())
-            for job_id in self.project.find_job_ids(index=index):
-                assert self.project.open_job(id=job_id).get_id() == job_id
 
     def test_find_jobs(self):
         statepoints = [{"a": i} for i in range(5)]
         for sp in statepoints:
-            self.project.open_job(sp).document["test"] = True
-        assert len(self.project) == len(self.project.find_jobs())
-        assert len(self.project) == len(self.project.find_jobs({}))
+            self.project.open_job(sp).document["b"] = sp["a"]
+        assert len(statepoints) == len(self.project)
+        assert len(statepoints) == len(list(self.project.find_jobs()))
+        assert len(statepoints) == len(list(self.project.find_jobs({})))
+        assert 1 == len(list(self.project.find_jobs({"a": 0})))
+        assert 0 == len(list(self.project.find_jobs({"a": 5})))
         assert 1 == len(list(self.project.find_jobs({"a": 0})))
         assert 0 == len(list(self.project.find_jobs({"a": 5})))
         assert 1 == len(list(self.project.find_jobs({"sp.a": 0})))
         assert 0 == len(list(self.project.find_jobs({"sp.a": 5})))
-        assert 1 == len(list(self.project.find_jobs({"a": 0})))
-        assert 0 == len(list(self.project.find_jobs({"a": 5})))
+        assert 1 == len(list(self.project.find_jobs({"doc.b": 0})))
+        assert 0 == len(list(self.project.find_jobs({"doc.b": 5})))
+        assert 1 == len(list(self.project.find_jobs({"a": 0, "doc.b": 0})))
+        assert 1 == len(list(self.project.find_jobs({"sp.a": 0, "doc.b": 0})))
+        assert 0 == len(list(self.project.find_jobs({"a": 0, "doc.b": 5})))
+        assert 0 == len(list(self.project.find_jobs({"sp.a": 0, "doc.b": 5})))
+        assert 0 == len(list(self.project.find_jobs({"sp.a": 5, "doc.b": 0})))
+        assert 0 == len(list(self.project.find_jobs({"sp.a": 5, "doc.b": 5})))
+        for job in self.project.find_jobs():
+            assert self.project.open_job(id=job.id).id == job.id
 
     def test_find_jobs_JobsCursor_contains(self):
         statepoints = [{"a": i} for i in range(5)]
@@ -346,24 +289,9 @@ class TestProject(TestProjectBase):
                 assert self.project.open_job(sp) in cursor_first
             else:
                 assert self.project.open_job(sp) not in cursor_first
-        cursor_doc = self.project.find_jobs(doc_filter={"test": True})
+        cursor_doc = self.project.find_jobs({"doc.test": True})
         for sp in statepoints:
             assert self.project.open_job(sp) in cursor_doc
-
-    def test_find_jobs_next(self):
-        statepoints = [{"a": i} for i in range(5)]
-        for sp in statepoints:
-            self.project.open_job(sp).init()
-        jobs = self.project.find_jobs()
-        for i in range(2):  # run this twice
-            jobs_ = set()
-            for i in range(len(self.project)):
-                job = jobs.next()
-                assert job in self.project
-                jobs_.add(job)
-            with pytest.raises(StopIteration):
-                job = jobs.next()
-            assert jobs_ == set(self.project)
 
     def test_find_jobs_arithmetic_operators(self):
         for i in range(10):
@@ -467,12 +395,10 @@ class TestProject(TestProjectBase):
         assert_result_len({"$and": [{"sp.a": 0}, {"doc.d": 1}]}, 0)
         assert_result_len({"$or": [{"sp.a": 0}, {"doc.d": 1}]}, 2)
 
-    @pytest.mark.filterwarnings("ignore:num_jobs")
-    def test_num_jobs(self):
+    def test_len_project(self):
         statepoints = [{"a": i} for i in range(5)]
         for sp in statepoints:
             self.project.open_job(sp).init()
-        assert len(statepoints) == self.project.num_jobs()
         assert len(statepoints) == len(self.project)
         assert len(statepoints) == len(self.project.find_jobs())
 
@@ -534,7 +460,7 @@ class TestProject(TestProjectBase):
         job = self.project.open_job(dict(a=0))
         job.init()
 
-        os.remove(job.fn(job.FN_MANIFEST))
+        os.remove(job.fn(job.FN_STATE_POINT))
 
         self.project._sp_cache.clear()
         self.project._remove_persistent_cache_file()
@@ -549,8 +475,8 @@ class TestProject(TestProjectBase):
         job = self.project.open_job(dict(a=0))
         job.init()
 
-        # overwrite state point manifest file
-        with open(job.fn(job.FN_MANIFEST), "w"):
+        # Overwrite state point file.
+        with open(job.fn(job.FN_STATE_POINT), "w"):
             pass
 
         self.project._sp_cache.clear()
@@ -559,16 +485,16 @@ class TestProject(TestProjectBase):
             logging.disable(logging.CRITICAL)
             with pytest.raises(JobsCorruptedError):
                 # Accessing the job state point triggers validation of the
-                # state point manifest file
+                # state point file.
                 self.project.open_job(id=job.id).statepoint
             with pytest.raises(JobsCorruptedError):
                 # Initializing the job state point triggers validation of the
-                # state point manifest file
+                # state point file.
                 self.project.open_job(id=job.id).init()
         finally:
             logging.disable(logging.NOTSET)
-        # Ensure that the corrupted manifest still exists
-        assert os.path.exists(job.fn(job.FN_MANIFEST))
+        # Ensure that the corrupted state point file still exists.
+        assert os.path.exists(job.fn(job.FN_STATE_POINT))
 
     def test_rename_workspace(self):
         job = self.project.open_job(dict(a=0))
@@ -594,7 +520,7 @@ class TestProject(TestProjectBase):
             os.replace(wd, wd_invalid)
             with pytest.raises(JobsCorruptedError):
                 self.project.check()
-            #  ... we reinitalize the initial job, ...
+            #  ... we reinitialize the initial job, ...
             job.init()
             with pytest.raises(JobsCorruptedError):
                 # ... which means the repair attempt must fail.
@@ -620,20 +546,19 @@ class TestProject(TestProjectBase):
             pass
         assert i == 4
 
-        # no manifest file
+        self.project.update_cache()
+
+        # This job has no state point file.
         with self.project.open_job(statepoints[0]) as job:
-            os.remove(job.FN_MANIFEST)
-        # blank manifest file
+            os.remove(job.FN_STATE_POINT)
+
+        # This job has an empty state point file.
         with self.project.open_job(statepoints[1]) as job:
-            with open(job.FN_MANIFEST, "w"):
+            with open(job.FN_STATE_POINT, "w"):
                 pass
 
-        # Need to clear internal and persistent cache to encounter error.
+        # Need to clear internal cache to encounter error.
         self.project._sp_cache.clear()
-        self.project._remove_persistent_cache_file()
-
-        # Ensure that state point hash table does not exist.
-        assert not os.path.isfile(self.project.fn(self.project.FN_STATEPOINTS))
 
         # disable logging temporarily
         try:
@@ -642,120 +567,45 @@ class TestProject(TestProjectBase):
             # Iterating through the jobs should now result in an error.
             with pytest.raises(JobsCorruptedError):
                 for job in self.project:
-                    # Accessing the job state point triggers validation of the
-                    # state point manifest file
-                    job.statepoint
+                    # Validate the state point.
+                    sp = job.statepoint()
+                    assert len(sp) == 1
+                    assert sp["a"] in range(5)
 
-            with pytest.raises(JobsCorruptedError):
-                self.project.repair()
-
-            self.project.write_statepoints(statepoints)
             self.project.repair()
 
-            os.remove(self.project.fn(self.project.FN_STATEPOINTS))
             self.project._sp_cache.clear()
+            self.project._remove_persistent_cache_file()
             for job in self.project:
-                pass
+                # Validate the state point.
+                sp = job.statepoint()
+                assert len(sp) == 1
+                assert sp["a"] in range(5)
         finally:
             logging.disable(logging.NOTSET)
 
     @pytest.mark.filterwarnings("ignore:index")
     def test_index(self):
-        docs = list(self.project.index(include_job_document=True))
+        docs = list(self.project._build_index(include_job_document=True))
         assert len(docs) == 0
-        docs = list(self.project.index(include_job_document=False))
+        docs = list(self.project._build_index(include_job_document=False))
         assert len(docs) == 0
         statepoints = [{"a": i} for i in range(5)]
         for sp in statepoints:
             self.project.open_job(sp).document["test"] = True
         job_ids = {job.id for job in self.project.find_jobs()}
-        docs = list(self.project.index())
-        job_ids_cmp = {doc["_id"] for doc in docs}
+        docs = dict(self.project._build_index())
+        job_ids_cmp = docs.keys()
         assert job_ids == job_ids_cmp
         assert len(docs) == len(statepoints)
-        for sp in statepoints:
-            with self.project.open_job(sp):
-                with open("test.txt", "w"):
-                    pass
-        docs = list(
-            self.project.index(
-                {".*" + re.escape(os.path.sep) + r"test\.txt": "TextFile"}
-            )
-        )
-        assert len(docs) == 2 * len(statepoints)
-        assert len({doc["_id"] for doc in docs}) == len(docs)
-
-    # Index schema is changed
-    @pytest.mark.xfail()
-    @pytest.mark.filterwarnings("ignore:index")
-    def test_signac_project_crawler(self):
-        statepoints = [{"a": i} for i in range(5)]
-        for sp in statepoints:
-            self.project.open_job(sp).document["test"] = True
-        job_ids = {job.id for job in self.project.find_jobs()}
-        index = {}
-        for doc in self.project.index():
-            index[doc["_id"]] = doc
-        assert len(index) == len(job_ids)
-        assert set(index.keys()) == set(job_ids)
-        crawler = signac.contrib.SignacProjectCrawler(self.project.path)
-        index2 = {}
-        for doc in crawler.crawl():
-            index2[doc["_id"]] = doc
-        for _id, _id2 in zip(index, index2):
-            assert _id == _id2
-            assert index[_id] == index2[_id]
-        assert index == index2
-        for job in self.project.find_jobs():
-            with open(job.fn("test.txt"), "w") as file:
-                file.write("test\n")
-        formats = {r".*" + re.escape(os.path.sep) + r"test\.txt": "TextFile"}
-        index = {}
-        for doc in self.project.index(formats):
-            index[doc["_id"]] = doc
-        assert len(index) == 2 * len(job_ids)
-
-        class Crawler(signac.contrib.SignacProjectCrawler):
-            called = False
-
-            def process(self_, doc, dirpath, fn):
-                Crawler.called = True
-                doc = super().process(doc=doc, dirpath=dirpath, fn=fn)
-                if "format" in doc and doc["format"] is None:
-                    assert doc["_id"] == doc["signac_id"]
-                return doc
-
-        for p, fmt in formats.items():
-            with pytest.warns(FutureWarning):
-                Crawler.define(p, fmt)
-        index2 = {}
-        for doc in Crawler(root=self.project.path).crawl():
-            index2[doc["_id"]] = doc
-        assert index == index2
-        assert Crawler.called
 
     def test_custom_project(self):
         class CustomProject(signac.Project):
             pass
 
-        project = CustomProject.get_project(root=self.project.path)
+        project = CustomProject.get_project(path=self.project.path)
         assert isinstance(project, signac.Project)
         assert isinstance(project, CustomProject)
-
-    def test_custom_job_class(self):
-        class CustomJob(signac.contrib.job.Job):
-            def __init__(self, *args, **kwargs):
-                super().__init__(*args, **kwargs)
-
-        class CustomProject(signac.Project):
-            Job = CustomJob
-
-        project = CustomProject.get_project(root=self.project.path)
-        assert isinstance(project, signac.Project)
-        assert isinstance(project, CustomProject)
-        job = project.open_job(dict(a=0))
-        assert isinstance(job, CustomJob)
-        assert isinstance(job, signac.contrib.job.Job)
 
     def test_project_contains(self):
         job = self.open_job(dict(a=0))
@@ -771,9 +621,9 @@ class TestProject(TestProjectBase):
         assert job in cursor
 
     def test_job_move(self):
-        root = self._tmp_dir.name
-        project_a = signac.init_project("ProjectA", os.path.join(root, "a"))
-        project_b = signac.init_project("ProjectB", os.path.join(root, "b"))
+        path = self._tmp_dir.name
+        project_a = signac.init_project(path=os.path.join(path, "a"))
+        project_b = signac.init_project(path=os.path.join(path, "b"))
         job = project_a.open_job(dict(a=0))
         job_b = project_b.open_job(dict(a=0))
         assert job != job_b
@@ -800,9 +650,9 @@ class TestProject(TestProjectBase):
         assert job_.document["a"] == 0
 
     def test_job_clone(self):
-        root = self._tmp_dir.name
-        project_a = signac.init_project("ProjectA", os.path.join(root, "a"))
-        project_b = signac.init_project("ProjectB", os.path.join(root, "b"))
+        path = self._tmp_dir.name
+        project_a = signac.init_project(path=os.path.join(path, "a"))
+        project_b = signac.init_project(path=os.path.join(path, "b"))
         job_a = project_a.open_job(dict(a=0))
         assert job_a not in project_a
         assert job_a not in project_b
@@ -837,8 +687,9 @@ class TestProject(TestProjectBase):
         for i in range(10):
             self.project.open_job(
                 {
-                    "const": 0,
+                    "const1": 0,
                     "const2": {"const3": 0},
+                    "const4": {},
                     "a": i,
                     "b": {"b2": i},
                     "c": [i if i % 2 else None, 0, 0],
@@ -849,25 +700,28 @@ class TestProject(TestProjectBase):
             ).init()
 
         s = self.project.detect_schema()
-        assert len(s) == 9
-        for k in "const", "const2.const3", "a", "b.b2", "c", "d", "e.e2", "f.f2":
+        assert len(s) == 10
+        for k in (
+            "const1",
+            "const2.const3",
+            "const4",
+            "a",
+            "b.b2",
+            "c",
+            "d",
+            "e.e2",
+            "f.f2",
+        ):
             assert k in s
-            if "." in k:
-                with pytest.warns(FutureWarning):
-                    assert k.split(".") in s
-            # The following calls should not error out.
+            # The following call should not error out.
             s[k]
-            if "." in k:
-                with pytest.warns(FutureWarning):
-                    s[k.split(".")]
         repr(s)
         assert s.format() == str(s)
         s = self.project.detect_schema(exclude_const=True)
         assert len(s) == 7
-        assert "const" not in s
-        with pytest.warns(FutureWarning):
-            assert ("const2", "const3") not in s
+        assert "const1" not in s
         assert "const2.const3" not in s
+        assert "const4" not in s
         assert type not in s["e"]
 
     def test_schema_subset(self):
@@ -884,17 +738,6 @@ class TestProject(TestProjectBase):
             subset=[job.id for job in self.project.find_jobs({"a.$lt": 5})]
         )
         assert s == s_sub
-
-    @pytest.mark.filterwarnings("ignore:__call__")
-    def test_schema_eval(self):
-        for i in range(10):
-            for j in range(10):
-                self.project.open_job(dict(a=i, b=j)).init()
-        s = self.project.detect_schema()
-        assert s == s(self.project)
-        assert s == s([job.sp for job in self.project])
-        # Check that it works with iterables that can only be consumed once
-        assert s == s(job.sp for job in self.project)
 
     def test_schema_difference(self):
         def get_sp(i):
@@ -1028,6 +871,11 @@ class TestProject(TestProjectBase):
             for job in list(g):
                 assert job.document["a"] == k
 
+        for k, g in self.project.groupby("doc.b"):
+            assert len(list(g)) == 6
+            for job in list(g):
+                assert job.document["b"] == k
+
         assert len(list(self.project.groupby("doc.d"))) == 0
         for k, g in self.project.groupby("doc.d", default=-1):
             assert k == -1
@@ -1051,6 +899,17 @@ class TestProject(TestProjectBase):
                 assert job.sp["b"] == k[0]
                 assert job.document["c"] == k[1]
 
+        for k, g in self.project.groupby(lambda job: job.doc["a"] % 4):
+            assert len(list(g)) == 3
+            for job in list(g):
+                assert job.document["a"] % 4 == k
+
+        for k, g in self.project.groupby(lambda job: str(job.doc)):
+            assert len(list(g)) == 1
+            for job in list(g):
+                assert str(job.document) == k
+
+        # Make the schema heterogeneous
         self.project.open_job({"a": 20}).init()
         for k, g in self.project.groupby("b"):
             assert len(list(g)) == 6
@@ -1062,45 +921,10 @@ class TestProject(TestProjectBase):
                 assert job.sp["b"] == k[0]
                 assert job.sp["c"] == k[1]
 
-    def test_jobs_groupbydoc(self):
-        def get_doc(i):
-            return {"a": i, "b": i % 2, "c": i % 3}
-
-        for i in range(12):
-            job = self.project.open_job({"i": i}).init()
-            job.document = get_doc(i)
-
-        for k, g in self.project.groupbydoc("a"):
-            assert len(list(g)) == 1
-            for job in list(g):
-                assert job.document["a"] == k
-        for k, g in self.project.groupbydoc("b"):
-            assert len(list(g)) == 6
-            for job in list(g):
-                assert job.document["b"] == k
-        with pytest.raises(KeyError):
-            for k, g in self.project.groupbydoc("d"):
-                pass
-        for k, g in self.project.groupbydoc("d", default=-1):
-            assert k == -1
-            assert len(list(g)) == len(self.project)
-        for k, g in self.project.groupbydoc(("b", "c")):
-            assert len(list(g)) == 2
-            for job in list(g):
-                assert job.document["b"] == k[0]
-                assert job.document["c"] == k[1]
-        for k, g in self.project.groupbydoc(lambda doc: doc["a"] % 4):
-            assert len(list(g)) == 3
-            for job in list(g):
-                assert job.document["a"] % 4 == k
-        for k, g in self.project.groupbydoc(lambda doc: str(doc)):
-            assert len(list(g)) == 1
-            for job in list(g):
-                assert str(job.document) == k
         group_count = 0
-        for k, g in self.project.groupbydoc():
+        for k, g in self.project.groupby(lambda job: job.id):
             assert len(list(g)) == 1
-            group_count = group_count + 1
+            group_count += 1
             for job in list(g):
                 assert str(job) == k
         assert group_count == len(list(self.project.find_jobs()))
@@ -1108,16 +932,12 @@ class TestProject(TestProjectBase):
     def test_temp_project(self):
         with self.project.temporary_project() as tmp_project:
             assert len(tmp_project) == 0
-            tmp_root_dir = tmp_project.path
-            assert os.path.isdir(tmp_root_dir)
+            tmp_path = tmp_project.path
+            assert os.path.isdir(tmp_path)
             for i in range(10):  # init some jobs
                 tmp_project.open_job(dict(a=i)).init()
             assert len(tmp_project) == 10
-        assert not os.path.isdir(tmp_root_dir)
-
-    def test_access_module(self):
-        with pytest.warns(FutureWarning):
-            self.project.create_access_module()
+        assert not os.path.isdir(tmp_path)
 
 
 class TestProjectExportImport(TestProjectBase):
@@ -1693,7 +1513,6 @@ class TestProjectRepresentation(TestProjectBase):
     def test_project_repr_methods(self, project_generator, num_jobs):
         project_generator(self.project, num_jobs)
         assert len(str(self.project)) > 0
-        assert "project" in str(self.project)
         assert len(repr(self.project)) > 0
         assert eval(repr(self.project)) == self.project
         for use_pandas in (True, False):
@@ -1776,12 +1595,6 @@ class TestLinkedViewProject(TestProjectBase):
         # update with subset
         job_subset = self.project.find_jobs({"b": 0})
         id_subset = [job.id for job in job_subset]
-
-        bad_index = [dict(_id=i) for i in range(3)]
-        with pytest.raises(ValueError):
-            self.project.create_linked_view(
-                prefix=view_prefix, job_ids=id_subset, index=bad_index
-            )
 
         self.project.create_linked_view(prefix=view_prefix, job_ids=id_subset)
         all_links = list(_find_all_links(view_prefix))
@@ -2264,6 +2077,8 @@ class TestLinkedViewProject(TestProjectBase):
 
 
 class UpdateCacheAfterInitJob(signac.contrib.job.Job):
+    """Test job class that updates the project cache on job init."""
+
     def init(self, *args, **kwargs):
         job = super().init(*args, **kwargs)
         self._project.update_cache()
@@ -2271,8 +2086,14 @@ class UpdateCacheAfterInitJob(signac.contrib.job.Job):
 
 
 class UpdateCacheAfterInitJobProject(signac.Project):
-    "This is a test class that regularly calls the update_cache() method."
-    Job = UpdateCacheAfterInitJob
+    """Test project class that updates the project cache on job init."""
+
+    def open_job(self, *args, **kwargs):
+        job = super().open_job(*args, **kwargs)
+        cache_updating_job = UpdateCacheAfterInitJob(
+            job._project, job.statepoint(), job._id
+        )
+        return cache_updating_job
 
 
 class TestCachedProject(TestProject):
@@ -2290,128 +2111,101 @@ class TestProjectInit:
         request.addfinalizer(self._tmp_dir.cleanup)
 
     def test_get_project(self):
-        root = self._tmp_dir.name
+        path = self._tmp_dir.name
         with pytest.raises(LookupError):
-            signac.get_project(root="a/path/that/does/not/exist")
+            signac.get_project(path="a/path/that/does/not/exist")
         with pytest.raises(LookupError):
-            signac.get_project(root=root)
-        project = signac.init_project(name="testproject", root=root)
-        assert project.id == "testproject"
-        assert project.workspace == os.path.join(root, "workspace")
-        assert project.path == root
-        project = signac.Project.init_project(name="testproject", root=root)
-        assert project.id == "testproject"
-        assert project.workspace == os.path.join(root, "workspace")
-        assert project.path == root
-        project = signac.get_project(root=root)
-        assert project.id == "testproject"
-        assert project.workspace == os.path.join(root, "workspace")
-        assert project.path == root
-        project = signac.Project.get_project(root=root)
-        assert project.id == "testproject"
-        assert project.workspace == os.path.join(root, "workspace")
-        assert project.path == root
-
-    def test_get_project_all_printable_characters(self):
-        root = self._tmp_dir.name
-        with pytest.raises(LookupError):
-            signac.get_project(root=root)
-        project_name = "testproject" + string.printable
-        project = signac.init_project(name=project_name, root=root)
-        with pytest.warns(FutureWarning):
-            assert project.get_id() == project_name
+            signac.get_project(path=path)
+        project = signac.init_project(path=path)
+        assert project.workspace == os.path.join(path, "workspace")
+        assert project.path == path
+        project = signac.Project.init_project(path=path)
+        assert project.workspace == os.path.join(path, "workspace")
+        assert project.path == path
+        project = signac.get_project(path=path)
+        assert project.workspace == os.path.join(path, "workspace")
+        assert project.path == path
+        project = signac.Project.get_project(path=path)
+        assert project.workspace == os.path.join(path, "workspace")
+        assert project.path == path
 
     def test_get_project_non_local(self):
-        root = self._tmp_dir.name
-        subdir = os.path.join(root, "subdir")
+        path = self._tmp_dir.name
+        subdir = os.path.join(path, "subdir")
         os.mkdir(subdir)
-        project = signac.init_project(root=root, name="testproject")
-        assert project == project.get_project(root=root)
-        assert project == signac.get_project(root=root)
-        assert project == project.get_project(root=root, search=False)
-        assert project == signac.get_project(root=root, search=False)
+        project = signac.init_project(path=path)
+        assert project == project.get_project(path=path)
+        assert project == signac.get_project(path=path)
+        assert project == project.get_project(path=path, search=False)
+        assert project == signac.get_project(path=path, search=False)
         try:
             assert project == project.get_project(
-                root=os.path.relpath(root), search=False
+                path=os.path.relpath(path), search=False
             )
         except ValueError:
             # A relative path may not exist on Windows if it crosses drives.
             pass
         try:
             assert project == signac.get_project(
-                root=os.path.relpath(root), search=False
+                path=os.path.relpath(path), search=False
             )
         except ValueError:
             # A relative path may not exist on Windows if it crosses drives.
             pass
         with pytest.raises(LookupError):
-            assert project == project.get_project(root=subdir, search=False)
+            assert project == project.get_project(path=subdir, search=False)
         with pytest.raises(LookupError):
-            assert project == signac.get_project(root=subdir, search=False)
-        assert project == project.get_project(root=subdir, search=True)
-        assert project == signac.get_project(root=subdir, search=True)
+            assert project == signac.get_project(path=subdir, search=False)
+        assert project == project.get_project(path=subdir, search=True)
+        assert project == signac.get_project(path=subdir, search=True)
 
     def test_init(self):
-        root = self._tmp_dir.name
+        path = self._tmp_dir.name
         with pytest.raises(LookupError):
-            signac.get_project(root=root)
-        project = signac.init_project(name="testproject", root=root)
-        assert project.id == "testproject"
-        assert project.workspace == os.path.join(root, "workspace")
-        assert project.path == root
+            signac.get_project(path=path)
+        project = signac.init_project(path=path)
+        assert project.workspace == os.path.join(path, "workspace")
+        assert project.path == path
         # Second initialization should not make any difference.
-        project = signac.init_project(name="testproject", root=root)
-        project = signac.get_project(root=root)
-        assert project.id == "testproject"
-        assert project.workspace == os.path.join(root, "workspace")
-        assert project.path == root
-        project = signac.Project.get_project(root=root)
-        assert project.id == "testproject"
-        assert project.workspace == os.path.join(root, "workspace")
-        assert project.path == root
-        # Deviating initialization parameters should result in errors.
-        with pytest.raises(RuntimeError):
-            signac.init_project(name="testproject2", root=root)
-        with pytest.raises(RuntimeError):
-            signac.init_project(name="testproject", root=root, workspace="workspace2")
-        with pytest.raises(RuntimeError):
-            signac.init_project(name="testproject2", root=root, workspace="workspace2")
+        project = signac.init_project(path=path)
+        project = signac.get_project(path=path)
+        assert project.workspace == os.path.join(path, "workspace")
+        assert project.path == path
+        project = signac.Project.get_project(path=path)
+        assert project.workspace == os.path.join(path, "workspace")
+        assert project.path == path
 
     def test_nested_project(self):
-        def check_root(root=None):
-            if root is None:
-                root = os.getcwd()
+        def check_path(path=None):
+            if path is None:
+                path = os.getcwd()
             assert os.path.realpath(
-                signac.get_project(root=root).path
-            ) == os.path.realpath(root)
+                signac.get_project(path=path).path
+            ) == os.path.realpath(path)
 
-        root = self._tmp_dir.name
-        root_a = os.path.join(root, "project_a")
-        root_b = os.path.join(root_a, "project_b")
-        signac.init_project("testprojectA", root_a)
-        assert signac.get_project(root=root_a).id == "testprojectA"
-        check_root(root_a)
-        signac.init_project("testprojectB", root_b)
-        assert signac.get_project(root=root_b).id == "testprojectB"
-        check_root(root_b)
+        path = self._tmp_dir.name
+        path_a = os.path.join(path, "project_a")
+        path_b = os.path.join(path_a, "project_b")
+        signac.init_project(path=path_a)
+        check_path(path_a)
+        signac.init_project(path=path_b)
+        check_path(path_b)
         cwd = os.getcwd()
         try:
-            os.chdir(root_a)
-            check_root()
-            assert signac.get_project().id == "testprojectA"
+            os.chdir(path_a)
+            check_path()
         finally:
             os.chdir(cwd)
         try:
-            os.chdir(root_b)
-            assert signac.get_project().id == "testprojectB"
-            check_root()
+            os.chdir(path_b)
+            check_path()
         finally:
             os.chdir(cwd)
 
     def test_get_job_valid_workspace(self):
-        # Test case: The root-path is the job workspace path.
-        root = self._tmp_dir.name
-        project = signac.init_project(name="testproject", root=root)
+        # Test case: The path is the job workspace path.
+        path = self._tmp_dir.name
+        project = signac.init_project(path=path)
         job = project.open_job({"a": 1})
         job.init()
         with job:
@@ -2420,9 +2214,9 @@ class TestProjectInit:
             assert signac.get_job() == job
 
     def test_get_job_invalid_workspace(self):
-        # Test case: The root-path is not the job workspace path.
-        root = self._tmp_dir.name
-        project = signac.init_project(name="testproject", root=root)
+        # Test case: The path is not the job workspace path.
+        path = self._tmp_dir.name
+        project = signac.init_project(path=path)
         job = project.open_job({"a": 1})
         job.init()
         # We shouldn't be able to find a job while in the workspace directory,
@@ -2438,21 +2232,21 @@ class TestProjectInit:
             os.chdir(cwd)
 
     def test_get_job_nested_project(self):
-        # Test case: The job workspace dir is also a project root dir.
-        root = self._tmp_dir.name
-        project = signac.init_project(name="testproject", root=root)
+        # Test case: The job workspace dir is also a project dir.
+        path = self._tmp_dir.name
+        project = signac.init_project(path=path)
         job = project.open_job({"a": 1})
         job.init()
         with job:
-            nestedproject = signac.init_project("nestedproject")
+            nestedproject = signac.init_project()
             nestedproject.open_job({"b": 2}).init()
             assert project.get_job() == job
             assert signac.get_job() == job
 
     def test_get_job_subdir(self):
         # Test case: Get a job from a sub-directory of the job workspace dir.
-        root = self._tmp_dir.name
-        project = signac.init_project(name="testproject", root=root)
+        path = self._tmp_dir.name
+        project = signac.init_project(path=path)
         job = project.open_job({"a": 1})
         job.init()
         with job:
@@ -2464,13 +2258,13 @@ class TestProjectInit:
 
     def test_get_job_nested_project_subdir(self):
         # Test case: Get a job from a sub-directory of the job workspace dir
-        # when the job workspace is also a project root dir
-        root = self._tmp_dir.name
-        project = signac.init_project(name="testproject", root=root)
+        # when the job directory is also a project directory
+        path = self._tmp_dir.name
+        project = signac.init_project(path=path)
         job = project.open_job({"a": 1})
         job.init()
         with job:
-            nestedproject = signac.init_project("nestedproject")
+            nestedproject = signac.init_project()
             nestedproject.open_job({"b": 2}).init()
             os.mkdir("test_subdir")
             assert project.get_job("test_subdir") == job
@@ -2481,13 +2275,13 @@ class TestProjectInit:
     @pytest.mark.skipif(WINDOWS, reason="Symbolic links are unsupported on Windows.")
     def test_get_job_symlink_other_project(self):
         # Test case: Get a job from a symlink in another project workspace
-        root = self._tmp_dir.name
-        project_a_dir = os.path.join(root, "project_a")
-        project_b_dir = os.path.join(root, "project_b")
+        path = self._tmp_dir.name
+        project_a_dir = os.path.join(path, "project_a")
+        project_b_dir = os.path.join(path, "project_b")
         os.mkdir(project_a_dir)
         os.mkdir(project_b_dir)
-        project_a = signac.init_project(name="project_a", root=project_a_dir)
-        project_b = signac.init_project(name="project_b", root=project_b_dir)
+        project_a = signac.init_project(path=project_a_dir)
+        project_b = signac.init_project(path=project_b_dir)
         job_a = project_a.open_job({"a": 1})
         job_a.init()
         job_b = project_b.open_job({"b": 1})
@@ -2508,45 +2302,15 @@ class TestProjectSchema(TestProjectBase):
         assert version.parse(self.project.config["schema_version"]) < version.parse(
             impossibly_high_schema_version
         )
-        config = _get_config(self.project.fn("signac.rc"))
+        config = _read_config_file(_get_project_config_fn(self.project.path))
         config["schema_version"] = impossibly_high_schema_version
         config.write()
         with pytest.raises(IncompatibleSchemaVersion):
-            signac.init_project(name=str(self.project), root=self.project.path)
+            signac.init_project(path=self.project.path)
 
         # Ensure that migration fails on an unsupported version.
         with pytest.raises(RuntimeError):
             apply_migrations(self.project.path)
-
-        # Ensure that migration fails on an invalid version.
-        invalid_schema_version = "0.5"
-        config = _get_config(self.project.fn("signac.rc"))
-        config["schema_version"] = invalid_schema_version
-        config.write()
-        with pytest.raises(RuntimeError):
-            apply_migrations(self.project.path)
-
-    @pytest.mark.parametrize("implicit_version", [True, False])
-    def test_project_schema_version_migration(self, implicit_version):
-        from signac.contrib.migration import apply_migrations
-
-        config = _get_config(self.project.fn("signac.rc"))
-        if implicit_version:
-            del config["schema_version"]
-            assert "schema_version" not in config
-        else:
-            config["schema_version"] = "0"
-            assert config["schema_version"] == "0"
-        config.write()
-        err = io.StringIO()
-        with redirect_stderr(err):
-            apply_migrations(self.project.path)
-        config = _get_config(self.project.fn("signac.rc"))
-        assert config["schema_version"] == "1"
-        project = signac.get_project(root=self.project.path)
-        assert project.config["schema_version"] == "1"
-        assert "OK" in err.getvalue()
-        assert "0 to 1" in err.getvalue()
 
     def test_no_migration(self):
         # This unit test should fail as long as there are no schema migrations
@@ -2560,6 +2324,75 @@ class TestProjectSchema(TestProjectBase):
 
         migrations = list(_collect_migrations(self.project.path))
         assert len(migrations) == 0
+
+
+class TestSchemaMigration:
+    @pytest.mark.parametrize("implicit_version", [True, False])
+    @pytest.mark.parametrize("workspace_exists", [True, False])
+    def test_project_schema_version_migration(self, implicit_version, workspace_exists):
+        from signac.contrib.migration import apply_migrations
+
+        with TemporaryDirectory() as dirname:
+            # Create v1 config file.
+            cfg_fn = os.path.join(dirname, "signac.rc")
+            workspace_dir = "workspace_dir"
+            with open(cfg_fn, "w") as f:
+                f.write(
+                    textwrap.dedent(
+                        f"""\
+                        project = project
+                        workspace_dir = {workspace_dir}
+                        schema_version = 0"""
+                    )
+                )
+
+            # Create a custom workspace
+            os.makedirs(os.path.join(dirname, workspace_dir))
+            if workspace_exists:
+                os.makedirs(os.path.join(dirname, "workspace"))
+
+            # Create a shell history file.
+            history_fn = os.path.join(dirname, ".signac_shell_history")
+            with open(history_fn, "w") as f:
+                f.write("print(project)")
+
+            # Create a statepoint cache. Note that this cache does not
+            # correspond to actual statepoints since we don't currently have
+            # any in this project, but that's fine for migration testing.
+            history_fn = os.path.join(dirname, ".signac_sp_cache.json.gz")
+            sp = {"a": 1}
+            with gzip.open(history_fn, "wb") as f:
+                f.write(json.dumps({calc_id(sp): sp}).encode())
+
+            # If no schema version is present in the config it is equivalent to
+            # version 0, so we test both explicit and implicit versions.
+            config = _read_config_file(cfg_fn)
+            if implicit_version:
+                del config["schema_version"]
+                assert "schema_version" not in config
+            else:
+                assert config["schema_version"] == "0"
+            config.write()
+
+            # If the 'workspace' directory already exists the migration should fail.
+            if workspace_exists:
+                with pytest.raises(RuntimeError):
+                    apply_migrations(dirname)
+                return
+
+            err = io.StringIO()
+            with redirect_stderr(err):
+                apply_migrations(dirname)
+            config = _load_config(dirname)
+            assert config["schema_version"] == "2"
+            project = signac.get_project(path=dirname)
+            assert project.config["schema_version"] == "2"
+            assert "OK" in err.getvalue()
+            assert "0 to 1" in err.getvalue()
+            assert "1 to 2" in err.getvalue()
+            assert os.path.isfile(project.fn(PROJECT_CONFIG_FN))
+            assert os.path.isfile(project.fn(os.sep.join((".signac", "shell_history"))))
+            assert os.path.isfile(project.fn(Project.FN_CACHE))
 
 
 class TestProjectPickling(TestProjectBase):
@@ -2608,12 +2441,9 @@ class TestProjectStoreBase(test_h5store.TestH5StoreBase):
         self._tmp_dir = TemporaryDirectory(prefix="signac_")
         request.addfinalizer(self._tmp_dir.cleanup)
         self._tmp_pr = os.path.join(self._tmp_dir.name, "pr")
-        self._tmp_wd = os.path.join(self._tmp_dir.name, "wd")
         os.mkdir(self._tmp_pr)
-        self.config = signac.common.config._load_config()
-        self.project = self.project_class.init_project(
-            name="testing_test_project", root=self._tmp_pr, workspace=self._tmp_wd
-        )
+        self.config = _load_config()
+        self.project = self.project_class.init_project(path=self._tmp_pr)
 
         self._fn_store = os.path.join(self._tmp_dir.name, "signac_data.h5")
         self._fn_store_other = os.path.join(self._tmp_dir.name, "other.h5")

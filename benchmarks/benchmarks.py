@@ -5,9 +5,7 @@
 
 This script defines benchmarks of common signac operations, used to assess the
 performance of the framework over time. The asv tools allow for profiling,
-comparison, and visualization of benchmark results. This complements the file
-``benchmark.py`` in the root directory of the repository, which is primarily
-intended for CI tests.
+comparison, and visualization of benchmark results.
 """
 
 import random
@@ -72,14 +70,14 @@ def generate_random_data(
 
 
 def setup_random_project(
-    N, num_keys=1, num_doc_keys=0, data_size_mean=0, data_size_std=0, seed=0, root=None
+    N, num_keys=1, num_doc_keys=0, data_size_mean=0, data_size_std=0, seed=0, path=None
 ):
     random.seed(seed)
     if not isinstance(N, int):
         raise TypeError("N must be an integer!")
 
     temp_dir = TemporaryDirectory()
-    project = signac.init_project(f"benchmark-N={N}", root=temp_dir.name)
+    project = signac.init_project(path=temp_dir.name)
     generate_random_data(
         project, N, num_keys, num_doc_keys, data_size_mean, data_size_std
     )

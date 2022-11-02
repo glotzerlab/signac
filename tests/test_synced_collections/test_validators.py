@@ -3,8 +3,8 @@
 # This software is licensed under the BSD 3-Clause License.
 import pytest
 
-from signac.synced_collections.errors import InvalidKeyError, KeyTypeError
-from signac.synced_collections.validators import (
+from signac._synced_collections.errors import InvalidKeyError, KeyTypeError
+from signac._synced_collections.validators import (
     json_format_validator,
     no_dot_in_key,
     require_string_key,
@@ -39,7 +39,7 @@ class TestNoDotInKey:
     def test_valid_data(self, testdata):
         test_dict = {}
         # valid data
-        for key in ("valid_str", 1, False, None):
+        for key in ("valid_str", "another_valid_str"):
             test_dict[key] = testdata
             no_dot_in_key(test_dict)
             assert key in test_dict

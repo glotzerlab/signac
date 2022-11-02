@@ -11,13 +11,15 @@ import re
 import shutil
 import tarfile
 import zipfile
-from collections import Counter, OrderedDict
+from collections import Counter
 from contextlib import closing, contextmanager
 from string import Formatter
 from tempfile import TemporaryDirectory
 from zipfile import ZIP_DEFLATED, ZipFile
 
+from ._searchindexer import _SearchIndexer
 from .errors import DestinationExistsError, StatepointParsingError
+from .job import Job
 from .utility import _dotted_dict_to_nested_dicts, _mkdir_p
 
 logger = logging.getLogger(__name__)
@@ -44,9 +46,9 @@ def _make_schema_based_path_function(jobs, exclude_keys=None, delimiter_nested="
     ----------
     jobs : iterable of :class:`~signac.contrib.job.Job`
         A sequence of jobs (instances of :class:`~signac.contrib.job.Job`).
-    exclude_keys : sequence[str]
+    exclude_keys : sequence[str], optional
         A sequence of keys to exclude (Default value = None).
-    delimiter_nested : str
+    delimiter_nested : str, optional
         Delimiter used for nesting keys (Default value = '.').
 
     Returns
@@ -62,19 +64,20 @@ def _make_schema_based_path_function(jobs, exclude_keys=None, delimiter_nested="
         # signature of the path function below.
         return lambda job, sep=None: ""
 
-    index = [{"_id": job.id, "sp": job.sp()} for job in jobs]
-    jsi = _build_job_statepoint_index(exclude_const=True, index=index)
-    sp_index = OrderedDict(jsi)
+    index = _SearchIndexer((job.id, {"sp": job.sp()}) for job in jobs)
+    statepoint_index = dict(
+        _build_job_statepoint_index(exclude_const=True, index=index)
+    )
 
     paths = {}
-    for key_tokens, values in sp_index.items():
+    for key_tokens, values in statepoint_index.items():
         key = key_tokens.replace(".", delimiter_nested)
         if exclude_keys and key in exclude_keys:
             continue
         for value, group in values.items():
             path_tokens = key, str(value)
             for job_id in group:
-                paths.setdefault(job_id, list())
+                paths.setdefault(job_id, [])
                 paths[job_id].extend(path_tokens)
 
     def path(job, sep=None):
@@ -84,7 +87,7 @@ def _make_schema_based_path_function(jobs, exclude_keys=None, delimiter_nested="
         ----------
         job : :class:`~signac.contrib.job.Job`
             An instance of :class:`~signac.contrib.job.Job`.
-        sep : str
+        sep : str, optional
             (Default value = None)
 
         Returns
@@ -319,7 +322,7 @@ def _export_jobs(jobs, path, copytree):
     jobs : iterable of :class:`~signac.contrib.job.Job`
         A sequence of jobs (instance of :class:`~signac.contrib.job.Job`).
     path : str or callable
-        The path (function) used to structure the exported data space (Default value = None).
+        The path (function) used to structure the exported data space.
     copytree : callable
         The function used for copying directory tree structures.
 
@@ -363,9 +366,9 @@ def export_to_directory(jobs, target, path=None, copytree=None):
         A sequence of jobs (instances of :class:`~signac.contrib.job.Job`).
     target : str
         A path to a directory to export to. The directory can not already exist.
-    path : str or callable
+    path : str or callable, optional
         The path (function) used to structure the exported data space (Default value = None).
-    copytree : callable
+    copytree : callable, optional
         The function used for copying directory tree structures. Uses
         :func:`shutil.copytree` if ``None`` (Default value = None). The function
         requires that the target is a directory.
@@ -406,7 +409,7 @@ def export_to_tarfile(jobs, tarfile, path=None):
         A sequence of jobs (instances of :class:`~signac.contrib.job.Job`).
     tarfile : :class:`tarfile.TarFile`
         An instance of :class:`tarfile.TarFile`.
-    path : str or callable
+    path : str or callable, optional
         The path (function) used to structure the exported data space (Default value = None).
 
     Returns
@@ -427,7 +430,7 @@ def export_to_zipfile(jobs, zipfile, path=None):
         A sequence of jobs (instances of :class:`~signac.contrib.job.Job`).
     zipfile : :class:`zipfile.ZipFile`
         An instance of :class:`zipfile.ZipFile`.
-    path : str or callable
+    path : str or callable, optional
         The path (function) used to structure the exported data space (Default value = None).
 
     Returns
@@ -469,12 +472,12 @@ def export_jobs(jobs, target, path=None, copytree=None):
         A sequence of jobs(instance of :class:`~signac.contrib.job.Job`).
     target : str
         A path to a directory or archive file to export to.
-    path : str or callable
+    path : str or callable, optional
         The path (function) used to structure the exported data space. (Default value = None)
-    copytree : callable
-        The function used for copying of directory tree
-        structures. Defaults to :func:`shutil.copytree`.
-        Can only be used when the target is a directory.
+    copytree : callable, optional
+        The function used for copying directory tree structures. Uses
+        :func:`shutil.copytree` if ``None`` (Default value = None). The function
+        requires that the target is a directory.
 
     Yields
     ------
@@ -648,15 +651,15 @@ def _make_path_based_schema_function(schema_path):
     return parse_path
 
 
-def _with_consistency_check(schema_function, read_sp_manifest_file):
+def _with_consistency_check(schema_function, read_statepoint_file):
     """Return a function to check schema consistency.
 
     Parameters
     ----------
     schema_function : callable
         Schema function.
-    read_sp_manifest_file : callable
-        Function to read state point manifest.
+    read_statepoint_file : callable
+        Function to read state point file.
 
     Returns
     -------
@@ -666,7 +669,7 @@ def _with_consistency_check(schema_function, read_sp_manifest_file):
     """
 
     def _check(path):
-        """Check if the schema-detected state point matches the manifest file.
+        """Check if the schema-detected state point matches the state point file.
 
         Parameters
         ----------
@@ -681,60 +684,21 @@ def _with_consistency_check(schema_function, read_sp_manifest_file):
         Raises
         ------
         :class:`~signac.errors.StatepointParsingError`
-            If identified state point conflicts with state point in job manifest file.
+            If identified state point conflicts with state point in job state point file.
 
         """
-        if schema_function is read_sp_manifest_file:
+        if schema_function is read_statepoint_file:
             return schema_function(path)
         else:
             sp = schema_function(path)
-            sp_default = read_sp_manifest_file(path)
+            sp_default = read_statepoint_file(path)
             if sp and sp_default and sp_default != sp:
                 raise StatepointParsingError(
-                    "Identified state point conflicts with state point in job manifest file!"
+                    "Identified state point conflicts with state point in job state point file!"
                 )
             return sp
 
     return _check
-
-
-def _parse_workspaces(fn_manifest):
-    """Generate a schema function based on parsing state point manifest files.
-
-    Parameters
-    ----------
-    fn_manifest : str
-        Manifest file name.
-
-    Returns
-    -------
-    callable
-        Function to parse a manifest, given a path.
-
-    """
-
-    def _parse_workspace(path):
-        """Parse a manifest, given a path.
-
-        Parameters
-        ----------
-        path : str
-            Path containing manifest file.
-
-        Returns
-        -------
-        dict
-            Parsed manifest contents.
-
-        """
-        try:
-            with open(os.path.join(path, fn_manifest), "rb") as file:
-                return json.loads(file.read().decode())
-        except OSError as error:
-            if error.errno != errno.ENOENT:
-                raise error
-
-    return _parse_workspace
 
 
 def _crawl_directory_data_space(root, project, schema_function):
@@ -783,8 +747,7 @@ def _copy_to_job_workspace(src, job, copytree):
     job : :class:`~signac.contrib.job.Job`
         An instance of :class:`~signac.contrib.job.Job`.
     copytree : callable
-        Function to use for the copytree operation. Defaults to
-        :func:`shutil.copytree`.
+        The function used for copying directory tree structures.
 
     Returns
     -------
@@ -835,10 +798,11 @@ def _analyze_directory_for_import(root, project, schema):
         Path of the root directory.
     project : :class:`~signac.Project`
         The signac project.
-    schema : str or callable
-        An optional schema function, which is either a string or a function that accepts a
-        path as its first and only argument and returns the corresponding state point as dict
-        (Default value = None).
+    schema : str, callable, or None
+        A schema function, which is either a string, None, or a function that
+        accepts a path as its first and only argument and returns the
+        corresponding state point as dict. If None, a state point file will be
+        read from the given path.
 
     Yields
     ------
@@ -855,17 +819,38 @@ def _analyze_directory_for_import(root, project, schema):
         If the jobs identified with the given schema function are not unique.
 
     """
+
+    def read_statepoint_file(path):
+        """Read a state point file.
+
+        Parameters
+        ----------
+        path : str
+            Path containing state point file.
+
+        Returns
+        -------
+        dict
+            Parsed state point contents.
+
+        """
+        try:
+            with open(os.path.join(path, Job.FN_STATE_POINT), "rb") as file:
+                return json.loads(file.read().decode())
+        except OSError as error:
+            if error.errno != errno.ENOENT:
+                raise error
+
     # Determine schema function
-    read_sp_manifest_file = _parse_workspaces(project.Job.FN_MANIFEST)
     if schema is None:
-        schema_function = read_sp_manifest_file
+        schema_function = read_statepoint_file
     elif callable(schema):
-        schema_function = _with_consistency_check(schema, read_sp_manifest_file)
+        schema_function = _with_consistency_check(schema, read_statepoint_file)
     elif isinstance(schema, str):
         if not schema.startswith(root):
             schema = os.path.normpath(os.path.join(root, schema))
         schema_function = _with_consistency_check(
-            _make_path_based_schema_function(schema), read_sp_manifest_file
+            _make_path_based_schema_function(schema), read_statepoint_file
         )
     else:
         raise TypeError("The schema variable must be None, callable, or a string.")
@@ -928,10 +913,11 @@ def _analyze_zipfile_for_import(zipfile, project, schema):
         An instance of ZipFile.
     project : :class:`~signac.Project`
         The signac project.
-    schema : str or callable
-        An optional schema function, which is either a string or a function that accepts a
-        path as its first and only argument and returns the corresponding state point as dict
-        (Default value = None).
+    schema : str, callable, or None
+        A schema function, which is either a string, None, or a function that
+        accepts a path as its first and only argument and returns the
+        corresponding state point as dict. If None, a state point file will be
+        read from the given path.
 
     Yields
     ------
@@ -952,32 +938,33 @@ def _analyze_zipfile_for_import(zipfile, project, schema):
     """
     names = zipfile.namelist()
 
-    def read_sp_manifest_file(path):
-        """Read a state point manifest file.
+    def read_statepoint_file(path):
+        """Read a state point file.
 
         Parameters
         ----------
         path : str
-            Path to manifest file.
+            Path containing state point file.
 
         Returns
         -------
         dict
-            Parsed manifest contents.
+            Parsed state point contents.
 
         """
         # Must use forward slashes, not os.path.sep.
-        fn_manifest = path + "/" + project.Job.FN_MANIFEST
-        if fn_manifest in names:
-            return json.loads(zipfile.read(fn_manifest).decode())
+        fn_statepoint = path + "/" + Job.FN_STATE_POINT
+        if fn_statepoint in names:
+            return json.loads(zipfile.read(fn_statepoint).decode())
 
+    # Determine schema function
     if schema is None:
-        schema_function = read_sp_manifest_file
+        schema_function = read_statepoint_file
     elif callable(schema):
-        schema_function = _with_consistency_check(schema, read_sp_manifest_file)
+        schema_function = _with_consistency_check(schema, read_statepoint_file)
     elif isinstance(schema, str):
         schema_function = _with_consistency_check(
-            _make_path_based_schema_function(schema), read_sp_manifest_file
+            _make_path_based_schema_function(schema), read_statepoint_file
         )
     else:
         raise TypeError("The schema variable must be None, callable, or a string.")
@@ -1071,10 +1058,11 @@ def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
         tarfile to analyze.
     project : :class:`~signac.Project`
         The project to import the data into.
-    schema : str or callable
-        An optional schema function, which is either a string or a function that accepts a
-        path as its first and only argument and returns the corresponding state point as dict.
-        (Default value = None).
+    schema : str, callable, or None
+        A schema function, which is either a string, None, or a function that
+        accepts a path as its first and only argument and returns the
+        corresponding state point as dict. If None, a state point file will be
+        read from the given path.
     tmpdir : :class:`tempfile.TemporaryDirectory`
         Temporary directory, an instance of ``TemporaryDirectory``.
 
@@ -1093,40 +1081,41 @@ def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
         If a job is already initialized.
     :class:`~signac.errors.StatepointParsingError`
         If the jobs identified with the given schema function are not unique.
-    AssertionError
+    RuntimeError
         If ``tmpdir`` given is not a directory.
 
     """
 
-    def read_sp_manifest_file(path):
-        """Read state point from the manifest file.
+    def read_statepoint_file(path):
+        """Read a state point file.
 
         Parameters
         ----------
         path : str
-            Path to manifest file.
+            Path containing state point file.
 
         Returns
         -------
         dict
-            state point.
+            Parsed state point contents.
 
         """
         # Must use forward slashes, not os.path.sep.
-        fn_manifest = _tarfile_path_join(path, project.Job.FN_MANIFEST)
+        fn_statepoint = _tarfile_path_join(path, Job.FN_STATE_POINT)
         try:
-            with closing(tarfile.extractfile(fn_manifest)) as file:
+            with closing(tarfile.extractfile(fn_statepoint)) as file:
                 return json.loads(file.read())
         except KeyError:
             pass
 
+    # Determine schema function
     if schema is None:
-        schema_function = read_sp_manifest_file
+        schema_function = read_statepoint_file
     elif callable(schema):
-        schema_function = _with_consistency_check(schema, read_sp_manifest_file)
+        schema_function = _with_consistency_check(schema, read_statepoint_file)
     elif isinstance(schema, str):
         schema_function = _with_consistency_check(
-            _make_path_based_schema_function(schema), read_sp_manifest_file
+            _make_path_based_schema_function(schema), read_statepoint_file
         )
     else:
         raise TypeError("The schema variable must be None, callable, or a string.")
@@ -1158,9 +1147,11 @@ def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
 
     tarfile.extractall(path=tmpdir)
     for path, job in mappings.items():
-        assert os.path.isdir(tmpdir)
+        if not os.path.isdir(tmpdir):
+            raise RuntimeError(f"The provided tmpdir {tmpdir} is not a directory.")
         src = os.path.join(tmpdir, path)
-        assert os.path.isdir(src)
+        if not os.path.isdir(src):
+            raise RuntimeError(f"The path {src} is not a directory.")
         copy_executor = _CopyFromTarFileExecutor(src, job)
         yield src, copy_executor
 
@@ -1175,7 +1166,7 @@ def _prepare_import_into_project(origin, project, schema=None):
         Path to current working directory.
     project : :class:`~signac.Project`
         The project to import the data into.
-    schema : str or callable
+    schema : str or callable, optional
         An optional schema function, which is either a string or a function that accepts a
         path as its first and only argument and returns the corresponding state point as dict
         (Default value = None).
@@ -1217,9 +1208,9 @@ def import_into_project(origin, project, schema=None, copytree=None):
     This function will walk through the data space located at origin and try to identify
     data space paths that can be imported as a job workspace into project.
 
-    The default schema function will simply look for state point manifest files -- usually named
+    The default schema function will simply look for state point files -- usually named
     ``signac_statepoint.json`` -- and then import all data located within that path into the job
-    workspace corresponding to the state point specified in the manifest file.
+    workspace corresponding to the specified state point.
 
     Alternatively the schema argument may be a string, that is converted into a schema function,
     for example: Providing ``foo/{foo:int}`` as schema argument means that all directories under
@@ -1241,12 +1232,14 @@ def import_into_project(origin, project, schema=None, copytree=None):
         a directory, a zipfile, or a tarball archive.
     project : :class:`~signac.Project`
         The project to import the data into.
-    schema : str or callable
+    schema : str or callable, optional
         An optional schema function, which is either a string or a function that accepts a
         path as its first and only argument and returns the corresponding state point as dict
         (Default value = None).
-    copytree : callable
-        Function to use for the copytree operation. Defaults to :func:`shutil.copytree`.
+    copytree : callable, optional
+        The function used for copying directory tree structures. Uses
+        :func:`shutil.copytree` if ``None`` (Default value = None). The function
+        requires that the target is a directory.
 
     Yields
     ------

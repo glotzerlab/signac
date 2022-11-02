@@ -7,7 +7,7 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-from signac.core.jsondict import JSONDict
+from signac import JSONDict
 from signac.errors import InvalidKeyError, KeyTypeError
 
 FN_DICT = "jsondict.json"
@@ -60,8 +60,6 @@ class TestJSONDict(TestJSONDictBase):
         child2 = jsd["a"]
         assert child1 == child2
         assert isinstance(child1, type(child2))
-        assert child1._parent == child2._parent
-        assert id(child1._parent) == id(child2._parent)
         assert id(child1) == id(child2)
         assert not child1
         assert not child2
@@ -148,10 +146,8 @@ class TestJSONDict(TestJSONDictBase):
         key = "reopen"
         d = self.get_testdata()
         jsd[key] = d
-        jsd.save()
         del jsd  # possibly unsafe
         jsd2 = self.get_json_dict()
-        jsd2.load()
         assert len(jsd2) == 1
         assert jsd2[key] == d
 
@@ -200,24 +196,23 @@ class TestJSONDict(TestJSONDictBase):
         d2 = self.get_testdata()
         assert len(jsd) == 0
         assert len(jsd2) == 0
-        with jsd.buffered() as b:
-            b[key] = d
-            assert b[key] == d
-            assert len(b) == 1
+        with jsd.buffered:
+            jsd[key] = d
+            assert jsd[key] == d
+            assert len(jsd) == 1
             assert len(jsd2) == 0
         assert len(jsd) == 1
         assert len(jsd2) == 1
-        with jsd2.buffered() as b2:
-            b2[key] = d2
+        with jsd2.buffered:
+            jsd2[key] = d2
             assert len(jsd) == 1
-            assert len(b2) == 1
             assert jsd[key] == d
-            assert b2[key] == d2
+            assert jsd2[key] == d2
         assert jsd[key] == d2
         assert jsd2[key] == d2
-        with jsd.buffered() as b:
-            del b[key]
-            assert key not in b
+        with jsd.buffered:
+            del jsd[key]
+            assert key not in jsd
         assert key not in jsd
 
     def test_keys_with_dots(self):
@@ -231,7 +226,8 @@ class TestJSONDict(TestJSONDictBase):
         class MyStr(str):
             pass
 
-        for key in ("key", MyStr("key"), 0, None, True):
+        # Only strings are permitted as keys
+        for key in ("key", MyStr("key")):
             d = jsd[key] = self.get_testdata()
             assert str(key) in jsd
             assert jsd[str(key)] == d
@@ -242,7 +238,7 @@ class TestJSONDict(TestJSONDictBase):
         class A:
             pass
 
-        for key in (0.0, A(), (1, 2, 3)):
+        for key in (1, True, False, None, 0.0, A(), (1, 2, 3)):
             with pytest.raises(KeyTypeError):
                 jsd[key] = self.get_testdata()
         for key in ([], {}):

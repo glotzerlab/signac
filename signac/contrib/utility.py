@@ -3,8 +3,6 @@
 # This software is licensed under the BSD 3-Clause License.
 """Utilities for signac."""
 
-import argparse
-import getpass
 import logging
 import os
 import sys
@@ -12,13 +10,14 @@ from collections.abc import Mapping
 from datetime import timedelta
 from time import time
 
-from ..common.deprecation import deprecated
-from ..version import __version__
-
 logger = logging.getLogger(__name__)
 
 
-def query_yes_no(question, default="yes"):
+def _print_err(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
+
+def _query_yes_no(question, default="yes"):  # pragma: no cover
     """Ask a yes/no question via input() and return their answer.
 
     "question" is a string that is presented to the user.
@@ -32,7 +31,7 @@ def query_yes_no(question, default="yes"):
     ----------
     question : str
         Question presented to the user.
-    default : str
+    default : str, optional
         Presumed answer if the user just hits <Enter> (Default value = "yes").
 
     Returns
@@ -67,24 +66,7 @@ def query_yes_no(question, default="yes"):
             sys.stdout.write("Please respond with 'yes' or 'no' (or 'y' or 'n').\n")
 
 
-def prompt_password(prompt="Password: "):
-    """Prompt password for user.
-
-    Parameters
-    ----------
-    prompt : str
-        String to prompt (Default value = 'Password: ').
-
-    Returns
-    -------
-    str
-        Password input by the user.
-
-    """
-    return getpass.getpass(prompt)
-
-
-def add_verbosity_argument(parser, default=0):
+def _add_verbosity_argument(parser, default=0):
     """Add a verbosity argument to parser.
 
     Parameters
@@ -110,163 +92,6 @@ def add_verbosity_argument(parser, default=0):
     )
 
 
-@deprecated(
-    deprecated_in="1.3",
-    removed_in="2.0",
-    current_version=__version__,
-    details="This function is obsolete.",
-)
-def add_verbosity_action_argument(parser, default=0):
-    """Add a verbosity argument to parser.
-
-    Parameters
-    ----------
-    parser : :class:`argparse.ArgumentParser`
-        The parser to which to add a verbosity argument.
-    default :
-        The default level, defaults to 0.
-
-    Notes
-    -----
-    The argument is '-v'.
-    Add multiple '-v' arguments, e.g. '-vv' or '-vvv' to
-    increase the level of verbosity.
-
-    """
-    parser.add_argument(
-        "-v",
-        default=0,
-        nargs="?",
-        action=VerbosityLoggingConfigAction,
-        dest="verbosity",
-    )
-
-
-@deprecated(
-    deprecated_in="1.3",
-    removed_in="2.0",
-    current_version=__version__,
-    details="This function is obsolete.",
-)
-def set_verbosity_level(verbosity, default=None, increment=10):
-    """Set the verbosity level as a function of an integer level.
-
-    Parameters
-    ----------
-    verbosity :
-        The verbosity level as integer.
-    default :
-        The default verbosity level, defaults to logging.ERROR.
-    increment :
-        (Default value = 10).
-
-    """
-    if default is None:
-        default = logging.ERROR
-    logging.basicConfig(level=default - increment * verbosity)
-
-
-# this class is deprecated
-class VerbosityAction(argparse.Action):  # noqa: D101, E261
-    @deprecated(
-        deprecated_in="1.3",
-        removed_in="2.0",
-        current_version=__version__,
-        details="This class is obsolete",
-    )
-    def __call__(self, parser, args, values, option_string=None):  # noqa: D102, E261
-        if values is None:
-            values = "1"
-        try:
-            values = int(values)
-        except ValueError:
-            values = values.count("v") + 1
-        setattr(args, self.dest, values)
-
-
-@deprecated(
-    deprecated_in="1.3",
-    removed_in="2.0",
-    current_version=__version__,
-    details="The VerbosityLoggingConfigAction class is obsolete.",
-)
-class VerbosityLoggingConfigAction(VerbosityAction):  # noqa: D101, E261
-    def __call__(self, parser, args, values, option_string=None):  # noqa:D102, E261
-        super().__call__(parser, args, values, option_string)
-        v_level = getattr(args, self.dest)
-        set_verbosity_level(v_level)
-
-
-@deprecated(
-    deprecated_in="1.3",
-    removed_in="2.0",
-    current_version=__version__,
-    details="The EmptyIsTrue class is obsolete.",
-)
-class EmptyIsTrue(argparse.Action):  # noqa: D101, E261
-    def __call__(
-        self, parser, namespace, values, option_string=None
-    ):  # noqa: D102, E261
-        if values is None:
-            values = True
-        setattr(namespace, self.dest, values)
-
-
-@deprecated(
-    deprecated_in="1.3",
-    removed_in="2.0",
-    current_version=__version__,
-    details="The SmartFormatter class is obsolete.",
-)
-class SmartFormatter(argparse.HelpFormatter):  # noqa: D101, E261
-    def _split_lines(self, text, width):
-
-        if text.startswith("R|"):
-            return text[2:].splitlines()
-        return argparse.HelpFormatter._split_lines(self, text, width)
-
-
-def walkdepth(path, depth=0):
-    """Transverse the directory starting from path.
-
-    Parameters
-    ----------
-    path :str
-        Directory passed to walk (transverse from).
-    depth : int
-        (Default value = 0)
-
-    Yields
-    ------
-    str
-        When depth==0.
-    tuple
-        When depth>0.
-
-    Raises
-    ------
-    ValueError
-        When the value of depth is negative.
-    OSError
-        When path is not name of a directory.
-
-    """
-    if depth == 0:
-        yield from os.walk(path)
-    elif depth > 0:
-        path = path.rstrip(os.path.sep)
-        if not os.path.isdir(path):
-            raise OSError(f"Not a directory: '{path}'.")
-        num_sep = path.count(os.path.sep)
-        for root, dirs, files in os.walk(path):
-            yield root, dirs, files
-            num_sep_this = root.count(os.path.sep)
-            if num_sep + depth <= num_sep_this:
-                del dirs[:]
-    else:
-        raise ValueError("The value of depth must be non-negative.")
-
-
 def _mkdir_p(path):
     """Make a new directory, or do nothing if the directory already exists.
 
@@ -284,18 +109,19 @@ def _mkdir_p(path):
         os.makedirs(path, exist_ok=True)
 
 
-def split_and_print_progress(iterable, num_chunks=10, write=None, desc="Progress: "):
+def _split_and_print_progress(iterable, num_chunks=10, write=None, desc="Progress: "):
     """Split the progress and prints it.
 
     Parameters
     ----------
     iterable : list
         List of values to be chunked.
-    num_chunks : int
+    num_chunks : int, optional
         Number of chunks to split the given iterable (Default value = 10).
-    write :
-        Logging level used to log messages (Default value = None).
-    desc : str
+    write : callable, optional
+        Callable used to log messages. If None, ``print`` is used (Default
+        value = None).
+    desc : str, optional
         Prefix of message to log (Default value = 'Progress: ').
 
     Yields
@@ -304,13 +130,14 @@ def split_and_print_progress(iterable, num_chunks=10, write=None, desc="Progress
 
     Raises
     ------
-    AssertionError
+    ValueError
         If num_chunks <= 0.
 
     """
+    if num_chunks <= 0:
+        raise ValueError("num_chunks must be a positive integer.")
     if write is None:
         write = print
-    assert num_chunks > 0
     if num_chunks > 1:
         N = len(iterable)
         len_chunk = int(N / num_chunks)
@@ -391,34 +218,13 @@ def _to_hashable(obj):
         return obj
 
 
-def _encode_tree(x):
-    """Encode if type of x is list.
-
-    Parameters
-    ----------
-    x :
-        type to encode.
-
-    Returns
-    -------
-    Hashable version of ``x``.
-
-    """
-    if type(x) is list:
-        return _to_hashable(x)
-    else:
-        return x
-
-
-def _nested_dicts_to_dotted_keys(t, encode=_encode_tree, key=None):
+def _nested_dicts_to_dotted_keys(d, key=None):
     """Generate tuples of key in dotted string format and value from nested dict.
 
     Parameters
     ----------
-    t : dict
+    d : dict
         A mapping instance with nested dicts, e.g. {'a': {'b': 'c'}}.
-    encode :
-        By default, values are encoded to be hashable. Use ``None`` to skip encoding.
     key : str
         Key of root at current point in the recursion, used to
         build up nested keys in the top-level dict through
@@ -430,14 +236,14 @@ def _nested_dicts_to_dotted_keys(t, encode=_encode_tree, key=None):
         Tuples of dotted key and values e.g. ('a.b', 'c')
 
     """
-    if encode is not None:
-        t = encode(t)
-    if isinstance(t, Mapping):
-        if t:
-            for k in t:
+    if isinstance(d, Mapping):
+        if d:
+            for k in d:
                 k_ = k if key is None else ".".join((key, k))
-                yield from _nested_dicts_to_dotted_keys(t[k], encode=encode, key=k_)
+                yield from _nested_dicts_to_dotted_keys(d[k], key=k_)
         elif key is not None:
-            yield key, t
+            yield key, d
     else:
-        yield key, t
+        if type(d) is list:
+            d = _to_hashable(d)
+        yield key, d

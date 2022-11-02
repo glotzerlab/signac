@@ -5,7 +5,6 @@
 
 import logging
 import os
-import stat
 
 from ..common.deprecation import deprecated
 from ..version import __version__
@@ -15,93 +14,39 @@ from .validate import cfg, get_validator
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_FILENAME = ".signacrc"
-CONFIG_FILENAMES = [DEFAULT_FILENAME, "signac.rc"]
-HOME = os.path.expanduser("~")
-CONFIG_PATH = [HOME]
-FN_CONFIG = os.path.expanduser("~/.signacrc")
+PROJECT_CONFIG_FN = os.path.join(".signac", "config")
+USER_CONFIG_FN = os.path.expanduser(os.path.join("~", ".signacrc"))
+
+# TODO: Consider making this entire module internal and removing all its
+# functions from the public API.
 
 
-class PermissionsError(ConfigError):
-    """Indicates an error in file permissions."""
-
-    pass
+def _get_project_config_fn(path):
+    return os.path.abspath(os.path.join(path, PROJECT_CONFIG_FN))
 
 
-def _search_local(root):
-    for fn in CONFIG_FILENAMES:
-        fn_ = os.path.abspath(os.path.join(root, fn))
-        if os.path.isfile(fn_):
-            yield fn_
-
-
-def search_tree(root=None):
-    """Locates signac configuration files in a directory hierarchy.
+def _locate_config_dir(search_path):
+    """Locates directory containing a signac configuration file in a directory hierarchy.
 
     Parameters
     ----------
-    root : str
-        Path to search. Uses ``os.getcwd()`` if None (Default value = None).
+    search_path : str
+        Starting path to search.
 
+    Returns
+    --------
+    str or None
+        The directory containing the configuration file if one is found, otherwise None.
     """
-    if root is None:
-        root = os.getcwd()
+    search_path = os.path.abspath(search_path)
     while True:
-        yield from _search_local(root)
-        up = os.path.abspath(os.path.join(root, ".."))
-        if up == root:
-            msg = "Reached filesystem root."
-            logger.debug(msg)
-            return
+        if os.path.isfile(_get_project_config_fn(search_path)):
+            return search_path
+        if (up := os.path.dirname(search_path)) == search_path:
+            logger.debug("Reached filesystem root, no config found.")
+            return None
         else:
-            root = up
-
-
-def _search_standard_dirs():
-    """Locates signac configuration files in standard directories."""
-    for path in CONFIG_PATH:
-        yield from _search_local(path)
-
-
-@deprecated(
-    deprecated_in="1.8",
-    removed_in="2.0",
-    current_version=__version__,
-    details="The search_standard_dirs method is deprecated.",
-)
-def search_standard_dirs():  # noqa: D103
-    yield from _search_standard_dirs()
-
-
-def check_permissions(filename):
-    """Verify that saved passwords are only readable by the current user."""
-    st = os.stat(filename)
-    if st.st_mode & stat.S_IROTH or st.st_mode & stat.S_IRGRP:
-        raise PermissionsError(
-            "Permissions of configuration file '{fn}'"
-            "allow it to be read by others than the user. "
-            "Unable to read/write password.".format(fn=filename)
-        )
-
-
-def fix_permissions(filename):
-    """Set file permissions to be strictly user-readable and user-writable."""
-    os.chmod(filename, stat.S_IRUSR | stat.S_IWUSR)
-
-
-def check_and_fix_permissions(filename):
-    """Verify file permissions and fix problems if needed."""
-    try:
-        check_permissions(filename)
-    except PermissionsError as permissions_error:
-        logger.debug(f"{permissions_error} Attempting to fix permissions.")
-        try:
-            fix_permissions(filename)
-        except Exception as error:
-            logger.error(f"Failed to fix permissions with error: {error}")
-            raise permissions_error
-        else:
-            logger.debug("Fixed permissions.")
+            search_path = up
 
 
 def _read_config_file(filename):
@@ -109,17 +54,16 @@ def _read_config_file(filename):
     try:
         config = Config(filename, configspec=cfg.split("\n"))
     except (OSError, ConfigObjError) as error:
-        msg = "Failed to read configuration file '{}':\n{}"
-        raise ConfigError(msg.format(filename, error))
+        raise ConfigError(f"Failed to read configuration file '{filename}':\n{error}")
     verification = config.verify()
     if verification is not True:
+        # TODO: In the future this should raise an error, not just a
+        # debug-level logging notice.
         logger.debug(
             "Config file '{}' may contain invalid values.".format(
                 os.path.abspath(filename)
             )
         )
-    if config.has_password():
-        check_and_fix_permissions(filename)
     return config
 
 
@@ -137,48 +81,33 @@ def read_config_file(filename):
     return _read_config_file(filename)
 
 
-def _get_config(infile=None, configspec=None, *args, **kwargs):
-    """Get configuration from a file."""
-    if configspec is None:
-        configspec = cfg.split("\n")
-    return Config(infile, configspec=configspec, *args, **kwargs)
+def _load_config(path=None):
+    """Load configuration from a project directory.
 
+    Parameters
+    ----------
+    path : str
+        The project path to pull project-local configuration data from.
 
-@deprecated(
-    deprecated_in="1.8",
-    removed_in="2.0",
-    current_version=__version__,
-    details=(
-        "The get_config method is deprecated. Configs should only be "
-        "accessed via a Project instance.",
-    ),
-)
-def get_config(infile=None, configspec=None, *args, **kwargs):  # noqa: D103
-    """Get configuration from a file."""
-    return _get_config(infile, configspec, *args, **kwargs)
-
-
-def _load_config(root=None, local=False):
-    """Load configuration, searching upward from a root path."""
-    if root is None:
-        root = os.getcwd()
+    Returns
+    --------
+    :class:`Config`
+        The composite configuration including both project-local and global
+        config data if requested. Note that because this config is a composite,
+        modifications to the returned value will not be reflected in the files.
+    """
+    if path is None:
+        path = os.getcwd()
     config = Config(configspec=cfg.split("\n"))
-    if local:
-        for fn in _search_local(root):
-            tmp = _read_config_file(fn)
-            config.merge(tmp)
-            if "project" in tmp:
-                config["project_dir"] = os.path.dirname(fn)
-                break
-    else:
-        for fn in _search_standard_dirs():
+
+    # Add in any global or user config files. For now this only finds user-specific
+    # files, but it could be updated in the future to support e.g. system-wide config files.
+    for fn in (USER_CONFIG_FN,):
+        if os.path.isfile(fn):
             config.merge(_read_config_file(fn))
-        for fn in search_tree(root):
-            tmp = _read_config_file(fn)
-            config.merge(tmp)
-            if "project" in tmp:
-                config["project_dir"] = os.path.dirname(fn)
-                break
+
+    if os.path.isfile(_get_project_config_fn(path)):
+        config.merge(_read_config_file(_get_project_config_fn(path)))
     return config
 
 
@@ -191,9 +120,9 @@ def _load_config(root=None, local=False):
         "accessed via a Project instance.",
     ),
 )
-def load_config(root=None, local=False):
+def load_config(root=None):
     """Load configuration, searching upward from a root path."""
-    return _load_config(root, local)
+    return _load_config(root)
 
 
 class Config(ConfigObj):
@@ -206,22 +135,3 @@ class Config(ConfigObj):
         if validator is None:
             validator = get_validator()
         return super().validate(validator, *args, **kwargs)
-
-    def has_password(self):
-        """Check if this configuration contains a password."""
-
-        def is_pw(section, key):
-            assert not key.endswith("password")
-
-        try:
-            self.walk(is_pw)
-            return False
-        except AssertionError:
-            return True
-
-    def write(self, outfile=None, section=None):
-        """Write this configuration to a file."""
-        if outfile is not None:
-            if self.has_password():
-                check_and_fix_permissions(outfile)
-        return super().write(outfile=outfile, section=section)

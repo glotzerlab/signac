@@ -8,7 +8,7 @@ import pytest
 from attr_dict_test import AttrDictTest, AttrListTest
 from synced_collection_test import SyncedDictTest, SyncedListTest
 
-from signac.synced_collections.backends.collection_json import (
+from signac._synced_collections.backends.collection_json import (
     JSONAttrDict,
     JSONAttrList,
     JSONDict,
@@ -46,16 +46,6 @@ class JSONCollectionTest:
 class TestJSONDict(JSONCollectionTest, SyncedDictTest):
 
     _collection_type = JSONDict
-
-    # The following test tests the support for non-str keys
-    # for JSON backend which will be removed in version 2.0.
-    # See issue: https://github.com/glotzerlab/signac/issues/316.
-    def test_keys_non_str_valid_type(self, synced_collection, testdata):
-        for key in (0, None, True):
-            with pytest.warns(FutureWarning, match="Use of.+as key is deprecated"):
-                synced_collection[key] = testdata
-            assert str(key) in synced_collection
-            assert synced_collection[str(key)] == testdata
 
 
 class TestJSONList(JSONCollectionTest, SyncedListTest):
