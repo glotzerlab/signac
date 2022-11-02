@@ -628,7 +628,7 @@ class Project:
         """
         if not filter:
             return list(self._job_dirs())
-        filter = dict(parse_filter(_add_prefix("sp.", filter)))
+        filter = dict(parse_filter(_add_prefix(filter)))
         index = _SearchIndexer(
             self._build_index(include_job_document="doc" in _root_keys(filter))
         )
@@ -664,7 +664,9 @@ class Project:
             If the filters are invalid.
 
         """
-        return JobsCursor(self, dict(parse_filter(_add_prefix("sp.", filter))))
+        if not filter:
+            filter = {}
+        return JobsCursor(self, dict(parse_filter(filter)))
 
     def __iter__(self):
         return iter(self.find_jobs())
