@@ -116,6 +116,18 @@ correct resolution of nested SyncedCollection types.
 """
 
 
+class _IsWindows:
+    """A bool-like object that returns False on Windows and True otherwise."""
+
+    def __bool__(self):
+        import sys
+
+        if sys.platform.startswith("win32") or sys.platform.startswith("cygin"):
+            return False
+        else:
+            return True
+
+
 class JSONCollection(SyncedCollection):
     r"""A :class:`~.SyncedCollection` that synchronizes with a JSON file.
 
@@ -127,11 +139,13 @@ class JSONCollection(SyncedCollection):
 
     **Thread safety**
 
-    The :class:`JSONCollection` is thread-safe. To make these collections safe, the
-    ``write_concern`` flag is ignored in multithreaded execution, and the
-    write is **always** performed via a write to temporary file followed by a
+    The :class:`JSONCollection` is thread-safe on Unix-like systems (not
+    Windows, see the Warnings section). To make these collections safe, the
+    ``write_concern`` flag is ignored in multithreaded execution, and the write
+    is **always** performed via a write to temporary file followed by a
     replacement of the original file. The file replacement operation uses
-    :func:`os.replace`, which is guaranteed to be atomic by the Python standard.
+    :func:`os.replace`, which is guaranteed to be atomic by the Python
+    standard.
 
     Parameters
     ----------
@@ -145,10 +159,17 @@ class JSONCollection(SyncedCollection):
     \*\*kwargs :
         Keyword arguments forwarded to parent constructors.
 
+    Warnings
+    --------
+    This class is _not_ thread safe on Windows. It relies on ``os.replace`` for
+    atomic file writes, and that method can fail in multithreaded situations if
+    open handles exist to the destination file withiin the same process on a
+    different thread. See https://bugs.python.org/issue46003 for more
+    information.
     """
 
     _backend = __name__  # type: ignore
-    _supports_threading = True
+    _supports_threading = _IsWindows()  # type: ignore
     _validators: Sequence_t[Callable] = (require_string_key, json_format_validator)
 
     def __init__(self, filename=None, write_concern=False, *args, **kwargs):
