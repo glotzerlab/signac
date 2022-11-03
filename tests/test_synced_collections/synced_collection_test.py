@@ -8,9 +8,9 @@ from typing import Any, Tuple, Type
 
 import pytest
 
+from signac._synced_collections import SyncedCollection
+from signac._synced_collections.numpy_utils import NumpyConversionWarning
 from signac.errors import KeyTypeError
-from signac.synced_collections import SyncedCollection
-from signac.synced_collections.numpy_utils import NumpyConversionWarning
 
 PYPY = "PyPy" in platform.python_implementation()
 
@@ -440,8 +440,6 @@ class SyncedDictTest(SyncedCollectionTest):
             assert key in synced_collection
             assert synced_collection[key] == testdata
 
-    # (issue #729) TODO: This test should only be applied for backends where JSON-formatting
-    # is required.
     def test_keys_invalid_type(self, synced_collection, testdata):
         class A:
             pass

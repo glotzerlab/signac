@@ -10,27 +10,27 @@ import logging
 import os
 import re
 import shutil
-import stat
 import time
-import uuid
 import warnings
 from collections.abc import Iterable
 from contextlib import contextmanager
-from functools import partial
 from itertools import groupby
 from multiprocessing.pool import ThreadPool
 from tempfile import TemporaryDirectory
 from threading import RLock
 
-from packaging import version
-
-from ..common.config import Config, _get_config, _load_config
-from ..common.deprecation import deprecated
+from .._synced_collections.backends.collection_json import BufferedJSONAttrDict
+from ..common.config import (
+    Config,
+    _get_project_config_fn,
+    _load_config,
+    _locate_config_dir,
+    _read_config_file,
+)
 from ..core.h5store import H5StoreManager
 from ..sync import sync_projects
-from ..synced_collections.backends.collection_json import BufferedJSONAttrDict
 from ..version import SCHEMA_VERSION, __version__
-from .collection import Collection
+from ._searchindexer import _SearchIndexer
 from .errors import (
     DestinationExistsError,
     IncompatibleSchemaVersion,
@@ -39,156 +39,14 @@ from .errors import (
 )
 from .filterparse import _add_prefix, _root_keys, parse_filter
 from .hashing import calc_id
-from .indexing import MainCrawler, SignacProjectCrawler
 from .job import Job
 from .schema import ProjectSchema, _collect_by_type
-from .utility import _mkdir_p, _nested_dicts_to_dotted_keys, split_and_print_progress
+from .utility import _mkdir_p, _nested_dicts_to_dotted_keys, _split_and_print_progress
 
 logger = logging.getLogger(__name__)
 
-INDEX_DEPRECATION_WARNING = (
-    "The index argument is deprecated and will be removed in signac 2.0."
-)
-
-JOB_ID_REGEX = re.compile("[a-f0-9]{32}")
-
-ACCESS_MODULE_MINIMAL = """import signac
-
-def get_indexes(root):
-    yield signac.get_project(root).index()
-"""
-
-ACCESS_MODULE_MAIN = """#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-import signac
-
-def get_indexes(root):
-    yield signac.get_project(root)._index()
-
-if __name__ == '__main__':
-    with signac.Collection.open('index.txt') as index:
-        signac.export(signac._index(), index, update=True)
-"""
-
-# The warning used for doc filter deprecation everywhere. Don't use
-# triple-quoted multi-line string to avoid inserting newlines.
-# (issue #725) TODO: In signac 2.0, remove all docstrings for doc_filter parameters. The
-# doc_filter parameters will only be preserved for backwards compatibility but
-# not advertised as part of the API in signac 2.0.
-DOC_FILTER_WARNING = (
-    "The doc_filter argument was deprecated in version 1.7 and will be removed "
-    "in version 3.0. Users should instead use a filter with a 'doc.' prefix. For "
-    "example, `doc_filter={'foo': 'bar'}` is equivalent to `filter={'doc.foo': 'bar'}`. "
-    "See https://docs.signac.io/en/latest/query.html#query-namespaces for more "
-    "information."
-)
-
-# Temporary default for project names until they are removed entirely in signac 2.0
-_DEFAULT_PROJECT_NAME = None
-
-
-class _CallableString(str):
-    # A string object that returns itself when called. Introduced temporarily
-    # to support deprecating Project.workspace, which will become a property.
-    def __call__(self):
-        assert version.parse(__version__) < version.parse("2.0.0")
-        warnings.warn(
-            "This method will soon become a property and should be used "
-            "without the call operator (parentheses).",
-            FutureWarning,
-        )
-        return self
-
-
-class JobSearchIndex:
-    """Search for specific jobs with filters.
-
-    The JobSearchIndex allows to search for job_ids,
-    that are part of an index, which match specific
-    state point filters or job document filters.
-
-    Parameters
-    ----------
-    index :
-        A document index.
-    _trust : bool
-        Whether to skip document validation on insertion into the internal
-        Collection (Default value = False).
-
-    """
-
-    @deprecated(
-        deprecated_in="1.8",
-        removed_in="2.0",
-        current_version=__version__,
-        details="The JobSearchIndex class is deprecated.",
-    )
-    def __init__(self, index, _trust=False):
-        self._collection = Collection(index, _trust=_trust)
-
-    def __len__(self):
-        return len(self._collection)
-
-    def _resolve_statepoint_filter(self, q):
-        """Resolve state point based on filter.
-
-        Parameters
-        ----------
-        q : dict
-            Filter used for state point selection.
-
-        Yields
-        ------
-        str
-            Filtered state point.
-
-        """
-        for key, value in q.items():
-            if key in ("$and", "$or"):
-                if not isinstance(value, list) or isinstance(value, tuple):
-                    raise ValueError(
-                        "The argument to a logical operator must be a sequence (e.g. a list)!"
-                    )
-                yield key, [dict(self._resolve_statepoint_filter(i)) for i in value]
-            else:
-                yield f"statepoint.{key}", value
-
-    def find_job_ids(self, filter=None, doc_filter=None):
-        """Find job ids from a state point or document filter.
-
-        Parameters
-        ----------
-        filter : dict
-            A mapping of key-value pairs that all indexed job state points are
-            compared against (Default value = None).
-        doc_filter : dict
-            A mapping of key-value pairs that all indexed job documents are
-            compared against (Default value = None).
-
-        Returns
-        -------
-        list
-            List of job ids matching the provided filter(s).
-
-        Raises
-        ------
-        TypeError
-            If the filters are not JSON serializable.
-        ValueError
-            If the filters are invalid.
-        RuntimeError
-            If the filters are not supported
-            by the index.
-
-        """
-        if filter:
-            filter = dict(self._resolve_statepoint_filter(filter))
-            if doc_filter:
-                filter.update(doc_filter)
-        elif doc_filter:
-            warnings.warn(DOC_FILTER_WARNING, FutureWarning)
-            filter = doc_filter
-        return self._collection._find(filter)
+JOB_ID_LENGTH = 32
+JOB_ID_REGEX = re.compile(f"[a-f0-9]{{{JOB_ID_LENGTH}}}")
 
 
 class _ProjectConfig(Config):
@@ -198,58 +56,38 @@ class _ProjectConfig(Config):
     ----------
     \*args :
         Forwarded to :class:`~signac.common.config.Config` constructor.
-    _mutate_hook : callable
-        Callable that is triggered if the config is mutated.
     \*\*kwargs :
         Forwarded to :class:`~signac.common.config.Config` constructor.
 
     """
 
-    def __init__(self, *args, _mutate_hook=None, **kwargs):
-        self._mutate_hook = _mutate_hook
+    def __init__(self, *args, **kwargs):
         self._mutable = True
         super().__init__(*args, **kwargs)
         self._mutable = False
 
     def __setitem__(self, key, value):
         if not self._mutable:
-            warnings.warn(
-                "Modifying the project configuration after project "
-                "initialization is deprecated as of version 1.3 and "
-                "will be removed in version 2.0.",
-                FutureWarning,
-            )
-
-            assert version.parse(__version__) < version.parse("2.0")
-        if self._mutate_hook is not None:
-            self._mutate_hook()
+            raise ValueError("The project configuration is immutable.")
         return super().__setitem__(key, value)
-
-
-def _invalidate_config_cache(project):
-    """Invalidate cached properties derived from a project config."""
-    project._id = None
-    project._path = None
-    project._wd = None
 
 
 class Project:
     """The handle on a signac project.
 
-    Application developers should usually not need to
-    directly instantiate this class, but use
-    :meth:`~signac.get_project` instead.
+    A :class:`Project` may only be constructed in a directory that is already a
+    signac project, i.e. a directory in which :func:`~signac.init_project` has
+    already been run. To search upwards in the folder hierarchy until a project
+    is found, instead invoke :func:`~signac.get_project` or
+    :meth:`Project.get_project`.
 
     Parameters
     ----------
-    config :
-        The project configuration to use. By default, it loads the first signac
-        project configuration found while searching upward from the current
-        working directory (Default value = None).
+    path : str, optional
+        The project directory. By default, the current working directory
+        (Default value = None).
 
     """
-
-    Job = Job
 
     FN_DOCUMENT = "signac_project_document.json"
     "The project's document filename."
@@ -257,35 +95,24 @@ class Project:
     KEY_DATA = "signac_data"
     "The project's datastore key."
 
-    # Remove in signac 2.0.
-    # State point backup files are being removed in favor of Project.update_cache().
-    FN_STATEPOINTS = "signac_statepoints.json"
-    "The default filename to read from and write state points to."
-
-    FN_CACHE = ".signac_sp_cache.json.gz"
+    FN_CACHE = os.sep.join((".signac", "statepoint_cache.json.gz"))
     "The default filename for the state point cache file."
 
     _use_pandas_for_html_repr = True  # toggle use of pandas for html repr
 
-    def __init__(self, config=None):
-        if config is None:
-            config = _load_config()
-        self._config = _ProjectConfig(
-            config, _mutate_hook=partial(_invalidate_config_cache, self)
-        )
-        self._lock = RLock()
-
-        # Prepare cached properties derived from the project config.
-        _invalidate_config_cache(self)
-
-        # Ensure that the project id is configured.
-        if self.id is None:
+    def __init__(self, path=None):
+        if path is None:
+            path = os.getcwd()
+        if not os.path.isfile(_get_project_config_fn(path)):
             raise LookupError(
-                "Unable to determine project id. "
-                "Please verify that '{}' is a signac project path.".format(
-                    os.path.abspath(self.config.get("project_dir", os.getcwd()))
-                )
+                f"Unable to find project at path '{os.path.abspath(path)}'."
             )
+
+        # Project constructor does not search upward, so the provided path must
+        # be a project directory.
+        config = _load_config(path)
+        self._config = _ProjectConfig(config)
+        self._lock = RLock()
 
         # Ensure that the project's data schema is supported.
         self._check_schema_compatibility()
@@ -296,19 +123,23 @@ class Project:
         # Prepare project H5StoreManager
         self._stores = None
 
-        # Prepare Workspace Directory
+        # Prepare project and workspace directories.
+        # os.path is used instead of pathlib.Path for performance.
+        self._path = os.path.abspath(path)
+        self._workspace = os.path.join(self._path, "workspace")
+
+        # Prepare workspace directory.
         if not os.path.isdir(self.workspace):
             try:
                 _mkdir_p(self.workspace)
             except OSError:
                 logger.error(
-                    "Error occurred while trying to create "
-                    "workspace directory for project {}.".format(self.id)
+                    "Error occurred while trying to create workspace directory for project at path "
+                    f"{self.path}."
                 )
                 raise
 
-        # Internal caches
-        self._index_cache = {}
+        # Internal state point cache
         # Note that the state point cache is a superset of the jobs in the
         # project, and its contents cannot be invalidated. The cached mapping
         # of "id: statepoint" is valid even after a job has been removed, and
@@ -322,13 +153,10 @@ class Project:
         )
 
     def __str__(self):
-        """Return the project's id."""
-        return str(self.id)
+        return str(self.path)
 
     def __repr__(self):
-        return "{type}.get_project({root})".format(
-            type=self.__class__.__name__, root=repr(self.path)
-        )
+        return f"{self.__class__.__name__}({repr(self.path)})"
 
     def _repr_html_(self):
         """Project details in HTML format for use in IPython environment.
@@ -341,8 +169,7 @@ class Project:
         """
         return (
             "<p>"
-            + f"<strong>Project:</strong> {self.id}<br>"
-            + f"<strong>Root:</strong> {self.path}<br>"
+            + f"<strong>Project:</strong> {self.path}<br>"
             + f"<strong>Workspace:</strong> {self.workspace}<br>"
             + f"<strong>Size:</strong> {len(self)}"
             + "</p>"
@@ -356,6 +183,12 @@ class Project:
     def config(self):
         """Get project's configuration.
 
+        The configuration is immutable once the Project is constructed. To
+        modify a project configuration, use the command line or edit the
+        configuration file directly.
+
+        See :ref:`signac config <signac-cli-config>` for related command line tools.
+
         Returns
         -------
         :class:`~signac.contrib.project._ProjectConfig`
@@ -364,67 +197,15 @@ class Project:
         """
         return self._config
 
-    @deprecated(
-        deprecated_in="1.8",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Use Project.path instead.",
-    )
-    def root_directory(self):
-        """Alias for :attr:`~Project.path`."""
-        return self.path
-
     @property
     def path(self):
         """str: The path to the project directory."""
-        if self._path is None:
-            self._path = self.config["project_dir"]
         return self._path
 
     @property
     def workspace(self):
-        """str: The project's workspace directory.
-
-        See :ref:`signac project -w <signac-cli-project>` for the command line equivalent.
-        """
-        if self._wd is None:
-            wd = os.path.expandvars(self.config.get("workspace_dir", "workspace"))
-            self._wd = wd if os.path.isabs(wd) else os.path.join(self.path, wd)
-        return _CallableString(self._wd)
-
-    @deprecated(
-        deprecated_in="1.3",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Use project.id instead.",
-    )
-    def get_id(self):
-        """Get the project identifier.
-
-        Returns
-        -------
-        str
-            The project id.
-
-        """
-        return self.id
-
-    @property
-    def id(self):
-        """Get the project identifier.
-
-        Returns
-        -------
-        str
-            The project id.
-
-        """
-        if self._id is None:
-            try:
-                self._id = str(self.config["project"])
-            except KeyError:
-                return None
-        return self._id
+        """str: The project's workspace directory."""
+        return self._workspace
 
     def _check_schema_compatibility(self):
         """Check whether this project's data schema is compatible with this version.
@@ -435,8 +216,8 @@ class Project:
             If the schema version is incompatible.
 
         """
-        schema_version = version.parse(SCHEMA_VERSION)
-        config_schema_version = version.parse(self.config["schema_version"])
+        schema_version = SCHEMA_VERSION
+        config_schema_version = int(self.config["schema_version"])
         if config_schema_version > schema_version:
             # Project config schema version is newer and therefore not supported.
             raise IncompatibleSchemaVersion(
@@ -471,19 +252,19 @@ class Project:
         """
         job_ids = list(self._find_job_ids())
         tmp = set()
-        for i in range(32):
+        for i in range(JOB_ID_LENGTH):
             tmp.clear()
-            for _id in job_ids:
-                if _id[:i] in tmp:
+            for id_ in job_ids:
+                if id_[:i] in tmp:
                     break
                 else:
-                    tmp.add(_id[:i])
+                    tmp.add(id_[:i])
             else:
                 break
         return i
 
     def fn(self, filename):
-        """Prepend a filename with the project's root directory path.
+        """Prepend a filename with the project path.
 
         Parameters
         ----------
@@ -493,13 +274,13 @@ class Project:
         Returns
         -------
         str
-            The joined path of project root directory and filename.
+            The absolute path of the file.
 
         """
         return os.path.join(self.path, filename)
 
     def isfile(self, filename):
-        """Check if a filename exists in the project's root directory.
+        """Check if a filename exists in the project path.
 
         Parameters
         ----------
@@ -509,7 +290,7 @@ class Project:
         Returns
         -------
         bool
-            True if filename exists in the project's root directory.
+            True if filename exists in the project path.
 
         """
         return os.path.isfile(self.fn(filename))
@@ -520,8 +301,8 @@ class Project:
 
         Returns
         -------
-        :class:`~signac.synced_collections.backends.collection_json.BufferedJSONAttrDict`
-            The project document.
+        MutableMapping
+            The project document. Supports attribute-based access to dict keys.
 
         """
         with self._lock:
@@ -553,8 +334,8 @@ class Project:
 
         Returns
         -------
-        :class:`~signac.synced_collections.backends.collection_json.BufferedJSONAttrDict`
-            The project document.
+        MutableMapping
+            The project document. Supports attribute-based access to dict keys.
 
         """
         return self.document
@@ -573,13 +354,13 @@ class Project:
 
     @property
     def stores(self):
-        """Get HDF5-stores associated with this project.
+        """Get HDF5 stores associated with this project.
 
-        Use this property to access an HDF5 file within the project's root
-        directory using the H5Store dict-like interface.
+        Use this property to access an HDF5 file within the project
+        directory using the :py:class:`~.H5Store` dict-like interface.
 
         This is an example for accessing an HDF5 file called ``'my_data.h5'``
-        within the project's root directory:
+        within the project directory:
 
         .. code-block:: python
 
@@ -601,7 +382,7 @@ class Project:
         Returns
         -------
         :class:`~signac.H5StoreManager`
-            The HDF5-Store manager for this project.
+            The HDF5 store manager for this project.
 
         """
         with self._lock:
@@ -660,9 +441,9 @@ class Project:
 
         Parameters
         ----------
-        statepoint : dict
+        statepoint : dict, optional
             The job's unique set of state point parameters (Default value = None).
-        id : str
+        id : str, optional
             The job id (Default value = None).
 
         Returns
@@ -683,18 +464,18 @@ class Project:
             raise ValueError("Either statepoint or id must be provided, but not both.")
         if id is None:
             # Second best case (Job will update self._sp_cache on init)
-            return self.Job(project=self, statepoint=statepoint)
+            return Job(project=self, statepoint=statepoint)
         try:
             # Optimal case (id is in the state point cache)
-            return self.Job(project=self, statepoint=self._sp_cache[id], _id=id)
+            return Job(project=self, statepoint=self._sp_cache[id], id_=id)
         except KeyError:
             # Worst case: no state point was provided and the state point cache
             # missed. The Job will register itself in self._sp_cache when the
             # state point is accessed.
-            if len(id) < 32:
+            if len(id) < JOB_ID_LENGTH:
                 # Resolve partial job ids (first few characters) into a full job id
                 job_ids = self._find_job_ids()
-                matches = [_id for _id in job_ids if _id.startswith(id)]
+                matches = [id_ for id_ in job_ids if id_.startswith(id)]
                 if len(matches) == 1:
                     id = matches[0]
                 elif len(matches) > 1:
@@ -705,7 +486,7 @@ class Project:
             elif not self._contains_job_id(id):
                 # id does not exist in the project data space
                 raise KeyError(id)
-            return self.Job(project=self, _id=id)
+            return Job(project=self, id_=id)
 
     def _job_dirs(self):
         """Generate ids of jobs in the workspace.
@@ -741,23 +522,6 @@ class Project:
                 )
                 raise WorkspaceError(error)
 
-    @deprecated(
-        deprecated_in="1.8",
-        removed_in="2.0",
-        current_version=__version__,
-        details="The num_jobs method is deprecated. Use len(project) instead.",
-    )
-    def num_jobs(self):
-        """Return the number of initialized jobs.
-
-        Returns
-        -------
-        int
-            Count of initialized jobs.
-
-        """
-        return len(self)
-
     def __len__(self):
         # We simply count the the number of valid directories and avoid building a list
         # for improved performance.
@@ -780,8 +544,9 @@ class Project:
             True if the job id is initialized for this project.
 
         """
-        # We can rely on the project workspace to be well-formed, so just use
-        # str.join with os.sep instead of os.path.join for performance.
+        # Performance-critical path. We can rely on the project workspace and
+        # job id to be well-formed, so just use str.join with os.sep instead of
+        # os.path.join for speed.
         return os.path.exists(os.sep.join((self.workspace, job_id)))
 
     def __contains__(self, job):
@@ -800,104 +565,19 @@ class Project:
         """
         return self._contains_job_id(job.id)
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__)
-    def build_job_search_index(self, index, _trust=False):
-        """Build a job search index.
-
-        Parameters
-        ----------
-        index : list
-            A document index.
-        _trust :
-            (Default value = False).
-
-        Returns
-        -------
-        :class:`~signac.contrib.project.JobSearchIndex`
-            A job search index based on the provided index.
-
-        """
-        return JobSearchIndex(index=index, _trust=_trust)
-
-    @deprecated(
-        deprecated_in="1.3",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Use the detect_schema() function instead.",
-    )
-    def build_job_statepoint_index(self, exclude_const=False, index=None):
-        """Build a state point index to identify jobs with specific parameters.
-
-        This method generates pairs of state point keys and mappings of
-        values to a set of all corresponding job ids. The pairs are ordered
-        by the number of different values. Since state point keys may be
-        nested, they are represented as a tuple.
-        For example:
-
-        .. code-block:: python
-
-            >>> for i in range(4):
-            ...     project.open_job({'a': i, 'b': {'c': i % 2}}).init()
-            ...
-            >>> for key, value in project.build_job_statepoint_index():
-            ...     print(key)
-            ...     pprint.pprint(value)
-            ...
-            ('b', 'c')
-            defaultdict(<class 'set'>,
-                        {0: {'3a530c13bfaf57517b4e81ecab6aec7f',
-                             '4e9a45a922eae6bb5d144b36d82526e4'},
-                         1: {'d49c6609da84251ab096654971115d0c',
-                             '5c2658722218d48a5eb1e0ef7c26240b'}})
-            ('a',)
-            defaultdict(<class 'set'>,
-                        {0: {'4e9a45a922eae6bb5d144b36d82526e4'},
-                         1: {'d49c6609da84251ab096654971115d0c'},
-                         2: {'3a530c13bfaf57517b4e81ecab6aec7f'},
-                         3: {'5c2658722218d48a5eb1e0ef7c26240b'}})
-
-        Values that are constant over the complete data space can be optionally
-        ignored with the `exclude_const` argument set to True.
-
-        Parameters
-        ----------
-        exclude_const : bool
-            Exclude entries that are shared by all jobs
-            that are part of the index (Default value = False).
-        index :
-            A document index.
-
-        Yields
-        ------
-        tuple
-            Pairs of state point keys and mappings of values to a set of all
-            corresponding job ids (Default value = None).
-
-        """
-        from .schema import _build_job_statepoint_index
-
-        if index is None:
-            index = [{"_id": job.id, "sp": job.sp()} for job in self]
-        for x, y in _build_job_statepoint_index(
-            exclude_const=exclude_const, index=index
-        ):
-            yield tuple(x.split(".")), y
-
-    def detect_schema(self, exclude_const=False, subset=None, index=None):
+    def detect_schema(self, exclude_const=False, subset=None):
         """Detect the project's state point schema.
 
         See :ref:`signac schema <signac-cli-schema>` for the command line equivalent.
 
         Parameters
         ----------
-        exclude_const : bool
+        exclude_const : bool, optional
             Exclude all state point keys that are shared by all jobs within this project
             (Default value = False).
-        subset :
+        subset : sequence[Job or str], optional
             A sequence of jobs or job ids specifying a subset over which the state point
             schema should be detected (Default value = None).
-        index :
-            A document index (Default value = None).
 
         Returns
         -------
@@ -907,13 +587,10 @@ class Project:
         """
         from .schema import _build_job_statepoint_index
 
-        if index is None:
-            index = self._index(include_job_document=False)
-        else:
-            warnings.warn(INDEX_DEPRECATION_WARNING, FutureWarning)
+        index = _SearchIndexer(self._build_index(include_job_document=False))
         if subset is not None:
-            subset = {str(s) for s in subset}
-            index = [doc for doc in index if doc["_id"] in subset]
+            subset = {str(s) for s in subset}.intersection(index.keys())
+            index = _SearchIndexer((id_, index[id_]) for id_ in subset)
         statepoint_index = _build_job_statepoint_index(
             exclude_const=exclude_const, index=index
         )
@@ -921,41 +598,25 @@ class Project:
             {key: _collect_by_type(value) for key, value in statepoint_index}
         )
 
-    @deprecated(
-        deprecated_in="1.3",
-        removed_in="2.0",
-        current_version=__version__,
-        details=(
-            "Use find_jobs() instead, then access ids with job.id."
-            "Replicate the original behavior with "
-            "[job.id for job in project.find_jobs()]"
-        ),
-    )
-    def find_job_ids(self, filter=None, doc_filter=None, index=None):
-        """Find the job_ids of all jobs matching the filters.
+    def _find_job_ids(self, filter=None):
+        """Find the job ids of all jobs matching the filter.
 
-        The optional filter arguments must be a Mapping of key-value
-        pairs and JSON serializable.
-
-        .. note::
-            Providing a pre-calculated index may vastly increase the
-            performance of this function.
+        The filter argument must be a JSON-serializable Mapping of key-value
+        pairs. The ``filter`` argument can search against both job state points
+        and job documents. See
+        https://docs.signac.io/en/latest/query.html#query-namespaces
+        for a description of supported queries.
 
         Parameters
         ----------
-        filter : Mapping
-            A mapping of key-value pairs that all indexed job state points
-            are compared against (Default value = None).
-        doc_filter : Mapping
-            A mapping of key-value pairs that all indexed job documents are
-            compared against (Default value = None).
-        index :
-            A document index. If not provided, an index will be computed
-            (Default value = None).
+        filter : Mapping, optional
+            A mapping of key-value pairs used for the query (Default value =
+            None).
 
         Returns
         -------
-        The ids of all indexed jobs matching both filters.
+        list
+            The ids of all jobs matching the filter.
 
         Raises
         ------
@@ -963,102 +624,37 @@ class Project:
             If the filters are not JSON serializable.
         ValueError
             If the filters are invalid.
-        RuntimeError
-            If the filters are not supported by the index.
 
         """
-        return self._find_job_ids(filter, doc_filter, index)
-
-    def _find_job_ids(self, filter=None, doc_filter=None, index=None):
-        """Find the job_ids of all jobs matching the filters.
-
-        The optional filter arguments must be a JSON serializable mapping of
-        key-value pairs.
-
-        .. note::
-            Providing a pre-calculated index may vastly increase the
-            performance of this function.
-
-        Parameters
-        ----------
-        filter : Mapping
-            A mapping of key-value pairs that all indexed job state points
-            are compared against (Default value = None).
-        doc_filter : Mapping
-            A mapping of key-value pairs that all indexed job documents are
-            compared against (Default value = None).
-        index :
-            A document index. If not provided, an index will be computed
-            (Default value = None).
-
-        Returns
-        -------
-        Collection or list
-            The ids of all indexed jobs matching both filters. If no arguments
-            are provided to this method, the ids are returned as a list. If
-            any of the arguments are provided, a :class:`Collection` containing
-            all the ids is returned.
-
-        Raises
-        ------
-        TypeError
-            If the filters are not JSON serializable.
-        ValueError
-            If the filters are invalid.
-        RuntimeError
-            If the filters are not supported by the index.
-
-        Notes
-        -----
-        If all arguments are ``None``, this method skips indexing the data
-        space and instead simply iterates over all job directories. This
-        code path can be much faster for certain use cases since it defers
-        all work that would be required to construct an index, so in
-        performance-critical applications where no filtering of the data space
-        is required, passing no arguments to this method (as opposed to empty
-        dict filters) is recommended.
-
-        """
-        if not filter and not doc_filter and index is None:
+        if not filter:
             return list(self._job_dirs())
-        if index is None:
-            filter = dict(parse_filter(_add_prefix("sp.", filter)))
-            if doc_filter:
-                warnings.warn(DOC_FILTER_WARNING, FutureWarning)
-                filter.update(parse_filter(_add_prefix("doc.", doc_filter)))
-                index = self._index(include_job_document=True)
-            elif "doc" in _root_keys(filter):
-                index = self._index(include_job_document=True)
-            else:
-                index = self._sp_index()
-        else:
-            warnings.warn(INDEX_DEPRECATION_WARNING, FutureWarning)
+        filter = dict(parse_filter(_add_prefix("sp.", filter)))
+        index = _SearchIndexer(
+            self._build_index(include_job_document="doc" in _root_keys(filter))
+        )
+        return list(index.find(filter))
 
-        return Collection(index, _trust=True)._find(filter)
-
-    def find_jobs(self, filter=None, doc_filter=None):
+    def find_jobs(self, filter=None):
         """Find all jobs in the project's workspace.
 
-        The optional filter arguments must be a Mapping of key-value pairs and
-        JSON serializable. The `filter` argument is used to search against job
-        state points, whereas the `doc_filter` argument compares against job
-        document keys.
+        The filter argument must be a JSON-serializable Mapping of key-value
+        pairs. The ``filter`` argument can search against both job state points
+        and job documents. See
+        https://docs.signac.io/en/latest/query.html#query-namespaces
+        for a description of supported queries.
 
         See :ref:`signac find <signac-cli-find>` for the command line equivalent.
 
         Parameters
         ----------
-        filter : Mapping
-            A mapping of key-value pairs that all indexed job state points are
-            compared against (Default value = None).
-        doc_filter : Mapping
-            A mapping of key-value pairs that all indexed job documents are
-            compared against (Default value = None).
+        filter : Mapping, optional
+            A mapping of key-value pairs used for the query (Default value =
+            None).
 
         Returns
         -------
         :class:`~signac.contrib.project.JobsCursor`
-            JobsCursor of jobs matching the provided filter(s).
+            JobsCursor of jobs matching the provided filter.
 
         Raises
         ------
@@ -1066,15 +662,9 @@ class Project:
             If the filters are not JSON serializable.
         ValueError
             If the filters are invalid.
-        RuntimeError
-            If the filters are not supported by the index.
 
         """
-        filter = dict(parse_filter(_add_prefix("sp.", filter)))
-        if doc_filter:
-            warnings.warn(DOC_FILTER_WARNING, FutureWarning)
-            filter.update(parse_filter(_add_prefix("doc.", doc_filter)))
-        return JobsCursor(self, filter)
+        return JobsCursor(self, dict(parse_filter(_add_prefix("sp.", filter))))
 
     def __iter__(self):
         return iter(self.find_jobs())
@@ -1124,11 +714,11 @@ class Project:
 
         Parameters
         ----------
-        key : str, iterable, or callable
+        key : str, iterable, or callable, optional
             The grouping key(s) passed as a string,
             iterable of strings, or a callable that will be passed one
             argument, the job (Default value = None).
-        default :
+        default : object, optional
             A default value to be used when a given key is not
             present. The value must be sortable and is only used if not None
             (Default value = None).
@@ -1136,61 +726,12 @@ class Project:
         Yields
         ------
         key :
-            Grouped key.
+            Key identifying this group.
         group : iterable of Jobs
-            Iterable of `Job` instances matching this group key.
+            Iterable of `Job` instances matching this group.
 
         """
         yield from self.find_jobs().groupby(key, default=default)
-
-    @deprecated(
-        deprecated_in="1.7",
-        removed_in="2.0",
-        current_version=__version__,
-        details=(
-            "Use groupby with a 'doc.' filter instead, see "
-            "https://docs.signac.io/en/latest/query.html#query-namespaces."
-        ),
-    )
-    def groupbydoc(self, key=None, default=None):
-        """Group jobs according to one or more document values.
-
-        This method can be called on any :class:`~signac.contrib.project.JobsCursor` such as
-        the one returned by :meth:`~signac.Project.find_jobs` or by iterating over a
-        project.
-
-        Examples
-        --------
-        .. code-block:: python
-
-            # Group jobs by document value 'a'.
-            for key, group in project.groupbydoc('a'):
-                print(key, list(group))
-
-            # Find jobs where job.sp['a'] is 1 and group them
-            # by job.document['b'] and job.document['c'].
-            for key, group in project.find_jobs({'a': 1}).groupbydoc(('b', 'c')):
-                print(key, list(group))
-
-            # Group by whether 'd' is a field in the job.document using a lambda.
-            for key, group in project.groupbydoc(lambda doc: 'd' in doc):
-                print(key, list(group))
-
-        If `key` is None, jobs are grouped by id, placing one job into each group.
-
-        Parameters
-        ----------
-        key : str, iterable, or callable
-            The document grouping parameter(s) passed as a string, iterable
-            of strings, or a callable that will be passed one argument,
-            :attr:`~signac.contrib.job.Job.document` (Default value = None).
-        default :
-            A default value to be used when a given document key is not
-            present. The value must be sortable and is only used if not None
-            (Default value = None).
-
-        """
-        return self.find_jobs().groupbydoc(key, default=default)
 
     def to_dataframe(self, *args, **kwargs):
         r"""Export the project metadata to a pandas :class:`~pandas.DataFrame`.
@@ -1212,128 +753,18 @@ class Project:
         """
         return self.find_jobs().to_dataframe(*args, **kwargs)
 
-    @deprecated(
-        deprecated_in="1.8",
-        removed_in="2.0",
-        current_version=__version__,
-        details="State point backup files are being removed in favor of Project.update_cache().",
-    )
-    def read_statepoints(self, fn=None):
-        """Read all state points from a file.
-
-        See Also
-        --------
-        dump_statepoints : Dump the state points and associated job ids.
-        write_statepoints : Dump state points to a file.
-
-        Parameters
-        ----------
-        fn : str
-            The filename of the file containing the state points,
-            defaults to :attr:`~signac.Project.FN_STATEPOINTS`.
-
-        Returns
-        -------
-        dict
-            State points.
-
-        """
-        if fn is None:
-            fn = self.fn(self.FN_STATEPOINTS)
-        # See comment in write state points.
-        with open(fn) as file:
-            return json.loads(file.read())
-
-    @deprecated(
-        deprecated_in="1.8",
-        removed_in="2.0",
-        current_version=__version__,
-        details="State point backup files are being removed in favor of Project.update_cache().",
-    )
-    def dump_statepoints(self, statepoints):
-        """Dump the state points and associated job ids.
-
-        Equivalent to:
-
-        .. code-block:: python
-
-            {project.open_job(sp).id: sp for sp in statepoints}
-
-        Parameters
-        ----------
-        statepoints : iterable
-            A list of state points.
-
-        Returns
-        -------
-        dict
-            A mapping, where the key is the job id and the value is the
-            state point.
-
-        """
-        return {calc_id(sp): sp for sp in statepoints}
-
-    @deprecated(
-        deprecated_in="1.8",
-        removed_in="2.0",
-        current_version=__version__,
-        details="State point backup files are being removed in favor of Project.update_cache().",
-    )
-    def write_statepoints(self, statepoints=None, fn=None, indent=2):
-        """Dump state points to a file.
-
-        If the file already contains state points, all new state points
-        will be appended, while the old ones are preserved.
-
-        See Also
-        --------
-        dump_statepoints : Dump the state points and associated job ids.
-
-        Parameters
-        ----------
-        statepoints : iterable
-            A list of state points, defaults to all state points which are
-            defined in the workspace.
-        fn : str
-            The filename of the file containing the state points, defaults to
-            :attr:`~signac.Project.FN_STATEPOINTS`.
-        indent : int
-            Specify the indentation of the JSON file (Default value = 2).
-
-        """
-        if fn is None:
-            fn = self.fn(self.FN_STATEPOINTS)
-        try:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                tmp = self.read_statepoints(fn=fn)
-        except OSError as error:
-            if error.errno != errno.ENOENT:
-                raise
-            tmp = {}
-        if statepoints is None:
-            job_ids = self._job_dirs()
-            _cache = {_id: self._get_statepoint(_id) for _id in job_ids}
-        else:
-            _cache = {calc_id(sp): sp for sp in statepoints}
-
-        tmp.update(_cache)
-        logger.debug(f"Writing state points file with {len(tmp)} entries.")
-        with open(fn, "w") as file:
-            file.write(json.dumps(tmp, indent=indent))
-
-    def _register(self, _id, statepoint):
+    def _register(self, id_, statepoint):
         """Register the job state point in the project state point cache.
 
         Parameters
         ----------
-        _id : str
+        id_ : str
             A job identifier.
         statepoint : dict
             A validated job state point.
 
         """
-        self._sp_cache[_id] = statepoint
+        self._sp_cache[id_] = statepoint
 
     def _get_statepoint_from_workspace(self, job_id):
         """Attempt to read the state point from the workspace.
@@ -1344,22 +775,24 @@ class Project:
             Identifier of the job.
 
         """
-        # We can rely on the project workspace to be well-formed, so just use
-        # str.join with os.sep instead of os.path.join for speed.
-        fn_manifest = os.sep.join((self.workspace, job_id, self.Job.FN_MANIFEST))
+        # Performance-critical path. We can rely on the project workspace, job
+        # id, and state point file name to be well-formed, so just use str.join
+        # with os.sep instead of os.path.join for speed.
+        fn_statepoint = os.sep.join((self.workspace, job_id, Job.FN_STATE_POINT))
         try:
-            with open(fn_manifest, "rb") as manifest:
-                return json.loads(manifest.read().decode())
+            with open(fn_statepoint, "rb") as statepoint_file:
+                return json.loads(statepoint_file.read().decode())
         except (OSError, ValueError) as error:
             if os.path.isdir(os.sep.join((self.workspace, job_id))):
                 logger.error(
-                    "Error while trying to access state "
-                    "point manifest file of job '{}': '{}'.".format(job_id, error)
+                    "Error while trying to access state point file of job '{}': '{}'.".format(
+                        job_id, error
+                    )
                 )
                 raise JobsCorruptedError([job_id])
             raise KeyError(job_id)
 
-    def _get_statepoint(self, job_id, fn=None):
+    def _get_statepoint(self, job_id):
         """Get the state point associated with a job id.
 
         The state point is retrieved from the internal cache, from
@@ -1369,9 +802,6 @@ class Project:
         ----------
         job_id : str
             A job id to get the state point for.
-        fn : str
-            The filename of the file containing the state points, defaults
-            to :attr:`~signac.Project.FN_STATEPOINTS`.
 
         Returns
         -------
@@ -1383,8 +813,8 @@ class Project:
         KeyError
             If the state point associated with job_id could not be found.
         :class:`signac.errors.JobsCorruptedError`
-            If the state point manifest file corresponding to job_id is
-            inaccessible or corrupted.
+            If the state point file corresponding to job_id is inaccessible or
+            corrupted.
 
         """
         if not self._sp_cache:
@@ -1406,71 +836,17 @@ class Project:
                     "to update cache with the Project.update_cache() method."
                 )
                 self._sp_cache_warned = True
-            try:
-                statepoint = self._get_statepoint_from_workspace(job_id)
-                # Update the project's state point cache from this cache miss
-                self._sp_cache[job_id] = statepoint
-            except KeyError as error:
-                # Fall back to a file containing all state points because the state
-                # point could not be read from the job workspace.
-                #
-                # In signac 2.0, Project.read_statepoints will be removed.
-                # Update this code path to "raise error" and update the method
-                # documentation accordingly.
-                try:
-                    statepoints = self.read_statepoints(fn=fn)
-                    # Update the project's state point cache
-                    self._sp_cache.update(statepoints)
-                    statepoint = statepoints[job_id]
-                except OSError as io_error:
-                    if io_error.errno != errno.ENOENT:
-                        raise io_error
-                    else:
-                        raise error
+            statepoint = self._get_statepoint_from_workspace(job_id)
+            # Update the project's state point cache from this cache miss
+            self._sp_cache[job_id] = statepoint
         return statepoint
 
-    @deprecated(
-        deprecated_in="1.3",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Use open_job(id=jobid).statepoint() function instead.",
-    )
-    def get_statepoint(self, jobid, fn=None):
-        """Get the state point associated with a job id.
-
-        The state point is retrieved from the internal cache, from
-        the workspace or from a state points file.
-
-        Parameters
-        ----------
-        jobid : str
-            A job id to get the state point for.
-        fn : str
-            The filename of the file containing the state points, defaults
-            to :attr:`~signac.Project.FN_STATEPOINTS`.
-
-        Returns
-        -------
-        dict
-            The state point corresponding to jobid.
-
-        Raises
-        ------
-        KeyError
-            If the state point associated with jobid could not be found.
-        :class:`signac.errors.JobsCorruptedError`
-            If the state point manifest file corresponding to jobid is
-            inaccessible or corrupted.
-
-        """
-        return self._get_statepoint(job_id=jobid, fn=fn)
-
-    def create_linked_view(self, prefix=None, job_ids=None, index=None, path=None):
+    def create_linked_view(self, prefix=None, job_ids=None, path=None):
         """Create or update a persistent linked view of the selected data space.
 
         Similar to :meth:`~signac.Project.export_to`, this function expands the data space
         for the selected jobs, but instead of copying data will create symbolic links to the
-        individual job workspace directories. This is primarily useful for browsing through
+        individual job directories. This is primarily useful for browsing through
         the data space using a file-browser with human-interpretable directory paths.
 
         By default, the paths of the view will be based on variable state point keys as part
@@ -1505,14 +881,12 @@ class Project:
 
         Parameters
         ----------
-        prefix : str
+        prefix : str, optional
             The path where the linked view will be created or updated (Default value = None).
-        job_ids : iterable
+        job_ids : iterable, optional
             If None (the default), create the view for the complete data space,
             otherwise only for this iterable of job ids.
-        index :
-            A document index (Default value = None).
-        path :
+        path : str or callable, optional
             The path (function) used to structure the linked data space (Default value = None).
 
         Returns
@@ -1522,92 +896,11 @@ class Project:
             directory paths.
 
         """
-        if index is not None:
-            warnings.warn(INDEX_DEPRECATION_WARNING, FutureWarning)
         from .linked_view import create_linked_view
 
-        return create_linked_view(self, prefix, job_ids, index, path)
+        return create_linked_view(self, prefix, job_ids, path)
 
-    @deprecated(
-        deprecated_in="1.3",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Use job.statepoint = new_statepoint instead.",
-    )
-    def reset_statepoint(self, job, new_statepoint):
-        """Overwrite the state point of this job while preserving job data.
-
-        This method will change the job id if the state point has been altered.
-
-        .. danger::
-
-            Use this function with caution! Resetting a job's state point,
-            may sometimes be necessary, but can possibly lead to incoherent
-            data spaces.
-
-        Parameters
-        ----------
-        job : :class:`~signac.contrib.job.Job`
-            The job that should be reset to a new state point.
-        new_statepoint : mapping
-            The job's new state point.
-
-        Raises
-        ------
-        :class:`~signac.errors.DestinationExistsError`
-            If a job associated with the new state point is already initialized.
-        OSError
-            If the move failed due to an unknown system related error.
-
-        """
-        job._reset_statepoint(new_statepoint=new_statepoint)
-
-    @deprecated(
-        deprecated_in="1.3",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Use job.update_statepoint() instead.",
-    )
-    def update_statepoint(self, job, update, overwrite=False):
-        """Change the state point of this job while preserving job data.
-
-        By default, this method will not change existing parameters of the
-        state point of the job.
-
-        This method will change the job id if the state point has been altered.
-
-        .. warning::
-
-            While appending to a job's state point is generally safe, modifying
-            existing parameters may lead to data inconsistency. Use the
-            ``overwrite`` argument with caution!
-
-        Parameters
-        ----------
-        job : :class:`~signac.contrib.job.Job`
-            The job whose state point shall be updated.
-        update : mapping
-            A mapping used for the state point update.
-        overwrite : bool, optional
-            If False, an error will be raised if the update modifies the values
-            of existing keys in the state point. If True, any existing keys will
-            be overwritten in the same way as :meth:`dict.update`. Use with
-            caution! (Default value = False).
-
-        Raises
-        ------
-        KeyError
-            If the update contains keys which are already part of the job's
-            state point and ``overwrite`` is False.
-        :class:`~signac.errors.DestinationExistsError`
-            If a job associated with the new state point is already initialized.
-        OSError
-            If the move failed due to an unknown system related error.
-
-        """
-        job.update_statepoint(update=update, overwrite=overwrite)
-
-    def clone(self, job, copytree=shutil.copytree):
+    def clone(self, job, copytree=None):
         """Clone job into this project.
 
         Create an identical copy of job within this project.
@@ -1618,8 +911,10 @@ class Project:
         ----------
         job : :class:`~signac.contrib.job.Job`
             The job to copy into this project.
-        copytree :
-             (Default value = :func:`shutil.copytree`)
+        copytree : callable, optional
+            The function used for copying directory tree structures. Uses
+            :func:`shutil.copytree` if ``None`` (Default value = None). The function
+            requires that the target is a directory.
 
         Returns
         -------
@@ -1633,6 +928,8 @@ class Project:
             initialized within this project.
 
         """
+        if copytree is None:
+            copytree = shutil.copytree
         dst = self.open_job(job.statepoint())
         try:
             copytree(job.path, dst.path)
@@ -1640,7 +937,7 @@ class Project:
             if error.errno == errno.EEXIST:
                 raise DestinationExistsError(dst)
             elif error.errno == errno.ENOENT:
-                raise ValueError("Source job not initalized.")
+                raise ValueError("Source job not initialized.")
             else:
                 raise
         return dst
@@ -1666,15 +963,18 @@ class Project:
         ----------
         other : :class:`~signac.Project`
             The other project to synchronize this project with.
-        strategy :
-            A file synchronization strategy (Default value = None).
-        exclude :
-            Files with names matching the given pattern will be excluded
-            from the synchronization (Default value = None).
-        doc_sync :
-            The function applied for synchronizing documents (Default value = None).
-        selection :
-            Only sync the given jobs (Default value = None).
+        strategy : callable, optional
+            A synchronization strategy for file conflicts. If no strategy is provided, a
+            :class:`~signac.errors.SyncConflict` exception will be raised upon conflict
+            (Default value = None).
+        exclude : str, optional
+            A filename exclude pattern. All files matching this pattern will be
+            excluded from synchronization (Default value = None).
+        doc_sync : attribute or callable from :py:class:`~signac.sync.DocSync`, optional
+            A synchronization strategy for document keys. If this argument is None, by default
+            no keys will be synchronized upon conflict (Default value = None).
+        selection : sequence of :class:`~signac.contrib.job.Job` or job ids (str), optional
+            Only synchronize the given selection of jobs (Default value = None).
         \*\*kwargs :
             This method also accepts the same keyword arguments as the
             :meth:`~signac.sync.sync_projects` function.
@@ -1757,21 +1057,21 @@ class Project:
 
         Parameters
         ----------
-        target :
+        target : str
             A path to a directory to export to. The target can not already exist.
             Besides directories, possible targets are tar files (`.tar`), gzipped tar files
             (`.tar.gz`), zip files (`.zip`), bzip2-compressed files (`.bz2`),
             and xz-compressed files (`.xz`).
-        path :
+        path : str or callable, optional
             The path (function) used to structure the exported data space.
             This argument must either be a callable which returns a path (str) as a function
             of `job`, a string where fields are replaced using the job-state point dictionary,
             or `False`, which means that we just use the job-id as path.
             Defaults to the equivalent of ``{{auto}}``.
-        copytree :
-            The function used for the actual copying of directory tree
-            structures. Defaults to :func:`shutil.copytree`.
-            Can only be used when the target is a directory.
+        copytree : callable, optional
+            The function used for copying directory tree structures. Uses
+            :func:`shutil.copytree` if ``None`` (Default value = None). The function
+            requires that the target is a directory.
 
         Returns
         -------
@@ -1790,9 +1090,9 @@ class Project:
 
         The ``schema`` argument expects a function that takes a path argument and returns a state
         point dictionary. A default function is used when no argument is provided.
-        The default schema function will simply look for state point manifest files--usually named
-        ``signac_statepoint.json``--and then import all data located within that path into the job
-        workspace corresponding to the state point specified in the manifest file.
+        The default schema function will simply look for state point files -- usually named
+        ``signac_statepoint.json`` -- and then import all data located within that path into the job
+        workspace corresponding to the specified state point.
 
         Alternatively the schema argument may be a string, that is converted into a schema function,
         for example: Providing ``foo/{foo:int}`` as schema argument means that all directories under
@@ -1816,20 +1116,21 @@ class Project:
 
         Parameters
         ----------
-        origin :
+        origin : str, optional
             The path to the data space origin, which is to be imported. This may be a path to
             a directory, a zip file, or a tarball archive (Default value = None).
-        schema :
+        schema : callable, optional
             An optional schema function, which is either a string or a function that accepts a
             path as its first and only argument and returns the corresponding state point as dict.
             (Default value = None).
-        sync :
+        sync : bool or dict, optional
             If ``True``, the project will be synchronized with the imported data space. If a
             dict of keyword arguments is provided, the arguments will be used for
             :meth:`~signac.Project.sync` (Default value = None).
-        copytree :
-            Specify which exact function to use for the actual copytree operation.
-            Defaults to :func:`shutil.copytree`.
+        copytree : callable, optional
+            The function used for copying directory tree structures. Uses
+            :func:`shutil.copytree` if ``None`` (Default value = None). The function
+            requires that the target is a directory.
 
         Returns
         -------
@@ -1881,23 +1182,15 @@ class Project:
             )
             raise JobsCorruptedError(corrupted)
 
-    # State point backup files are being removed in favor of Project.update_cache().
-    # Change this method in signac 2.0 to use the state point cache by default
-    # instead of FN_STATEPOINTS.
-    def repair(self, fn_statepoints=None, index=None, job_ids=None):
+    def repair(self, job_ids=None):
         """Attempt to repair the workspace after it got corrupted.
 
         This method will attempt to repair lost or corrupted job state point
-        manifest files using a state points file or a document index or both.
+        files using a state point cache.
 
         Parameters
         ----------
-        fn_statepoints : str
-            The filename of the file containing the state points, defaults
-            to :attr:`~signac.Project.FN_STATEPOINTS`.
-        index :
-            A document index (Default value = None).
-        job_ids :
+        job_ids : iterable[str], optional
             An iterable of job ids that should get repaired. Defaults to all jobs.
 
         Raises
@@ -1911,22 +1204,6 @@ class Project:
 
         # Load internal cache from all available external sources.
         self._read_cache()
-        try:
-            # Updates the state point cache from the provided file
-            #
-            # In signac 2.0, Project.read_statepoints will be removed.
-            # Remove this code path (only use "self._read_cache()" above) and
-            # update the method signature and docs to remove "fn_statepoints."
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                self._sp_cache.update(self.read_statepoints(fn=fn_statepoints))
-        except OSError as error:
-            if error.errno != errno.ENOENT or fn_statepoints is not None:
-                raise
-        if index is not None:
-            for doc in index:
-                self._sp_cache[doc["signac_id"]] = doc["sp"]
-            warnings.warn(INDEX_DEPRECATION_WARNING, FutureWarning)
         corrupted = []
         for job_id in job_ids:
             try:
@@ -1961,14 +1238,14 @@ class Project:
                 corrupted.append(job_id)
             else:
                 try:
-                    # Try to reinit the job (triggers state point manifest file check).
+                    # Try to reinitialize the job (triggers state point file check).
                     job.init()
                 except Exception as error:
                     logger.error(
                         "Error during initialization of job with "
                         "id '{}': '{}'.".format(job_id, error)
                     )
-                    try:  # Attempt to fix the job manifest file.
+                    try:  # Attempt to fix the job state point file.
                         job.init(force=True)
                     except Exception as error2:
                         logger.critical(
@@ -1978,50 +1255,39 @@ class Project:
         if corrupted:
             raise JobsCorruptedError(corrupted)
 
-    def _sp_index(self):
-        """Update and return the state point index cache.
-
-        Returns
-        -------
-        dict
-            Dictionary containing ids and state points in the cache.
-
-        """
-        job_ids = set(self._job_dirs())
-        to_add = job_ids.difference(self._index_cache)
-        to_remove = set(self._index_cache).difference(job_ids)
-        for _id in to_remove:
-            del self._index_cache[_id]
-        for _id in to_add:
-            self._index_cache[_id] = dict(sp=self._get_statepoint(_id), _id=_id)
-        return self._index_cache.values()
-
     def _build_index(self, include_job_document=False):
         """Generate a basic state point index.
 
         Parameters
         ----------
-        include_job_document :
+        include_job_document : bool, optional
             Whether to include the job document in the index (Default value =
             False).
 
+        Yields
+        ------
+        job_id : str
+            The job id.
+        doc : dict
+            Dictionary with keys ``sp`` containing the state point and ``doc``
+            containing the job document if requested.
+
         """
-        wd = self.workspace if self.Job is Job else None
-        for _id in self._find_job_ids():
-            doc = dict(_id=_id, sp=self._get_statepoint(_id))
+        for job_id in self._find_job_ids():
+            doc = {"sp": self._get_statepoint(job_id)}
             if include_job_document:
-                if wd is None:
-                    doc["doc"] = self.open_job(id=_id).document
-                else:  # use optimized path
-                    try:
-                        with open(
-                            os.path.join(wd, _id, self.Job.FN_DOCUMENT), "rb"
-                        ) as file:
-                            doc["doc"] = json.loads(file.read().decode())
-                    except OSError as error:
-                        if error.errno != errno.ENOENT:
-                            raise
-            yield doc
+                try:
+                    # Performance-critical path. We can rely on the project
+                    # workspace, job id, and document file name to be
+                    # well-formed, so just use str.join with os.sep instead of
+                    # os.path.join for speed.
+                    fn_document = os.sep.join((self.workspace, job_id, Job.FN_DOCUMENT))
+                    with open(fn_document, "rb") as file:
+                        doc["doc"] = json.loads(file.read().decode())
+                except OSError as error:
+                    if error.errno != errno.ENOENT:
+                        raise
+            yield job_id, doc
 
     def _update_in_memory_cache(self):
         """Update the in-memory state point cache to reflect the workspace."""
@@ -2032,13 +1298,13 @@ class Project:
         to_add = job_ids.difference(cached_ids)
         to_remove = cached_ids.difference(job_ids)
         if to_add or to_remove:
-            for _id in to_remove:
-                del self._sp_cache[_id]
+            for id_ in to_remove:
+                del self._sp_cache[id_]
 
-            def _add(_id):
-                self._sp_cache[_id] = self._get_statepoint_from_workspace(_id)
+            def _add(id_):
+                self._sp_cache[id_] = self._get_statepoint_from_workspace(id_)
 
-            to_add_chunks = split_and_print_progress(
+            to_add_chunks = _split_and_print_progress(
                 iterable=list(to_add),
                 num_chunks=max(1, min(100, int(len(to_add) / 1000))),
                 write=logger.info,
@@ -2067,7 +1333,7 @@ class Project:
         """Update the persistent state point cache.
 
         This function updates a persistent state point cache, which
-        is stored in the project root directory. Most data space operations,
+        is stored in the project directory. Most data space operations,
         including iteration and filtering or selection are expected
         to be significantly faster after calling this function, especially
         for large data spaces.
@@ -2115,184 +1381,11 @@ class Project:
             logger.debug(f"Read cache in {delta:.3f} seconds.")
             return cache
 
-    @deprecated(
-        deprecated_in="1.8",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Indexing is deprecated.",
-    )
-    def index(
-        self, formats=None, depth=0, skip_errors=False, include_job_document=True
-    ):
-        r"""Generate an index of the project's workspace.
-
-        This generator function indexes every file in the project's
-        workspace until the specified `depth`.
-        The job document if it exists, is always indexed, other
-        files need to be specified with the formats argument.
-
-        See :ref:`signac project -i <signac-cli-project>` for the command line equivalent.
-
-        .. code-block:: python
-
-            for doc in project.index({r'.*\.txt', 'TextFile'}):
-                print(doc)
-
-        Parameters
-        ----------
-        formats : str, dict
-            The format definitions as a pattern string (e.g. ``r'.*\.txt'``)
-            or a mapping from pattern strings to formats (e.g.
-            ``'TextFile'``). If None, only the job document is indexed
-            (Default value = None).
-        depth : int
-            Specifies the crawling depth. A value of 0 means no limit
-            (Default value = 0).
-        skip_errors : bool
-            Skip all errors which occur during indexing. This is useful when
-            trying to repair a broken workspace (Default value = False).
-        include_job_document : bool
-            Include the contents of job documents (Default value = True).
-
-        Yields
-        ------
-        dict
-            Index document.
-
-        """
-        yield from self._index(formats, depth, skip_errors, include_job_document)
-
-    def _index(
-        self, formats=None, depth=0, skip_errors=False, include_job_document=True
-    ):
-        r"""Generate an index of the project's workspace.
-
-        This generator function indexes every file in the project's
-        workspace until the specified `depth`.
-        The job document if it exists, is always indexed, other
-        files need to be specified with the formats argument.
-
-        See :ref:`signac project -i <signac-cli-project>` for the command line equivalent.
-
-        .. code-block:: python
-
-            for doc in project._index({r'.*\.txt', 'TextFile'}):
-                print(doc)
-
-        Parameters
-        ----------
-        formats : str, dict
-            The format definitions as a pattern string (e.g. ``r'.*\.txt'``)
-            or a mapping from pattern strings to formats (e.g.
-            ``'TextFile'``). If None, only the job document is indexed
-            (Default value = None).
-        depth : int
-            Specifies the crawling depth. A value of 0 means no limit
-            (Default value = 0).
-        skip_errors : bool
-            Skip all errors which occur during indexing. This is useful when
-            trying to repair a broken workspace (Default value = False).
-        include_job_document : bool
-            Include the contents of job documents (Default value = True).
-
-        Yields
-        ------
-        dict
-            Index document.
-
-        """
-        if formats is None:
-            root = self.workspace
-
-            def _full_doc(doc):
-                """Add `signac_id` and `root` to the index document.
-
-                Parameters
-                ----------
-                doc : dict
-                    Index document.
-
-                Returns
-                -------
-                dict
-                    Modified index document.
-
-                """
-                doc["signac_id"] = doc["_id"]
-                doc["root"] = root
-                return doc
-
-            docs = self._build_index(include_job_document=include_job_document)
-            docs = map(_full_doc, docs)
-        else:
-            if isinstance(formats, str):
-                formats = {formats: "File"}
-
-            class Crawler(SignacProjectCrawler):
-                pass
-
-            for pattern, fmt in formats.items():
-                Crawler.define(pattern, fmt)
-            crawler = Crawler(self.path)
-            docs = crawler.crawl(depth=depth)
-        if skip_errors:
-            docs = _skip_errors(docs, logger.critical)
-        for doc in docs:
-            yield doc
-
-    @deprecated(
-        deprecated_in="1.5",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Access modules are deprecated.",
-    )
-    def create_access_module(self, filename=None, main=True, master=None):
-        """Create the access module for indexing.
-
-        This method generates the access module required to make
-        this project's index part of a main index.
-
-        Parameters
-        ----------
-        filename : str
-            The name of the access module file. Defaults to the standard name
-            and should usually not be changed.
-        main : bool
-            If True, add directives for the compilation of a master index
-            when executing the module (Default value = True).
-        master : bool
-            Deprecated parameter. Replaced by main.
-
-        Returns
-        -------
-        str
-            Access module name.
-
-        """
-        if master is not None:
-            warnings.warn(
-                "The parameter master has been renamed to main.", FutureWarning
-            )
-            main = master
-
-        if filename is None:
-            filename = os.path.join(self.path, MainCrawler.FN_ACCESS_MODULE)
-        with open(filename, "x") as file:
-            if main:
-                file.write(ACCESS_MODULE_MAIN)
-            else:
-                file.write(ACCESS_MODULE_MINIMAL)
-        if main:
-            mode = os.stat(filename).st_mode | stat.S_IEXEC
-            os.chmod(filename, mode)
-        logger.info(f"Created access module file '{filename}'.")
-        return filename
-
     @contextmanager
-    def temporary_project(self, name=None, dir=None):
+    def temporary_project(self, dir=None):
         """Context manager for the initialization of a temporary project.
 
-        The temporary project is by default created within the root project's
+        The temporary project is by default created within the parent project's
         workspace to ensure that they share the same file system. This is an example
         for how this method can be used for the import and synchronization of
         external data spaces.
@@ -2305,11 +1398,8 @@ class Project:
 
         Parameters
         ----------
-        name : str
-            An optional name for the temporary project.
-            Defaults to a unique random string.
-        dir : str
-            Optionally specify where the temporary project root directory is to be
+        dir : str, optional
+            Optionally specify where the temporary project directory is to be
             created. Defaults to the project's workspace directory.
 
         Returns
@@ -2318,17 +1408,15 @@ class Project:
             An instance of :class:`~signac.Project`.
 
         """
-        if name is None:
-            name = os.path.join(self.id, str(uuid.uuid4()))
         if dir is None:
             dir = self.workspace
         _mkdir_p(self.workspace)  # ensure workspace exists
-        with TemporaryProject(name=name, cls=type(self), dir=dir) as tmp_project:
+        with TemporaryProject(cls=type(self), dir=dir) as tmp_project:
             yield tmp_project
 
     @classmethod
-    def init_project(cls, name=None, root=None, workspace=None, make_dir=True):
-        """Initialize a project.
+    def init_project(cls, path=None):
+        """Initialize a project in the provided directory.
 
         It is safe to call this function multiple times with the same
         arguments. However, a `RuntimeError` is raised if an existing project
@@ -2339,17 +1427,9 @@ class Project:
 
         Parameters
         ----------
-        name : str, optional
-            The name of the project to initialize (Default value = None).
-        root : str, optional
-            The root directory for the project.
+        path : str, optional
+            The directory for the project.
             Defaults to the current working directory.
-        workspace : str, optional
-            The workspace directory for the project.
-            Defaults to a subdirectory ``workspace`` in the project root.
-        make_dir : bool, optional
-            Create the project root directory if it does not exist yet
-            (Default value = True).
 
         Returns
         -------
@@ -2359,67 +1439,37 @@ class Project:
         Raises
         ------
         RuntimeError
-            If the project root path already contains a conflicting project
+            If the project path already contains a conflicting project
             configuration.
 
         """
-        if root is None:
-            root = os.getcwd()
+        if path is None:
+            path = os.getcwd()
 
-        if name is not None:
-            warnings.warn(
-                "Project names are deprecated and will be removed in signac 2.0 in favor of using "
-                "the project root directory to identify projects. The name argument to "
-                "init_project should be removed.",
-                FutureWarning,
-            )
-        else:
-            name = _DEFAULT_PROJECT_NAME
         try:
-            project = cls.get_project(root=root, search=False)
+            project = cls.get_project(path=path, search=False)
         except LookupError:
-            fn_config = os.path.join(root, "signac.rc")
-            if make_dir:
-                _mkdir_p(os.path.dirname(fn_config))
-            config = _get_config(fn_config)
-            config["project"] = name
-            if workspace is not None:
-                config["workspace_dir"] = workspace
+            fn_config = _get_project_config_fn(path)
+            _mkdir_p(os.path.dirname(fn_config))
+            config = _read_config_file(fn_config)
             config["schema_version"] = SCHEMA_VERSION
             config.write()
-            project = cls.get_project(root=root)
-            assert project.id == str(name)
-            return project
-        else:
-            try:
-                assert project.id == str(name)
-                if workspace is not None:
-                    assert os.path.realpath(workspace) == os.path.realpath(
-                        project.workspace
-                    )
-                return project
-            except AssertionError:
-                raise RuntimeError(
-                    "Failed to initialize project '{}'. Path '{}' already "
-                    "contains a conflicting project configuration.".format(
-                        name, os.path.abspath(root)
-                    )
-                )
+            project = cls.get_project(path=path)
+        return project
 
     @classmethod
-    def get_project(cls, root=None, search=True, **kwargs):
+    def get_project(cls, path=None, search=True, **kwargs):
         r"""Find a project configuration and return the associated project.
 
         Parameters
         ----------
-        root : str
-            The starting point to search for a project, defaults to the
-            current working directory.
-        search : bool
-            If True, search for project configurations inside and above
-            the specified root directory, otherwise only return projects
-            with a root directory identical to the specified root argument
-            (Default value = True).
+        path : str, optional
+            The starting point to search for a project. If None, the current
+            working directory is used (Default value = None).
+        search : bool, optional
+            If True, search for project configurations inside and above the
+            specified path, otherwise only return a project in the specified
+            path (Default value = True).
         \*\*kwargs :
             Optional keyword arguments that are forwarded to the
             :class:`.Project` class constructor.
@@ -2432,68 +1482,69 @@ class Project:
         Raises
         ------
         LookupError
-            When project configuration cannot be found.
+            If no project configuration can be found.
 
         """
-        if root is None:
-            root = os.getcwd()
+        if path is None:
+            path = os.getcwd()
 
-        if not os.path.exists(root):
+        if not os.path.exists(path):
             raise LookupError(
-                f"Unable to determine project id for nonexistent path '{os.path.abspath(root)}'."
+                f"Unable to determine project id for nonexistent path '{os.path.abspath(path)}'."
             )
 
-        config = _load_config(root=root, local=False)
-        if "project" not in config or (
-            not search
-            and os.path.realpath(config["project_dir"]) != os.path.realpath(root)
-        ):
+        old_path = path
+        if not search and not os.path.isfile(_get_project_config_fn(path)):
+            path = None
+        else:
+            path = _locate_config_dir(path)
+
+        if not path:
             raise LookupError(
-                f"Unable to determine project id for path '{os.path.abspath(root)}'."
+                f"Unable to find project at path '{os.path.abspath(old_path)}'."
             )
 
-        return cls(config=config, **kwargs)
+        return cls(path=path, **kwargs)
 
     @classmethod
-    def get_job(cls, root=None):
+    def get_job(cls, path=None):
         """Find a Job in or above the current working directory (or provided path).
 
         Parameters
         ----------
-        root : str
-            The job root directory.
-            If no root directory is given, the current working directory is
-            assumed to be the job directory (Default value = None).
+        path : str, optional
+            The starting point to search for a job. If None, the current
+            working directory is used (Default value = None).
 
         Returns
         -------
         :class:`~signac.contrib.job.Job`
-            The job instance.
+            The first job found in or above the provided path.
 
         Raises
         ------
         LookupError
-            When job cannot be found.
+            If a job cannot be found.
 
         """
-        if root is None:
-            root = os.getcwd()
-        root = os.path.abspath(root)
+        if path is None:
+            path = os.getcwd()
+        path = os.path.abspath(path)
 
-        # Ensure the root path exists, which is not guaranteed by the regex match
-        if not os.path.exists(root):
-            raise LookupError(f"Path does not exist: '{root}'.")
+        # Ensure the path exists, which is not guaranteed by the regex match
+        if not os.path.exists(path):
+            raise LookupError(f"Path does not exist: '{path}'.")
 
         # Find the last match instance of a job id
-        results = list(re.finditer(JOB_ID_REGEX, root))
+        results = list(re.finditer(JOB_ID_REGEX, path))
         if len(results) == 0:
-            raise LookupError(f"Could not find a job id in path '{root}'.")
+            raise LookupError(f"Could not find a job id in path '{path}'.")
         match = results[-1]
         job_id = match.group(0)
-        job_root = root[: match.end()]
+        job_path = path[: match.end()]
 
-        # Find a project *above* the root directory (avoid finding nested projects)
-        project = cls.get_project(os.path.join(job_root, os.pardir))
+        # Find a project *above* the path (avoid finding nested projects)
+        project = cls.get_project(os.path.join(job_path, os.pardir))
 
         # Return the matched job id from the found project
         return project.open_job(id=job_id)
@@ -2511,7 +1562,7 @@ class Project:
 
 
 @contextmanager
-def TemporaryProject(name=None, cls=None, **kwargs):
+def TemporaryProject(cls=None, **kwargs):
     r"""Context manager for the generation of a temporary project.
 
     This is a factory function that creates a Project within a temporary directory
@@ -2524,15 +1575,13 @@ def TemporaryProject(name=None, cls=None, **kwargs):
 
     Parameters
     ----------
-    name : str
-        An optional name for the temporary project.
-        Defaults to a unique random string.
-    cls :
+    cls : object, optional
         The class of the temporary project.
         Defaults to :class:`~signac.Project`.
     \*\*kwargs :
-        Optional keyword arguments that are forwarded to the TemporaryDirectory class
-        constructor, which is used to create a temporary root directory.
+        Optional keyword arguments that are forwarded to the
+        TemporaryDirectory class constructor, which is used to create a
+        temporary project directory.
 
     Yields
     ------
@@ -2540,36 +1589,10 @@ def TemporaryProject(name=None, cls=None, **kwargs):
         An instance of :class:`~signac.Project`.
 
     """
-    if name is None:
-        name = str(uuid.uuid4())
     if cls is None:
         cls = Project
     with TemporaryDirectory(**kwargs) as tmp_dir:
-        yield cls.init_project(name=name, root=tmp_dir)
-
-
-def _skip_errors(iterable, log=print):
-    """Skip errors.
-
-    Parameters
-    ----------
-    iterable : dict
-        An iterable.
-    log : callable
-        The function to call when logging errors (Default value = print)
-
-    Yields
-    ------
-    Elements from the iterable, with exceptions ignored.
-
-    """
-    while True:
-        try:
-            yield next(iterable)
-        except StopIteration:
-            return
-        except Exception as error:
-            log(error)
+        yield cls.init_project(path=tmp_dir)
 
 
 class _JobsCursorIterator:
@@ -2600,45 +1623,19 @@ class JobsCursor:
     project : :class:`~signac.Project`
         Project handle.
     filter : Mapping
-        A mapping of key-value pairs that all indexed job state points are
-        compared against (Default value = None).
-
-    Notes
-    -----
-    Iteration is performed by acquiring job ids from the project using
-    :meth:`Project._find_job_ids`. When no filter (``filter = None``) is
-    provided, that method can take a much faster execution path, so not passing
-    a filter (or passing ``None`` explicitly) to this constructor is strongly
-    recommended over passing an empty filter (``filter = {}``) when iterating
-    over the entire data space.
+        A mapping of key-value pairs used for the query (Default value = None).
 
     """
 
     _use_pandas_for_html_repr = True  # toggle use of pandas for html repr
 
-    def __init__(self, project, filter=None, doc_filter=None):
+    def __init__(self, project, filter=None):
         self._project = project
         self._filter = filter
-
-        # TODO: This is a compatibility layer for signac-flow. It should be
-        # removed after signac 2.0 is released and once signac-flow drops
-        # support for signac < 2.0. At that point the JobsCursor constructor
-        # will require a 'doc.' namespaced filter to perform document-based
-        # filtering.
-        if doc_filter:
-            doc_filter = parse_filter(_add_prefix("doc.", doc_filter))
-            if self._filter:
-                self._filter.update(doc_filter)
-            else:
-                self._filter = doc_filter
 
         # Replace empty filters with None for performance
         if self._filter == {}:
             self._filter = None
-
-        # This private attribute allows us to implement the deprecated
-        # next() method for this class.
-        self._next_iter = None
 
     def __eq__(self, other):
         return self._project == other._project and self._filter == other._filter
@@ -2687,27 +1684,6 @@ class JobsCursor:
             self._project, self._project._find_job_ids(self._filter)
         )
 
-    @deprecated(
-        deprecated_in="0.9.6",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Use next(iter(...)) instead.",
-    )
-    def next(self):
-        """Return the next element.
-
-        This function is deprecated. Users should use ``next(iter(...))`` instead.
-        .. deprecated:: 0.9.6
-
-        """
-        if self._next_iter is None:
-            self._next_iter = iter(self)
-        try:
-            return next(self._next_iter)
-        except StopIteration:
-            self._next_iter = None
-            raise
-
     def groupby(self, key=None, default=None):
         """Group jobs according to one or more state point or document parameters.
 
@@ -2753,11 +1729,11 @@ class JobsCursor:
 
         Parameters
         ----------
-        key : str, iterable, or callable
+        key : str, iterable, or callable, optional
             The grouping key(s) passed as a string,
             iterable of strings, or a callable that will be passed one
             argument, the job (Default value = None).
-        default :
+        default : object, optional
             A default value to be used when a given key is not
             present. The value must be sortable and is only used if not None
             (Default value = None).
@@ -2765,10 +1741,9 @@ class JobsCursor:
         Yields
         ------
         key :
-            Grouped key.
+            Key identifying this group.
         group : iterable of Jobs
-            Iterable of `Job` instances matching this group key.
-
+            Iterable of `Job` instances matching this group.
         """
         _filter = self._filter
 
@@ -2852,7 +1827,7 @@ class JobsCursor:
         elif key is None:
             # Must return a type that can be ordered with <, >
             def keyfunction(job):
-                return str(job)
+                return job.id
 
         else:
             # Pass the job document to a callable
@@ -2860,92 +1835,11 @@ class JobsCursor:
 
         yield from groupby(
             sorted(
-                iter(JobsCursor(self._project, _filter)),
+                iter(self._project.find_jobs(_filter)),
                 key=keyfunction,
             ),
             key=keyfunction,
         )
-
-    @deprecated(
-        deprecated_in="1.7",
-        removed_in="2.0",
-        current_version=__version__,
-        details=(
-            "Use groupby with a 'doc.' filter instead, see "
-            "https://docs.signac.io/en/latest/query.html#query-namespaces."
-        ),
-    )
-    def groupbydoc(self, key=None, default=None):
-        """Group jobs according to one or more document values.
-
-        This method can be called on any :class:`~signac.contrib.project.JobsCursor` such as
-        the one returned by :meth:`~signac.Project.find_jobs` or by iterating over a
-        project.
-
-        Examples
-        --------
-        .. code-block:: python
-
-            # Group jobs by document value 'a'.
-            for key, group in project.groupbydoc('a'):
-                print(key, list(group))
-
-            # Find jobs where job.sp['a'] is 1 and group them
-            # by job.document['b'] and job.document['c'].
-            for key, group in project.find_jobs({'a': 1}).groupbydoc(('b', 'c')):
-                print(key, list(group))
-
-            # Group by whether 'd' is a field in the job.document using a lambda.
-            for key, group in project.groupbydoc(lambda doc: 'd' in doc):
-                print(key, list(group))
-
-        If `key` is None, jobs are grouped by id, placing one job into each group.
-
-        Parameters
-        ----------
-        key : str, iterable, or callable
-            The document grouping parameter(s) passed as a string, iterable
-            of strings, or a callable that will be passed one argument,
-            :attr:`~signac.contrib.job.Job.document` (Default value = None).
-        default :
-            A default value to be used when a given document key is not
-            present. The value must be sortable and is only used if not None
-            (Default value = None).
-
-        """
-        if isinstance(key, str):
-            if default is None:
-
-                def keyfunction(job):
-                    return job.document[key]
-
-            else:
-
-                def keyfunction(job):
-                    return job.document.get(key, default)
-
-        elif isinstance(key, Iterable):
-            if default is None:
-
-                def keyfunction(job):
-                    return tuple(job.document[k] for k in key)
-
-            else:
-
-                def keyfunction(job):
-                    return tuple(job.document.get(k, default) for k in key)
-
-        elif key is None:
-            # Must return a type that can be ordered with <, >
-            def keyfunction(job):
-                return str(job)
-
-        else:
-            # Pass the job document to a callable
-            def keyfunction(job):
-                return key(job.document)
-
-        return groupby(sorted(iter(self), key=keyfunction), key=keyfunction)
 
     def export_to(self, target, path=None, copytree=None):
         """Export all jobs to a target location, such as a directory or a (zipped) archive file.
@@ -2961,10 +1855,10 @@ class JobsCursor:
         path : str or callable
             The path (function) used to structure the exported data space
             (Default value = None).
-        copytree : callable
-            The function used for copying of directory tree structures.
-            Defaults to :func:`shutil.copytree`. Can only be used when the
-            target is a directory (Default value = None).
+        copytree : callable, optional
+            The function used for copying directory tree structures. Uses
+            :func:`shutil.copytree` if ``None`` (Default value = None). The function
+            requires that the target is a directory.
 
         Returns
         -------
@@ -3106,7 +2000,7 @@ class JobsCursor:
         return repr(self) + self._repr_html_jobs()
 
 
-def init_project(name=None, root=None, workspace=None, make_dir=True):
+def init_project(path=None):
     """Initialize a project.
 
     It is safe to call this function multiple times with the same arguments.
@@ -3115,17 +2009,9 @@ def init_project(name=None, root=None, workspace=None, make_dir=True):
 
     Parameters
     ----------
-    name : str, optional
-        The name of the project to initialize.
-    root : str, optional
-        The root directory for the project.
+    path : str, optional
+        The directory for the project.
         Defaults to the current working directory.
-    workspace : str, optional
-        The workspace directory for the project.
-        Defaults to a subdirectory ``workspace`` in the project root.
-    make_dir : bool, optional
-        Create the project root directory, if it does not exist yet (Default
-        value = True).
 
     Returns
     -------
@@ -3135,28 +2021,25 @@ def init_project(name=None, root=None, workspace=None, make_dir=True):
     Raises
     ------
     RuntimeError
-        If the project root path already contains a conflicting project
+        If the project path already contains a conflicting project
         configuration.
 
     """
-    return Project.init_project(
-        name=name, root=root, workspace=workspace, make_dir=make_dir
-    )
+    return Project.init_project(path=path)
 
 
-def get_project(root=None, search=True, **kwargs):
+def get_project(path=None, search=True, **kwargs):
     r"""Find a project configuration and return the associated project.
 
     Parameters
     ----------
-    root : str
-        The starting point to search for a project, defaults to the current
-        working directory.
-    search : bool
+    path : str, optional
+        The starting point to search for a project. If None, the current
+        working directory is used (Default value = None).
+    search : bool, optional
         If True, search for project configurations inside and above the
-        specified root directory, otherwise only return projects with a root
-        directory identical to the specified root argument (Default value =
-        True).
+        specified path, otherwise only return a project in the specified
+        path (Default value = True).
     \*\*kwargs :
         Optional keyword arguments that are forwarded to
         :meth:`~signac.Project.get_project`.
@@ -3172,35 +2055,34 @@ def get_project(root=None, search=True, **kwargs):
         If no project configuration can be found.
 
     """
-    return Project.get_project(root=root, search=search, **kwargs)
+    return Project.get_project(path=path, search=search, **kwargs)
 
 
-def get_job(root=None):
-    """Find a Job in or above the current working directory (or provided path).
+def get_job(path=None):
+    """Find a Job in or above the provided path (or the current working directory).
 
     Parameters
     ----------
-    root : str
-        The job root directory.
-        If no root directory is given, the current working directory is
-        assumed to be within the current job workspace directory (Default value = None).
+    path : str, optional
+        The starting point to search for a job. If None, the current
+        working directory is used (Default value = None).
 
     Returns
     -------
     :class:`~signac.contrib.job.Job`
-        Job handle.
+        The first job found in or above the provided path.
 
     Raises
     ------
     LookupError
-        If this job cannot be found.
+        If a job cannot be found.
 
     Examples
     --------
-    When the current directory is a job workspace directory:
+    When the current directory is a job directory:
 
     >>> signac.get_job()
     signac.contrib.job.Job(project=..., statepoint={...})
 
     """
-    return Project.get_job(root=root)
+    return Project.get_job(path=path)

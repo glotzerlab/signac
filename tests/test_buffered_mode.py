@@ -2,7 +2,6 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import json
-import logging
 import os
 import platform
 from stat import S_IREAD
@@ -13,8 +12,7 @@ import pytest
 from test_project import TestProjectBase
 
 import signac
-from signac.errors import BufferedFileError, Error
-from signac.synced_collections.errors import BufferedError
+from signac._synced_collections.errors import BufferedError
 
 PYPY = "PyPy" in platform.python_implementation()
 
@@ -73,96 +71,21 @@ class TestBufferedMode(TestProjectBase):
             assert job.doc.a == 2
         assert job.doc.a == 2
 
-    # Remove this test in signac 2.0.
-    @pytest.mark.xfail(
-        reason="The new SyncedCollection does not implement force_write."
-    )
-    def test_buffered_mode_force_write(self):
-        with signac.buffered(force_write=False):
-            with signac.buffered(force_write=False):
-                pass
+    def test_buffered_mode_change_buffer_capacity(self):
         assert not signac.is_buffered()
-
-        with signac.buffered(force_write=True):
-            with signac.buffered(force_write=True):
-                pass
-
-        with pytest.raises(Error):
-            with signac.buffered():
-                with signac.buffered(force_write=True):
-                    pass
-        assert not signac.is_buffered()
-
-    # Remove this test in signac 2.0.
-    @pytest.mark.xfail(
-        reason="The new SyncedCollection does not implement force_write."
-    )
-    def test_buffered_mode_force_write_with_file_modification(self):
-        job = self.project.open_job(dict(a=0))
-        job.init()
-        job.doc.a = True
-        x = job.doc.a
-        assert job.doc.a == x
-        with pytest.raises(BufferedFileError):
-            with signac.buffered():
-                assert job.doc.a == x
-                job.doc.a = not x
-                assert job.doc.a == (not x)
-                sleep(1.0)
-                with open(job.doc._filename, "wb") as file:
-                    file.write(json.dumps({"a": x}).encode())
-        assert not signac.is_buffered()
-        assert job.doc.a == x
-
-        with signac.buffered(force_write=True):
-            assert job.doc.a == x
-            job.doc.a = not x
-            assert job.doc.a == (not x)
-            sleep(1.0)
-            with open(job.doc._filename, "wb") as file:
-                file.write(json.dumps({"a": x}).encode())
-        assert job.doc.a == (not x)
-
-    # Remove this test in signac 2.0.
-    @pytest.mark.xfail(
-        reason="The new SyncedCollection does not implement force_write."
-    )
-    def test_force_write_mode_with_permission_error(self):
-        job = self.project.open_job(dict(a=0))
-        job.init()
-        job.doc.a = True
-        x = job.doc.a
-        path = os.path.dirname(job.doc._filename)
-        mode = os.stat(path).st_mode
-        logging.disable(logging.CRITICAL)
-        try:
-            assert job.doc.a == x
-            with pytest.raises(BufferedFileError):
-                with signac.buffered():
-                    assert job.doc.a == x
-                    job.doc.a = not x
-                    assert job.doc.a == (not x)
-                    os.chmod(path, S_IREAD)  # Trigger permissions error
-        finally:
-            logging.disable(logging.NOTSET)
-            os.chmod(path, mode)
-        assert job.doc.a == x
-
-    def test_buffered_mode_change_buffer_size(self):
-        assert not signac.is_buffered()
-        with signac.buffered(buffer_size=12):
+        with signac.buffered(buffer_capacity=12):
             assert signac.buffered()
-            assert signac.get_buffer_size() == 12
+            assert signac.get_buffer_capacity() == 12
 
         assert not signac.is_buffered()
 
         assert not signac.is_buffered()
-        with signac.buffered(buffer_size=12):
+        with signac.buffered(buffer_capacity=12):
             assert signac.buffered()
-            assert signac.get_buffer_size() == 12
+            assert signac.get_buffer_capacity() == 12
             with signac.buffered():
                 assert signac.buffered()
-                assert signac.get_buffer_size() == 12
+                assert signac.get_buffer_capacity() == 12
 
         assert not signac.is_buffered()
 
@@ -176,13 +99,11 @@ class TestBufferedMode(TestProjectBase):
                 assert job.sp.a > 0
                 job.sp.a = -job.sp.a
                 assert job.sp.a < 0
-                with pytest.warns(FutureWarning):
-                    job2 = self.project.open_job(id=job.get_id())
+                job2 = self.project.open_job(id=job.id)
                 assert job2.sp.a < 0
                 job.sp.a = -job.sp.a
                 assert job.sp.a > 0
-                with pytest.warns(FutureWarning):
-                    job2 = self.project.open_job(id=job.get_id())
+                job2 = self.project.open_job(id=job.id)
                 assert job2.sp.a > 0
 
             for job in self.project:
@@ -193,25 +114,24 @@ class TestBufferedMode(TestProjectBase):
                 assert job.doc.a
 
         routine()
-        assert signac.get_buffer_load() == 0
+        assert signac.get_current_buffer_size() == 0
         with signac.buffered():
             assert signac.is_buffered()
             routine()
-            assert signac.get_buffer_load() > 0
-        assert signac.get_buffer_load() == 0
+            assert signac.get_current_buffer_size() > 0
+        assert signac.get_current_buffer_size() == 0
 
         for job in self.project:
             x = job.doc.a
             with signac.buffered():
-                assert signac.get_buffer_load() == 0
+                assert signac.get_current_buffer_size() == 0
                 assert job.doc.a == x
-                assert signac.get_buffer_load() > 0
+                assert signac.get_current_buffer_size() > 0
                 job.doc.a = not job.doc.a
                 assert job.doc.a == (not x)
-                with pytest.warns(FutureWarning):
-                    job2 = self.project.open_job(id=job.get_id())
+                job2 = self.project.open_job(id=job.id)
                 assert job2.doc.a == (not x)
-            assert signac.get_buffer_load() == 0
+            assert signac.get_current_buffer_size() == 0
             assert job.doc.a == (not x)
             assert job2.doc.a == (not x)
 

@@ -4,7 +4,7 @@
 import pytest
 from test_project import TestProjectBase
 
-from signac.synced_collections.numpy_utils import NumpyConversionWarning
+from signac._synced_collections.numpy_utils import NumpyConversionWarning
 
 try:
     import numpy  # noqa

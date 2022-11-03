@@ -4,7 +4,7 @@
 import pytest
 from synced_collection_test import SyncedDictTest, SyncedListTest
 
-from signac.synced_collections.backends.collection_zarr import ZarrDict, ZarrList
+from signac._synced_collections.backends.collection_zarr import ZarrDict, ZarrList
 
 try:
     import numcodecs  # zarr depends on numcodecs
