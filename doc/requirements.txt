@@ -1,4 +1,3 @@
-deprecation>=2
 IPython
 jupyter_client
 nbconvert
