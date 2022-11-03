@@ -12,16 +12,14 @@ from json import JSONDecodeError
 from threading import RLock
 from typing import FrozenSet
 
-from ..common.deprecation import deprecated
-from ..core.h5store import H5StoreManager
-from ..sync import sync_jobs
-from ..synced_collections.backends.collection_json import (
+from .._synced_collections.backends.collection_json import (
     BufferedJSONAttrDict,
     JSONAttrDict,
     json_attr_dict_validator,
 )
-from ..synced_collections.errors import KeyTypeError
-from ..version import __version__
+from .._synced_collections.errors import KeyTypeError
+from ..core.h5store import H5StoreManager
+from ..sync import sync_jobs
 from .errors import DestinationExistsError, JobsCorruptedError
 from .hashing import calc_id
 from .utility import _mkdir_p
@@ -226,7 +224,7 @@ class Job:
     Application developers should not directly instantiate this class, but
     use :meth:`~signac.Project.open_job` instead.
 
-    Jobs can be opened by ``statepoint`` or ``_id``. If both values are
+    Jobs can be opened by ``statepoint`` or ``id_``. If both values are
     provided, it is the user's responsibility to ensure that the values
     correspond.
 
@@ -234,14 +232,14 @@ class Job:
     ----------
     project : :class:`~signac.Project`
         Project handle.
-    statepoint : dict
+    statepoint : dict, optional
         State point for the job. (Default value = None)
-    _id : str
+    id_ : str, optional
         The job identifier. (Default value = None)
 
     """
 
-    FN_MANIFEST = "signac_statepoint.json"
+    FN_STATE_POINT = "signac_statepoint.json"
     """The job's state point filename.
 
     The job state point is a human-readable file containing the job's state
@@ -254,17 +252,17 @@ class Job:
     KEY_DATA = "signac_data"
     "The job's datastore key."
 
-    def __init__(self, project, statepoint=None, _id=None):
+    def __init__(self, project, statepoint=None, id_=None):
         self._project = project
         self._lock = RLock()
         self._initialize_lazy_properties()
 
-        if statepoint is None and _id is None:
-            raise ValueError("Either statepoint or _id must be provided.")
+        if statepoint is None and id_ is None:
+            raise ValueError("Either statepoint or id_ must be provided.")
         elif statepoint is not None:
             self._statepoint_requires_init = False
             try:
-                self._id = calc_id(statepoint) if _id is None else _id
+                self._id = calc_id(statepoint) if id_ is None else id_
             except TypeError:
                 raise KeyTypeError
             self._statepoint = _StatePointDict(
@@ -275,7 +273,7 @@ class Job:
             self._project._register(self.id, statepoint)
         else:
             # Only an id was provided. State point will be loaded lazily.
-            self._id = _id
+            self._id = id_
             self._statepoint_requires_init = True
 
     def _initialize_lazy_properties(self):
@@ -285,23 +283,6 @@ class Job:
             self._document = None
             self._stores = None
             self._cwd = []
-
-    @deprecated(
-        deprecated_in="1.3",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Use job.id instead.",
-    )
-    def get_id(self):
-        """Job's state point unique identifier.
-
-        Returns
-        -------
-        str
-            The job id.
-
-        """
-        return self._id
 
     @property
     def id(self):
@@ -334,35 +315,13 @@ class Job:
             self.__class__.__name__, repr(self._project), self.statepoint
         )
 
-    @deprecated(
-        deprecated_in="1.8",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Use Job.path instead.",
-    )
-    def workspace(self):
-        """Alias for :attr:`~Job.path`."""
-        return self.path
-
     @property
     def _statepoint_filename(self):
         """Get the path of the state point file for this job."""
-        # We can rely on the job workspace to be well-formed, so just
-        # use str.join with os.sep instead of os.path.join for speed.
-        return os.sep.join((self.path, self.FN_MANIFEST))
-
-    # Tell mypy to ignore type checking of the decorator because decorated
-    # properties aren't supported: https://github.com/python/mypy/issues/1362
-    @property  # type: ignore
-    @deprecated(
-        deprecated_in="1.8",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Use Job.path instead.",
-    )
-    def ws(self):
-        """Alias for :attr:`~Job.path`."""
-        return self.path
+        # Performance-critical path. We can rely on the job workspace and state
+        # point file name to be well-formed, so just use str.join with os.sep
+        # instead of os.path.join for speed.
+        return os.sep.join((self.path, self.FN_STATE_POINT))
 
     @property
     def path(self):
@@ -375,68 +334,6 @@ class Job:
             # use str.join with os.sep instead of os.path.join for speed.
             self._path = os.sep.join((self._project.workspace, self.id))
         return self._path
-
-    @deprecated(
-        deprecated_in="1.8",
-        removed_in="2.0",
-        current_version=__version__,
-        details="Use job.statepoint = new_statepoint instead.",
-    )
-    def reset_statepoint(self, new_statepoint):
-        """Overwrite the state point of this job while preserving job data.
-
-        This method will change the job id if the state point has been altered.
-
-        For more information, see
-        `Modifying the State Point
-        <https://docs.signac.io/en/latest/jobs.html#modifying-the-state-point>`_.
-
-        .. danger::
-
-            Use this function with caution! Resetting a job's state point
-            may sometimes be necessary, but can possibly lead to incoherent
-            data spaces.
-
-        Parameters
-        ----------
-        new_statepoint : dict
-            The job's new state point.
-
-        """
-        self._reset_statepoint(new_statepoint)
-
-    def _reset_statepoint(self, new_statepoint):
-        """Overwrite the state point of this job while preserving job data.
-
-        This method will change the job id if the state point has been altered.
-
-        For more information, see
-        `Modifying the State Point
-        <https://docs.signac.io/en/latest/jobs.html#modifying-the-state-point>`_.
-
-        .. danger::
-
-            Use this function with caution! Resetting a job's state point
-            may sometimes be necessary, but can possibly lead to incoherent
-            data spaces.
-
-        Parameters
-        ----------
-        new_statepoint : dict
-            The job's new state point.
-
-        """
-        with self._lock:
-            if self._statepoint_requires_init:
-                # Instantiate state point data lazily - no load is required, since
-                # we are provided with the new state point data.
-                self._statepoint = _StatePointDict(
-                    jobs=[self], filename=self._statepoint_filename
-                )
-                self._statepoint_requires_init = False
-            self.statepoint.reset(new_statepoint)
-
-        self._project._register(self.id, new_statepoint)
 
     def update_statepoint(self, update, overwrite=False):
         """Change the state point of this job while preserving job data.
@@ -485,7 +382,7 @@ class Job:
                         "mapping with another value."
                     )
         statepoint.update(update)
-        self._reset_statepoint(statepoint)
+        self.statepoint = statepoint
 
     @property
     def statepoint(self):
@@ -506,7 +403,7 @@ class Job:
             you can access a dict copy of the state point by calling it, e.g.
             ``sp_dict = job.statepoint()`` instead of ``sp = job.statepoint``.
             For more information, see
-            :class:`~signac.synced_collections.backends.collection_json.JSONAttrDict`.
+            :class:`~signac._synced_collections.backends.collection_json.JSONAttrDict`.
 
         See :ref:`signac statepoint <signac-cli-statepoint>` for the command line equivalent.
 
@@ -518,8 +415,9 @@ class Job:
 
         Returns
         -------
-        dict
-            Returns the job's state point.
+        MutableMapping
+            Returns the job's state point. Supports attribute-based access to
+            dict keys.
         """
         with self._lock:
             if self._statepoint_requires_init:
@@ -544,7 +442,17 @@ class Job:
         new_statepoint : dict
             The new state point to be assigned.
         """
-        self._reset_statepoint(new_statepoint)
+        with self._lock:
+            if self._statepoint_requires_init:
+                # Instantiate state point data lazily - no load is required, since
+                # we are provided with the new state point data.
+                self._statepoint = _StatePointDict(
+                    jobs=[self], filename=self._statepoint_filename
+                )
+                self._statepoint_requires_init = False
+            self.statepoint.reset(new_statepoint)
+
+        self._project._register(self.id, new_statepoint)
 
     @property
     def sp(self):
@@ -574,8 +482,8 @@ class Job:
 
         Returns
         -------
-        :class:`~signac.JSONDict`
-            The job document handle.
+        MutableMapping
+            The job document handle. Supports attribute-based access to dict keys.
 
         """
         with self._lock:
@@ -615,8 +523,8 @@ class Job:
 
         Returns
         -------
-        :class:`~signac.JSONDict`
-            The job document handle.
+        MutableMapping
+            The job document handle. Supports attribute-based access to dict keys.
 
         """
         return self.document
@@ -699,6 +607,17 @@ class Job:
         """
         self.stores[self.KEY_DATA] = new_data
 
+    @property
+    def project(self):
+        """Get the project that contains this job.
+
+        Returns
+        -------
+        signac.Project
+            Returns the project containing this job.
+        """
+        return self._project
+
     def init(self, force=False):
         """Initialize the job's workspace directory.
 
@@ -711,7 +630,7 @@ class Job:
 
         Parameters
         ----------
-        force : bool
+        force : bool, optional
             Overwrite any existing state point files, e.g., to repair them if
             they got corrupted (Default value = False).
 
@@ -772,7 +691,7 @@ class Job:
         """
         try:
             for fn in os.listdir(self.path):
-                if fn in (self.FN_MANIFEST, self.FN_DOCUMENT):
+                if fn in (self.FN_STATE_POINT, self.FN_DOCUMENT):
                     continue
                 path = os.path.join(self.path, fn)
                 if os.path.isfile(path):
@@ -879,21 +798,21 @@ class Job:
         ----------
         other : Job
             The other job to synchronize from.
-        strategy :
+        strategy : callable, optional
             A synchronization strategy for file conflicts. If no strategy is provided, a
             :class:`~signac.errors.SyncConflict` exception will be raised upon conflict
             (Default value = None).
-        exclude : str
-            An filename exclude pattern. All files matching this pattern will be
+        exclude : str, optional
+            A filename exclude pattern. All files matching this pattern will be
             excluded from synchronization (Default value = None).
-        doc_sync :
+        doc_sync : attribute or callable from :py:class:`~signac.sync.DocSync`, optional
             A synchronization strategy for document keys. If this argument is None, by default
-            no keys will be synchronized upon conflict.
-        dry_run :
+            no keys will be synchronized upon conflict (Default value = None).
+        dry_run : bool, optional
             If True, do not actually perform the synchronization.
         \*\*kwargs :
-            Extra keyword arguments will be forward to the :meth:`~signac.sync.sync_jobs`
-            function which actually excutes the synchronization operation.
+            Extra keyword arguments will be forwarded to the :meth:`~signac.sync.sync_jobs`
+            function which actually executes the synchronization operation.
 
         Raises
         ------
@@ -911,7 +830,7 @@ class Job:
         )
 
     def fn(self, filename):
-        """Prepend a filename with the job's workspace directory path.
+        """Prepend a filename with the job path.
 
         Parameters
         ----------
@@ -921,13 +840,13 @@ class Job:
         Returns
         -------
         str
-            The full workspace path of the file.
+            The absolute path to the file.
 
         """
         return os.path.join(self.path, filename)
 
     def isfile(self, filename):
-        """Return True if file exists in the job's workspace.
+        """Check if a filename exists in the job directory.
 
         Parameters
         ----------
@@ -937,7 +856,7 @@ class Job:
         Returns
         -------
         bool
-            True if file with filename exists in workspace.
+            True if filename exists in the job directory.
 
         """
         return os.path.isfile(self.fn(filename))
@@ -950,7 +869,8 @@ class Job:
         .. code-block:: python
 
             with project.open_job(my_statepoint) as job:
-                # manipulate your job data
+                # Manipulate your job data
+                pass
 
         Opening the context will switch into the job's workspace,
         leaving it will switch back to the previous working directory.

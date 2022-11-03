@@ -16,6 +16,11 @@ class DictManager:
 
     This class is designed to manage multiple dict-like interface classes to files
     with a shared prefix (directory).
+
+    Parameters
+    ----------
+    prefix : str
+        The directory prefix shared by all files managed by this class.
     """
 
     cls = None

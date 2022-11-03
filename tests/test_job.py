@@ -54,7 +54,7 @@ NESTED_HASH = "bd6f5828f4410b665bffcec46abeb8f3"
 
 def config_from_cfg(cfg):
     cfile = io.StringIO("\n".join(cfg))
-    return signac.common.config._get_config(cfile)
+    return signac.common.config._read_config_file(cfile)
 
 
 def testdata():
@@ -70,12 +70,9 @@ class TestJobBase:
         self._tmp_dir = TemporaryDirectory(prefix="signac_")
         request.addfinalizer(self._tmp_dir.cleanup)
         self._tmp_pr = os.path.join(self._tmp_dir.name, "pr")
-        self._tmp_wd = os.path.join(self._tmp_dir.name, "wd")
         os.mkdir(self._tmp_pr)
         self.config = signac.common.config._load_config()
-        self.project = self.project_class.init_project(
-            name="testing_test_project", root=self._tmp_pr, workspace=self._tmp_wd
-        )
+        self.project = self.project_class.init_project(path=self._tmp_pr)
 
     def tearDown(self):
         pass
@@ -240,6 +237,23 @@ class TestJob(TestJobBase):
         assert copied_job in self.project
         copied_job.sp.a = 3
         assert copied_job in self.project
+
+    def test_project_access_from_job(self):
+        job = self.project.open_job({"a": 0}).init()
+        assert isinstance(job.project, signac.Project)
+        assert job in job.project
+        assert job.project.path == self._tmp_pr
+
+    def test_custom_project_access_from_job(self):
+        # Test a custom project subclass to ensure compatibility with signac-flow's FlowProject
+        class CustomProject(signac.Project):
+            pass
+
+        custom_project = CustomProject.get_project(self._tmp_pr)
+        job = custom_project.open_job({"a": 0}).init()
+        assert isinstance(job.project, CustomProject)
+        assert job in job.project
+        assert job.project.path == self._tmp_pr
 
 
 class TestJobSpInterface(TestJobBase):
@@ -433,16 +447,11 @@ class TestJobSpInterface(TestJobBase):
             assert job.id == job2.id
 
     def test_valid_sp_key_types(self):
-        job = self.open_job(dict(invalid_key=True)).init()
+        job = self.open_job(dict(valid_key=True)).init()
 
-        for key in ("0",):
+        # Only strings are permitted as keys
+        for key in ("0", "1"):
             job.sp[key] = "test"
-            assert str(key) in job.sp
-
-        # TODO: Non-string keys will not be supported in signac 2.0.
-        for key in (0, True, False, None):
-            with pytest.warns(FutureWarning):
-                job.sp[key] = "test"
             assert str(key) in job.sp
 
     def test_invalid_sp_key_types(self):
@@ -454,7 +463,7 @@ class TestJobSpInterface(TestJobBase):
 
         job = self.open_job(dict(invalid_key=True)).init()
 
-        for key in (0.0, A(), (1, 2, 3)):
+        for key in (1, True, False, None, 0.0, A(), (1, 2, 3)):
             with pytest.raises(KeyTypeError):
                 job.sp[key] = "test"
             with pytest.raises(KeyTypeError):
@@ -466,16 +475,11 @@ class TestJobSpInterface(TestJobBase):
                 job.sp = {key: "test"}
 
     def test_valid_doc_key_types(self):
-        job = self.open_job(dict(invalid_key=True)).init()
+        job = self.open_job(dict(valid_key=True)).init()
 
-        for key in ("0",):
+        # Only strings are permitted as keys
+        for key in ("0", "1"):
             job.doc[key] = "test"
-            assert str(key) in job.doc
-
-        # TODO: Non-string keys will not be supported in signac 2.0.
-        for key in (0, True, False, None):
-            with pytest.warns(FutureWarning):
-                job.doc[key] = "test"
             assert str(key) in job.doc
 
     def test_invalid_doc_key_types(self):
@@ -484,7 +488,7 @@ class TestJobSpInterface(TestJobBase):
         class A:
             pass
 
-        for key in (0.0, A(), (1, 2, 3)):
+        for key in (1, True, False, None, 0.0, A(), (1, 2, 3)):
             with pytest.raises(KeyTypeError):
                 job.doc[key] = "test"
             with pytest.raises(KeyTypeError):
@@ -497,29 +501,7 @@ class TestJobSpInterface(TestJobBase):
 
 
 class TestConfig(TestJobBase):
-    def test_set_get_delete(self):
-        key, value = list(test_token.items())[0]
-        key, value = "author_name", list(test_token.values())[0]
-        config = copy.deepcopy(self.project.config)
-        config[key] = value
-        assert config[key] == value
-        assert key in config
-        del config[key]
-        assert key not in config
-
-    def test_update(self):
-        key, value = "author_name", list(test_token.values())[0]
-        config = copy.deepcopy(self.project.config)
-        config.update({key: value})
-        assert config[key] == value
-        assert key in config
-
-    def test_set_and_retrieve_version(self):
-        fake_version = 0, 0, 0
-        self.project.config["signac_version"] = fake_version
-        assert self.project.config["signac_version"] == fake_version
-
-    def test_str(self):
+    def test_config_str(self):
         str(self.project.config)
 
 
@@ -529,14 +511,14 @@ class TestJobOpenAndClosing(TestJobBase):
         assert not os.path.isdir(job.path)
         job.init()
         assert os.path.isdir(job.path)
-        assert os.path.exists(os.path.join(job.path, job.FN_MANIFEST))
+        assert os.path.exists(os.path.join(job.path, job.FN_STATE_POINT))
 
     def test_chained_init(self):
         job = self.open_job(test_token)
         assert not os.path.isdir(job.path)
         job = self.open_job(test_token).init()
         assert os.path.isdir(job.path)
-        assert os.path.exists(os.path.join(job.path, job.FN_MANIFEST))
+        assert os.path.exists(os.path.join(job.path, job.FN_STATE_POINT))
 
     def test_construction(self):
         from signac import Project  # noqa: F401
@@ -626,8 +608,8 @@ class TestJobOpenAndClosing(TestJobBase):
     def test_corrupt_workspace(self):
         job = self.open_job(test_token)
         job.init()
-        fn_manifest = os.path.join(job.path, job.FN_MANIFEST)
-        with open(fn_manifest, "w") as file:
+        fn_statepoint = os.path.join(job.path, job.FN_STATE_POINT)
+        with open(fn_statepoint, "w") as file:
             file.write("corrupted")
         job2 = self.open_job(test_token)
         try:
@@ -1001,7 +983,7 @@ class TestJobDocument(TestJobBase):
         src_job.data[key] = d
         assert key in src_job.data
         assert len(src_job.data) == 1
-        src_job.sp = dst
+        src_job.statepoint = dst
         src_job = self.open_job(src)
         dst_job = self.open_job(dst)
         assert key in dst_job.document
@@ -1011,9 +993,9 @@ class TestJobDocument(TestJobBase):
         assert len(dst_job.data) == 1
         assert key not in src_job.data
         with pytest.raises(RuntimeError):
-            src_job.sp = dst
+            src_job.statepoint = dst
         with pytest.raises(DestinationExistsError):
-            src_job.sp = dst
+            src_job.statepoint = dst
 
     @pytest.mark.skipif(not H5PY, reason="test requires the h5py package")
     def test_reset_statepoint_job_lazy_access(self):
@@ -1035,7 +1017,7 @@ class TestJobDocument(TestJobBase):
         # Check that the state point will be instantiated lazily during the
         # call to reset_statepoint
         assert src_job_by_id._statepoint_requires_init
-        src_job_by_id.sp = dst
+        src_job_by_id.statepoint = dst
         src_job = self.open_job(src)
         dst_job = self.open_job(dst)
         assert key in dst_job.document
@@ -1045,41 +1027,11 @@ class TestJobDocument(TestJobBase):
         assert len(dst_job.data) == 1
         assert key not in src_job.data
         with pytest.raises(RuntimeError):
-            src_job.sp = dst
+            src_job.statepoint = dst
         with pytest.raises(DestinationExistsError):
-            src_job.sp = dst
+            src_job.statepoint = dst
 
     @pytest.mark.filterwarnings("ignore:reset_statepoint")
-    @pytest.mark.skipif(not H5PY, reason="test requires the h5py package")
-    def test_reset_statepoint_project(self):
-        key = "move_job"
-        d = testdata()
-        src = test_token
-        dst = dict(test_token)
-        dst["dst"] = True
-        src_job = self.open_job(src)
-        src_job.document[key] = d
-        assert key in src_job.document
-        assert len(src_job.document) == 1
-        src_job.data[key] = d
-        assert key in src_job.data
-        assert len(src_job.data) == 1
-        with pytest.warns(FutureWarning):
-            self.project.reset_statepoint(src_job, dst)
-        src_job = self.open_job(src)
-        dst_job = self.open_job(dst)
-        assert key in dst_job.document
-        assert len(dst_job.document) == 1
-        assert key not in src_job.document
-        assert key in dst_job.data
-        assert len(dst_job.data) == 1
-        assert key not in src_job.data
-        with pytest.warns(FutureWarning):
-            with pytest.raises(RuntimeError):
-                self.project.reset_statepoint(src_job, dst)
-            with pytest.raises(DestinationExistsError):
-                self.project.reset_statepoint(src_job, dst)
-
     @pytest.mark.skipif(not H5PY, reason="test requires the h5py package")
     def test_update_statepoint(self):
         key = "move_job"
@@ -1098,8 +1050,7 @@ class TestJobDocument(TestJobBase):
         src_job.data[key] = d
         assert key in src_job.data
         assert len(src_job.data) == 1
-        with pytest.warns(FutureWarning):
-            self.project.update_statepoint(src_job, extension)
+        src_job.update_statepoint(extension)
         src_job = self.open_job(src)
         dst_job = self.open_job(dst)
         assert dst_job.statepoint() == dst
@@ -1109,14 +1060,13 @@ class TestJobDocument(TestJobBase):
         assert key in dst_job.data
         assert len(dst_job.data) == 1
         assert key not in src_job.data
-        with pytest.warns(FutureWarning):
-            with pytest.raises(RuntimeError):
-                self.project.reset_statepoint(src_job, dst)
-            with pytest.raises(DestinationExistsError):
-                self.project.reset_statepoint(src_job, dst)
-            with pytest.raises(KeyError):
-                self.project.update_statepoint(dst_job, extension2)
-            self.project.update_statepoint(dst_job, extension2, overwrite=True)
+        with pytest.raises(RuntimeError):
+            src_job.statepoint = dst
+        with pytest.raises(DestinationExistsError):
+            src_job.statepoint = dst
+        with pytest.raises(KeyError):
+            dst_job.update_statepoint(extension2)
+        dst_job.update_statepoint(extension2, overwrite=True)
         dst2_job = self.open_job(dst2)
         assert dst2_job.statepoint() == dst2
         assert key in dst2_job.document
@@ -1400,7 +1350,7 @@ class TestJobOpenData(TestJobBase):
         job = self.open_job(test_token).init()
         project_a = self.project
         project_b = self.project_class.init_project(
-            name="project_b", root=os.path.join(self._tmp_pr, "project_b")
+            path=os.path.join(self._tmp_pr, "project_b")
         )
         job.move(project_b)
         job.move(project_a)
@@ -1511,7 +1461,7 @@ class TestJobOpenData(TestJobBase):
             src_job.data[key] = d
             assert key in src_job.data
             assert len(src_job.data) == 1
-        src_job.sp = dst
+        src_job.statepoint = dst
         src_job = self.open_job(src)
         dst_job = self.open_job(dst)
         with self.open_data(dst_job):
@@ -1520,35 +1470,9 @@ class TestJobOpenData(TestJobBase):
         with self.open_data(src_job):
             assert key not in src_job.data
         with pytest.raises(RuntimeError):
-            src_job.sp = dst
+            src_job.statepoint = dst
         with pytest.raises(DestinationExistsError):
-            src_job.sp = dst
-
-    def test_reset_statepoint_project(self):
-        key = "move_job"
-        d = testdata()
-        src = test_token
-        dst = dict(test_token)
-        dst["dst"] = True
-        src_job = self.open_job(src)
-        with self.open_data(src_job):
-            src_job.data[key] = d
-            assert key in src_job.data
-            assert len(src_job.data) == 1
-        with pytest.warns(FutureWarning):
-            self.project.reset_statepoint(src_job, dst)
-        src_job = self.open_job(src)
-        dst_job = self.open_job(dst)
-        with self.open_data(dst_job):
-            assert key in dst_job.data
-            assert len(dst_job.data) == 1
-        with self.open_data(src_job):
-            assert key not in src_job.data
-        with pytest.warns(FutureWarning):
-            with pytest.raises(RuntimeError):
-                self.project.reset_statepoint(src_job, dst)
-            with pytest.raises(DestinationExistsError):
-                self.project.reset_statepoint(src_job, dst)
+            src_job.statepoint = dst
 
     def test_update_statepoint(self):
         key = "move_job"
@@ -1565,8 +1489,7 @@ class TestJobOpenData(TestJobBase):
             src_job.data[key] = d
             assert key in src_job.data
             assert len(src_job.data) == 1
-        with pytest.warns(FutureWarning):
-            self.project.update_statepoint(src_job, extension)
+        src_job.update_statepoint(extension)
         src_job = self.open_job(src)
         dst_job = self.open_job(dst)
         assert dst_job.statepoint() == dst
@@ -1575,15 +1498,13 @@ class TestJobOpenData(TestJobBase):
             assert len(dst_job.data) == 1
         with self.open_data(src_job):
             assert key not in src_job.data
-        with pytest.warns(FutureWarning):
-            with pytest.raises(RuntimeError):
-                self.project.reset_statepoint(src_job, dst)
-            with pytest.raises(DestinationExistsError):
-                self.project.reset_statepoint(src_job, dst)
-        with pytest.warns(FutureWarning):
-            with pytest.raises(KeyError):
-                self.project.update_statepoint(dst_job, extension2)
-            self.project.update_statepoint(dst_job, extension2, overwrite=True)
+        with pytest.raises(RuntimeError):
+            src_job.statepoint = dst
+        with pytest.raises(DestinationExistsError):
+            src_job.statepoint = dst
+        with pytest.raises(KeyError):
+            dst_job.update_statepoint(extension2)
+        dst_job.update_statepoint(extension2, overwrite=True)
         dst2_job = self.open_job(dst2)
         assert dst2_job.statepoint() == dst2
         with self.open_data(dst2_job):
@@ -1592,23 +1513,23 @@ class TestJobOpenData(TestJobBase):
 
     def test_statepoint_copy(self):
         job = self.open_job(dict(a=test_token, b=test_token)).init()
-        _id = job.id
+        id_ = job.id
         sp_copy = copy.copy(job.sp)
         del sp_copy["b"]
         assert "a" in job.sp
         assert "b" not in job.sp
         assert job in self.project
-        assert job.id != _id
+        assert job.id != id_
 
     def test_statepoint_deepcopy(self):
         job = self.open_job(dict(a=test_token, b=test_token)).init()
-        _id = job.id
+        id_ = job.id
         sp_copy = copy.deepcopy(job.sp)
         del sp_copy["b"]
         assert "a" in job.sp
         assert "b" in job.sp
         assert job not in self.project
-        assert job.id == _id
+        assert job.id == id_
 
 
 @pytest.mark.skipif(not H5PY, reason="test requires the h5py package")

@@ -3,17 +3,16 @@
 # This software is licensed under the BSD 3-Clause License.
 """Project Schema."""
 
-import itertools
-import warnings
-from collections import defaultdict as ddict
+from collections import defaultdict
 from collections.abc import Mapping
 from numbers import Number
 from pprint import pformat
 
 from packaging import version
 
-from ..common.deprecation import deprecated
 from ..version import __version__
+from ._searchindexer import _DictPlaceholder
+from .utility import _nested_dicts_to_dotted_keys
 
 
 class _Vividict(dict):
@@ -44,10 +43,14 @@ def _collect_by_type(values):
     """
     # TODO: This function should be moved to project.py in version 2.0.
     assert version.parse(__version__) < version.parse("2.0.0")
-    values_by_type = ddict(set)
+    values_by_type = defaultdict(set)
     for v in values:
         values_by_type[type(v)].add(v)
     return values_by_type
+
+
+def _strip_prefix(key):
+    return key[len("sp.") :]
 
 
 def _build_job_statepoint_index(exclude_const, index):
@@ -57,57 +60,36 @@ def _build_job_statepoint_index(exclude_const, index):
     ----------
     exclude_const : bool
         Excludes state point keys whose values are constant across the index.
-    index :
-        An iterable of state points.
+    index : _SearchIndexer
+        A _SearchIndexer mapping from job ids to job state points.
 
     Yields
     ------
     statepoint_key : str
         State point key.
     statepoint_values : dict
-        Dictionary mapping from a state point value to the set of job ids
-        with that state point value.
+        Dictionary mapping from a state point value to the set of job ids with
+        that state point value.
 
     """
-    from .collection import Collection, _DictPlaceholder
-    from .utility import _nested_dicts_to_dotted_keys
-
-    collection = Collection(index, _trust=True)
-    for doc in collection.find():
+    indexes = {}
+    for _id in index.find():
+        doc = index[_id]
         for key, _ in _nested_dicts_to_dotted_keys(doc):
-            if key == "_id" or key.split(".")[0] != "sp":
-                continue
-            collection.index(key, build=True)
-    indexes = collection._indexes
-
-    def strip_prefix(key):
-        return key[len("sp.") :]
-
-    def remove_dict_placeholder(x):
-        """Remove _DictPlaceholder elements from a mapping.
-
-        Parameters
-        ----------
-        x : dict
-            Dictionary from which ``_DictPlaceholder`` values will be removed.
-
-        Returns
-        -------
-        dict
-            Dictionary with ``_DictPlaceholder`` keys removed.
-
-        """
-        return {key: value for key, value in x.items() if key is not _DictPlaceholder}
+            if key.split(".")[0] == "sp":
+                indexes[key] = index.build_index(key)
 
     for key in sorted(indexes, key=lambda key: (len(indexes[key]), key)):
         if (
             exclude_const
             and len(indexes[key]) == 1
-            and len(indexes[key][list(indexes[key].keys())[0]]) == len(collection)
+            and len(indexes[key][next(indexes[key].keys())]) == len(index)
         ):
             continue
-        statepoint_key = strip_prefix(key)
-        statepoint_values = remove_dict_placeholder(indexes[key])
+        statepoint_key = _strip_prefix(key)
+        # Remove _DictPlaceholder keys from the index
+        statepoint_values = indexes[key]
+        statepoint_values.pop(_DictPlaceholder, None)
         yield statepoint_key, statepoint_values
 
 
@@ -125,28 +107,6 @@ class ProjectSchema(Mapping):
         if schema is None:
             schema = {}
         self._schema = schema
-
-    @deprecated(
-        deprecated_in="1.8",
-        removed_in="2.0",
-        current_version=__version__,
-    )
-    @classmethod
-    def detect(cls, statepoint_index):
-        """Detect Project's state point schema.
-
-        Parameters
-        ----------
-        statepoint_index :
-            State point index.
-
-        Returns
-        -------
-        :class:`~ProjectSchema`
-            The detected project schema.
-
-        """
-        return cls({key: _collect_by_type(value) for key, value in statepoint_index})
 
     def format(self, depth=None, precision=None, max_num_range=None):
         """Format the schema for printing.
@@ -280,31 +240,7 @@ class ProjectSchema(Mapping):
         output += "<pre>" + str(self) + "</pre>"
         return output
 
-    # TODO: This method can be removed in signac 2.0 once support for list keys
-    # is removed.
-    def __contains__(self, key_or_keys):
-        # NotOverride default __contains__ to support sequence and str inputs.
-        assert version.parse(__version__) < version.parse("2.0.0")
-        if not isinstance(key_or_keys, str):
-            warnings.warn(
-                "Support for checking nested keys in a schema using a list of keys is deprecated "
-                "and will be removed in signac 2.0. Construct the nested key using '.'.join(keys) "
-                "instead.",
-                FutureWarning,
-            )
-            key_or_keys = ".".join(key_or_keys)
-        return key_or_keys in self._schema
-
     def __getitem__(self, key_or_keys):
-        assert version.parse(__version__) < version.parse("2.0.0")
-        if not isinstance(key_or_keys, str):
-            warnings.warn(
-                "Support for checking nested keys in a schema using a list of keys is deprecated "
-                "and will be removed in signac 2.0. Construct the nested key using '.'.join(keys) "
-                "instead.",
-                FutureWarning,
-            )
-            key_or_keys = ".".join(key_or_keys)
         return self._schema[key_or_keys]
 
     def __iter__(self):
@@ -315,7 +251,7 @@ class ProjectSchema(Mapping):
 
         Parameters
         ----------
-        ignore_values : bool
+        ignore_values : bool, optional
             Ignore if the value (range) of a specific keys differ,
             only return missing keys (Default value = False).
         other : :class:`~ProjectSchema`
@@ -337,38 +273,3 @@ class ProjectSchema(Mapping):
                 }
             )
         return ret
-
-    @deprecated(
-        deprecated_in="1.8",
-        removed_in="2.0",
-        current_version=__version__,
-    )
-    def __call__(self, jobs_or_statepoints):
-        """Evaluate the schema for the given state points.
-
-        Parameters
-        ----------
-        jobs_or_statepoints :
-            An iterable of jobs or state points.
-
-        Returns
-        -------
-        :class:`~ProjectSchema`
-            Schema of the project.
-
-        """
-        schema_data = {}
-        iterators = itertools.tee(jobs_or_statepoints, len(self))
-        for key, it in zip(self, iterators):
-            values = []
-            tokens = key.split(".")
-            for statepoint in it:
-                if not isinstance(statepoint, Mapping):
-                    # Assumes that a job was provided instead of a state point
-                    statepoint = statepoint.statepoint
-                value = statepoint[tokens[0]]
-                for token in tokens[1:]:
-                    value = value[token]
-                values.append(value)
-            schema_data[key] = _collect_by_type(values)
-        return ProjectSchema(schema_data)

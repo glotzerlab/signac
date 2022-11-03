@@ -2,9 +2,7 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import json
-import os
-import sys
-from contextlib import contextmanager
+from contextlib import redirect_stderr
 from io import StringIO
 from itertools import chain
 from json import JSONDecodeError
@@ -64,24 +62,11 @@ ARRAY_EXPRESSIONS = [
 ]
 
 
-@contextmanager
-def redirect_stderr(new_target=None):
-    "Temporarily redirect all output to stderr to new_target."
-    if new_target is None:
-        new_target = StringIO()
-    old_target = sys.stderr
-    try:
-        sys.stderr = new_target
-        yield
-    finally:
-        sys.stderr = old_target
-
-
 class TestFindCommandLineInterface:
     @staticmethod
     def _parse(args):
-        with open(os.devnull, "w") as null:
-            return parse_filter_arg(args, file=null)
+        with redirect_stderr(StringIO()):
+            return parse_filter_arg(args)
 
     def test_interpret_json(self):
         def _assert_equal(q):
@@ -108,6 +93,5 @@ class TestFindCommandLineInterface:
             assert self._parse(["a", json.dumps(expr)]) == {"a": expr}
 
     def test_invalid_json(self):
-        with redirect_stderr():
-            with pytest.raises(JSONDecodeError):
-                parse_filter_arg(['{"x": True}'])
+        with pytest.raises(JSONDecodeError):
+            self._parse(['{"x": True}'])

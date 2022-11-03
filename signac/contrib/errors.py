@@ -38,7 +38,7 @@ class DestinationExistsError(Error, RuntimeError):
 
 
 class JobsCorruptedError(Error, RuntimeError):
-    """The state point manifest file of one or more jobs cannot be opened or is corrupted.
+    """The state point file of one or more jobs cannot be opened or is corrupted.
 
     Parameters
     ----------

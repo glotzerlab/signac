@@ -8,3 +8,11 @@ class Error(Exception):
     """Base class used for signac Errors."""
 
     pass
+
+
+class H5StoreClosedError(Error, RuntimeError):
+    """Raised when trying to access a closed HDF5 file."""
+
+
+class H5StoreAlreadyOpenError(Error, OSError):
+    """Indicates that the underlying HDF5 file is already open."""

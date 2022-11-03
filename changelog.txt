@@ -4,6 +4,61 @@ Changelog
 
 The **signac** package follows `semantic versioning <https://semver.org/>`_.
 
+Version 2
+=========
+
+[2.0.0] -- 2021-xx-xx
+---------------------
+
+Added
++++++
+
+ - ``H5Store`` related errors are now included in the public API (#775).
+ - Users can now access the project which a job belongs to from the job object.
+
+Changed
++++++++
+
+ - Functions raising ``AssertionError`` now raise ``RuntimeError`` (#612).
+ - State points and documents require keys to be of type ``str`` (#719).
+ - The keyword ``_id`` of the Job constructor has been renamed to ``id_`` (#681).
+ - The signac schema to use version 2. This update involves a number of changes:
+   - The project configuration is now stored at .signac/config instead of signac.rc or .signacrc (#678).
+   - Schema versions are now identified by simple integers rather than semantic versioning style versions (#688).
+   - Projects no longer have names and are identified solely by their root directories. This change also affects a number of public APIs where names are including, most prominently ``signac.init_project`` and ``Project.init_project``. Projects can now be constructed with just a root directory rather than a preloaded config (#677, #684, #706).
+   - Project workspaces are no longer configurable, but are instead always defined as a subdirectory of the Project's root directory called ``workspace`` (#714).
+ - Rather than searching upwards until the root, ``load_config`` will only load configuration files in the specified directory, which is assumed to be a project directory, as well as the user's home directory (#711).
+ - Changed the ``root`` parameter to ``path`` in the ``signac.get_project`` and ``signac.init_project`` functions and corresponding ``Project`` methods (#757, #758).
+ - The prefix argument to ``$ signac view`` is now optional and can be provided with ``-p/--prefix`` (#653, #774).
+
+Removed
++++++++
+
+ - The pre-SyncedCollection synchronized dictionary classes, including SyncedDict, SyncedAttrDict, and JSONDict (#577).
+ - The old custom JSON encoder and dumps wrapper (#577).
+ - The MPIPool and the filesystems.py module (#575).
+ - The following Project methods: ``get_id``, ``build_job_search_index``, ``build_job_statepoint_index``, ``find_job_ids``, ``reset_statepoint``, ``update_statepoint``, ``create_access_module``, ``index``, ``dump_statepoints``, ``get_statepoint``, ``read_statepoints``, ``write_statepoints``, ``groupbydoc``, ``root_directory``, ``num_jobs`` (#574, #593, #599, #601, #752).
+ - The following Job methods: ``get_id``, ``workspace``, ``ws``, ``reset_statepoint`` (#578, #752).
+ - The ``syncutil.copytree`` method (#581).
+ - All Crawlers, including ``RegexFileCrawler``, ``MainCrawler``, ``MasterCrawler``, ``SignacProjectCrawler``, and ``BaseCrawler``, in addition to all associated functionality in indexing.py (#580).
+ - The cite.py module (#594).
+ - The following types of exceptions: ``AuthenticationError``, ``ExportError`, ``FetchError``, ``PermissionsError`` (#595, #596).
+ - All MongoDB database functionality, including the ``db`` subpackage, the ``connection``, ``crypt``, and ``host`` submodules in the ``common`` subpackage, and all associated configuration information (#576, #596).
+ - The ``JobSearchIndex`` class (#587).
+ - The ability to pass indexes to various ``Project`` methods (#599).
+ - The following ``JobsCursor`` methods: ``groupbydoc``, ``next`` (#601, #604).
+ - The ``Project.config`` property is no longer mutable. Use the command line ``$ signac config`` to modify configuration (#608, #246, #244).
+ - The following config related functions: ``get_config``, ``search_standard_dirs`` (#674).
+ - ``Project`` subclasses can no longer define a ``Job`` subclass to use (#588, #693).
+ - The ``Collection`` class (#664, #667, #683).
+ - The ``project`` CLI subcommand (#752).
+ - The ``--workspace`` option for the command line ``job`` subcommand (#752).
+ - The ability to call ``Project.workspace``, it is strictly a property now (#752).
+ - ``ProjectSchema.__call__``, ``ProjectSchema.detect`` (#752).
+ - The ``--doc-filter`` option for several command line subcommands (#613, #795).
+ - The public API of the ``synced_collection`` subpackage (#807, #790).
+ - The warnings module (#815).
+
 Version 1
 =========
 
