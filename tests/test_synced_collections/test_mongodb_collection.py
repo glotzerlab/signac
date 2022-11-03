@@ -4,7 +4,7 @@
 import pytest
 from synced_collection_test import SyncedDictTest, SyncedListTest
 
-from signac.synced_collections.backends.collection_mongodb import (
+from signac._synced_collections.backends.collection_mongodb import (
     MongoDBDict,
     MongoDBList,
 )
@@ -19,10 +19,11 @@ try:
         tmp_collection = mongo_client["test_db"]["test"]
         tmp_collection.insert_one({"test": "0"})
         ret = tmp_collection.find_one({"test": "0"})
-        assert ret["test"] == "0"
+        if ret["test"] != "0":
+            raise RuntimeError("MongoDB access check failed.")
         tmp_collection.drop()
         PYMONGO = True
-    except (pymongo.errors.ServerSelectionTimeoutError, AssertionError):
+    except (pymongo.errors.ServerSelectionTimeoutError, RuntimeError):
         PYMONGO = False
 except ImportError:
     PYMONGO = False

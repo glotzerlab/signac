@@ -14,21 +14,19 @@ from .utility import _mkdir_p
 logger = logging.getLogger(__name__)
 
 
-def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None):
+def create_linked_view(project, prefix=None, job_ids=None, path=None):
     """Create or update a persistent linked view of the selected data space.
 
     Parameters
     ----------
     project : signac.Project
         Project handle.
-    prefix : str
+    prefix : str, optional
         The path where the linked view will be created or updated (Default value = None).
-    job_ids : iterable
+    job_ids : iterable, optional
         If None (the default), create the view for the complete data space,
         otherwise only for this iterable of job ids.
-    index :
-        A document index (Default value = None).
-    path :
+    path : str or callable, optional
         The path (function) used to structure the linked data space (Default value = None).
 
     Returns
@@ -42,8 +40,6 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
     OSError
         Linked views cannot be created on Windows because
         symbolic links are not supported by the platform.
-    ValueError
-        When the selected data space is provided with an insufficient index.
     RuntimeError
         When state points contain one of ``[os.sep, " ", "*"]``.
 
@@ -60,23 +56,10 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
     if prefix is None:
         prefix = "view"
 
-    if index is None:
-        if job_ids is None:
-            index = [{"_id": job.id, "sp": job.sp()} for job in project]
-            jobs = list(project)
-        else:
-            index = [
-                {"_id": job_id, "sp": project.open_job(id=job_id).sp()}
-                for job_id in job_ids
-            ]
-            jobs = list(project.open_job(id=job_id) for job_id in job_ids)
-    elif job_ids is not None:
-        if not isinstance(job_ids, set):
-            job_ids = set(job_ids)
-        index = [doc for doc in index if doc["_id"] in job_ids]
+    if job_ids is None:
+        jobs = list(project)
+    else:
         jobs = list(project.open_job(id=job_id) for job_id in job_ids)
-        if not job_ids.issubset({doc["_id"] for doc in index}):
-            raise ValueError("Insufficient index for selected data space.")
 
     key_list = [k for job in jobs for k in job.statepoint().keys()]
     value_list = [v for job in jobs for v in job.statepoint().values()]
@@ -92,7 +75,7 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
     if any(bad_items):
         err_msg = " ".join(
             [
-                f"In order to use view, statepoints should not contain {bad_chars}:",
+                f"In order to use view, state points should not contain {bad_chars}:",
                 *bad_items,
             ]
         )
@@ -297,35 +280,6 @@ def _build_tree(paths):
     return root
 
 
-def _get_branches(root, branch=None):
-    """Get all branches from the root node.
-
-    Parameters
-    ----------
-    root : :class:`~signac.contrib.linked_view._Node`
-        Root node.
-    branch : list
-        The current list of branches that has been collected,
-        used in recursive calls to build up the branches starting
-        at the root (Default value = None).
-
-    Yields
-    ------
-    list
-        Branches for the root node.
-
-    """
-    if branch is None:
-        branch = []
-    else:
-        branch = list(branch) + [root]
-    if root.children:
-        for child in root.children.values():
-            yield from _get_branches(child, branch)
-    else:
-        yield branch
-
-
 def _color_path(root, path):
     """Color the path from root by setting value to True.
 
@@ -350,8 +304,8 @@ def _find_dead_branches(root, branch=None):
     ----------
     root : :class:`~signac.contrib.linked_view._Node`
         Root node.
-    branch : list
-        The current list of branches that has been collected,
+    branch : list, optional
+        The current list of branches that have been collected,
         used in recursive calls to build up the branches starting
         at the root (Default value = None).
 

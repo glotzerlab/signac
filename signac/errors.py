@@ -7,7 +7,8 @@
 # exceptions that are relevant beyond a single module. This top-level errors
 # module is used to expose user-facing exception classes.
 
-from .common.errors import AuthenticationError, ConfigError, ExportError, FetchError
+from ._synced_collections.errors import InvalidKeyError, KeyTypeError
+from .common.errors import ConfigError
 from .contrib.errors import (
     DestinationExistsError,
     IncompatibleSchemaVersion,
@@ -15,9 +16,7 @@ from .contrib.errors import (
     StatepointParsingError,
     WorkspaceError,
 )
-from .core.errors import Error
-from .core.jsondict import BufferedFileError, BufferException
-from .synced_collections.errors import InvalidKeyError, KeyTypeError
+from .core.errors import Error, H5StoreAlreadyOpenError, H5StoreClosedError
 
 
 class SyncConflict(Error, RuntimeError):
@@ -60,16 +59,13 @@ class SchemaSyncConflict(SyncConflict):
 
 
 __all__ = [
-    "AuthenticationError",
-    "BufferException",
-    "BufferedFileError",
     "ConfigError",
     "DestinationExistsError",
     "DocumentSyncConflict",
     "Error",
-    "ExportError",
-    "FetchError",
     "FileSyncConflict",
+    "H5StoreAlreadyOpenError",
+    "H5StoreClosedError",
     "IncompatibleSchemaVersion",
     "InvalidKeyError",
     "JobsCorruptedError",

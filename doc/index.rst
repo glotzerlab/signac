@@ -1,4 +1,4 @@
-Signac (core) package documentation
+signac (core) package documentation
 ===================================
 
 .. note::

@@ -26,7 +26,6 @@ Using a project:
 Modifying a project:
     * `init`_
     * `config`_
-    * `project`_
     * `job`_
     * `rm`_
     * `update-cache`_
@@ -38,7 +37,6 @@ Sharing and archiving a project:
     * `move`_
     * `clone`_
     * `sync`_
-    * `index`_
 
 .. _signac-cli-clone:
 
@@ -96,14 +94,6 @@ import
 .. command-output:: signac import --help
 
 
-.. _signac-cli-index:
-
-index
-=====
-
-.. command-output:: signac index --help
-
-
 .. _signac-cli-init:
 
 init
@@ -126,14 +116,6 @@ move
 ====
 
 .. command-output:: signac move --help
-
-
-.. _signac-cli-project:
-
-project
-=======
-
-.. command-output:: signac project --help
 
 
 .. _signac-cli-rm:

@@ -10,9 +10,8 @@ import pytest
 from test_job import TestJobBase
 
 import signac
-from signac import sync
+from signac import JSONDict, sync
 from signac.contrib.utility import _mkdir_p
-from signac.core.jsondict import JSONDict
 from signac.errors import DocumentSyncConflict, FileSyncConflict, SchemaSyncConflict
 from signac.sync import _FileModifyProxy
 from signac.syncutil import _DocProxy
@@ -547,12 +546,8 @@ class TestProjectSync:
         self._tmp_pr_b = os.path.join(self._tmp_dir.name, "pr_b")
         os.mkdir(self._tmp_pr_a)
         os.mkdir(self._tmp_pr_b)
-        self.project_a = signac.Project.init_project(
-            name="test-project-a", root=self._tmp_pr_a
-        )
-        self.project_b = signac.Project.init_project(
-            name="test-project-b", root=self._tmp_pr_b
-        )
+        self.project_a = signac.Project.init_project(path=self._tmp_pr_a)
+        self.project_b = signac.Project.init_project(path=self._tmp_pr_b)
 
     def _init_job(self, job, data="data"):
         with job:

@@ -8,7 +8,6 @@ import atexit
 import code
 import difflib
 import errno
-import getpass
 import importlib
 import json
 import logging
@@ -30,13 +29,12 @@ except ImportError:
 else:
     READLINE = True
 
-from . import Project, get_project, index, init_project
+from . import get_project, init_project
 from .common import config
 from .common.configobj import Section, flatten_errors
-from .common.crypt import get_crypt_context, get_keyring, parse_pwhash
 from .contrib.filterparse import parse_filter_arg
 from .contrib.import_export import _SchemaPathEvaluationError, export_jobs
-from .contrib.utility import add_verbosity_argument, prompt_password, query_yes_no
+from .contrib.utility import _add_verbosity_argument, _print_err, _query_yes_no
 from .core.utility import _safe_relpath
 from .diff import diff_jobs
 from .errors import (
@@ -48,31 +46,6 @@ from .errors import (
 )
 from .sync import DocSync, FileSync
 from .version import __version__
-
-try:
-    from .common.host import get_client, get_credentials, get_database, make_uri
-except ImportError:
-    HOST = False
-else:
-    HOST = True
-
-PW_ENCRYPTION_SCHEMES = ["None"]
-DEFAULT_PW_ENCRYPTION_SCHEME = PW_ENCRYPTION_SCHEMES[0]
-if get_crypt_context() is not None:
-    PW_ENCRYPTION_SCHEMES.extend(get_crypt_context().schemes())
-    DEFAULT_PW_ENCRYPTION_SCHEME = get_crypt_context().default_scheme()
-
-
-CONFIG_HOST_DEFAULTS = {
-    "url": "mongodb://localhost",
-    "username": getpass.getuser(),
-    "auth_mechanism": "none",
-    "ssl_cert_reqs": "required",
-}
-
-
-CONFIG_HOST_CHOICES = {"auth_mechanism": ("none", "SCRAM-SHA-1", "SSL-x509")}
-
 
 MSG_SYNC_SPECIFY_KEY = """
 Synchronization conflict occurred, no strategy defined to synchronize keys:
@@ -101,9 +74,7 @@ Total transfer volume:       {stats.volume}
 SHELL_BANNER = """Python {python_version}
 signac {signac_version} 🎨
 
-Project:\t{project_id}{job_banner}
-Root:\t\t{root_path}
-Workspace:\t{workspace_path}
+Project:\t{path}{job_banner}
 Size:\t\t{size}
 
 Interact with the project interface using the "project" or "pr" variable.
@@ -122,11 +93,9 @@ Synchronize your project with the temporary project, for example with:
 )
 
 
+SHELL_HISTORY_FN = os.sep.join((".signac", "shell_history"))
+
 warnings.simplefilter("default")
-
-
-def _print_err(msg=None, *args):
-    print(msg, *args, file=sys.stderr)
 
 
 def _fmt_bytes(nbytes, suffix="B"):
@@ -139,62 +108,6 @@ def _fmt_bytes(nbytes, suffix="B"):
             return f"{nbytes:3.1f} {unit}{suffix}"
         nbytes /= 1024.0
     return "{:.1f} {}{}".format(nbytes, "Yi", suffix)
-
-
-def _passlib_available():
-    try:
-        import passlib  # noqa
-    except ImportError:
-        return False
-    else:
-        return True
-
-
-def _hide_password(line):
-    if line.strip().startswith("password"):
-        return " " * line.index("password") + "password = ***"
-    else:
-        return line
-
-
-def _prompt_for_new_password(attempts=3):
-    for i in range(attempts):
-        if i > 0:
-            _print_err(f"Attempt {i + 1}:")
-        new_pw = prompt_password("New password: ")
-        new_pw2 = prompt_password("New password (repeat): ")
-        if new_pw == new_pw2:
-            return new_pw
-        else:
-            _print_err("Passwords do not match!")
-    else:
-        raise ValueError("Too many failed attempts.")
-
-
-def _update_password(config, hostname, scheme=None, new_pw=None):
-    def hashpw(pw):
-        if scheme is None:
-            return pw
-        else:
-            return get_crypt_context().encrypt(pw, scheme=scheme)
-
-    hostcfg = config["hosts"][hostname]
-    hostcfg["password"] = get_credentials(hostcfg)
-    db_auth = get_database(
-        hostcfg.get("db_auth", "admin"), hostname=hostname, config=config
-    )
-    if new_pw is None:
-        new_pw = _prompt_for_new_password()
-    pwhash = hashpw(new_pw)
-    db_auth.add_user(hostcfg["username"], pwhash)
-    return pwhash
-
-
-def _read_index(project, fn_index=None):
-    if fn_index is not None:
-        _print_err(f"Reading index from file '{fn_index}'...")
-        with open(fn_index) as file_descriptor:
-            return [json.loads(line) for line in file_descriptor]
 
 
 def _open_job_by_id(project, job_id):
@@ -222,7 +135,7 @@ def _open_job_by_id(project, job_id):
 
 def find_with_filter_or_none(args):
     """Return a filtered subset of jobs or None."""
-    if args.job_id or args.filter or args.doc_filter:
+    if args.job_id or args.filter:
         return find_with_filter(args)
     else:
         return None
@@ -231,42 +144,16 @@ def find_with_filter_or_none(args):
 def find_with_filter(args):
     """Return a filtered subset of jobs."""
     if getattr(args, "job_id", None):
-        if args.filter or args.doc_filter:
+        if args.filter:
             raise ValueError("Can't provide both 'job-id' and filter arguments!")
         else:
             return args.job_id
 
     project = get_project()
-    if hasattr(args, "index"):
-        index = _read_index(project, args.index)
-    else:
-        index = None
-
-    f = parse_filter_arg(args.filter)
-    df = parse_filter_arg(args.doc_filter)
-    return get_project()._find_job_ids(index=index, filter=f, doc_filter=df)
-
-
-def main_project(args):
-    """Handle project subcommand."""
-    warnings.warn(
-        "The `project` command is deprecated as of version 1.8 and will be removed in "
-        "version 2.0.",
-        FutureWarning,
-    )
-    project = get_project()
-    if args.access:
-        fn = project.create_access_module()
-        _print_err(f"Created access module '{fn}'.")
-        return
-    if args.index:
-        for doc in project.index():
-            print(json.dumps(doc))
-        return
-    if args.workspace:
-        print(project.workspace)
-    else:
-        print(project)
+    filter_ = parse_filter_arg(args.filter) or {}
+    if not filter_:
+        filter_ = None
+    return project._find_job_ids(filter=filter_)
 
 
 def main_job(args):
@@ -279,18 +166,11 @@ def main_job(args):
     try:
         statepoint = json.loads(sp)
     except ValueError:
-        _print_err(f"Error while reading statepoint: '{sp}'")
+        _print_err(f"Error while reading state point: '{sp}'")
         raise
     job = project.open_job(statepoint)
     if args.create:
         job.init()
-    if args.workspace:
-        warnings.warn(
-            "The `-w/--workspace` parameter is deprecated as of version 1.8 and will be removed in "
-            "version 2.0. Use -p/--path instead",
-            FutureWarning,
-        )
-        args.path = True
     if args.path:
         print(job.path)
     else:
@@ -327,7 +207,7 @@ def main_remove(args):
     project = get_project()
     for job_id in args.job_id:
         job = _open_job_by_id(project, job_id)
-        if args.interactive and not query_yes_no(
+        if args.interactive and not _query_yes_no(
             "Are you sure you want to {action} job with id '{job.id}'?".format(
                 action="clear" if args.clear else "remove", job=job
             ),
@@ -345,7 +225,7 @@ def main_remove(args):
 def main_move(args):
     """Handle move subcommand."""
     project = get_project()
-    dst_project = get_project(root=args.project)
+    dst_project = get_project(path=args.project)
     for job_id in args.job_id:
         try:
             job = _open_job_by_id(project, job_id)
@@ -359,7 +239,7 @@ def main_move(args):
 def main_clone(args):
     """Handle clone subcommand."""
     project = get_project()
-    dst_project = get_project(root=args.project)
+    dst_project = get_project(path=args.project)
     for job_id in args.job_id:
         try:
             job = _open_job_by_id(project, job_id)
@@ -368,16 +248,6 @@ def main_clone(args):
             _print_err(f"Destination already exists: '{job}' in '{dst_project}'.")
         else:
             _print_err(f"Cloned '{job}' to '{dst_project}'.")
-
-
-def main_index(args):
-    """Handle index subcommand."""
-    _print_err(f"Compiling main index for path '{os.path.realpath(args.root)}'...")
-    if args.tags:
-        args.tags = set(args.tags)
-        _print_err("Provided tags: {}".format(", ".join(sorted(args.tags))))
-    for doc in index(root=args.root, tags=args.tags, raise_on_error=args.debug):
-        print(json.dumps(doc))
 
 
 def main_find(args):
@@ -397,11 +267,11 @@ def main_find(args):
         if args.doc is None:
             args.doc = []
 
-    def format_lines(cat, _id, s):
+    def format_lines(cat, id_, s):
         if args.one_line:
             if isinstance(s, dict):
                 s = json.dumps(s, sort_keys=True)
-            return f"{_id[:len_id]} {cat}\t{s}"
+            return f"{id_[:len_id]} {cat}\t{s}"
         else:
             return pformat(s, depth=args.pretty)
 
@@ -453,16 +323,13 @@ def main_view(args):
         prefix=args.prefix,
         path=args.path,
         job_ids=find_with_filter(args),
-        index=_read_index(args.index),
     )
 
 
 def main_init(args):
     """Handle init subcommand."""
-    project = init_project(
-        name=args.project_id, root=os.getcwd(), workspace=args.workspace
-    )
-    _print_err(f"Initialized project '{project}'.")
+    init_project(path=os.getcwd())
+    _print_err("Initialized project.")
 
 
 def main_schema(args):
@@ -479,8 +346,9 @@ def main_schema(args):
 
 def main_sync(args):
     """Handle sync subcommand."""
+    # TODO: This function appears to be untested.
     #
-    # Valid provided argument combinations
+    # Validate provided argument combinations
     #
     if args.archive:
         args.recursive = True
@@ -524,25 +392,12 @@ def main_sync(args):
     # Setup synchronization process
     #
 
-    source = get_project(root=args.source)
+    source = get_project(path=args.source)
     try:
-        destination = get_project(root=args.destination)
+        destination = get_project(path=args.destination)
     except LookupError:
-        if args.allow_workspace:
-            destination = Project(
-                config={
-                    "project": _safe_relpath(args.destination),
-                    "project_dir": args.destination,
-                    "workspace_dir": ".",
-                }
-            )
-        else:
-            _print_err(
-                "WARNING: The destination appears to not be a project path. "
-                "Use the '-w/--allow-workspace' option if you want to "
-                "synchronize to a workspace directory directly."
-            )
-            raise
+        _print_err("WARNING: The destination does not appear to be a project path.")
+        raise
     selection = find_with_filter_or_none(args)
 
     if args.strategy:
@@ -668,10 +523,8 @@ def _main_import_interactive(project, origin, args):
                 banner=SHELL_BANNER_INTERACTIVE_IMPORT.format(
                     python_version=sys.version,
                     signac_version=__version__,
-                    project_id=project.get_id(),
                     job_banner="",
-                    root_path=project.root_directory(),
-                    workspace_path=project.workspace,
+                    path=project.path,
                     size=len(project),
                     origin=args.origin,
                 ),
@@ -803,7 +656,7 @@ def main_update_cache(args):
 #         _print_err(
 #             "The schema version of the project ({}) is up to date. "
 #             "Nothing to do.".format(config_schema_version))
-#     elif args.yes or query_yes_no(
+#     elif args.yes or _query_yes_no(
 #         "Do you want to migrate this project's schema version from '{}' to '{}'? "
 #         "WARNING: THIS PROCESS IS IRREVERSIBLE!".format(
 #             config_schema_version, schema_version), 'no'):
@@ -837,26 +690,20 @@ def main_config_show(args):
     if args.local and args.globalcfg:
         raise ValueError("You can specify either -l/--local or -g/--global, not both.")
     elif args.local:
-        for fn in config.CONFIG_FILENAMES:
-            if os.path.isfile(fn):
-                if cfg is None:
-                    cfg = config._read_config_file(fn)
-                else:
-                    cfg.merge(config._read_config_file(fn))
+        if os.path.isfile(config.PROJECT_CONFIG_FN):
+            cfg = config._read_config_file(config.PROJECT_CONFIG_FN)
     elif args.globalcfg:
-        cfg = config._read_config_file(config.FN_CONFIG)
+        cfg = config._read_config_file(config.USER_CONFIG_FN)
     else:
-        cfg = config._load_config()
-    if cfg is None:
-        if args.local and args.globalcfg:
-            mode = " local or global "
-        elif args.local:
-            mode = " local "
+        cfg = config._load_config(config._locate_config_dir(os.getcwd()))
+    if not cfg:
+        if args.local:
+            mode = "local"
         elif args.globalcfg:
-            mode = " global "
+            mode = "global"
         else:
-            mode = ""
-        _print_err(f"Did not find a{mode}configuration file.")
+            mode = "local or global"
+        _print_err(f"Did not find a {mode} configuration file.")
         return
     for key in args.key:
         for kt in key.split("."):
@@ -867,7 +714,7 @@ def main_config_show(args):
         print(cfg)
     else:
         for line in config.Config(cfg).write():
-            print(_hide_password(line))
+            print(line)
 
 
 def main_config_verify(args):
@@ -876,29 +723,25 @@ def main_config_verify(args):
     if args.local and args.globalcfg:
         raise ValueError("You can specify either -l/--local or -g/--global, not both.")
     elif args.local:
-        for fn in config.CONFIG_FILENAMES:
-            if os.path.isfile(fn):
-                if cfg is None:
-                    cfg = config._read_config_file(fn)
-                else:
-                    cfg.merge(config._read_config_file(fn))
+        if os.path.isfile(config.PROJECT_CONFIG_FN):
+            cfg = config._read_config_file(config.PROJECT_CONFIG_FN)
     elif args.globalcfg:
-        cfg = config._read_config_file(config.FN_CONFIG)
+        cfg = config._read_config_file(config.USER_CONFIG_FN)
     else:
-        cfg = config._load_config()
-    if cfg is None:
-        if args.local and args.globalcfg:
-            mode = " local or global "
-        elif args.local:
-            mode = " local "
+        cfg = config._load_config(config._locate_config_dir(os.getcwd()))
+    if not cfg:
+        if args.local:
+            mode = "local"
         elif args.globalcfg:
-            mode = " global "
+            mode = "global"
         else:
-            mode = ""
-        raise RuntimeWarning(f"Did not find a{mode}configuration file.")
-    if cfg.filename is not None:
-        _print_err(f"Verification of config file '{cfg.filename}'.")
-    verify_config(cfg)
+            mode = "local or global"
+        _print_err(f"Did not find a {mode} configuration file.")
+        return
+    else:
+        if cfg.filename is not None:
+            _print_err(f"Verification of config file '{cfg.filename}'.")
+        verify_config(cfg)
 
 
 def main_config_set(args):
@@ -909,31 +752,21 @@ def main_config_set(args):
     if args.local and args.globalcfg:
         raise ValueError("You can specify either -l/--local or -g/--global, not both.")
     elif args.local:
-        for fn_config in config.CONFIG_FILENAMES:
-            if os.path.isfile(fn_config):
-                break
+        if os.path.isfile(config.PROJECT_CONFIG_FN):
+            fn_config = config.PROJECT_CONFIG_FN
     elif args.globalcfg:
-        fn_config = config.FN_CONFIG
+        fn_config = config.USER_CONFIG_FN
     else:
         raise ValueError(
             "You need to specify either -l/--local or -g/--global "
             "to specify which configuration to modify."
         )
-    try:
-        cfg = config._read_config_file(fn_config)
-    except OSError:
-        cfg = config._get_config(fn_config)
+    cfg = config._read_config_file(fn_config)
     keys = args.key.split(".")
-    if keys[-1].endswith("password"):
-        raise RuntimeError(
-            "Passwords need to be set with `{} config host "
-            "HOSTNAME -p`!".format(os.path.basename(sys.argv[0]))
-        )
-    else:
-        if len(args.value) == 0:
-            raise ValueError("No value argument provided!")
-        elif len(args.value) == 1:
-            args.value = args.value[0]
+    if len(args.value) == 0:
+        raise ValueError("No value argument provided!")
+    elif len(args.value) == 1:
+        args.value = args.value[0]
     sec = cfg
     for key in keys[:-1]:
         sec = sec.setdefault(key, {})
@@ -944,154 +777,6 @@ def main_config_set(args):
         raise KeyError(args.key)
     _print_err(f"Writing configuration to '{os.path.abspath(fn_config)}'.")
     cfg.write()
-
-
-def main_config_host(args):
-    """Handle config host subcommand."""
-    if args.update_pw is True:
-        args.update_pw = DEFAULT_PW_ENCRYPTION_SCHEME
-    if not HOST:
-        raise ImportError("pymongo is required for host configuration!")
-    from pymongo.uri_parser import parse_uri
-
-    if not (args.local or args.globalcfg):
-        args.globalcfg = True
-    fn_config = None
-    if args.local and args.globalcfg:
-        raise ValueError("You can specify either -l/--local or -g/--global, not both.")
-    elif args.local:
-        for fn_config in config.CONFIG_FILENAMES:
-            if os.path.isfile(fn_config):
-                break
-    elif args.globalcfg:
-        fn_config = config.FN_CONFIG
-    else:
-        raise ValueError(
-            "You need to specify either -l/--local or -g/--global "
-            "to specify which configuration to modify."
-        )
-    try:
-        cfg = config._read_config_file(fn_config)
-    except OSError:
-        cfg = config._get_config(fn_config)
-
-    def hostcfg():
-        return cfg.setdefault("hosts", {}).setdefault(args.hostname, {})
-
-    if sum((args.test, args.remove, args.show_pw)) > 1:
-        raise ValueError(
-            "Please select only one of the following options: "
-            "[--test | -r/--remove | --show-pw]."
-        )
-
-    if args.test:
-        if hostcfg():
-            _print_err(f"Trying to connect to host '{args.hostname}'...")
-            try:
-                client = get_client(hostcfg())
-                client.address
-            except Exception:
-                _print_err(
-                    "Encountered error while trying to "
-                    "connect to host '{}'.".format(args.hostname)
-                )
-                raise
-            else:
-                print(f"Successfully connected to host '{args.hostname}'.")
-        else:
-            _print_err(f"Host '{args.hostname}' is not configured.")
-        return
-
-    if args.remove:
-        if hostcfg():
-            q = "Are you sure you want to remove host '{}'."
-            if args.yes or query_yes_no(q.format(args.hostname), "no"):
-                kr = get_keyring()
-                if kr:
-                    if kr.get_password("signac", make_uri(hostcfg())):
-                        kr.delete_password("signac", make_uri(hostcfg()))
-                del cfg["hosts"][args.hostname]
-                cfg.write()
-        else:
-            _print_err("Nothing to remove.")
-        return
-
-    if args.show_pw:
-        pw = get_credentials(hostcfg(), ask=False)
-        if pw is None:
-            raise RuntimeError("Did not find stored password!")
-        else:
-            print(pw)
-            return
-
-    if hostcfg():
-        _print_err(f"Configuring host '{args.hostname}'.")
-    else:
-        _print_err(f"Configuring new host '{args.hostname}'.")
-
-    def hide_password(k, v):
-        """Hide all fields containing sensitive information."""
-        return "***" if k.endswith("password") else v
-
-    def update_hostcfg(**update):
-        """Update the host configuration."""
-        store = False
-        for k, v in update.items():
-            if v is None:
-                if k in hostcfg():
-                    logging.info(f"Deleting key {k}")
-                    del cfg["hosts"][args.hostname][k]
-                    store = True
-            elif k not in hostcfg() or v != hostcfg()[k]:
-                logging.info(f"Setting {k}={hide_password(k, v)}")
-                cfg["hosts"][args.hostname][k] = v
-                store = True
-        if store:
-            cfg.write()
-
-    def requires_username():
-        if "username" not in hostcfg():
-            raise ValueError("Please specify a username!")
-
-    if args.uri:
-        parse_uri(args.uri)
-        update_hostcfg(url=args.uri)
-    elif "url" not in hostcfg():
-        update_hostcfg(url="mongodb://localhost")
-
-    if args.username:
-        update_hostcfg(username=args.username, auth_mechanism="SCRAM-SHA-1")
-
-    if args.update_pw:
-        requires_username()
-        if not _passlib_available():
-            _print_err(
-                "WARNING: It is highly recommended to install passlib to encrypt your password!"
-            )
-        pwhash = _update_password(
-            cfg,
-            args.hostname,
-            scheme=None if args.update_pw == "None" else args.update_pw,
-            new_pw=None if args.password is True else args.password,
-        )
-        if args.password:
-            update_hostcfg(password=pwhash, password_config=None)
-        elif args.update_pw == "None":
-            update_hostcfg(password=None, password_config=None)
-        else:
-            update_hostcfg(password=None, password_config=parse_pwhash(pwhash))
-    elif args.password:
-        requires_username()
-        if args.password is True:
-            new_pw = prompt_password()
-        else:
-            new_pw = args.password
-        update_hostcfg(password=new_pw, password_config=None)
-
-    _print_err(f"Configured host '{args.hostname}':")
-    print("[hosts]")
-    for line in config.Config({args.hostname: hostcfg()}).write():
-        print(_hide_password(line))
 
 
 def main_shell(args):
@@ -1111,8 +796,8 @@ def main_shell(args):
         _jobs = find_with_filter(args)
 
         def jobs():
-            for _id in _jobs:
-                yield project.open_job(id=_id)
+            for id_ in _jobs:
+                yield project.open_job(id=id_)
 
         if len(_jobs) == 1:
             job = _open_job_by_id(project, list(_jobs)[0])
@@ -1150,7 +835,7 @@ def main_shell(args):
         else:  # interactive
             if READLINE:
                 if "PyPy" not in platform.python_implementation():
-                    fn_hist = project.fn(".signac_shell_history")
+                    fn_hist = project.fn(SHELL_HISTORY_FN)
                     try:
                         readline.read_history_file(fn_hist)
                         readline.set_history_length(1000)
@@ -1179,10 +864,8 @@ def main_shell(args):
                 banner=SHELL_BANNER.format(
                     python_version=sys.version,
                     signac_version=__version__,
-                    project_id=project.id,
                     job_banner=f"\nJob:\t\t{job.id}" if job is not None else "",
-                    root_path=project.root_directory(),
-                    workspace_path=project.workspace,
+                    path=project.path,
                     size=len(project),
                 ),
             )
@@ -1200,7 +883,7 @@ def main():
     parser.add_argument(
         "--version", action="store_true", help="Display the version number and exit."
     )
-    add_verbosity_argument(parser, default=2)
+    _add_verbosity_argument(parser, default=2)
     parser.add_argument(
         "-y",
         "--yes",
@@ -1210,38 +893,7 @@ def main():
     subparsers = parser.add_subparsers()
 
     parser_init = subparsers.add_parser("init")
-    parser_init.add_argument(
-        "project_id",
-        nargs="?",
-        type=str,
-        help="Initialize a project with the given project id.",
-    )
-    parser_init.add_argument(
-        "-w",
-        "--workspace",
-        type=str,
-        default="workspace",
-        help="The path to the workspace directory.",
-    )
     parser_init.set_defaults(func=main_init)
-
-    parser_project = subparsers.add_parser("project")
-    parser_project.add_argument(
-        "-w",
-        "--workspace",
-        action="store_true",
-        help="Print the project's workspace path instead of the project id.",
-    )
-    parser_project.add_argument(
-        "-i",
-        "--index",
-        action="store_true",
-        help="Generate and print an index for the project.",
-    )
-    parser_project.add_argument(
-        "-a", "--access", action="store_true", help="Create access module for indexing."
-    )
-    parser_project.set_defaults(func=main_project)
 
     parser_job = subparsers.add_parser("job")
     parser_job.add_argument(
@@ -1249,7 +901,7 @@ def main():
         nargs="?",
         default="-",
         type=str,
-        help="The job's statepoint in JSON format. Omit this argument to read from STDIN.",
+        help="The job's state point in JSON format. Omit this argument to read from STDIN.",
     )
     parser_job.add_argument(
         "-w",
@@ -1273,7 +925,7 @@ def main():
 
     parser_statepoint = subparsers.add_parser(
         "statepoint",
-        description="Print the statepoint(s) corresponding to one or more job ids.",
+        description="Print the state point(s) corresponding to one or more job ids.",
     )
     parser_statepoint.add_argument(
         "job_id",
@@ -1339,14 +991,7 @@ def main():
         "--filter",
         type=str,
         nargs="+",
-        help="Limit the diff to jobs matching this state point filter.",
-    )
-    parser_diff.add_argument(
-        "-d",
-        "--doc-filter",
-        type=str,
-        nargs="+",
-        help="Show documents of jobs matching this document filter.",
+        help="Limit the diff to jobs matching the filter.",
     )
     parser_diff.set_defaults(func=main_diff)
 
@@ -1389,17 +1034,7 @@ def main():
         "--filter",
         type=str,
         nargs="+",
-        help="Show documents of jobs matching this state point filter.",
-    )
-    parser_document.add_argument(
-        "-d",
-        "--doc-filter",
-        type=str,
-        nargs="+",
-        help="Show documents of job matching this document filter.",
-    )
-    parser_document.add_argument(
-        "--index", type=str, help="The filename of an index file."
+        help="Show documents of jobs matching the filter.",
     )
     parser_document.set_defaults(func=main_document)
 
@@ -1431,7 +1066,7 @@ def main():
     parser_move.add_argument(
         "project",
         type=str,
-        help="The root directory of the project to move one or more jobs to.",
+        help="The destination project directory.",
     )
     parser_move.add_argument(
         "job_id",
@@ -1445,7 +1080,7 @@ def main():
     parser_clone.add_argument(
         "project",
         type=str,
-        help="The root directory of the project to clone one or more jobs in.",
+        help="The directory of the project to clone one or more jobs in.",
     )
     parser_clone.add_argument(
         "job_id",
@@ -1454,18 +1089,6 @@ def main():
         help="One or more job ids. The corresponding jobs must be initialized.",
     )
     parser_clone.set_defaults(func=main_clone)
-
-    parser_index = subparsers.add_parser("index")
-    parser_index.add_argument(
-        "root",
-        nargs="?",
-        default=".",
-        help="Specify the root path from where the main index is to be compiled.",
-    )
-    parser_index.add_argument(
-        "-t", "--tags", nargs="+", help="Specify tags for this main index compilation."
-    )
-    parser_index.set_defaults(func=main_index)
 
     parser_find = subparsers.add_parser(
         "find",
@@ -1482,13 +1105,7 @@ def main():
         "filter",
         type=str,
         nargs="*",
-        help="A JSON encoded state point filter (key-value pairs).",
-    )
-    parser_find.add_argument(
-        "-d", "--doc-filter", type=str, nargs="+", help="A document filter."
-    )
-    parser_find.add_argument(
-        "-i", "--index", type=str, help="The filename of an index file."
+        help="Find jobs matching the filter.",
     )
     parser_find.add_argument(
         "-s",
@@ -1549,7 +1166,8 @@ def main():
         "$ signac view $PREFIX $VIEW_PATH -f $FILTERS -d $DOC_FILTERS.",
     )
     parser_view.add_argument(
-        "prefix",
+        "-p",
+        "--prefix",
         type=str,
         nargs="?",
         default="view",
@@ -1570,14 +1188,7 @@ def main():
         "--filter",
         type=str,
         nargs="+",
-        help="Limit the view to jobs matching this state point filter.",
-    )
-    selection_group.add_argument(
-        "-d",
-        "--doc-filter",
-        type=str,
-        nargs="+",
-        help="Limit the view to jobs matching this document filter.",
+        help="Limit the view to jobs matching the filter.",
     )
     selection_group.add_argument(
         "-j",
@@ -1585,9 +1196,6 @@ def main():
         type=str,
         nargs="+",
         help="Limit the view to jobs with these job ids.",
-    )
-    selection_group.add_argument(
-        "-i", "--index", type=str, help="The filename of an index file."
     )
     parser_view.set_defaults(func=main_view)
 
@@ -1626,14 +1234,7 @@ def main():
         "--filter",
         type=str,
         nargs="+",
-        help="Detect schema only for jobs that match the state point filter.",
-    )
-    selection_group.add_argument(
-        "-d",
-        "--doc-filter",
-        type=str,
-        nargs="+",
-        help="Detect schema only for jobs that match the document filter.",
+        help="Detect schema only for jobs matching the filter.",
     )
     selection_group.add_argument(
         "-j",
@@ -1663,21 +1264,14 @@ def main():
         "--filter",
         type=str,
         nargs="+",
-        help="Reduce selection to jobs that match the given filter.",
-    )
-    selection_group.add_argument(
-        "-d",
-        "--doc-filter",
-        type=str,
-        nargs="+",
-        help="Reduce selection to jobs that match the given document filter.",
+        help="Reduce selection to jobs matching the filter.",
     )
     selection_group.add_argument(
         "-j",
         "--job-id",
         type=str,
         nargs="+",
-        help="Reduce selection to jobs that match the given job ids.",
+        help="Reduce selection to jobs matching the given job ids.",
     )
     parser_shell.set_defaults(func=main_shell)
 
@@ -1696,15 +1290,15 @@ def main():
     )
     parser_sync.add_argument(
         "source",
-        help="The root directory of the project that this project should be synchronized with.",
+        help="The directory of the project that this project should be synchronized with.",
     )
     parser_sync.add_argument(
         "destination",
         nargs="?",
-        help="Optional: The root directory of the project that should be modified for "
+        help="Optional: The directory of the project that should be modified for "
         "synchronization, defaults to the local project.",
     )
-    add_verbosity_argument(parser_sync, default=2)
+    _add_verbosity_argument(parser_sync, default=2)
 
     sync_group = parser_sync.add_argument_group("copy options")
     sync_group.add_argument(
@@ -1754,7 +1348,7 @@ def main():
         "--ignore-times",
         action="store_true",
         dest="deep",
-        help="Never rely on file meta data such as the size or the modification time "
+        help="Never rely on file metadata such as the size or the modification time "
         "when determining file differences.",
     )
     sync_group.add_argument(
@@ -1809,13 +1403,6 @@ def main():
     )
 
     parser_sync.add_argument(
-        "-w",
-        "--allow-workspace",
-        action="store_true",
-        help="Allow the specification of a workspace (instead of a project) directory "
-        "as the destination path.",
-    )
-    parser_sync.add_argument(
         "--force", action="store_true", help="Ignore all warnings, just synchronize."
     )
     parser_sync.add_argument(
@@ -1852,14 +1439,7 @@ def main():
         "--filter",
         type=str,
         nargs="+",
-        help="Only synchronize jobs that match the state point filter.",
-    )
-    selection_group.add_argument(
-        "-d",
-        "--doc-filter",
-        type=str,
-        nargs="+",
-        help="Only synchronize jobs that match the document filter.",
+        help="Only synchronize jobs matching the filter.",
     )
     selection_group.add_argument(
         "-j",
@@ -1935,14 +1515,7 @@ def main():
         "--filter",
         type=str,
         nargs="+",
-        help="Limit the jobs to export to those matching the state point filter.",
-    )
-    selection_group.add_argument(
-        "-d",
-        "--doc-filter",
-        type=str,
-        nargs="+",
-        help="Limit the jobs to export to those matching this document filter.",
+        help="Limit the jobs to export to those matching the filter.",
     )
     selection_group.add_argument(
         "-j",
@@ -1955,8 +1528,7 @@ def main():
 
     parser_update_cache = subparsers.add_parser(
         "update-cache",
-        description="""Use this command to update the project's persistent state point cache.
-This feature is still experimental and may be removed in future versions.""",
+        description="Use this command to update the project's persistent state point cache.",
     )
     parser_update_cache.set_defaults(func=main_update_cache)
 
@@ -1997,56 +1569,6 @@ This feature is still experimental and may be removed in future versions.""",
         "-f", "--force", action="store_true", help="Override any validation warnings."
     )
     parser_set.set_defaults(func=main_config_set)
-
-    parser_host = config_subparsers.add_parser("host")
-    parser_host.add_argument(
-        "hostname",
-        type=str,
-        help="The name of the specified resource. Note: The name can be arbitrarily chosen.",
-    )
-    parser_host.add_argument(
-        "uri",
-        type=str,
-        nargs="?",
-        help="Set the URI of the specified resource, for example: 'mongodb://localhost'.",
-    )
-    parser_host.add_argument(
-        "-u", "--username", type=str, help="Set the username for this resource."
-    )
-    parser_host.add_argument(
-        "-p",
-        "--password",
-        type=str,
-        nargs="?",
-        const=True,
-        help="Store a password for the specified resource.",
-    )
-    parser_host.add_argument(
-        "--update-pw",
-        type=str,
-        nargs="?",
-        const=True,
-        choices=PW_ENCRYPTION_SCHEMES,
-        help="Update the password of the specified resource. "
-        "Use in combination with -p/--password to store the "
-        "new password. You can optionally specify the hashing "
-        "algorithm used for the password encryption. Anything "
-        "else but 'None' requires passlib! (default={})".format(
-            DEFAULT_PW_ENCRYPTION_SCHEME
-        ),
-    )
-    parser_host.add_argument(
-        "--show-pw",
-        action="store_true",
-        help="Show the password if it was stored and exit.",
-    )
-    parser_host.add_argument(
-        "-r", "--remove", action="store_true", help="Remove the specified resource."
-    )
-    parser_host.add_argument(
-        "--test", action="store_true", help="Attempt connecting to the specified host."
-    )
-    parser_host.set_defaults(func=main_config_host)
 
     parser_verify = config_subparsers.add_parser("verify")
     parser_verify.set_defaults(func=main_config_verify)
@@ -2096,7 +1618,6 @@ This feature is still experimental and may be removed in future versions.""",
     try:
         args.func(args)
     except KeyboardInterrupt:
-        _print_err()
         _print_err("Interrupted.")
         if args.debug:
             raise
