@@ -3,6 +3,7 @@
 # This software is licensed under the BSD 3-Clause License.
 import json
 import os
+import sys
 
 import pytest
 from attr_dict_test import AttrDictTest, AttrListTest
@@ -14,6 +15,8 @@ from signac._synced_collections.backends.collection_json import (
     JSONDict,
     JSONList,
 )
+
+WINDOWS = sys.platform.startswith("win32") or sys.platform.startswith("cygin")
 
 
 class JSONCollectionTest:
@@ -41,6 +44,16 @@ class JSONCollectionTest:
 
     def test_filename(self, synced_collection):
         assert os.path.basename(synced_collection.filename) == self._fn
+
+    @pytest.mark.skipif(
+        WINDOWS,
+        reason=(
+            "The JSONCollection cannot be safely used in multithreaded settings "
+            "on Windows due to https://bugs.python.org/issue46003."
+        ),
+    )
+    def test_multithreaded(self, synced_collection):
+        return super().test_multithreaded(synced_collection)
 
 
 class TestJSONDict(JSONCollectionTest, SyncedDictTest):
