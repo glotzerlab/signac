@@ -131,10 +131,15 @@ class _StatePointDict(JSONAttrDict):
                 raise
 
         # Since all the jobs are equivalent, just grab the filename from the
-        # last one and init it. Also migrate the lock for multithreaded support.
+        # last one and init it. Also migrate the lock for multithreaded
+        # support. The sequence of operations here is imoprtant since changing
+        # the filename updates the lock id.
         if type(self)._threading_support_is_active:
             old_lock_id = self._lock_id
-            self._filename = job._statepoint_filename
+
+        self._filename = job._statepoint_filename
+
+        if type(self)._threading_support_is_active:
             type(self)._locks[self._lock_id] = type(self)._locks.pop(old_lock_id)
 
         if should_init:
