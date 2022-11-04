@@ -117,16 +117,6 @@ correct resolution of nested SyncedCollection types.
 """
 
 
-class _IsWindows:
-    """A truthy type that is False on Windows and True otherwise."""
-
-    def __bool__(self):
-        if sys.platform.startswith("win32") or sys.platform.startswith("cygin"):
-            return False
-        else:
-            return True
-
-
 class JSONCollection(SyncedCollection):
     r"""A :class:`~.SyncedCollection` that synchronizes with a JSON file.
 
@@ -168,7 +158,9 @@ class JSONCollection(SyncedCollection):
     """
 
     _backend = __name__  # type: ignore
-    _supports_threading = _IsWindows()  # type: ignore
+    _supports_threading = not (
+        sys.platform.startswith("win32") or sys.platform.startswith("cygwin")
+    )
     _validators: Sequence_t[Callable] = (require_string_key, json_format_validator)
 
     def __init__(self, filename=None, write_concern=False, *args, **kwargs):
@@ -220,8 +212,19 @@ class JSONCollection(SyncedCollection):
 
     @property
     def filename(self):
-        """str: The name of the associated JSON file on disk."""
+        """str: Get or set the name of the associated JSON file on disk."""
         return self._filename
+
+    @filename.setter
+    def filename(self, value):
+        # When setting the filename we must also remap the locks.
+        if type(self)._threading_support_is_active:
+            old_lock_id = self._lock_id
+
+        self._filename = value
+
+        if type(self)._threading_support_is_active:
+            type(self)._locks[self._lock_id] = type(self)._locks.pop(old_lock_id)
 
     @property
     def _lock_id(self):
@@ -247,6 +250,7 @@ _JSONDICT_PROTECTED_KEYS = frozenset(
         "registry",
         # These keys are specific to the JSON backend.
         "_filename",
+        "filename",
         "_write_concern",
     )
 )

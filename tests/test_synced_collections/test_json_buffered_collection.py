@@ -24,7 +24,7 @@ from signac._synced_collections.backends.collection_json import (
 )
 from signac._synced_collections.errors import BufferedError, MetadataError
 
-WINDOWS = sys.platform.startswith("win32") or sys.platform.startswith("cygin")
+ON_WINDOWS = sys.platform.startswith("win32") or sys.platform.startswith("cywgin")
 
 
 class BufferedJSONCollectionTest(JSONCollectionTest):
@@ -380,7 +380,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
             assert self._collection_type.get_current_buffer_size() == 0
 
     @pytest.mark.skipif(
-        WINDOWS,
+        ON_WINDOWS,
         reason=(
             "The JSONCollection cannot be safely used in multithreaded settings "
             "on Windows due to https://bugs.python.org/issue46003."
@@ -396,7 +396,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         self.multithreaded_buffering_test(setitem_dict, tmpdir)
 
     @pytest.mark.skipif(
-        WINDOWS,
+        ON_WINDOWS,
         reason=(
             "The JSONCollection cannot be safely used in multithreaded settings "
             "on Windows due to https://bugs.python.org/issue46003."
@@ -411,7 +411,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         self.multithreaded_buffering_test(update_dict, tmpdir)
 
     @pytest.mark.skipif(
-        WINDOWS,
+        ON_WINDOWS,
         reason=(
             "The JSONCollection cannot be safely used in multithreaded settings "
             "on Windows due to https://bugs.python.org/issue46003."
@@ -426,7 +426,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         self.multithreaded_buffering_test(reset_dict, tmpdir)
 
     @pytest.mark.skipif(
-        WINDOWS,
+        ON_WINDOWS,
         reason=(
             "The JSONCollection cannot be safely used in multithreaded settings "
             "on Windows due to https://bugs.python.org/issue46003."
@@ -478,7 +478,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
             assert self._collection_type.get_current_buffer_size() == 0
 
     @pytest.mark.skipif(
-        WINDOWS,
+        ON_WINDOWS,
         reason=(
             "The JSONCollection cannot be safely used in multithreaded settings "
             "on Windows due to https://bugs.python.org/issue46003."
@@ -674,7 +674,7 @@ class TestBufferedJSONList(BufferedJSONCollectionTest, TestJSONList):
             assert self._collection_type.get_current_buffer_size() == 0
 
     @pytest.mark.skipif(
-        WINDOWS,
+        ON_WINDOWS,
         reason=(
             "The JSONCollection cannot be safely used in multithreaded settings "
             "on Windows due to https://bugs.python.org/issue46003."
@@ -690,7 +690,7 @@ class TestBufferedJSONList(BufferedJSONCollectionTest, TestJSONList):
         self.multithreaded_buffering_test(setitem_list, True, tmpdir)
 
     @pytest.mark.skipif(
-        WINDOWS,
+        ON_WINDOWS,
         reason=(
             "The JSONCollection cannot be safely used in multithreaded settings "
             "on Windows due to https://bugs.python.org/issue46003."
@@ -705,7 +705,7 @@ class TestBufferedJSONList(BufferedJSONCollectionTest, TestJSONList):
         self.multithreaded_buffering_test(extend_list, False, tmpdir)
 
     @pytest.mark.skipif(
-        WINDOWS,
+        ON_WINDOWS,
         reason=(
             "The JSONCollection cannot be safely used in multithreaded settings "
             "on Windows due to https://bugs.python.org/issue46003."
@@ -721,7 +721,7 @@ class TestBufferedJSONList(BufferedJSONCollectionTest, TestJSONList):
         self.multithreaded_buffering_test(append_list, False, tmpdir)
 
     @pytest.mark.skipif(
-        WINDOWS,
+        ON_WINDOWS,
         reason=(
             "The JSONCollection cannot be safely used in multithreaded settings "
             "on Windows due to https://bugs.python.org/issue46003."

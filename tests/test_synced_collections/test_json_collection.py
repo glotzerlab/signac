@@ -16,7 +16,7 @@ from signac._synced_collections.backends.collection_json import (
     JSONList,
 )
 
-WINDOWS = sys.platform.startswith("win32") or sys.platform.startswith("cygin")
+ON_WINDOWS = sys.platform.startswith("win32") or sys.platform.startswith("cygwin")
 
 
 class JSONCollectionTest:
@@ -46,7 +46,7 @@ class JSONCollectionTest:
         assert os.path.basename(synced_collection.filename) == self._fn
 
     @pytest.mark.skipif(
-        WINDOWS,
+        ON_WINDOWS,
         reason=(
             "The JSONCollection cannot be safely used in multithreaded settings "
             "on Windows due to https://bugs.python.org/issue46003."
