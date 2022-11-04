@@ -152,7 +152,7 @@ class JSONCollection(SyncedCollection):
     --------
     This class is _not_ thread safe on Windows. It relies on ``os.replace`` for
     atomic file writes, and that method can fail in multithreaded situations if
-    open handles exist to the destination file withiin the same process on a
+    open handles exist to the destination file within the same process on a
     different thread. See https://bugs.python.org/issue46003 for more
     information.
     """
