@@ -218,13 +218,14 @@ class JSONCollection(SyncedCollection):
     @filename.setter
     def filename(self, value):
         # When setting the filename we must also remap the locks.
-        if type(self)._threading_support_is_active:
-            old_lock_id = self._lock_id
+        with self._thread_lock:
+            if type(self)._threading_support_is_active:
+                old_lock_id = self._lock_id
 
-        self._filename = value
+            self._filename = value
 
-        if type(self)._threading_support_is_active:
-            type(self)._locks[self._lock_id] = type(self)._locks.pop(old_lock_id)
+            if type(self)._threading_support_is_active:
+                type(self)._locks[self._lock_id] = type(self)._locks.pop(old_lock_id)
 
     @property
     def _lock_id(self):
