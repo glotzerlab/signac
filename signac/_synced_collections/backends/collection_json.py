@@ -6,6 +6,7 @@
 import errno
 import json
 import os
+import sys
 import uuid
 from collections.abc import Mapping, Sequence
 from typing import Callable, FrozenSet
@@ -117,11 +118,9 @@ correct resolution of nested SyncedCollection types.
 
 
 class _IsWindows:
-    """A bool-like object that returns False on Windows and True otherwise."""
+    """A truthy type that is False on Windows and True otherwise."""
 
     def __bool__(self):
-        import sys
-
         if sys.platform.startswith("win32") or sys.platform.startswith("cygin"):
             return False
         else:
