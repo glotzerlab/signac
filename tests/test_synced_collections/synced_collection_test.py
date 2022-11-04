@@ -453,7 +453,6 @@ class SyncedDictTest(SyncedCollectionTest):
 
     def test_multithreaded(self, synced_collection):
         """Test multithreaded runs of synced dicts."""
-        print("In the dict test.")
         if not type(synced_collection)._supports_threading:
             return
 
@@ -766,7 +765,6 @@ class SyncedListTest(SyncedCollectionTest):
 
     def test_multithreaded(self, synced_collection):
         """Test multithreaded runs of synced lists."""
-        print("In the list test.")
         if not type(synced_collection)._supports_threading:
             return
 
