@@ -48,7 +48,7 @@ Removed
  - The ability to pass indexes to various ``Project`` methods (#599).
  - The following ``JobsCursor`` methods: ``groupbydoc``, ``next`` (#601, #604).
  - The ``Project.config`` property is no longer mutable. Use the command line ``$ signac config`` to modify configuration (#608, #246, #244).
- - The following config related functions: ``get_config``, ``search_standard_dirs`` (#674).
+ - The following config related functions: ``get_config``, ``load_config``, ``read_config_file``, ``search_standard_dirs`` (#674, #753, #789, #847).
  - ``Project`` subclasses can no longer define a ``Job`` subclass to use (#588, #693).
  - The ``Collection`` class (#664, #667, #683).
  - The ``project`` CLI subcommand (#752).

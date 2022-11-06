@@ -6,8 +6,6 @@
 import logging
 import os
 
-from ..common.deprecation import deprecated
-from ..version import __version__
 from .configobj import ConfigObj, ConfigObjError
 from .errors import ConfigError
 from .validate import cfg, get_validator
@@ -114,20 +112,6 @@ def _read_config_file(filename):
     return config
 
 
-@deprecated(
-    deprecated_in="1.8",
-    removed_in="2.0",
-    current_version=__version__,
-    details=(
-        "The read_config_file method is deprecated. Configs should only be "
-        "accessed via a Project instance.",
-    ),
-)
-def read_config_file(filename):
-    """Read a configuration file."""
-    return _read_config_file(filename)
-
-
 def _load_config(path=None):
     """Load configuration from a project directory.
 
@@ -156,20 +140,6 @@ def _load_config(path=None):
     if os.path.isfile(_get_project_config_fn(path)):
         config.merge(_read_config_file(_get_project_config_fn(path)))
     return config
-
-
-@deprecated(
-    deprecated_in="1.8",
-    removed_in="2.0",
-    current_version=__version__,
-    details=(
-        "The load_config method is deprecated. Configs should only be "
-        "accessed via a Project instance.",
-    ),
-)
-def load_config(root=None):
-    """Load configuration, searching upward from a root path."""
-    return _load_config(root)
 
 
 class Config(ConfigObj):
