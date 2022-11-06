@@ -51,6 +51,7 @@ def generate_random_data(
     data_size_std=0,
     parallel=True,
 ):
+    """Generate random jobs for a signac Project."""
     assert len(project) == 0
 
     if parallel:
@@ -72,6 +73,7 @@ def generate_random_data(
 def setup_random_project(
     N, num_keys=1, num_doc_keys=0, data_size_mean=0, data_size_std=0, seed=0, path=None
 ):
+    """Prepare a signac Project for benchmarking."""
     random.seed(seed)
     if not isinstance(N, int):
         raise TypeError("N must be an integer!")
@@ -112,23 +114,32 @@ class _ProjectBenchBase:
 
 
 class ProjectBench(_ProjectBenchBase):
+    """Benchmark the signac Project class."""
+
     def time_determine_len(self, *params):
+        """Benchmark project length."""
         len(self.project)
 
     def time_iterate_single_pass(self, *params):
+        """Benchmark iterating over a Project."""
         list(self.project)
 
     def time_iterate(self, *params):
+        """Benchmark iterating over a Project multiple times."""
         for _ in range(10):
             list(self.project)
 
     def time_iterate_load_sp(self, *params):
+        """Benchmark loading state points from a Project."""
         for _ in range(10):
             [job.sp() for job in self.project]
 
 
 class ProjectRandomJobBench(_ProjectBenchBase):
+    """Benchmark selecting/searching for a random Job."""
+
     def setup(self, *params):
+        """Set up a random job and filter for its state point."""
         super().setup(*params)
         self.random_job = random.choice(list(self.project))
         self.random_job_sp = self.random_job.statepoint()
@@ -136,10 +147,13 @@ class ProjectRandomJobBench(_ProjectBenchBase):
         self.lean_filter = {k: v for k, v in islice(self.random_job_sp.items(), 1)}
 
     def time_select_by_id(self, *params):
+        """Benchmark selecting by id."""
         self.project.open_job(id=self.random_job_id)
 
     def time_search_lean_filter(self, *params):
+        """Benchmark searching by filter with one key."""
         len(self.project.find_jobs(self.lean_filter))
 
     def time_search_rich_filter(self, *params):
+        """Benchmark searching by filter with multiple keys."""
         len(self.project.find_jobs(self.random_job_sp))
