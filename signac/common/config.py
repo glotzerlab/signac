@@ -104,13 +104,13 @@ def _read_config_file(filename):
     except (OSError, ConfigObjError) as error:
         raise ConfigError(f"Failed to read configuration file '{filename}':\n{error}")
     verification = config.verify()
+    # config.verify() returns True if everything succeeded, but if the
+    # validation failed it will return a dictionary of invalid results. We
+    # cannot simply check for a truthy value here since a non-empty dict will
+    # evaluate to True.
     if verification is not True:
-        # TODO: In the future this should raise an error, not just a
-        # debug-level logging notice.
-        logger.debug(
-            "Config file '{}' may contain invalid values.".format(
-                os.path.abspath(filename)
-            )
+        raise ConfigError(
+            f"Config file '{os.path.abspath(filename)}' may contain invalid values."
         )
     return config
 
