@@ -12,6 +12,7 @@ import re
 import shutil
 import time
 import warnings
+from collections import defaultdict
 from collections.abc import Iterable
 from contextlib import contextmanager
 from itertools import groupby
@@ -41,13 +42,33 @@ from .errors import (
 from .filterparse import _add_prefix, _root_keys, parse_filter
 from .hashing import calc_id
 from .job import Job
-from .schema import ProjectSchema, _collect_by_type
+from .schema import ProjectSchema
 from .utility import _mkdir_p, _nested_dicts_to_dotted_keys, _split_and_print_progress
 
 logger = logging.getLogger(__name__)
 
 JOB_ID_LENGTH = 32
 JOB_ID_REGEX = re.compile(f"[a-f0-9]{{{JOB_ID_LENGTH}}}")
+
+
+def _collect_by_type(values):
+    """Construct a mapping of types to a set of elements drawn from the input values.
+
+    Parameters
+    ----------
+    values :
+        An iterable of values.
+
+    Returns
+    -------
+    defaultdict(set)
+        A mapping of types to a set of input values of that type.
+
+    """
+    values_by_type = defaultdict(set)
+    for v in values:
+        values_by_type[type(v)].add(v)
+    return values_by_type
 
 
 class _ProjectConfig(Config):
