@@ -9,12 +9,14 @@ import os
 from .configobj import ConfigObj, ConfigObjError
 from .configobj.validate import Validator
 from .errors import ConfigError
-from .validate import cfg
 
 logger = logging.getLogger(__name__)
 
 PROJECT_CONFIG_FN = os.path.join(".signac", "config")
 USER_CONFIG_FN = os.path.expanduser(os.path.join("~", ".signacrc"))
+_CFG = """
+schema_version = string(default='1')
+"""
 
 
 def _get_project_config_fn(path):
@@ -98,7 +100,7 @@ def _locate_config_dir(search_path):
 def _read_config_file(filename):
     logger.debug(f"Reading config file '{filename}'.")
     try:
-        config = Config(filename, configspec=cfg.split("\n"))
+        config = Config(filename, configspec=_CFG.split("\n"))
     except (OSError, ConfigObjError) as error:
         raise ConfigError(f"Failed to read configuration file '{filename}':\n{error}")
     verification = config.verify()
@@ -130,7 +132,7 @@ def _load_config(path=None):
     """
     if path is None:
         path = os.getcwd()
-    config = Config(configspec=cfg.split("\n"))
+    config = Config(configspec=_CFG.split("\n"))
 
     # Add in any global or user config files. For now this only finds user-specific
     # files, but it could be updated in the future to support e.g. system-wide config files.
