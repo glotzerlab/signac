@@ -30,6 +30,7 @@ Changed
  - Rather than searching upwards until the root, ``load_config`` will only load configuration files in the specified directory, which is assumed to be a project directory, as well as the user's home directory (#711).
  - Changed the ``root`` parameter to ``path`` in the ``signac.get_project`` and ``signac.init_project`` functions and corresponding ``Project`` methods (#757, #758).
  - The prefix argument to ``$ signac view`` is now optional and can be provided with ``-p/--prefix`` (#653, #774).
+ - Detection of an invalid config will raise an error rather than a debug log (#855).
 
 Removed
 +++++++
@@ -48,7 +49,7 @@ Removed
  - The ability to pass indexes to various ``Project`` methods (#599).
  - The following ``JobsCursor`` methods: ``groupbydoc``, ``next`` (#601, #604).
  - The ``Project.config`` property is no longer mutable. Use the command line ``$ signac config`` to modify configuration (#608, #246, #244).
- - The following config related functions: ``get_config``, ``search_standard_dirs`` (#674).
+ - The following config related functions: ``get_config``, ``load_config``, ``read_config_file``, ``search_standard_dirs`` (#674, #753, #789, #847).
  - ``Project`` subclasses can no longer define a ``Job`` subclass to use (#588, #693).
  - The ``Collection`` class (#664, #667, #683).
  - The ``project`` CLI subcommand (#752).
@@ -58,6 +59,7 @@ Removed
  - The ``--doc-filter`` option for several command line subcommands (#613, #795).
  - The public API of the ``synced_collection`` subpackage (#807, #790).
  - The warnings module (#815).
+ - The signac.common.validate module (#853).
 
 Version 1
 =========
