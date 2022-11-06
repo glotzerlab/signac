@@ -133,15 +133,15 @@ def _open_job_by_id(project, job_id):
         )
 
 
-def find_with_filter_or_none(args):
+def _find_with_filter_or_none(args):
     """Return a filtered subset of jobs or None."""
     if args.job_id or args.filter:
-        return find_with_filter(args)
+        return _find_with_filter(args)
     else:
         return None
 
 
-def find_with_filter(args):
+def _find_with_filter(args):
     """Return a filtered subset of jobs."""
     if getattr(args, "job_id", None):
         if args.filter:
@@ -194,7 +194,7 @@ def main_statepoint(args):
 def main_document(args):
     """Handle document subcommand."""
     project = get_project()
-    for job_id in find_with_filter(args):
+    for job_id in _find_with_filter(args):
         job = _open_job_by_id(project, job_id)
         if args.pretty:
             pprint(job.document(), depth=args.pretty)
@@ -276,7 +276,7 @@ def main_find(args):
             return pformat(s, depth=args.pretty)
 
     try:
-        for job_id in find_with_filter(args):
+        for job_id in _find_with_filter(args):
             print(job_id)
             job = project.open_job(id=job_id)
 
@@ -304,7 +304,7 @@ def main_diff(args):
     """Handle diff subcommand."""
     project = get_project()
 
-    jobs = find_with_filter_or_none(args)
+    jobs = _find_with_filter_or_none(args)
     jobs = (
         (_open_job_by_id(project, job) for job in jobs) if jobs is not None else project
     )
@@ -322,7 +322,7 @@ def main_view(args):
     project.create_linked_view(
         prefix=args.prefix,
         path=args.path,
-        job_ids=find_with_filter(args),
+        job_ids=_find_with_filter(args),
     )
 
 
@@ -337,7 +337,7 @@ def main_schema(args):
     project = get_project()
     print(
         project.detect_schema(
-            exclude_const=args.exclude_const, subset=find_with_filter_or_none(args)
+            exclude_const=args.exclude_const, subset=_find_with_filter_or_none(args)
         ).format(
             depth=args.depth, precision=args.precision, max_num_range=args.max_num_range
         )
@@ -398,7 +398,7 @@ def main_sync(args):
     except LookupError:
         _print_err("WARNING: The destination does not appear to be a project path.")
         raise
-    selection = find_with_filter_or_none(args)
+    selection = _find_with_filter_or_none(args)
 
     if args.strategy:
         if args.strategy[0].isupper():
@@ -602,7 +602,7 @@ def main_export(args):
     copytree = shutil.move if args.move else None
 
     project = get_project()
-    jobs = [project.open_job(id=job_id) for job_id in find_with_filter(args)]
+    jobs = [project.open_job(id=job_id) for job_id in _find_with_filter(args)]
 
     paths = {}
     with tqdm(total=len(jobs), desc="Export") as pbar:
@@ -794,7 +794,7 @@ def main_shell(args):
         print("No project within this directory.")
         print("If you want to initialize a project, execute `$ signac init`.")
     else:
-        _jobs = find_with_filter(args)
+        _jobs = _find_with_filter(args)
 
         def jobs():
             for id_ in _jobs:
