@@ -11,7 +11,7 @@ import os
 from signac.common import configobj
 
 # A minimal v1 config.
-_cfg = """
+_CFG = """
 schema_version = string(default='0')
 project = string()
 workspace_dir = string(default='workspace')
@@ -24,7 +24,7 @@ def _load_config_v1(root_directory):
         raise RuntimeError(
             f"The directory {root_directory} does not contain a config file."
         )
-    cfg = configobj.ConfigObj(config_fn, configspec=_cfg.split("\n"))
+    cfg = configobj.ConfigObj(config_fn, configspec=_CFG.split("\n"))
     validator = configobj.validate.Validator()
     if cfg.validate(validator) is not True:
         raise RuntimeError(

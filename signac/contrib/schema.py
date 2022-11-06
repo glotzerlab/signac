@@ -3,14 +3,10 @@
 # This software is licensed under the BSD 3-Clause License.
 """Project Schema."""
 
-from collections import defaultdict
 from collections.abc import Mapping
 from numbers import Number
 from pprint import pformat
 
-from packaging import version
-
-from ..version import __version__
 from ._searchindexer import _DictPlaceholder
 from .utility import _nested_dicts_to_dotted_keys
 
@@ -25,28 +21,6 @@ class _Vividict(dict):
     def __missing__(self, key):
         value = self[key] = type(self)()
         return value
-
-
-def _collect_by_type(values):
-    """Construct a mapping of types to a set of elements drawn from the input values.
-
-    Parameters
-    ----------
-    values :
-        An iterable of values.
-
-    Returns
-    -------
-    defaultdict(set)
-        A mapping of types to a set of input values of that type.
-
-    """
-    # TODO: This function should be moved to project.py in version 2.0.
-    assert version.parse(__version__) < version.parse("2.0.0")
-    values_by_type = defaultdict(set)
-    for v in values:
-        values_by_type[type(v)].add(v)
-    return values_by_type
 
 
 def _strip_prefix(key):

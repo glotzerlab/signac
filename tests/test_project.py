@@ -2326,7 +2326,7 @@ class TestProjectSchema(TestProjectBase):
         assert len(migrations) == 0
 
 
-def _initialize_v1_project(dirname, with_workspace=True):
+def _initialize_v1_project(dirname, with_workspace=True, with_other_files=True):
     # Create v1 config file.
     cfg_fn = os.path.join(dirname, "signac.rc")
     workspace_dir = "workspace_dir"
@@ -2345,18 +2345,19 @@ def _initialize_v1_project(dirname, with_workspace=True):
     if with_workspace:
         os.makedirs(os.path.join(dirname, "workspace"))
 
-    # Create a shell history file.
-    history_fn = os.path.join(dirname, ".signac_shell_history")
-    with open(history_fn, "w") as f:
-        f.write("print(project)")
+    if with_other_files:
+        # Create a shell history file.
+        history_fn = os.path.join(dirname, ".signac_shell_history")
+        with open(history_fn, "w") as f:
+            f.write("print(project)")
 
-    # Create a statepoint cache. Note that this cache does not
-    # correspond to actual statepoints since we don't currently have
-    # any in this project, but that's fine for migration testing.
-    sp_cache = os.path.join(dirname, ".signac_sp_cache.json.gz")
-    sp = {"a": 1}
-    with gzip.open(sp_cache, "wb") as f:
-        f.write(json.dumps({calc_id(sp): sp}).encode())
+        # Create a statepoint cache. Note that this cache does not
+        # correspond to actual statepoints since we don't currently have
+        # any in this project, but that's fine for migration testing.
+        sp_cache = os.path.join(dirname, ".signac_sp_cache.json.gz")
+        sp = {"a": 1}
+        with gzip.open(sp_cache, "wb") as f:
+            f.write(json.dumps({calc_id(sp): sp}).encode())
 
     return cfg_fn
 
@@ -2364,11 +2365,14 @@ def _initialize_v1_project(dirname, with_workspace=True):
 class TestSchemaMigration:
     @pytest.mark.parametrize("implicit_version", [True, False])
     @pytest.mark.parametrize("workspace_exists", [True, False])
-    def test_project_schema_version_migration(self, implicit_version, workspace_exists):
+    @pytest.mark.parametrize("with_other_files", [True, False])
+    def test_project_schema_version_migration(
+        self, implicit_version, workspace_exists, with_other_files
+    ):
         from signac.contrib.migration import apply_migrations
 
         with TemporaryDirectory() as dirname:
-            cfg_fn = _initialize_v1_project(dirname, workspace_exists)
+            cfg_fn = _initialize_v1_project(dirname, workspace_exists, with_other_files)
 
             # If no schema version is present in the config it is equivalent to
             # version 0, so we test both explicit and implicit versions.
@@ -2397,8 +2401,11 @@ class TestSchemaMigration:
             assert "0 to 1" in err.getvalue()
             assert "1 to 2" in err.getvalue()
             assert os.path.isfile(project.fn(PROJECT_CONFIG_FN))
-            assert os.path.isfile(project.fn(os.sep.join((".signac", "shell_history"))))
-            assert os.path.isfile(project.fn(Project.FN_CACHE))
+            if with_other_files:
+                assert os.path.isfile(
+                    project.fn(os.sep.join((".signac", "shell_history")))
+                )
+                assert os.path.isfile(project.fn(Project.FN_CACHE))
 
     def test_project_init_old_schema(self):
         with TemporaryDirectory() as dirname:
