@@ -11,7 +11,6 @@ import pickle
 import re
 import sys
 import textwrap
-import uuid
 from contextlib import contextmanager, redirect_stderr
 from tarfile import TarFile
 from tempfile import TemporaryDirectory
@@ -67,30 +66,6 @@ except ImportError:
 WINDOWS = sys.platform == "win32"
 
 
-# Make sure the jobs created for this test are unique.
-test_token = {"test_token": str(uuid.uuid4())}
-
-
-# Use the major version to fail tests expected to fail in 3.0.
-_CURRENT_VERSION = version.parse(signac.__version__)
-_VERSION_3 = version.parse("3.0.0")
-_VERSION_2 = version.parse("2.0.0")
-
-
-S_FORMAT1 = """{
- 'a': 'int([0, 1, 2, ..., 8, 9], 10)',
- 'b.b2': 'int([0, 1, 2, ..., 8, 9], 10)',
- 'c.c2.c3.c4.c5': 'tuple([((0, 0, 0),), ((1, 0, 0),), ((2, 0, 0),), ..., ((8, 0, 0),), ((9, 0, 0),)], 10)',
- 'const': 'int([0], 1)',
-}"""  # noqa: E501
-
-
-S_FORMAT2 = """{'a': 'int([0, 1, 2, ..., 8, 9], 10)',
- 'b': {'b2': 'int([0, 1, 2, ..., 8, 9], 10)'},
- 'c': {'c2': {...}},
- 'const': 'int([0], 1)'}"""
-
-
 class TestProjectBase(TestJobBase):
     pass
 
@@ -111,11 +86,7 @@ class TestProject(TestProjectBase):
         assert os.path.join(self._tmp_pr, "workspace") == self.project.workspace
 
     def test_config_modification(self):
-        # In-memory modification of the project configuration is
-        # deprecated as of 1.3, and will be removed in version 2.0.
-        # This unit test should reflect that change beginning 2.0,
-        # and check that the project configuration is immutable.
-        assert _CURRENT_VERSION < _VERSION_2
+        # Ensure that the project configuration is immutable.
         with pytest.raises(ValueError):
             self.project.config["foo"] = "bar"
 
@@ -796,8 +767,27 @@ class TestProject(TestProjectBase):
         s_format1 = s.format()
         s_format2 = s.format(depth=2)
 
-        assert S_FORMAT1 == s_format1
-        assert S_FORMAT2 == s_format2
+        S_FORMAT1 = textwrap.dedent(
+            """\
+            {
+             'a': 'int([0, 1, 2, ..., 8, 9], 10)',
+             'b.b2': 'int([0, 1, 2, ..., 8, 9], 10)',
+             'c.c2.c3.c4.c5': 'tuple([((0, 0, 0),), ((1, 0, 0),), ((2, 0, 0),), ..., ((8, 0, 0),), ((9, 0, 0),)], 10)',
+             'const': 'int([0], 1)',
+            }"""  # noqa: E501
+        )
+
+        assert s_format1 == S_FORMAT1
+
+        S_FORMAT2 = textwrap.dedent(
+            """\
+            {'a': 'int([0, 1, 2, ..., 8, 9], 10)',
+             'b': {'b2': 'int([0, 1, 2, ..., 8, 9], 10)'},
+             'c': {'c2': {...}},
+             'const': 'int([0], 1)'}"""
+        )
+
+        assert s_format2 == S_FORMAT2
 
     def test_jobs_groupby(self):
         def get_sp(i):
