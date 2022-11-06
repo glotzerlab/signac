@@ -7,8 +7,9 @@ import logging
 import os
 
 from .configobj import ConfigObj, ConfigObjError
+from .configobj.validate import Validator
 from .errors import ConfigError
-from .validate import cfg, get_validator
+from .validate import cfg
 
 logger = logging.getLogger(__name__)
 
@@ -150,5 +151,5 @@ class Config(ConfigObj):
     def verify(self, validator=None, *args, **kwargs):
         """Validate the contents of this configuration."""
         if validator is None:
-            validator = get_validator()
+            validator = Validator()
         return super().validate(validator, *args, **kwargs)

@@ -5,13 +5,7 @@
 
 import logging
 
-from .configobj.validate import Validator
-
 logger = logging.getLogger(__name__)
-
-
-def get_validator():  # noqa: D103
-    return Validator()
 
 
 # TODO: Rename to something internal and uppercase e.g. _CFG.
