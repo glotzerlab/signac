@@ -101,14 +101,13 @@ def _read_config_file(filename):
     except (OSError, ConfigObjError) as error:
         raise ConfigError(f"Failed to read configuration file '{filename}':\n{error}")
     verification = config.verify()
-    # verify returns True if everything succeeded, but if the validation failed
-    # it will return a dictionary of invalid results so we cannot simply check
-    # for a truthy value here since a non-empty dict will evaluate to True.
+    # config.verify() returns True if everything succeeded, but if the
+    # validation failed it will return a dictionary of invalid results. We
+    # cannot simply check for a truthy value here since a non-empty dict will
+    # evaluate to True.
     if verification is not True:
         raise ConfigError(
-            "Config file '{}' may contain invalid values.".format(
-                os.path.abspath(filename)
-            )
+            f"Config file '{os.path.abspath(filename)}' may contain invalid values."
         )
     return config
 
