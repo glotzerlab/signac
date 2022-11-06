@@ -664,27 +664,6 @@ def main_migrate(args):
         apply_migrations(root)
 
 
-def verify_config(cfg, preserve_errors=True):
-    """Verify provided configuration."""
-    verification = cfg.verify(preserve_errors=preserve_errors)
-    if verification is True:
-        _print_err("Passed.")
-    else:
-        for entry in flatten_errors(cfg, verification):
-            # each entry is a tuple
-            section_list, key, error = entry
-            if key is not None:
-                section_list.append(key)
-            else:
-                section_list.append("[missing section]")
-            section_string = ".".join(section_list)
-            if error is False:
-                error = "Possibly invalid or missing."
-            else:
-                error = type(error).__name__
-            _print_err(" ".join((section_string, ":", error)))
-
-
 def main_config_show(args):
     """Handle config show subcommand."""
     cfg = None
@@ -718,6 +697,27 @@ def main_config_show(args):
             print(line)
 
 
+def _verify_config(cfg, preserve_errors=True):
+    """Verify provided configuration."""
+    verification = cfg.verify(preserve_errors=preserve_errors)
+    if verification is True:
+        _print_err("Passed.")
+    else:
+        for entry in flatten_errors(cfg, verification):
+            # each entry is a tuple
+            section_list, key, error = entry
+            if key is not None:
+                section_list.append(key)
+            else:
+                section_list.append("[missing section]")
+            section_string = ".".join(section_list)
+            if error is False:
+                error = "Possibly invalid or missing."
+            else:
+                error = type(error).__name__
+            _print_err(" ".join((section_string, ":", error)))
+
+
 def main_config_verify(args):
     """Handle config verify subcommand."""
     cfg = None
@@ -742,7 +742,7 @@ def main_config_verify(args):
     else:
         if cfg.filename is not None:
             _print_err(f"Verification of config file '{cfg.filename}'.")
-        verify_config(cfg)
+        _verify_config(cfg)
 
 
 def main_config_set(args):
