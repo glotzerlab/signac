@@ -97,10 +97,18 @@ def _locate_config_dir(search_path):
             search_path = up
 
 
+class _Config(ConfigObj):
+    """Manages configuration for a signac project."""
+
+    def verify(self, preserve_errors=False):
+        """Validate the contents of this configuration."""
+        return super().validate(Validator(), preserve_errors=preserve_errors)
+
+
 def _read_config_file(filename):
     logger.debug(f"Reading config file '{filename}'.")
     try:
-        config = Config(filename, configspec=_CFG.split("\n"))
+        config = _Config(filename, configspec=_CFG.split("\n"))
     except (OSError, ConfigObjError) as error:
         raise ConfigError(f"Failed to read configuration file '{filename}':\n{error}")
     verification = config.verify()
@@ -125,14 +133,14 @@ def _load_config(path=None):
 
     Returns
     --------
-    :class:`Config`
+    :class:`_Config`
         The composite configuration including both project-local and global
         config data if requested. Note that because this config is a composite,
         modifications to the returned value will not be reflected in the files.
     """
     if path is None:
         path = os.getcwd()
-    config = Config(configspec=_CFG.split("\n"))
+    config = _Config(configspec=_CFG.split("\n"))
 
     # Add in any global or user config files. For now this only finds user-specific
     # files, but it could be updated in the future to support e.g. system-wide config files.
@@ -143,15 +151,3 @@ def _load_config(path=None):
     if os.path.isfile(_get_project_config_fn(path)):
         config.merge(_read_config_file(_get_project_config_fn(path)))
     return config
-
-
-class Config(ConfigObj):
-    """Manages configuration for a signac project."""
-
-    encoding = "utf-8"
-
-    def verify(self, validator=None, *args, **kwargs):
-        """Validate the contents of this configuration."""
-        if validator is None:
-            validator = Validator()
-        return super().validate(validator, *args, **kwargs)

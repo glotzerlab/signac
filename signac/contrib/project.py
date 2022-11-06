@@ -22,7 +22,7 @@ from threading import RLock
 
 from .._synced_collections.backends.collection_json import BufferedJSONAttrDict
 from ..common.config import (
-    Config,
+    _Config,
     _get_project_config_fn,
     _load_config,
     _locate_config_dir,
@@ -51,7 +51,7 @@ JOB_ID_LENGTH = 32
 JOB_ID_REGEX = re.compile(f"[a-f0-9]{{{JOB_ID_LENGTH}}}")
 
 
-class _ProjectConfig(Config):
+class _ProjectConfig(_Config):
     r"""Extends the project config to make it immutable.
 
     Parameters
