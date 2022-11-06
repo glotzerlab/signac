@@ -19,6 +19,7 @@ from signac._synced_collections.backends.collection_json import BufferedJSONAttr
 from signac.common import configobj
 from signac.common.config import _get_project_config_fn
 from signac.contrib.project import Project
+from signac.contrib.utility import _mkdir_p
 
 from .v0_to_v1 import _load_config_v1
 
@@ -47,8 +48,6 @@ def _migrate_v1_to_v2(root_directory):
     """Migrate from schema version 1 to version 2."""
     # Load the v1 config.
     cfg = _load_config_v1(root_directory)
-    fn_doc = os.path.join(root_directory, Project.FN_DOCUMENT)
-    doc = BufferedJSONAttrDict(filename=fn_doc, write_concern=True)
 
     # Try to migrate a custom workspace directory if one exists.
     current_workspace_name = cfg.get("workspace_dir")
@@ -66,25 +65,27 @@ def _migrate_v1_to_v2(root_directory):
             os.replace(current_workspace, new_workspace)
         del cfg["workspace_dir"]
 
-    # Delete project name from config and store in project doc.
-    doc["signac_project_name"] = cfg["project"]
+    # Delete project name from config and store in project doc if non-default.
+    # For default names, no modifications to the project document should be made.
+    if cfg["project"] != "None":
+        fn_doc = os.path.join(root_directory, Project.FN_DOCUMENT)
+        doc = BufferedJSONAttrDict(filename=fn_doc, write_concern=True)
+        doc["signac_project_name"] = cfg["project"]
     del cfg["project"]
     cfg.write()
 
     # Move signac.rc to .signac/config
     v1_fn = os.path.join(root_directory, "signac.rc")
     v2_fn = _get_project_config_fn(root_directory)
-    os.mkdir(os.path.dirname(v2_fn))
+    _mkdir_p(os.path.dirname(v2_fn))
     os.replace(v1_fn, v2_fn)
 
     # Now move all other files.
     files_to_move = {
-        ".signac_shell_history": os.sep.join((".signac", "shell_history")),
-        ".signac_sp_cache.json.gz": os.sep.join(
-            (".signac", "statepoint_cache.json.gz")
-        ),
+        ".signac_shell_history": os.path.join(".signac", "shell_history"),
+        ".signac_sp_cache.json.gz": os.path.join(".signac", "statepoint_cache.json.gz"),
     }
     for src, dst in files_to_move.items():
-        src = os.sep.join((root_directory, src))
+        src = os.path.join(root_directory, src)
         if os.path.isfile(src):
-            os.replace(src, os.sep.join((root_directory, dst)))
+            os.replace(src, os.path.join(root_directory, dst))
