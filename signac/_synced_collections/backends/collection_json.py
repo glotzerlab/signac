@@ -28,6 +28,9 @@ from ..numpy_utils import (
 from ..utils import AbstractTypeResolver, SyncedCollectionJSONEncoder
 from ..validators import json_format_validator, no_dot_in_key, require_string_key
 
+ON_WINDOWS = sys.platform.startswith("win32") or sys.platform.startswith("cygwin")
+
+
 """
 There are many classes defined in this file. Most of the definitions are
 trivial since logic is largely inherited, but the large number of classes
@@ -158,9 +161,7 @@ class JSONCollection(SyncedCollection):
     """
 
     _backend = __name__  # type: ignore
-    _supports_threading = not (
-        sys.platform.startswith("win32") or sys.platform.startswith("cygwin")
-    )
+    _supports_threading = not ON_WINDOWS
     _validators: Sequence_t[Callable] = (require_string_key, json_format_validator)
 
     def __init__(self, filename=None, write_concern=False, *args, **kwargs):

@@ -3,20 +3,18 @@
 # This software is licensed under the BSD 3-Clause License.
 import json
 import os
-import sys
 
 import pytest
 from attr_dict_test import AttrDictTest, AttrListTest
 from synced_collection_test import SyncedDictTest, SyncedListTest
 
 from signac._synced_collections.backends.collection_json import (
+    ON_WINDOWS,
     JSONAttrDict,
     JSONAttrList,
     JSONDict,
     JSONList,
 )
-
-ON_WINDOWS = sys.platform.startswith("win32") or sys.platform.startswith("cygwin")
 
 
 class JSONCollectionTest:
