@@ -85,6 +85,6 @@ def _migrate_v1_to_v2(root_directory):
         ),
     }
     for src, dst in files_to_move.items():
-        os.replace(
-            os.sep.join((root_directory, src)), os.sep.join((root_directory, dst))
-        )
+        src = os.sep.join((root_directory, src))
+        if os.path.isfile(src):
+            os.replace(src, os.sep.join((root_directory, dst)))
