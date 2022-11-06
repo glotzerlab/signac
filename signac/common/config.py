@@ -15,12 +15,45 @@ logger = logging.getLogger(__name__)
 PROJECT_CONFIG_FN = os.path.join(".signac", "config")
 USER_CONFIG_FN = os.path.expanduser(os.path.join("~", ".signacrc"))
 
-# TODO: Consider making this entire module internal and removing all its
-# functions from the public API.
-
 
 def _get_project_config_fn(path):
     return os.path.abspath(os.path.join(path, PROJECT_CONFIG_FN))
+
+
+def _raise_if_older_schema(root):
+    """Raise if an older schema version is detected at the search path.
+
+    Parameters
+    ----------
+    root : str
+        Directory to check schema for.
+
+    Raises
+    ------
+    IncompatibleSchemaVersion
+        If the project uses an older schema version that requires migration.
+    """
+    from ..contrib.errors import IncompatibleSchemaVersion
+    from ..contrib.migration import _get_config_schema_version
+    from ..version import SCHEMA_VERSION, __version__
+
+    schema_version = int(SCHEMA_VERSION)
+
+    try:
+        schema_version = _get_config_schema_version(root, schema_version)
+        assert schema_version != int(SCHEMA_VERSION), (
+            "Migration schema loader succeeded in loading a config file "
+            "where normal loader failed. This indicates an internal "
+            "error, please contact the signac developers."
+        )
+        raise IncompatibleSchemaVersion(
+            "The signac schema version used by this project is "
+            f"{schema_version}, but signac {__version__} requires "
+            f"schema version {SCHEMA_VERSION}. Try running python -m "
+            "signac migrate."
+        )
+    except RuntimeError:
+        pass
 
 
 def _locate_config_dir(search_path):
@@ -36,10 +69,24 @@ def _locate_config_dir(search_path):
     str or None
         The directory containing the configuration file if one is found, otherwise None.
     """
+    orig_search_path = search_path
     search_path = os.path.abspath(search_path)
     while True:
         if os.path.isfile(_get_project_config_fn(search_path)):
             return search_path
+        if (up := os.path.dirname(search_path)) == search_path:
+            break
+        else:
+            search_path = up
+
+    logger.debug(
+        "Reached filesystem root, no config found. Checking whether a "
+        "project created with an older signac schema may be found."
+    )
+
+    search_path = os.path.abspath(orig_search_path)
+    while True:
+        _raise_if_older_schema(search_path)
         if (up := os.path.dirname(search_path)) == search_path:
             logger.debug("Reached filesystem root, no config found.")
             return None

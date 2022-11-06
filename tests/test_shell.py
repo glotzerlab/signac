@@ -9,6 +9,7 @@ import sys
 from tempfile import TemporaryDirectory
 
 import pytest
+from test_project import _initialize_v1_project
 
 import signac
 from signac.common import config
@@ -810,3 +811,12 @@ class TestBasicShell:
 
         err = self.call("python -m signac update-cache".split(), error=True)
         assert "Cache is up to date" in err
+
+    def test_migrate_v1_to_v2(self):
+        dirname = self.tmpdir.name
+        _initialize_v1_project(dirname, False)
+        self.call("python -m signac migrate --yes".split())
+        assert not os.path.isfile(os.path.join(dirname, "signac.rc"))
+        assert not os.path.isdir(os.path.join(dirname, "workspace_dir"))
+        assert os.path.isdir(os.path.join(dirname, ".signac"))
+        assert os.path.isdir(os.path.join(dirname, "workspace"))
