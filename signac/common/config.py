@@ -100,7 +100,7 @@ def _locate_config_dir(search_path):
 class _Config(ConfigObj):
     """Manages configuration for a signac project."""
 
-    def verify(self, preserve_errors=False):
+    def verify(self, *, preserve_errors=False):
         """Validate the contents of this configuration."""
         return super().validate(Validator(), preserve_errors=preserve_errors)
 
