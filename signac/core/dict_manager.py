@@ -11,6 +11,7 @@ import uuid
 from .utility import _safe_relpath
 
 
+# TODO: Make this private. This shouldn't be part of our API.
 class DictManager:
     """Helper class to manage multiple instances of dict-like classes.
 

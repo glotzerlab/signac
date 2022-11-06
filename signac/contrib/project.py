@@ -12,6 +12,7 @@ import re
 import shutil
 import time
 import warnings
+from collections import defaultdict
 from collections.abc import Iterable
 from contextlib import contextmanager
 from itertools import groupby
@@ -41,7 +42,7 @@ from .errors import (
 from .filterparse import _add_prefix, _root_keys, parse_filter
 from .hashing import calc_id
 from .job import Job
-from .schema import ProjectSchema, _collect_by_type
+from .schema import ProjectSchema
 from .utility import _mkdir_p, _nested_dicts_to_dotted_keys, _split_and_print_progress
 
 logger = logging.getLogger(__name__)
@@ -596,6 +597,14 @@ class Project:
         statepoint_index = _build_job_statepoint_index(
             exclude_const=exclude_const, index=index
         )
+
+        def _collect_by_type(values):
+            """Construct a mapping of types to a set of elements drawn from the input values."""
+            values_by_type = defaultdict(set)
+            for v in values:
+                values_by_type[type(v)].add(v)
+            return values_by_type
+
         return ProjectSchema(
             {key: _collect_by_type(value) for key, value in statepoint_index}
         )
