@@ -232,7 +232,7 @@ class Project:
         elif config_schema_version < schema_version:
             raise IncompatibleSchemaVersion(
                 "The signac schema version used by this project is '{}', but signac {} "
-                "requires schema version '{}'. Please use '$ signac migrate' to "
+                "requires schema version '{}'. Please use 'python -m signac migrate' to "
                 "irreversibly migrate this project's schema to the supported "
                 "version.".format(config_schema_version, __version__, schema_version)
             )
