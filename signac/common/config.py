@@ -52,8 +52,8 @@ def _raise_if_older_schema(root):
         raise IncompatibleSchemaVersion(
             "The signac schema version used by this project is "
             f"{schema_version}, but signac {__version__} requires "
-            f"schema version {SCHEMA_VERSION}. Try running 'python -m "
-            "signac migrate'."
+            f"schema version {SCHEMA_VERSION}. Try running python -m "
+            "signac migrate."
         )
     except RuntimeError:
         pass
