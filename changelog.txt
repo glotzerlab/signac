@@ -60,6 +60,7 @@ Removed
  - The public API of the ``synced_collection`` subpackage (#807, #790).
  - The warnings module (#815).
  - The signac.common.validate module (#853).
+ - The ``Config`` class (#860).
  - The ``DictManager`` class (#858).
 
 Version 1
