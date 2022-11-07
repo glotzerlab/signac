@@ -11,7 +11,7 @@ import uuid
 from .utility import _safe_relpath
 
 
-class DictManager:
+class _DictManager:
     """Helper class to manage multiple instances of dict-like classes.
 
     This class is designed to manage multiple dict-like interface classes to files
@@ -31,10 +31,10 @@ class DictManager:
     def __init__(self, prefix):
         assert (
             self.cls is not None
-        ), "Subclasses of DictManager must define the cls variable."
+        ), "Subclasses of _DictManager must define the cls variable."
         assert (
             self.suffix is not None
-        ), "Subclasses of DictManager must define the suffix variable."
+        ), "Subclasses of _DictManager must define the suffix variable."
         self._prefix = os.path.abspath(prefix)
         self._dict_registry = {}
 

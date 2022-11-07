@@ -11,7 +11,7 @@ from collections.abc import Mapping, MutableMapping
 from threading import RLock
 
 from ..errors import H5StoreAlreadyOpenError, H5StoreClosedError, InvalidKeyError
-from .dict_manager import DictManager
+from .dict_manager import _DictManager
 from .utility import _safe_relpath
 
 __all__ = [
@@ -523,7 +523,7 @@ class H5Store(MutableMapping):
             self._file.clear()
 
 
-class H5StoreManager(DictManager):
+class H5StoreManager(_DictManager):
     """Helper class to manage multiple instances of :class:`~.H5Store` within a directory.
 
     Parameters

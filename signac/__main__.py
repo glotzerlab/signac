@@ -107,7 +107,7 @@ def _fmt_bytes(nbytes, suffix="B"):
         if abs(nbytes) < 1024.0:
             return f"{nbytes:3.1f} {unit}{suffix}"
         nbytes /= 1024.0
-    return "{:.1f} {}{}".format(nbytes, "Yi", suffix)
+    return f"{nbytes:.1f} Yi{suffix}"
 
 
 def _open_job_by_id(project, job_id):
@@ -133,15 +133,15 @@ def _open_job_by_id(project, job_id):
         )
 
 
-def find_with_filter_or_none(args):
+def _find_with_filter_or_none(args):
     """Return a filtered subset of jobs or None."""
     if args.job_id or args.filter:
-        return find_with_filter(args)
+        return _find_with_filter(args)
     else:
         return None
 
 
-def find_with_filter(args):
+def _find_with_filter(args):
     """Return a filtered subset of jobs."""
     if getattr(args, "job_id", None):
         if args.filter:
@@ -194,7 +194,7 @@ def main_statepoint(args):
 def main_document(args):
     """Handle document subcommand."""
     project = get_project()
-    for job_id in find_with_filter(args):
+    for job_id in _find_with_filter(args):
         job = _open_job_by_id(project, job_id)
         if args.pretty:
             pprint(job.document(), depth=args.pretty)
@@ -276,7 +276,7 @@ def main_find(args):
             return pformat(s, depth=args.pretty)
 
     try:
-        for job_id in find_with_filter(args):
+        for job_id in _find_with_filter(args):
             print(job_id)
             job = project.open_job(id=job_id)
 
@@ -304,7 +304,7 @@ def main_diff(args):
     """Handle diff subcommand."""
     project = get_project()
 
-    jobs = find_with_filter_or_none(args)
+    jobs = _find_with_filter_or_none(args)
     jobs = (
         (_open_job_by_id(project, job) for job in jobs) if jobs is not None else project
     )
@@ -322,7 +322,7 @@ def main_view(args):
     project.create_linked_view(
         prefix=args.prefix,
         path=args.path,
-        job_ids=find_with_filter(args),
+        job_ids=_find_with_filter(args),
     )
 
 
@@ -337,7 +337,7 @@ def main_schema(args):
     project = get_project()
     print(
         project.detect_schema(
-            exclude_const=args.exclude_const, subset=find_with_filter_or_none(args)
+            exclude_const=args.exclude_const, subset=_find_with_filter_or_none(args)
         ).format(
             depth=args.depth, precision=args.precision, max_num_range=args.max_num_range
         )
@@ -346,10 +346,7 @@ def main_schema(args):
 
 def main_sync(args):
     """Handle sync subcommand."""
-    # TODO: This function appears to be untested.
-    #
     # Validate provided argument combinations
-    #
     if args.archive:
         args.recursive = True
         args.links = True
@@ -388,9 +385,7 @@ def main_sync(args):
 
         filecmp._sig = _sig
 
-    #
     # Setup synchronization process
-    #
 
     source = get_project(path=args.source)
     try:
@@ -398,7 +393,7 @@ def main_sync(args):
     except LookupError:
         _print_err("WARNING: The destination does not appear to be a project path.")
         raise
-    selection = find_with_filter_or_none(args)
+    selection = _find_with_filter_or_none(args)
 
     if args.strategy:
         if args.strategy[0].isupper():
@@ -602,7 +597,7 @@ def main_export(args):
     copytree = shutil.move if args.move else None
 
     project = get_project()
-    jobs = [project.open_job(id=job_id) for job_id in find_with_filter(args)]
+    jobs = [project.open_job(id=job_id) for job_id in _find_with_filter(args)]
 
     paths = {}
     with tqdm(total=len(jobs), desc="Export") as pbar:
@@ -664,27 +659,6 @@ def main_migrate(args):
         apply_migrations(root)
 
 
-def verify_config(cfg, preserve_errors=True):
-    """Verify provided configuration."""
-    verification = cfg.verify(preserve_errors=preserve_errors)
-    if verification is True:
-        _print_err("Passed.")
-    else:
-        for entry in flatten_errors(cfg, verification):
-            # each entry is a tuple
-            section_list, key, error = entry
-            if key is not None:
-                section_list.append(key)
-            else:
-                section_list.append("[missing section]")
-            section_string = ".".join(section_list)
-            if error is False:
-                error = "Possibly invalid or missing."
-            else:
-                error = type(error).__name__
-            _print_err(" ".join((section_string, ":", error)))
-
-
 def main_config_show(args):
     """Handle config show subcommand."""
     cfg = None
@@ -714,8 +688,29 @@ def main_config_show(args):
     if not isinstance(cfg, Section):
         print(cfg)
     else:
-        for line in config.Config(cfg).write():
+        for line in config._Config(cfg).write():
             print(line)
+
+
+def _verify_config(cfg, preserve_errors=True):
+    """Verify provided configuration."""
+    verification = cfg.verify(preserve_errors=preserve_errors)
+    if verification is True:
+        _print_err("Passed.")
+    else:
+        for entry in flatten_errors(cfg, verification):
+            # each entry is a tuple
+            section_list, key, error = entry
+            if key is not None:
+                section_list.append(key)
+            else:
+                section_list.append("[missing section]")
+            section_string = ".".join(section_list)
+            if error is False:
+                error = "Possibly invalid or missing."
+            else:
+                error = type(error).__name__
+            _print_err(" ".join((section_string, ":", error)))
 
 
 def main_config_verify(args):
@@ -742,7 +737,7 @@ def main_config_verify(args):
     else:
         if cfg.filename is not None:
             _print_err(f"Verification of config file '{cfg.filename}'.")
-        verify_config(cfg)
+        _verify_config(cfg)
 
 
 def main_config_set(args):
@@ -794,7 +789,7 @@ def main_shell(args):
         print("No project within this directory.")
         print("If you want to initialize a project, execute `$ signac init`.")
     else:
-        _jobs = find_with_filter(args)
+        _jobs = _find_with_filter(args)
 
         def jobs():
             for id_ in _jobs:

@@ -6,16 +6,17 @@
 import logging
 import os
 
-from ..common.deprecation import deprecated
-from ..version import __version__
 from .configobj import ConfigObj, ConfigObjError
+from .configobj.validate import Validator
 from .errors import ConfigError
-from .validate import cfg, get_validator
 
 logger = logging.getLogger(__name__)
 
 PROJECT_CONFIG_FN = os.path.join(".signac", "config")
 USER_CONFIG_FN = os.path.expanduser(os.path.join("~", ".signacrc"))
+_CFG = """
+schema_version = string(default='1')
+"""
 
 
 def _get_project_config_fn(path):
@@ -96,36 +97,30 @@ def _locate_config_dir(search_path):
             search_path = up
 
 
+class _Config(ConfigObj):
+    """Manages configuration for a signac project."""
+
+    def verify(self, *, preserve_errors=False):
+        """Validate the contents of this configuration."""
+        return super().validate(Validator(), preserve_errors=preserve_errors)
+
+
 def _read_config_file(filename):
     logger.debug(f"Reading config file '{filename}'.")
     try:
-        config = Config(filename, configspec=cfg.split("\n"))
+        config = _Config(filename, configspec=_CFG.split("\n"))
     except (OSError, ConfigObjError) as error:
         raise ConfigError(f"Failed to read configuration file '{filename}':\n{error}")
     verification = config.verify()
+    # config.verify() returns True if everything succeeded, but if the
+    # validation failed it will return a dictionary of invalid results. We
+    # cannot simply check for a truthy value here since a non-empty dict will
+    # evaluate to True.
     if verification is not True:
-        # TODO: In the future this should raise an error, not just a
-        # debug-level logging notice.
-        logger.debug(
-            "Config file '{}' may contain invalid values.".format(
-                os.path.abspath(filename)
-            )
+        raise ConfigError(
+            f"Config file '{os.path.abspath(filename)}' may contain invalid values."
         )
     return config
-
-
-@deprecated(
-    deprecated_in="1.8",
-    removed_in="2.0",
-    current_version=__version__,
-    details=(
-        "The read_config_file method is deprecated. Configs should only be "
-        "accessed via a Project instance.",
-    ),
-)
-def read_config_file(filename):
-    """Read a configuration file."""
-    return _read_config_file(filename)
 
 
 def _load_config(path=None):
@@ -138,14 +133,14 @@ def _load_config(path=None):
 
     Returns
     --------
-    :class:`Config`
+    :class:`_Config`
         The composite configuration including both project-local and global
         config data if requested. Note that because this config is a composite,
         modifications to the returned value will not be reflected in the files.
     """
     if path is None:
         path = os.getcwd()
-    config = Config(configspec=cfg.split("\n"))
+    config = _Config(configspec=_CFG.split("\n"))
 
     # Add in any global or user config files. For now this only finds user-specific
     # files, but it could be updated in the future to support e.g. system-wide config files.
@@ -156,29 +151,3 @@ def _load_config(path=None):
     if os.path.isfile(_get_project_config_fn(path)):
         config.merge(_read_config_file(_get_project_config_fn(path)))
     return config
-
-
-@deprecated(
-    deprecated_in="1.8",
-    removed_in="2.0",
-    current_version=__version__,
-    details=(
-        "The load_config method is deprecated. Configs should only be "
-        "accessed via a Project instance.",
-    ),
-)
-def load_config(root=None):
-    """Load configuration, searching upward from a root path."""
-    return _load_config(root)
-
-
-class Config(ConfigObj):
-    """Manages configuration for a signac project."""
-
-    encoding = "utf-8"
-
-    def verify(self, validator=None, *args, **kwargs):
-        """Validate the contents of this configuration."""
-        if validator is None:
-            validator = get_validator()
-        return super().validate(validator, *args, **kwargs)

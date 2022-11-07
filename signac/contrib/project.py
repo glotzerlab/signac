@@ -12,6 +12,7 @@ import re
 import shutil
 import time
 import warnings
+from collections import defaultdict
 from collections.abc import Iterable
 from contextlib import contextmanager
 from itertools import groupby
@@ -21,7 +22,7 @@ from threading import RLock
 
 from .._synced_collections.backends.collection_json import BufferedJSONAttrDict
 from ..common.config import (
-    Config,
+    _Config,
     _get_project_config_fn,
     _load_config,
     _locate_config_dir,
@@ -41,7 +42,7 @@ from .errors import (
 from .filterparse import _add_prefix, _root_keys, parse_filter
 from .hashing import calc_id
 from .job import Job
-from .schema import ProjectSchema, _collect_by_type
+from .schema import ProjectSchema
 from .utility import _mkdir_p, _nested_dicts_to_dotted_keys, _split_and_print_progress
 
 logger = logging.getLogger(__name__)
@@ -50,7 +51,7 @@ JOB_ID_LENGTH = 32
 JOB_ID_REGEX = re.compile(f"[a-f0-9]{{{JOB_ID_LENGTH}}}")
 
 
-class _ProjectConfig(Config):
+class _ProjectConfig(_Config):
     r"""Extends the project config to make it immutable.
 
     Parameters
@@ -231,7 +232,7 @@ class Project:
         elif config_schema_version < schema_version:
             raise IncompatibleSchemaVersion(
                 "The signac schema version used by this project is '{}', but signac {} "
-                "requires schema version '{}'. Please use '$ signac migrate' to "
+                "requires schema version '{}'. Please use 'python -m signac migrate' to "
                 "irreversibly migrate this project's schema to the supported "
                 "version.".format(config_schema_version, __version__, schema_version)
             )
@@ -596,6 +597,14 @@ class Project:
         statepoint_index = _build_job_statepoint_index(
             exclude_const=exclude_const, index=index
         )
+
+        def _collect_by_type(values):
+            """Construct a mapping of types to a set of elements drawn from the input values."""
+            values_by_type = defaultdict(set)
+            for v in values:
+                values_by_type[type(v)].add(v)
+            return values_by_type
+
         return ProjectSchema(
             {key: _collect_by_type(value) for key, value in statepoint_index}
         )
@@ -630,7 +639,7 @@ class Project:
         """
         if not filter:
             return list(self._job_dirs())
-        filter = dict(parse_filter(_add_prefix("sp.", filter)))
+        filter = dict(parse_filter(_add_prefix(filter)))
         index = _SearchIndexer(
             self._build_index(include_job_document="doc" in _root_keys(filter))
         )
@@ -666,7 +675,9 @@ class Project:
             If the filters are invalid.
 
         """
-        return JobsCursor(self, dict(parse_filter(_add_prefix("sp.", filter))))
+        if not filter:
+            filter = {}
+        return JobsCursor(self, dict(parse_filter(filter)))
 
     def __iter__(self):
         return iter(self.find_jobs())
