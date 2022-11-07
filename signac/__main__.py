@@ -693,7 +693,7 @@ def main_config_show(args):
     if not isinstance(cfg, Section):
         print(cfg)
     else:
-        for line in config.Config(cfg).write():
+        for line in config._Config(cfg).write():
             print(line)
 
 

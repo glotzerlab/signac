@@ -744,17 +744,17 @@ class TestBasicShell:
         self.call("python -m signac init".split())
         out = self.call("python -m signac config --local show".split()).strip()
         cfg = config._read_config_file(".signac/config")
-        expected = config.Config(cfg).write()
+        expected = config._Config(cfg).write()
         assert out.split(os.linesep) == expected
 
         out = self.call("python -m signac config show".split()).strip()
         cfg = config._load_config()
-        expected = config.Config(cfg).write()
+        expected = config._Config(cfg).write()
         assert out.split(os.linesep) == expected
 
         out = self.call("python -m signac config --global show".split()).strip()
         cfg = config._read_config_file(config.USER_CONFIG_FN)
-        expected = config.Config(cfg).write()
+        expected = config._Config(cfg).write()
         assert out.split(os.linesep) == expected
 
     def test_config_set(self):
