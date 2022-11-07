@@ -107,7 +107,7 @@ def _fmt_bytes(nbytes, suffix="B"):
         if abs(nbytes) < 1024.0:
             return f"{nbytes:3.1f} {unit}{suffix}"
         nbytes /= 1024.0
-    return "{:.1f} {}{}".format(nbytes, "Yi", suffix)
+    return f"{nbytes:.1f} Yi{suffix}"
 
 
 def _open_job_by_id(project, job_id):
@@ -346,10 +346,7 @@ def main_schema(args):
 
 def main_sync(args):
     """Handle sync subcommand."""
-    # TODO: This function appears to be untested.
-    #
     # Validate provided argument combinations
-    #
     if args.archive:
         args.recursive = True
         args.links = True
@@ -388,9 +385,7 @@ def main_sync(args):
 
         filecmp._sig = _sig
 
-    #
     # Setup synchronization process
-    #
 
     source = get_project(path=args.source)
     try:

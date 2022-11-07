@@ -61,6 +61,7 @@ Removed
  - The warnings module (#815).
  - The signac.common.validate module (#853).
  - The ``Config`` class (#860).
+ - The ``DictManager`` class (#858).
 
 Version 1
 =========
