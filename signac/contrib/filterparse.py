@@ -193,23 +193,24 @@ def parse_filter_arg(args):
     return query
 
 
-def _add_prefix(prefix, filter):
-    """Add desired prefix (e.g. 'sp.' or 'doc.') to a (possibly nested) filter."""
-    if filter:
-        for key, value in filter.items():
-            if key in ("$and", "$or"):
-                if isinstance(value, list) or isinstance(value, tuple):
-                    yield key, [dict(_add_prefix(prefix, item)) for item in value]
-                else:
-                    raise ValueError(
-                        "The argument to a logical operator must be a list or a tuple!"
-                    )
-            elif "." in key and key.split(".", 1)[0] in ("sp", "doc"):
-                yield key, value
-            elif key in ("sp", "doc"):
-                yield key, value
+def _add_prefix(filter):
+    """Add prefix "sp." to a (possibly nested) filter."""
+    for key, value in filter.items():
+        if key in ("$and", "$or"):
+            if isinstance(value, list) or isinstance(value, tuple):
+                yield key, [dict(_add_prefix(item)) for item in value]
             else:
-                yield prefix + key, value
+                raise ValueError(
+                    "The argument to a logical operator must be a list or a tuple!"
+                )
+        elif "." in key and key.split(".", 1)[0] in ("sp", "doc"):
+            yield key, value
+        elif key in ("sp", "doc"):
+            yield key, value
+        else:
+            # This line guarantees that all filter keys with no prefix
+            # default to state point key searches.
+            yield "sp." + key, value
 
 
 def _root_keys(filter):
