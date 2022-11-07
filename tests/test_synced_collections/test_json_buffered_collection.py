@@ -24,7 +24,7 @@ from signac._synced_collections.backends.collection_json import (
 )
 from signac._synced_collections.errors import BufferedError, MetadataError
 
-ON_WINDOWS = sys.platform.startswith("win32") or sys.platform.startswith("cywgin")
+ON_WINDOWS = sys.platform.startswith("win32")
 
 
 class BufferedJSONCollectionTest(JSONCollectionTest):
