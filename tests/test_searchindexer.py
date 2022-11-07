@@ -219,16 +219,16 @@ class TestSearchIndexer:
         assert list(self.c.find({"a": {"$type": "float"}})) == ["float"]
         assert list(self.c.find({"a": {"$type": "int"}})) == ["int"]
 
-    # TODO: Document that dots are not allowed in keys of the document. This is
-    # a condition for correctness but is not enforced.
     def test_docs_with_dots(self):
+        # Dots are not allowed in keys of the document. Here, we explicitly
+        # test to ensure that an error is raised if invalid keys are found.
         self.c["0"] = {"a.b": 0}
 
-        # These searches will not catch the error:
+        # These searches will not trigger an error:
         self.c.find()
         self.c.find({"a": 0})
 
-        # This one will:
+        # This search triggers an error:
         with pytest.raises(InvalidKeyError):
             self.c.find({"a.b": 0})
 

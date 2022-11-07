@@ -56,14 +56,13 @@ def _query_yes_no(question, default="yes"):  # pragma: no cover
         raise ValueError("invalid default answer: '%s'" % default)
 
     while True:
-        sys.stdout.write(question + prompt)
-        choice = input().lower()
+        choice = input(question + prompt).lower()
         if default is not None and choice == "":
             return valid[default]
         elif choice in valid:
             return valid[choice]
         else:
-            sys.stdout.write("Please respond with 'yes' or 'no' (or 'y' or 'n').\n")
+            print("Please respond with 'yes' or 'no' (or 'y' or 'n').")
 
 
 def _add_verbosity_argument(parser, default=0):
