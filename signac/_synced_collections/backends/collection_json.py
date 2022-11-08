@@ -28,7 +28,7 @@ from ..numpy_utils import (
 from ..utils import AbstractTypeResolver, SyncedCollectionJSONEncoder
 from ..validators import json_format_validator, no_dot_in_key, require_string_key
 
-ON_WINDOWS = sys.platform.startswith("win32")
+ON_WINDOWS = sys.platform.startswith("win32") or sys.platform.startswith("cygwin")
 
 
 """
