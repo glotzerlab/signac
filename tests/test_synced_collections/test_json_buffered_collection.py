@@ -4,6 +4,7 @@
 import itertools
 import json
 import os
+import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 
@@ -22,6 +23,8 @@ from signac._synced_collections.backends.collection_json import (
     MemoryBufferedJSONList,
 )
 from signac._synced_collections.errors import BufferedError, MetadataError
+
+ON_WINDOWS = sys.platform.startswith("win32") or sys.platform.startswith("cygwin")
 
 
 class BufferedJSONCollectionTest(JSONCollectionTest):
@@ -376,11 +379,11 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
             # truly flushed correctly.
             assert self._collection_type.get_current_buffer_size() == 0
 
-    @pytest.mark.xfail(
+    @pytest.mark.skipif(
+        ON_WINDOWS,
         reason=(
-            "This test sometimes fails. This may indicate a race condition. "
-            "The test fails more consistently on Windows but also appears on "
-            "Linux in CI."
+            "The JSONCollection cannot be safely used in multithreaded settings "
+            "on Windows due to https://bugs.python.org/issue46003."
         ),
     )
     def test_multithreaded_buffering_setitem(self, tmpdir):
@@ -392,11 +395,11 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
 
         self.multithreaded_buffering_test(setitem_dict, tmpdir)
 
-    @pytest.mark.xfail(
+    @pytest.mark.skipif(
+        ON_WINDOWS,
         reason=(
-            "This test sometimes fails. This may indicate a race condition. "
-            "The test fails more consistently on Windows but also appears on "
-            "Linux in CI."
+            "The JSONCollection cannot be safely used in multithreaded settings "
+            "on Windows due to https://bugs.python.org/issue46003."
         ),
     )
     def test_multithreaded_buffering_update(self, tmpdir):
@@ -407,11 +410,11 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
 
         self.multithreaded_buffering_test(update_dict, tmpdir)
 
-    @pytest.mark.xfail(
+    @pytest.mark.skipif(
+        ON_WINDOWS,
         reason=(
-            "This test sometimes fails. This may indicate a race condition. "
-            "The test fails more consistently on Windows but also appears on "
-            "Linux in CI."
+            "The JSONCollection cannot be safely used in multithreaded settings "
+            "on Windows due to https://bugs.python.org/issue46003."
         ),
     )
     def test_multithreaded_buffering_reset(self, tmpdir):
@@ -422,11 +425,11 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
 
         self.multithreaded_buffering_test(reset_dict, tmpdir)
 
-    @pytest.mark.xfail(
+    @pytest.mark.skipif(
+        ON_WINDOWS,
         reason=(
-            "This test sometimes fails. This may indicate a race condition. "
-            "The test fails more consistently on Windows but also appears on "
-            "Linux in CI."
+            "The JSONCollection cannot be safely used in multithreaded settings "
+            "on Windows due to https://bugs.python.org/issue46003."
         ),
     )
     def test_multithreaded_buffering_clear(self, tmpdir):
@@ -474,11 +477,11 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
             # truly flushed correctly.
             assert self._collection_type.get_current_buffer_size() == 0
 
-    @pytest.mark.xfail(
+    @pytest.mark.skipif(
+        ON_WINDOWS,
         reason=(
-            "This test sometimes fails. This may indicate a race condition. "
-            "The test fails more consistently on Windows but also appears on "
-            "Linux in CI."
+            "The JSONCollection cannot be safely used in multithreaded settings "
+            "on Windows due to https://bugs.python.org/issue46003."
         ),
     )
     def test_multithreaded_buffering_load(self, tmpdir):
@@ -670,11 +673,11 @@ class TestBufferedJSONList(BufferedJSONCollectionTest, TestJSONList):
             # truly flushed correctly.
             assert self._collection_type.get_current_buffer_size() == 0
 
-    @pytest.mark.xfail(
+    @pytest.mark.skipif(
+        ON_WINDOWS,
         reason=(
-            "This test sometimes fails. This may indicate a race condition. "
-            "The test fails more consistently on Windows but also appears on "
-            "Linux in CI."
+            "The JSONCollection cannot be safely used in multithreaded settings "
+            "on Windows due to https://bugs.python.org/issue46003."
         ),
     )
     def test_multithreaded_buffering_setitem(self, tmpdir):
@@ -686,11 +689,11 @@ class TestBufferedJSONList(BufferedJSONCollectionTest, TestJSONList):
 
         self.multithreaded_buffering_test(setitem_list, True, tmpdir)
 
-    @pytest.mark.xfail(
+    @pytest.mark.skipif(
+        ON_WINDOWS,
         reason=(
-            "This test sometimes fails. This may indicate a race condition. "
-            "The test fails more consistently on Windows but also appears on "
-            "Linux in CI."
+            "The JSONCollection cannot be safely used in multithreaded settings "
+            "on Windows due to https://bugs.python.org/issue46003."
         ),
     )
     def test_multithreaded_buffering_extend(self, tmpdir):
@@ -701,11 +704,11 @@ class TestBufferedJSONList(BufferedJSONCollectionTest, TestJSONList):
 
         self.multithreaded_buffering_test(extend_list, False, tmpdir)
 
-    @pytest.mark.xfail(
+    @pytest.mark.skipif(
+        ON_WINDOWS,
         reason=(
-            "This test sometimes fails. This may indicate a race condition. "
-            "The test fails more consistently on Windows but also appears on "
-            "Linux in CI."
+            "The JSONCollection cannot be safely used in multithreaded settings "
+            "on Windows due to https://bugs.python.org/issue46003."
         ),
     )
     def test_multithreaded_buffering_append(self, tmpdir):
@@ -717,11 +720,11 @@ class TestBufferedJSONList(BufferedJSONCollectionTest, TestJSONList):
 
         self.multithreaded_buffering_test(append_list, False, tmpdir)
 
-    @pytest.mark.xfail(
+    @pytest.mark.skipif(
+        ON_WINDOWS,
         reason=(
-            "This test sometimes fails. This may indicate a race condition. "
-            "The test fails more consistently on Windows but also appears on "
-            "Linux in CI."
+            "The JSONCollection cannot be safely used in multithreaded settings "
+            "on Windows due to https://bugs.python.org/issue46003."
         ),
     )
     def test_multithreaded_buffering_load(self, tmpdir):

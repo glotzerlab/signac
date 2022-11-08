@@ -123,18 +123,15 @@ class _StatePointDict(JSONAttrDict):
             job._initialize_lazy_properties()
 
         # Remove the temporary state point file if it was created. Have to do it
-        # here because we need to get the updated job state point filename.
+        # here so that we can get the updated job state point filename and set
+        # it to self.filename below.
         try:
             os.remove(job._statepoint_filename + "~")
         except OSError as error:
             if error.errno != errno.ENOENT:
                 raise
 
-        # Since all the jobs are equivalent, just grab the filename from the
-        # last one and init it. Also migrate the lock for multithreaded support.
-        old_lock_id = self._lock_id
-        self._filename = job._statepoint_filename
-        type(self)._locks[self._lock_id] = type(self)._locks.pop(old_lock_id)
+        self.filename = job._statepoint_filename
 
         if should_init:
             # Only initializing one job assumes that all changes in init are
@@ -164,7 +161,7 @@ class _StatePointDict(JSONAttrDict):
         """
         try:
             # Open the file for writing only if it does not exist yet.
-            if force or not os.path.isfile(self._filename):
+            if force or not os.path.isfile(self.filename):
                 super()._save()
         except Exception as error:
             if not isinstance(error, OSError) or error.errno not in (
@@ -174,7 +171,7 @@ class _StatePointDict(JSONAttrDict):
                 # Attempt to delete the file on error, to prevent corruption.
                 # OSErrors that are EEXIST or EACCES don't need to delete the file.
                 try:
-                    os.remove(self._filename)
+                    os.remove(self.filename)
                 except Exception:  # ignore all errors here
                     pass
                 raise

@@ -9,6 +9,7 @@ from attr_dict_test import AttrDictTest, AttrListTest
 from synced_collection_test import SyncedDictTest, SyncedListTest
 
 from signac._synced_collections.backends.collection_json import (
+    ON_WINDOWS,
     JSONAttrDict,
     JSONAttrList,
     JSONDict,
@@ -41,6 +42,16 @@ class JSONCollectionTest:
 
     def test_filename(self, synced_collection):
         assert os.path.basename(synced_collection.filename) == self._fn
+
+    @pytest.mark.skipif(
+        ON_WINDOWS,
+        reason=(
+            "The JSONCollection cannot be safely used in multithreaded settings "
+            "on Windows due to https://bugs.python.org/issue46003."
+        ),
+    )
+    def test_multithreaded(self, synced_collection):
+        return super().test_multithreaded(synced_collection)
 
 
 class TestJSONDict(JSONCollectionTest, SyncedDictTest):

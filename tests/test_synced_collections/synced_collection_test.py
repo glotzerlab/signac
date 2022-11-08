@@ -451,13 +451,6 @@ class SyncedDictTest(SyncedCollectionTest):
             with pytest.raises(TypeError):
                 synced_collection[key] = testdata
 
-    @pytest.mark.xfail(
-        reason=(
-            "This test sometimes fails. This may indicate a race condition. "
-            "The test fails more consistently on Windows but also appears on "
-            "Linux in CI."
-        ),
-    )
     def test_multithreaded(self, synced_collection):
         """Test multithreaded runs of synced dicts."""
         if not type(synced_collection)._supports_threading:
@@ -770,13 +763,6 @@ class SyncedListTest(SyncedCollectionTest):
         assert isinstance(child2, SyncedCollection)
         assert isinstance(child1, SyncedCollection)
 
-    @pytest.mark.xfail(
-        reason=(
-            "This test sometimes fails. This may indicate a race condition. "
-            "The test fails more consistently on Windows but also appears on "
-            "Linux in CI."
-        ),
-    )
     def test_multithreaded(self, synced_collection):
         """Test multithreaded runs of synced lists."""
         if not type(synced_collection)._supports_threading:
