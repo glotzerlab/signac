@@ -8,7 +8,7 @@ for future migrations and testing purposes.
 """
 import os
 
-from signac.common import configobj
+from signac._vendor import configobj
 
 # A minimal v1 config.
 _cfg = """

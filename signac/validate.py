@@ -5,7 +5,7 @@
 
 import logging
 
-from .configobj.validate import Validator
+from ._vendor.configobj.validate import Validator
 
 logger = logging.getLogger(__name__)
 

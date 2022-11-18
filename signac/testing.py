@@ -25,7 +25,7 @@ def init_jobs(project, nested=False, listed=False, heterogeneous=False):
 
     Returns
     -------
-    list[:class:`~signac.contrib.job.Job`]
+    list[:class:`~signac.job.Job`]
         A list containing the initialized jobs.
 
     """

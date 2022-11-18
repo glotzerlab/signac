@@ -7,7 +7,7 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-from signac.core.h5store import H5StoreManager
+from signac.h5store import H5StoreManager
 
 try:
     import h5py  # noqa

@@ -13,11 +13,14 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-import signac.common.config
-import signac.contrib
-from signac.contrib.errors import JobsCorruptedError
-from signac.contrib.job import Job
-from signac.errors import DestinationExistsError, InvalidKeyError, KeyTypeError
+import signac.config
+from signac.errors import (
+    DestinationExistsError,
+    InvalidKeyError,
+    JobsCorruptedError,
+    KeyTypeError,
+)
+from signac.job import Job
 
 try:
     import h5py  # noqa: F401
@@ -54,7 +57,7 @@ NESTED_HASH = "bd6f5828f4410b665bffcec46abeb8f3"
 
 def config_from_cfg(cfg):
     cfile = io.StringIO("\n".join(cfg))
-    return signac.common.config.read_config_file(cfile)
+    return signac.config.read_config_file(cfile)
 
 
 def testdata():
@@ -71,7 +74,7 @@ class TestJobBase:
         request.addfinalizer(self._tmp_dir.cleanup)
         self._tmp_pr = os.path.join(self._tmp_dir.name, "pr")
         os.mkdir(self._tmp_pr)
-        self.config = signac.common.config.load_config()
+        self.config = signac.config.load_config()
         self.project = self.project_class.init_project(path=self._tmp_pr)
 
     def tearDown(self):

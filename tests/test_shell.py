@@ -11,7 +11,7 @@ from tempfile import TemporaryDirectory
 import pytest
 
 import signac
-from signac.common import config
+from signac import config
 
 # Skip linked view tests on Windows
 WINDOWS = sys.platform == "win32"

@@ -3,7 +3,7 @@
 # This software is licensed under the BSD 3-Clause License.
 """Compute diffs of state points."""
 
-from .contrib.utility import _dotted_dict_to_nested_dicts, _nested_dicts_to_dotted_keys
+from .utility import _dotted_dict_to_nested_dicts, _nested_dicts_to_dotted_keys
 
 
 def diff_jobs(*jobs):
@@ -18,7 +18,7 @@ def diff_jobs(*jobs):
 
     Parameters
     ----------
-    \*jobs : sequence[:class:`~signac.contrib.job.Job`]
+    \*jobs : sequence[:class:`~signac.job.Job`]
         Sequence of jobs to diff.
 
     Returns

@@ -1,20 +1,31 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"""Utilities for signac."""
+"""Utility functions."""
 
-import logging
-import os
+import os.path
 import sys
 from collections.abc import Mapping
 from datetime import timedelta
 from time import time
 
-logger = logging.getLogger(__name__)
-
 
 def _print_err(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
+
+
+def _safe_relpath(path):
+    """Attempt to make a relative path, or return the original path.
+
+    This is useful for logging and representing objects, where an absolute path
+    may be very long.
+    """
+    try:
+        return os.path.relpath(path)
+    except ValueError:
+        # Windows cannot find relative paths across drives, so show the
+        # original path instead.
+        return path
 
 
 def _query_yes_no(question, default="yes"):  # pragma: no cover
@@ -56,14 +67,13 @@ def _query_yes_no(question, default="yes"):  # pragma: no cover
         raise ValueError("invalid default answer: '%s'" % default)
 
     while True:
-        sys.stdout.write(question + prompt)
-        choice = input().lower()
+        choice = input(question + prompt).lower()
         if default is not None and choice == "":
             return valid[default]
         elif choice in valid:
             return valid[choice]
         else:
-            sys.stdout.write("Please respond with 'yes' or 'no' (or 'y' or 'n').\n")
+            print("Please respond with 'yes' or 'no' (or 'y' or 'n').")
 
 
 def _add_verbosity_argument(parser, default=0):

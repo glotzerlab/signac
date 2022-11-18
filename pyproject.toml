@@ -1,7 +1,7 @@
 [tool.black]
 target-version = ['py38']
 include = '\.pyi?$'
-exclude = '''
+force-exclude = '''
 (
   /(
       \.eggs
@@ -11,11 +11,11 @@ exclude = '''
     | \.venv
     | build
     | dist
-    | signac/common/configobj
+    | _vendor
   )/
 )
 '''
 
 [tool.isort]
 profile = 'black'
-skip_glob = 'signac/common/configobj/*'
+skip_glob = 'signac/_vendor/*'

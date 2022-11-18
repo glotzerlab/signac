@@ -6,7 +6,7 @@
 import logging
 import os
 
-from .configobj import ConfigObj, ConfigObjError
+from ._vendor.configobj import ConfigObj, ConfigObjError
 from .errors import ConfigError
 from .validate import cfg, get_validator
 

@@ -19,8 +19,8 @@ from time import time
 
 import pytest
 
-from signac.core.h5store import H5Store, H5StoreAlreadyOpenError, H5StoreClosedError
 from signac.errors import InvalidKeyError
+from signac.h5store import H5Store, H5StoreAlreadyOpenError, H5StoreClosedError
 
 PYPY = "PyPy" in platform.python_implementation()
 
@@ -614,7 +614,7 @@ class TestH5StoreNestedData(TestH5Store):
         return dict(a=super().get_testdata(size))
 
     def test_repr(self):
-        from signac.core.h5store import H5Group, H5Store  # noqa:F401
+        from signac.h5store import H5Group, H5Store  # noqa:F401
 
         with self.open_h5store() as h5s:
             key = "test_repr"
@@ -763,7 +763,7 @@ class TestH5StoreMultiProcessing(TestH5StoreBase):
     def test_multiple_reader_different_process_no_swmr(self):
 
         read_cmd = (
-            r'python -c "from signac.core.h5store import H5Store; '
+            r'python -c "from signac.h5store import H5Store; '
             r"h5s = H5Store({}, mode=\"r\"); list(h5s); "
             r'h5s.close()"'
         ).format(repr(self._fn_store))
@@ -781,7 +781,7 @@ class TestH5StoreMultiProcessing(TestH5StoreBase):
     def test_single_writer_multiple_reader_different_process_no_swmr(self):
 
         read_cmd = (
-            r'python -c "from signac.core.h5store import H5Store; '
+            r'python -c "from signac.h5store import H5Store; '
             r"h5s = H5Store({}, mode=\"r\"); list(h5s); "
             r'h5s.close()"'
         ).format(repr(self._fn_store))
@@ -796,7 +796,7 @@ class TestH5StoreMultiProcessing(TestH5StoreBase):
     def test_single_writer_multiple_reader_different_process_swmr(self):
 
         read_cmd = (
-            r'python -c "from signac.core.h5store import H5Store; '
+            r'python -c "from signac.h5store import H5Store; '
             r"h5s = H5Store({}, mode=\"r\", swmr=True); list(h5s); "
             r'h5s.close()"'
         ).format(repr(self._fn_store))

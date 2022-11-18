@@ -12,16 +12,16 @@ from json import JSONDecodeError
 from threading import RLock
 from typing import FrozenSet
 
-from .._synced_collections.backends.collection_json import (
+from ._synced_collections.backends.collection_json import (
     BufferedJSONAttrDict,
     JSONAttrDict,
     json_attr_dict_validator,
 )
-from .._synced_collections.errors import KeyTypeError
-from ..core.h5store import H5StoreManager
-from ..sync import sync_jobs
+from ._synced_collections.errors import KeyTypeError
 from .errors import DestinationExistsError, JobsCorruptedError
+from .h5store import H5StoreManager
 from .hashing import calc_id
+from .sync import sync_jobs
 from .utility import _mkdir_p
 
 logger = logging.getLogger(__name__)

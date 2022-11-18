@@ -246,7 +246,7 @@ class _Node:
 
         Returns
         -------
-        :class:`~signac.contrib.linked_view._Node`
+        :class:`~signac.linked_view._Node`
             The requested child node.
 
         """
@@ -268,7 +268,7 @@ def _build_tree(paths):
 
     Returns
     -------
-    :class:`~signac.contrib.linked_view._Node`
+    :class:`~signac.linked_view._Node`
         Graph structure for path.
 
     """
@@ -285,7 +285,7 @@ def _color_path(root, path):
 
     Parameters
     ----------
-    root : :class:`~signac.contrib.linked_view._Node`
+    root : :class:`~signac.linked_view._Node`
         Root node.
     path : list
         The name of the directory/file to color (set value to True).
@@ -302,7 +302,7 @@ def _find_dead_branches(root, branch=None):
 
     Parameters
     ----------
-    root : :class:`~signac.contrib.linked_view._Node`
+    root : :class:`~signac.linked_view._Node`
         Root node.
     branch : list, optional
         The current list of branches that have been collected,

@@ -28,6 +28,7 @@ repos:
       - id: pyupgrade
         args:
           - --py38-plus
+        exclude: '_vendor'
   - repo: https://github.com/PyCQA/isort
     rev: '5.10.1'
     hooks:
@@ -40,6 +41,11 @@ repos:
     rev: '4.0.1'
     hooks:
       - id: flake8
+        exclude: |
+          (?x)^(
+            ^signac/_vendor/configobj/|
+            ^signac/_vendor/deprecation/|
+          )
   - repo: https://github.com/PyCQA/pydocstyle
     rev: '6.1.1'
     hooks:
@@ -48,8 +54,8 @@ repos:
           (?x)^(
             ^doc/|
             ^tests/|
-            ^signac/common/configobj/|
-            ^signac/common/deprecation/|
+            ^signac/_vendor/configobj/|
+            ^signac/_vendor/deprecation/|
             ^signac/db/
           )
   - repo: https://github.com/pre-commit/mirrors-mypy
