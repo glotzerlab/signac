@@ -3,20 +3,27 @@
 # This software is licensed under the BSD 3-Clause License.
 """Errors raised by signac."""
 
-# The subpackage error modules (e.g. signac.core.errors) are used to bundle
-# exceptions that are relevant beyond a single module. This top-level errors
-# module is used to expose user-facing exception classes.
-
 from ._synced_collections.errors import InvalidKeyError, KeyTypeError
-from .common.errors import ConfigError
-from .contrib.errors import (
-    DestinationExistsError,
-    IncompatibleSchemaVersion,
-    JobsCorruptedError,
-    StatepointParsingError,
-    WorkspaceError,
-)
-from .core.errors import Error, H5StoreAlreadyOpenError, H5StoreClosedError
+
+
+class Error(Exception):
+    """Base class used for signac Errors."""
+
+    pass
+
+
+class ConfigError(Error, RuntimeError):
+    """Error with parsing or reading a configuration file."""
+
+    pass
+
+
+class H5StoreClosedError(Error, RuntimeError):
+    """Raised when trying to access a closed HDF5 file."""
+
+
+class H5StoreAlreadyOpenError(Error, OSError):
+    """Indicates that the underlying HDF5 file is already open."""
 
 
 class SyncConflict(Error, RuntimeError):
@@ -56,6 +63,63 @@ class SchemaSyncConflict(SyncConflict):
 
     def __str__(self):
         return "The synchronization failed, because of a schema conflict."
+
+
+class WorkspaceError(Error, OSError):
+    """Raised when there is an issue creating or accessing the workspace.
+
+    Parameters
+    ----------
+    error :
+        The underlying error causing this issue.
+
+    """
+
+    def __init__(self, error):
+        self.error = error
+
+    def __str__(self):
+        return self.error
+
+
+class DestinationExistsError(Error, RuntimeError):
+    """The destination for a move or copy operation already exists.
+
+    Parameters
+    ----------
+    destination : str
+        The destination causing the error.
+
+    """
+
+    def __init__(self, destination):
+        self.destination = destination
+
+
+class JobsCorruptedError(Error, RuntimeError):
+    """The state point file of one or more jobs cannot be opened or is corrupted.
+
+    Parameters
+    ----------
+    job_ids :
+        The job id(s) of the corrupted job(s).
+
+    """
+
+    def __init__(self, job_ids):
+        self.job_ids = job_ids
+
+
+class StatepointParsingError(Error, RuntimeError):
+    """Indicates an error that occurred while trying to identify a state point."""
+
+    pass
+
+
+class IncompatibleSchemaVersion(Error):
+    """The project's schema version is incompatible with this version of signac."""
+
+    pass
 
 
 __all__ = [

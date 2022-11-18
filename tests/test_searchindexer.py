@@ -1,6 +1,6 @@
 import pytest
 
-from signac.contrib._searchindexer import _SearchIndexer
+from signac._searchindexer import _SearchIndexer
 from signac.errors import InvalidKeyError
 
 n = 42

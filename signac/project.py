@@ -20,8 +20,9 @@ from multiprocessing.pool import ThreadPool
 from tempfile import TemporaryDirectory
 from threading import RLock
 
-from .._synced_collections.backends.collection_json import BufferedJSONAttrDict
-from ..common.config import (
+from ._searchindexer import _SearchIndexer
+from ._synced_collections.backends.collection_json import BufferedJSONAttrDict
+from .config import (
     _Config,
     _get_project_config_fn,
     _load_config,
@@ -29,10 +30,6 @@ from ..common.config import (
     _raise_if_older_schema,
     _read_config_file,
 )
-from ..core.h5store import H5StoreManager
-from ..sync import sync_projects
-from ..version import SCHEMA_VERSION, __version__
-from ._searchindexer import _SearchIndexer
 from .errors import (
     DestinationExistsError,
     IncompatibleSchemaVersion,
@@ -40,10 +37,13 @@ from .errors import (
     WorkspaceError,
 )
 from .filterparse import _add_prefix, _root_keys, parse_filter
+from .h5store import H5StoreManager
 from .hashing import calc_id
 from .job import Job
 from .schema import ProjectSchema
+from .sync import sync_projects
 from .utility import _mkdir_p, _nested_dicts_to_dotted_keys, _split_and_print_progress
+from .version import SCHEMA_VERSION, __version__
 
 logger = logging.getLogger(__name__)
 
@@ -57,9 +57,9 @@ class _ProjectConfig(_Config):
     Parameters
     ----------
     \*args :
-        Forwarded to :class:`~signac.common.config.Config` constructor.
+        Forwarded to :class:`~signac.config.Config` constructor.
     \*\*kwargs :
-        Forwarded to :class:`~signac.common.config.Config` constructor.
+        Forwarded to :class:`~signac.config.Config` constructor.
 
     """
 
@@ -194,7 +194,7 @@ class Project:
 
         Returns
         -------
-        :class:`~signac.contrib.project._ProjectConfig`
+        :class:`~signac.project._ProjectConfig`
             Dictionary containing project's configuration.
 
         """
@@ -451,7 +451,7 @@ class Project:
 
         Returns
         -------
-        :class:`~signac.contrib.job.Job`
+        :class:`~signac.job.Job`
             The job instance.
 
         Raises
@@ -557,7 +557,7 @@ class Project:
 
         Parameters
         ----------
-        job : :class:`~signac.contrib.job.Job`
+        job : :class:`~signac.job.Job`
             The job to test for initialization.
 
         Returns
@@ -584,7 +584,7 @@ class Project:
 
         Returns
         -------
-        :class:`~signac.contrib.schema.ProjectSchema`
+        :class:`~signac.schema.ProjectSchema`
             The detected project schema.
 
         """
@@ -664,7 +664,7 @@ class Project:
 
         Returns
         -------
-        :class:`~signac.contrib.project.JobsCursor`
+        :class:`~signac.project.JobsCursor`
             JobsCursor of jobs matching the provided filter.
 
         Raises
@@ -688,7 +688,7 @@ class Project:
         Prepend the key with 'sp.' or 'doc.' to specify the query namespace. If no prefix
         is specified, group by state point key.
 
-        This method can be called on any :class:`~signac.contrib.project.JobsCursor` such as
+        This method can be called on any :class:`~signac.project.JobsCursor` such as
         the one returned by :meth:`~signac.Project.find_jobs` or by iterating over a
         project.
 
@@ -750,14 +750,14 @@ class Project:
         r"""Export the project metadata to a pandas :class:`~pandas.DataFrame`.
 
         The arguments to this function are forwarded to
-        :meth:`~signac.contrib.project.JobsCursor.to_dataframe`.
+        :meth:`~signac.project.JobsCursor.to_dataframe`.
 
         Parameters
         ----------
         \*args :
-            Forwarded to :meth:`~signac.contrib.project.JobsCursor.to_dataframe`.
+            Forwarded to :meth:`~signac.project.JobsCursor.to_dataframe`.
         \*\*kwargs :
-            Forwarded to :meth:`~signac.contrib.project.JobsCursor.to_dataframe`.
+            Forwarded to :meth:`~signac.project.JobsCursor.to_dataframe`.
 
         Returns
         -------
@@ -922,7 +922,7 @@ class Project:
 
         Parameters
         ----------
-        job : :class:`~signac.contrib.job.Job`
+        job : :class:`~signac.job.Job`
             The job to copy into this project.
         copytree : callable, optional
             The function used for copying directory tree structures. Uses
@@ -931,7 +931,7 @@ class Project:
 
         Returns
         -------
-        :class:`~signac.contrib.job.Job`
+        :class:`~signac.job.Job`
             The job instance corresponding to the copied job.
 
         Raises
@@ -986,7 +986,7 @@ class Project:
         doc_sync : attribute or callable from :py:class:`~signac.sync.DocSync`, optional
             A synchronization strategy for document keys. If this argument is None, by default
             no keys will be synchronized upon conflict (Default value = None).
-        selection : sequence of :class:`~signac.contrib.job.Job` or job ids (str), optional
+        selection : sequence of :class:`~signac.job.Job` or job ids (str), optional
             Only synchronize the given selection of jobs (Default value = None).
         \*\*kwargs :
             This method also accepts the same keyword arguments as the
@@ -1524,7 +1524,7 @@ class Project:
 
         Returns
         -------
-        :class:`~signac.contrib.job.Job`
+        :class:`~signac.job.Job`
             The first job found in or above the provided path.
 
         Raises
@@ -1661,7 +1661,7 @@ class JobsCursor:
 
         Parameters
         ----------
-        job : :class:`~signac.contrib.job.Job`
+        job : :class:`~signac.job.Job`
             The job to check.
 
         Returns
@@ -1696,7 +1696,7 @@ class JobsCursor:
         Prepend the key with 'sp.' or 'doc.' to specify the query namespace. If no prefix
         is specified, group by state point key.
 
-        This method can be called on any :class:`~signac.contrib.project.JobsCursor` such as
+        This method can be called on any :class:`~signac.project.JobsCursor` such as
         the one returned by :meth:`~signac.Project.find_jobs` or by iterating over a
         project.
 
@@ -1936,7 +1936,7 @@ class JobsCursor:
 
             Parameters
             ----------
-            job : :class:`~signac.contrib.job.Job`
+            job : :class:`~signac.job.Job`
                 The job instance.
 
             Yields
@@ -2075,7 +2075,7 @@ def get_job(path=None):
 
     Returns
     -------
-    :class:`~signac.contrib.job.Job`
+    :class:`~signac.job.Job`
         The first job found in or above the provided path.
 
     Raises
@@ -2088,7 +2088,7 @@ def get_job(path=None):
     When the current directory is a job directory:
 
     >>> signac.get_job()
-    signac.contrib.job.Job(project=..., statepoint={...})
+    signac.job.Job(project=..., statepoint={...})
 
     """
     return Project.get_job(path=path)

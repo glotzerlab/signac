@@ -80,7 +80,6 @@ from collections import namedtuple
 from collections.abc import Mapping
 from multiprocessing.pool import ThreadPool
 
-from .contrib.utility import _query_yes_no
 from .errors import (
     DestinationExistsError,
     DocumentSyncConflict,
@@ -88,6 +87,7 @@ from .errors import (
     SchemaSyncConflict,
 )
 from .syncutil import _FileModifyProxy, dircmp, dircmp_deep, logger
+from .utility import _query_yes_no
 
 __all__ = [
     "FileSync",
@@ -294,9 +294,9 @@ def sync_jobs(
 
     Parameters
     ----------
-    src : :class:`~signac.contrib.job.Job`
+    src : :class:`~signac.job.Job`
         The src job, data will be copied from this job's workspace.
-    dst : :class:`~signac.contrib.job.Job`
+    dst : :class:`~signac.job.Job`
         The dst job, data will be copied to this job's workspace.
     strategy : callable, optional
         A synchronization strategy for file conflicts. The strategy should be a
@@ -446,7 +446,7 @@ def sync_projects(
         safe key-by-key strategy that will not overwrite any values on
         conflict, but instead raises a :class:`~.errors.DocumentSyncConflict`
         exception.
-    selection : sequence of :class:`~signac.contrib.job.Job` or job ids (str), optional
+    selection : sequence of :class:`~signac.job.Job` or job ids (str), optional
         Only synchronize the given selection of jobs. (Default value = None)
     check_schema : bool, optional
         If True, only synchronize if this and the other project have a matching

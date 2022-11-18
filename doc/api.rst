@@ -51,7 +51,7 @@ The JobsCursor class
 ====================
 .. _python-api-jobscursor:
 
-.. currentmodule:: signac.contrib.project
+.. currentmodule:: signac.project
 
 .. rubric:: Attributes
 
@@ -72,7 +72,7 @@ The Job class
 
 .. _python-api-job:
 
-.. currentmodule:: signac.contrib.job
+.. currentmodule:: signac.job
 
 .. rubric:: Attributes
 
@@ -110,7 +110,7 @@ The Job class
 The JSONDict
 ============
 
-This class implements the interface for the job's :attr:`~signac.contrib.job.Job.statepoint` and :attr:`~signac.contrib.job.Job.document` attributes, but can also be used on its own.
+This class implements the interface for the job's :attr:`~signac.job.Job.statepoint` and :attr:`~signac.job.Job.document` attributes, but can also be used on its own.
 
 .. autoclass:: JSONDict
     :members:
@@ -120,7 +120,7 @@ This class implements the interface for the job's :attr:`~signac.contrib.job.Job
 The H5Store
 ===========
 
-This class implements the interface to the job's :attr:`~signac.contrib.job.Job.data` attribute, but can also be used on its own.
+This class implements the interface to the job's :attr:`~signac.job.Job.data` attribute, but can also be used on its own.
 
 .. autoclass:: H5Store
     :members:
@@ -130,7 +130,7 @@ This class implements the interface to the job's :attr:`~signac.contrib.job.Job.
 The H5StoreManager
 ==================
 
-This class implements the interface to the job's :attr:`~signac.contrib.job.Job.stores` attribute, but can also be used on its own.
+This class implements the interface to the job's :attr:`~signac.job.Job.stores` attribute, but can also be used on its own.
 
 .. autoclass:: H5StoreManager
     :members:

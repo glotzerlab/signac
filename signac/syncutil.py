@@ -11,7 +11,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from filecmp import dircmp
 
-from .core.utility import _safe_relpath
+from .utility import _safe_relpath
 
 LEVEL_MORE = logging.INFO - 5
 

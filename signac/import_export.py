@@ -44,8 +44,8 @@ def _make_schema_based_path_function(jobs, exclude_keys=None, delimiter_nested="
 
     Parameters
     ----------
-    jobs : iterable of :class:`~signac.contrib.job.Job`
-        A sequence of jobs (instances of :class:`~signac.contrib.job.Job`).
+    jobs : iterable of :class:`~signac.job.Job`
+        A sequence of jobs (instances of :class:`~signac.job.Job`).
     exclude_keys : sequence[str], optional
         A sequence of keys to exclude (Default value = None).
     delimiter_nested : str, optional
@@ -85,8 +85,8 @@ def _make_schema_based_path_function(jobs, exclude_keys=None, delimiter_nested="
 
         Parameters
         ----------
-        job : :class:`~signac.contrib.job.Job`
-            An instance of :class:`~signac.contrib.job.Job`.
+        job : :class:`~signac.job.Job`
+            An instance of :class:`~signac.job.Job`.
         sep : str, optional
             (Default value = None)
 
@@ -157,8 +157,8 @@ def _check_path_function_unique(jobs, path_spec, path_function):
 
     Parameters
     ----------
-    jobs : iterable of :class:`~signac.contrib.job.Job`
-        A sequence of jobs (instances of :class:`~signac.contrib.job.Job`).
+    jobs : iterable of :class:`~signac.job.Job`
+        A sequence of jobs (instances of :class:`~signac.job.Job`).
     path_spec : str
         The path string that generated the path_function. Displayed in the
         error message.
@@ -191,8 +191,8 @@ def _make_path_function(jobs, path):
 
     Parameters
     ----------
-    jobs : iterable of :class:`~signac.contrib.job.Job`
-        A sequence of jobs (instances of :class:`~signac.contrib.job.Job`).
+    jobs : iterable of :class:`~signac.job.Job`
+        A sequence of jobs (instances of :class:`~signac.job.Job`).
     path : callable
         A callable path generating function.
 
@@ -219,8 +219,8 @@ def _make_path_function(jobs, path):
 
             Parameters
             ----------
-            job : :class:`~signac.contrib.job.Job`
-                An instance of :class:`~signac.contrib.job.Job`.
+            job : :class:`~signac.job.Job`
+                An instance of :class:`~signac.job.Job`.
 
             Returns
             -------
@@ -244,8 +244,8 @@ def _make_path_function(jobs, path):
 
             Parameters
             ----------
-            job : :class:`~signac.contrib.job.Job`
-                An instance of :class:`~signac.contrib.job.Job`.
+            job : :class:`~signac.job.Job`
+                An instance of :class:`~signac.job.Job`.
 
             Returns
             -------
@@ -319,8 +319,8 @@ def _export_jobs(jobs, path, copytree):
 
     Parameters
     ----------
-    jobs : iterable of :class:`~signac.contrib.job.Job`
-        A sequence of jobs (instance of :class:`~signac.contrib.job.Job`).
+    jobs : iterable of :class:`~signac.job.Job`
+        A sequence of jobs (instance of :class:`~signac.job.Job`).
     path : str or callable
         The path (function) used to structure the exported data space.
     copytree : callable
@@ -362,8 +362,8 @@ def export_to_directory(jobs, target, path=None, copytree=None):
 
     Parameters
     ----------
-    jobs : iterable of :class:`~signac.contrib.job.Job`
-        A sequence of jobs (instances of :class:`~signac.contrib.job.Job`).
+    jobs : iterable of :class:`~signac.job.Job`
+        A sequence of jobs (instances of :class:`~signac.job.Job`).
     target : str
         A path to a directory to export to. The directory can not already exist.
     path : str or callable, optional
@@ -405,8 +405,8 @@ def export_to_tarfile(jobs, tarfile, path=None):
 
     Parameters
     ----------
-    jobs : iterable of :class:`~signac.contrib.job.Job`
-        A sequence of jobs (instances of :class:`~signac.contrib.job.Job`).
+    jobs : iterable of :class:`~signac.job.Job`
+        A sequence of jobs (instances of :class:`~signac.job.Job`).
     tarfile : :class:`tarfile.TarFile`
         An instance of :class:`tarfile.TarFile`.
     path : str or callable, optional
@@ -426,8 +426,8 @@ def export_to_zipfile(jobs, zipfile, path=None):
 
     Parameters
     ----------
-    jobs : iterable of :class:`~signac.contrib.job.Job`
-        A sequence of jobs (instances of :class:`~signac.contrib.job.Job`).
+    jobs : iterable of :class:`~signac.job.Job`
+        A sequence of jobs (instances of :class:`~signac.job.Job`).
     zipfile : :class:`zipfile.ZipFile`
         An instance of :class:`zipfile.ZipFile`.
     path : str or callable, optional
@@ -468,8 +468,8 @@ def export_jobs(jobs, target, path=None, copytree=None):
 
     Parameters
     ----------
-    jobs : iterable of :class:`~signac.contrib.job.Job`
-        A sequence of jobs(instance of :class:`~signac.contrib.job.Job`).
+    jobs : iterable of :class:`~signac.job.Job`
+        A sequence of jobs(instance of :class:`~signac.job.Job`).
     target : str
         A path to a directory or archive file to export to.
     path : str or callable, optional
@@ -717,7 +717,7 @@ def _crawl_directory_data_space(root, project, schema_function):
     ------
     path : str
         Path.
-    job : :class:`~signac.contrib.job.Job`
+    job : :class:`~signac.job.Job`
         Job instance.
 
     """
@@ -744,8 +744,8 @@ def _copy_to_job_workspace(src, job, copytree):
     ----------
     src : str
         Name of source file copy.
-    job : :class:`~signac.contrib.job.Job`
-        An instance of :class:`~signac.contrib.job.Job`.
+    job : :class:`~signac.job.Job`
+        An instance of :class:`~signac.job.Job`.
     copytree : callable
         The function used for copying directory tree structures.
 
@@ -774,8 +774,8 @@ class _CopyFromDirectoryExecutor:
     ----------
     src : str
         Name of source file copy.
-    job : :class:`~signac.contrib.job.Job`
-        An instance of :class:`~signac.contrib.job.Job`.
+    job : :class:`~signac.job.Job`
+        An instance of :class:`~signac.job.Job`.
 
     """
 
@@ -877,8 +877,8 @@ class _CopyFromZipFileExecutor:
         An instance of ZipFile.
     root : str
         Path of the root directory.
-    job : :class:`~signac.contrib.job.Job`
-        An instance of :class:`~signac.contrib.job.Job`.
+    job : :class:`~signac.job.Job`
+        An instance of :class:`~signac.job.Job`.
     names : sequence[str]
         File names to copy.
 
@@ -1009,8 +1009,8 @@ class _CopyFromTarFileExecutor:
     ----------
     src : str
         Source path.
-    job : :class:`~signac.contrib.job.Job`
-        An instance of :class:`~signac.contrib.job.Job`.
+    job : :class:`~signac.job.Job`
+        An instance of :class:`~signac.job.Job`.
 
     """
 

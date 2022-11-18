@@ -6,8 +6,8 @@
 import logging
 import os
 
-from .configobj import ConfigObj, ConfigObjError
-from .configobj.validate import Validator
+from ._vendor.configobj import ConfigObj, ConfigObjError
+from ._vendor.configobj.validate import Validator
 from .errors import ConfigError
 
 logger = logging.getLogger(__name__)
@@ -36,9 +36,9 @@ def _raise_if_older_schema(root):
     IncompatibleSchemaVersion
         If the project uses an older schema version that requires migration.
     """
-    from ..contrib.errors import IncompatibleSchemaVersion
-    from ..contrib.migration import _get_config_schema_version
-    from ..version import SCHEMA_VERSION, __version__
+    from .errors import IncompatibleSchemaVersion
+    from .migration import _get_config_schema_version
+    from .version import SCHEMA_VERSION, __version__
 
     schema_version = int(SCHEMA_VERSION)
 
