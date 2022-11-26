@@ -3,7 +3,6 @@
 # This software is licensed under the BSD 3-Clause License.
 import gzip
 import io
-import itertools
 import json
 import logging
 import os
@@ -2429,21 +2428,6 @@ class TestProjectPickling(TestProjectBase):
             ).init()
         for job in self.project:
             assert pickle.loads(pickle.dumps(job)) == job
-
-
-class TestTestingProjectInitialization(TestProjectBase):
-
-    # Sanity check on all different combinations of inputs
-    def test_input_args(self):
-        for nested, listed, het in itertools.product([True, False], repeat=3):
-            with self.project.temporary_project() as tmp_project:
-                jobs = signac.testing.init_jobs(
-                    tmp_project, nested=nested, listed=listed, heterogeneous=het
-                )
-                assert len(tmp_project) > 0
-                assert len(tmp_project) == len(jobs)
-                # check that call does not fail:
-                tmp_project.detect_schema()
 
 
 class TestProjectStoreBase(test_h5store.TestH5StoreBase):
