@@ -63,6 +63,7 @@ Removed
  - The signac.common.validate module (#853).
  - The ``Config`` class (#860).
  - The ``DictManager`` class (#858).
+ - The ``signac.testing`` module (#863).
 
 Version 1
 =========
