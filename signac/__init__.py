@@ -9,7 +9,7 @@ data spaces, streamlines post-processing and analysis, and makes data
 collectively accessible.
 """
 
-from . import contrib, errors, sync, testing
+from . import contrib, errors, sync
 from ._synced_collections.backends.collection_json import (
     BufferedJSONAttrDict as JSONDict,
 )
@@ -44,5 +44,4 @@ __all__ = [
     "JSONDict",
     "H5Store",
     "H5StoreManager",
-    "testing",
 ]
