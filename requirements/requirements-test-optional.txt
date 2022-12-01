@@ -2,7 +2,7 @@ h5py==3.7.0; implementation_name=='cpython'
 numpy==1.23.5
 pandas==1.5.1; implementation_name=='cpython'
 pymongo==4.3.2; implementation_name=='cpython'
-redis==4.3.4
+redis==4.3.5
 ruamel.yaml==0.17.21
 tables==3.7.0; implementation_name=='cpython'
 zarr==2.13.3; platform_system!='Windows'
