@@ -9,7 +9,6 @@ from pprint import pformat
 
 from ._searchindexer import _DictPlaceholder
 from .utility import _nested_dicts_to_dotted_keys
-from .version import __version__
 
 
 class _Vividict(dict):
