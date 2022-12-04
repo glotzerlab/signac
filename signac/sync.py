@@ -80,7 +80,7 @@ from collections import namedtuple
 from collections.abc import Mapping
 from multiprocessing.pool import ThreadPool
 
-from ._internal.utility import _query_yes_no
+from ._utility import _query_yes_no
 from .errors import (
     DestinationExistsError,
     DocumentSyncConflict,

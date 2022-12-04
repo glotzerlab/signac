@@ -20,13 +20,9 @@ from multiprocessing.pool import ThreadPool
 from tempfile import TemporaryDirectory
 from threading import RLock
 
-from ._internal.search_indexer import _SearchIndexer
-from ._internal.utility import (
-    _mkdir_p,
-    _nested_dicts_to_dotted_keys,
-    _split_and_print_progress,
-)
+from ._search_indexer import _SearchIndexer
 from ._synced_collections.backends.collection_json import BufferedJSONAttrDict
+from ._utility import _mkdir_p, _nested_dicts_to_dotted_keys, _split_and_print_progress
 from .config import (
     _Config,
     _get_project_config_fn,

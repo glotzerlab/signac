@@ -6,7 +6,7 @@
 import json
 from collections.abc import Mapping
 
-from ._internal.utility import _print_err
+from ._utility import _print_err
 
 
 def _is_json_like(q):

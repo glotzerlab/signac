@@ -9,7 +9,7 @@ import os
 import sys
 from itertools import chain
 
-from ._internal.utility import _mkdir_p
+from ._utility import _mkdir_p
 
 logger = logging.getLogger(__name__)
 

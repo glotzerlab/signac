@@ -11,7 +11,7 @@ from test_job import TestJobBase
 
 import signac
 from signac import JSONDict, sync
-from signac._internal.utility import _mkdir_p
+from signac._utility import _mkdir_p
 from signac.errors import DocumentSyncConflict, FileSyncConflict, SchemaSyncConflict
 from signac.sync import _FileModifyProxy
 from signac.syncutil import _DocProxy

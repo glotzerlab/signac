@@ -17,8 +17,8 @@ from string import Formatter
 from tempfile import TemporaryDirectory
 from zipfile import ZIP_DEFLATED, ZipFile
 
-from ._internal.search_indexer import _SearchIndexer
-from ._internal.utility import _dotted_dict_to_nested_dicts, _mkdir_p
+from ._search_indexer import _SearchIndexer
+from ._utility import _dotted_dict_to_nested_dicts, _mkdir_p
 from .errors import DestinationExistsError, StatepointParsingError
 from .job import Job
 
