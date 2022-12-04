@@ -7,7 +7,7 @@ import os
 
 from filelock import FileLock
 
-from ..utility import _print_err
+from .._internal.utility import _print_err
 from ..version import SCHEMA_VERSION, __version__
 from .v0_to_v1 import _load_config_v1, _migrate_v0_to_v1
 from .v1_to_v2 import _load_config_v2, _migrate_v1_to_v2

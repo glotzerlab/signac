@@ -10,7 +10,7 @@ import re
 from math import isclose
 from numbers import Number
 
-from .errors import InvalidKeyError
+from ..errors import InvalidKeyError
 from .utility import _nested_dicts_to_dotted_keys, _to_hashable
 
 logger = logging.getLogger(__name__)

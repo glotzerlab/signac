@@ -80,6 +80,7 @@ from collections import namedtuple
 from collections.abc import Mapping
 from multiprocessing.pool import ThreadPool
 
+from ._internal.utility import _query_yes_no
 from .errors import (
     DestinationExistsError,
     DocumentSyncConflict,
@@ -87,7 +88,6 @@ from .errors import (
     SchemaSyncConflict,
 )
 from .syncutil import _FileModifyProxy, dircmp, dircmp_deep, logger
-from .utility import _query_yes_no
 
 __all__ = [
     "FileSync",

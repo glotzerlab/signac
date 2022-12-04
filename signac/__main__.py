@@ -30,6 +30,12 @@ else:
     READLINE = True
 
 from . import config, get_project, init_project
+from ._internal.utility import (
+    _add_verbosity_argument,
+    _print_err,
+    _query_yes_no,
+    _safe_relpath,
+)
 from ._vendor.configobj import Section, flatten_errors
 from .diff import diff_jobs
 from .errors import (
@@ -42,7 +48,6 @@ from .errors import (
 from .filterparse import parse_filter_arg
 from .import_export import _SchemaPathEvaluationError, export_jobs
 from .sync import DocSync, FileSync
-from .utility import _add_verbosity_argument, _print_err, _query_yes_no, _safe_relpath
 from .version import __version__
 
 MSG_SYNC_SPECIFY_KEY = """

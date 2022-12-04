@@ -20,7 +20,12 @@ from multiprocessing.pool import ThreadPool
 from tempfile import TemporaryDirectory
 from threading import RLock
 
-from ._searchindexer import _SearchIndexer
+from ._internal.search_indexer import _SearchIndexer
+from ._internal.utility import (
+    _mkdir_p,
+    _nested_dicts_to_dotted_keys,
+    _split_and_print_progress,
+)
 from ._synced_collections.backends.collection_json import BufferedJSONAttrDict
 from .config import (
     _Config,
@@ -42,7 +47,6 @@ from .hashing import calc_id
 from .job import Job
 from .schema import ProjectSchema
 from .sync import sync_projects
-from .utility import _mkdir_p, _nested_dicts_to_dotted_keys, _split_and_print_progress
 from .version import SCHEMA_VERSION, __version__
 
 logger = logging.getLogger(__name__)
