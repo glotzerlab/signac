@@ -19,3 +19,9 @@ force-exclude = '''
 [tool.isort]
 profile = 'black'
 skip_glob = 'signac/_vendor/*'
+
+[tool.pydocstyle]
+match = "^((?!\\.sync-zenodo-metadata|setup).)*\\.py$"
+match-dir = "^((?!\\.|tests|_vendor).)*$"
+ignore-decorators = "deprecated"
+add-ignore = "D105, D107, D203, D204, D213"
