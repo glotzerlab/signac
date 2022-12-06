@@ -9,7 +9,7 @@ from json import JSONDecodeError
 
 import pytest
 
-from signac.contrib.filterparse import parse_filter_arg, parse_simple
+from signac.filterparse import parse_filter_arg, parse_simple
 
 FILTERS = [
     {"a": 0},

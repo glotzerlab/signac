@@ -7,8 +7,8 @@ from collections.abc import Mapping
 from numbers import Number
 from pprint import pformat
 
-from ._searchindexer import _DictPlaceholder
-from .utility import _nested_dicts_to_dotted_keys
+from ._search_indexer import _DictPlaceholder
+from ._utility import _nested_dicts_to_dotted_keys
 
 
 class _Vividict(dict):

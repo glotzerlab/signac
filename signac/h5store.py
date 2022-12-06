@@ -10,9 +10,9 @@ import warnings
 from collections.abc import Mapping, MutableMapping
 from threading import RLock
 
-from ..errors import H5StoreAlreadyOpenError, H5StoreClosedError, InvalidKeyError
-from .dict_manager import _DictManager
-from .utility import _safe_relpath
+from ._dict_manager import _DictManager
+from ._utility import _safe_relpath
+from .errors import H5StoreAlreadyOpenError, H5StoreClosedError, InvalidKeyError
 
 __all__ = [
     "H5Store",

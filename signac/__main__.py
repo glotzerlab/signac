@@ -29,13 +29,9 @@ except ImportError:
 else:
     READLINE = True
 
-from . import get_project, init_project
-from .common import config
-from .common.configobj import Section, flatten_errors
-from .contrib.filterparse import parse_filter_arg
-from .contrib.import_export import _SchemaPathEvaluationError, export_jobs
-from .contrib.utility import _add_verbosity_argument, _print_err, _query_yes_no
-from .core.utility import _safe_relpath
+from . import config, get_project, init_project
+from ._utility import _add_verbosity_argument, _print_err, _query_yes_no, _safe_relpath
+from ._vendor.configobj import Section, flatten_errors
 from .diff import diff_jobs
 from .errors import (
     DestinationExistsError,
@@ -44,6 +40,8 @@ from .errors import (
     SchemaSyncConflict,
     SyncConflict,
 )
+from .filterparse import parse_filter_arg
+from .import_export import _SchemaPathEvaluationError, export_jobs
 from .sync import DocSync, FileSync
 from .version import __version__
 
@@ -486,7 +484,7 @@ def main_sync(args):
 
 
 def _main_import_interactive(project, origin, args):
-    from .contrib.import_export import _prepare_import_into_project
+    from .import_export import _prepare_import_into_project
 
     if args.move:
         raise ValueError(
@@ -529,7 +527,7 @@ def _main_import_interactive(project, origin, args):
 
 
 def _main_import_non_interactive(project, origin, args):
-    from .contrib.import_export import _prepare_import_into_project
+    from .import_export import _prepare_import_into_project
 
     try:
         paths = {}
@@ -631,7 +629,7 @@ def main_update_cache(args):
 
 def main_migrate(args):
     """Migrate the project's schema to the current schema version."""
-    from .contrib.migration import _get_config_schema_version, apply_migrations
+    from .migration import _get_config_schema_version, apply_migrations
     from .version import SCHEMA_VERSION
 
     root = args.root_directory if args.root_directory else os.getcwd()

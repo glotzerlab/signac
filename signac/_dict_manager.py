@@ -8,7 +8,7 @@ import os
 import re
 import uuid
 
-from .utility import _safe_relpath
+from ._utility import _safe_relpath
 
 
 class _DictManager:
