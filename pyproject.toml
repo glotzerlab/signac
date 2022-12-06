@@ -28,3 +28,7 @@ add-ignore = "D105, D107, D203, D204, D213"
 
 [tool.mypy]
 ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+xfail_strict = true
+filterwarnings = "error"
