@@ -25,3 +25,6 @@ match = "^((?!\\.sync-zenodo-metadata|setup).)*\\.py$"
 match-dir = "^((?!\\.|tests|_vendor).)*$"
 ignore-decorators = "deprecated"
 add-ignore = "D105, D107, D203, D204, D213"
+
+[tool.mypy]
+ignore_missing_imports = true
