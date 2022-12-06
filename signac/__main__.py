@@ -214,10 +214,10 @@ def main_remove(args):
             continue
         if args.clear:
             job.clear()
+            logging.info("Cleared f{job_id}")
         else:
             job.remove()
-        if args.verbose:
-            print(job_id)
+            logging.info("Removing f{job_id}")
 
 
 def main_move(args):
@@ -1053,12 +1053,6 @@ def main():
         "--interactive",
         action="store_true",
         help="Request confirmation before attempting to remove/clear each job.",
-    )
-    parser_remove.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        help="Be verbose when removing/clearing files.",
     )
     parser_remove.set_defaults(func=main_remove)
 
