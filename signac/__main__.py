@@ -30,7 +30,7 @@ else:
     READLINE = True
 
 from . import config, get_project, init_project
-from ._utility import _add_verbosity_argument, _print_err, _query_yes_no, _safe_relpath
+from ._utility import _print_err, _query_yes_no, _safe_relpath
 from ._vendor.configobj import Section, flatten_errors
 from .diff import diff_jobs
 from .errors import (
@@ -877,7 +877,13 @@ def main():
     parser.add_argument(
         "--version", action="store_true", help="Display the version number and exit."
     )
-    _add_verbosity_argument(parser, default=2)
+    parser.add_argument(
+        "-v",
+        "--verbosity",
+        help="Set level of verbosity.",
+        action="count",
+        default=2,
+    )
     parser.add_argument(
         "-y",
         "--yes",
@@ -1292,7 +1298,6 @@ def main():
         help="Optional: The directory of the project that should be modified for "
         "synchronization, defaults to the local project.",
     )
-    _add_verbosity_argument(parser_sync, default=2)
 
     sync_group = parser_sync.add_argument_group("copy options")
     sync_group.add_argument(

@@ -76,32 +76,6 @@ def _query_yes_no(question, default="yes"):  # pragma: no cover
             print("Please respond with 'yes' or 'no' (or 'y' or 'n').")
 
 
-def _add_verbosity_argument(parser, default=0):
-    """Add a verbosity argument to parser.
-
-    Parameters
-    ----------
-    parser : :class:`argparse.ArgumentParser`
-        The parser to which to add a verbosity argument.
-    default : int
-        The default level, defaults to 0.
-
-    Notes
-    -----
-    The argument is '-v' or '--verbosity'.
-    Add multiple '-v' arguments, e.g. '-vv' or '-vvv' to
-    increase the level of verbosity.
-
-    """
-    parser.add_argument(
-        "-v",
-        "--verbosity",
-        help="Set level of verbosity.",
-        action="count",
-        default=default,
-    )
-
-
 def _mkdir_p(path):
     """Make a new directory, or do nothing if the directory already exists.
 
