@@ -32,3 +32,10 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 xfail_strict = true
 filterwarnings = "error"
+
+[tool.coverage.run]
+branch = true
+concurrency = [ "thread" , "multiprocessing" ]
+parallel = true
+source = [ "signac" ]
+omit = [ "*/signac/_vendor/*" ]
