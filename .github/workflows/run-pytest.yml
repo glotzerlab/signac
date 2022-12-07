@@ -24,7 +24,8 @@ jobs:
         config: [ {python: '3.8', dependencies: 'newest'},
                   {python: '3.9', dependencies: 'newest'},
                   {python: '3.10', dependencies: 'newest'},
-                  {python: '3.10', dependencies: 'minimal'},
+                  {python: '3.11', dependencies: 'newest'},
+                  {python: '3.11', dependencies: 'minimal'},
                   {python: '3.8', dependencies: 'oldest'} ]
     steps:
     - uses: actions/checkout@v3
