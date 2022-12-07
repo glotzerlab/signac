@@ -13,6 +13,7 @@ Version 2
 Added
 +++++
 
+ - Official support for Python 3.11 (#875).
  - ``H5Store`` related errors are now included in the public API (#775).
  - Users can now access the project which a job belongs to from the job object.
 
