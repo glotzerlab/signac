@@ -35,6 +35,7 @@ Changed
  - The package namespace has been flattened so that most functionality is directly available in the ``signac`` namespace (#756, #868).
  - The ``calc_id`` function has been moved from the ``hashing`` module to the ``job`` module (#873).
  - Tests are run with all warnings treated as errors (#871).
+ - The contents of the ``syncutil`` module have been moved into ``sync`` (#869).
 
 Removed
 +++++++
