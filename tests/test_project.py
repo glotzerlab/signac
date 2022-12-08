@@ -35,7 +35,7 @@ from signac.errors import (
     StatepointParsingError,
     WorkspaceError,
 )
-from signac.hashing import calc_id
+from signac.job import calc_id
 from signac.linked_view import _find_all_links
 from signac.project import JobsCursor, Project  # noqa: F401
 from signac.schema import ProjectSchema
