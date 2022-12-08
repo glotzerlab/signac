@@ -20,10 +20,7 @@ from multiprocessing.pool import ThreadPool
 from tempfile import TemporaryDirectory
 from threading import RLock
 
-from ._search_indexer import _SearchIndexer
-from ._synced_collections.backends.collection_json import BufferedJSONAttrDict
-from ._utility import _mkdir_p, _nested_dicts_to_dotted_keys, _split_and_print_progress
-from .config import (
+from ._config import (
     _Config,
     _get_project_config_fn,
     _load_config,
@@ -31,6 +28,9 @@ from .config import (
     _raise_if_older_schema,
     _read_config_file,
 )
+from ._search_indexer import _SearchIndexer
+from ._synced_collections.backends.collection_json import BufferedJSONAttrDict
+from ._utility import _mkdir_p, _nested_dicts_to_dotted_keys, _split_and_print_progress
 from .errors import (
     DestinationExistsError,
     IncompatibleSchemaVersion,
