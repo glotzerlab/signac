@@ -4,12 +4,6 @@ commit = True
 tag = False
 message = Bump up to version {new_version}.
 
-[flake8]
-max-line-length = 100
-exclude = _vendor
-select = E,F,W
-ignore = E123,E126,E203,E226,E241,E704,W503,W504
-
 [bumpversion:file:setup.py]
 
 [bumpversion:file:signac/version.py]
