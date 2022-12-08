@@ -39,8 +39,7 @@ from .errors import (
 )
 from .filterparse import _add_prefix, _root_keys, parse_filter
 from .h5store import H5StoreManager
-from .hashing import calc_id
-from .job import Job
+from .job import Job, calc_id
 from .schema import ProjectSchema
 from .sync import sync_projects
 from .version import SCHEMA_VERSION, __version__
