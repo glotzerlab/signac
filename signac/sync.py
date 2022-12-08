@@ -103,19 +103,19 @@ __all__ = [
 # Definition of helpers for syncing
 
 
-LEVEL_MORE = logging.INFO - 5
+_LEVEL_MORE = logging.INFO - 5
 
 logger = logging.getLogger("sync")
-logging.addLevelName(LEVEL_MORE, "MORE")
-logging.MORE = LEVEL_MORE  # type: ignore
+logging.addLevelName(_LEVEL_MORE, "MORE")
+logging.MORE = _LEVEL_MORE  # type: ignore
 
 
-def log_more(msg, *args, **kwargs):
-    """Log using LEVEL_MORE."""
-    logger.log(LEVEL_MORE, msg, *args, **kwargs)
+def _log_more(msg, *args, **kwargs):
+    """Log using _LEVEL_MORE."""
+    logger.log(_LEVEL_MORE, msg, *args, **kwargs)
 
 
-logger.more = log_more  # type: ignore
+logger.more = _log_more  # type: ignore
 
 
 class _dircmp_deep(dircmp):
