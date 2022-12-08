@@ -12,7 +12,7 @@ import pytest
 from test_project import _initialize_v1_project
 
 import signac
-from signac._config import USER_CONFIG_FN, _Config, _load_config, _read_config_file
+from signac._config import USER_CONFIG_FN, Config, load_config, read_config_file
 
 # Skip linked view tests on Windows
 WINDOWS = sys.platform == "win32"
@@ -743,18 +743,18 @@ class TestBasicShell:
 
         self.call("python -m signac init".split())
         out = self.call("python -m signac config --local show".split()).strip()
-        cfg = _read_config_file(".signac/config")
-        expected = _Config(cfg).write()
+        cfg = read_config_file(".signac/config")
+        expected = Config(cfg).write()
         assert out.split(os.linesep) == expected
 
         out = self.call("python -m signac config show".split()).strip()
-        cfg = _load_config()
-        expected = _Config(cfg).write()
+        cfg = load_config()
+        expected = Config(cfg).write()
         assert out.split(os.linesep) == expected
 
         out = self.call("python -m signac config --global show".split()).strip()
-        cfg = _read_config_file(USER_CONFIG_FN)
-        expected = _Config(cfg).write()
+        cfg = read_config_file(USER_CONFIG_FN)
+        expected = Config(cfg).write()
         assert out.split(os.linesep) == expected
 
     def test_config_set(self):
