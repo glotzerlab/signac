@@ -12,7 +12,8 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-import signac.config
+import signac
+from signac._config import _load_config
 from signac.errors import (
     DestinationExistsError,
     InvalidKeyError,
@@ -64,7 +65,7 @@ class TestJobBase:
         request.addfinalizer(self._tmp_dir.cleanup)
         self._tmp_pr = os.path.join(self._tmp_dir.name, "pr")
         os.mkdir(self._tmp_pr)
-        self.config = signac.config._load_config()
+        self.config = _load_config()
         self.project = self.project_class.init_project(path=self._tmp_pr)
 
     def tearDown(self):

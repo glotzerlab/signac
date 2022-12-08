@@ -22,7 +22,7 @@ from packaging import version
 from test_job import TestJobBase
 
 import signac
-from signac.config import (
+from signac._config import (
     PROJECT_CONFIG_FN,
     _get_project_config_fn,
     _load_config,
