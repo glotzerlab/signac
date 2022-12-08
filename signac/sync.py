@@ -118,7 +118,7 @@ def log_more(msg, *args, **kwargs):
 logger.more = log_more  # type: ignore
 
 
-class dircmp_deep(dircmp):
+class _dircmp_deep(dircmp):
     """Deep directory comparator."""
 
     def phase3(self):
@@ -476,7 +476,7 @@ def _sync_job_workspaces(
 ):
     """Synchronize two job workspaces file by file, following the provided strategy."""
     if deep:
-        diff = dircmp_deep(src.fn(subdir), dst.fn(subdir))
+        diff = _dircmp_deep(src.fn(subdir), dst.fn(subdir))
     else:
         diff = dircmp(src.fn(subdir), dst.fn(subdir))
 
