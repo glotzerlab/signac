@@ -33,6 +33,7 @@ Changed
  - Tests are run with ``xfail_strict = True`` (#850).
  - Detection of an invalid config will raise an error rather than a debug log (#855).
  - The package namespace has been flattened so that most functionality is directly available in the ``signac`` namespace (#756, #868).
+ - The ``calc_id`` function has been moved from the ``hashing`` module to the ``job`` module (#873).
 
 Removed
 +++++++
