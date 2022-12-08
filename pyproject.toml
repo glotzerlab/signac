@@ -1,6 +1,10 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools"]
+
 [project]
 name = "signac"
 version = "1.8.0"
