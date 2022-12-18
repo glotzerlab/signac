@@ -16,7 +16,7 @@ requires-python = ">=3.8"
 license = { file = "LICENSE.txt" }
 maintainers = [{ name = "signac Developers", email = "signac-support@umich.edu" }]
 authors = [{ name = "Carl Simon Adorf et al.", email = "csadorf@umich.edu" }]
-keywords = ["simulation database index collaboration workflow"]
+keywords = ["simulation", "database", "index", "collaboration", "workflow"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
