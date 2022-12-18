@@ -4,7 +4,7 @@ commit = True
 tag = False
 message = Bump up to version {new_version}.
 
-[bumpversion:file:setup.py]
+[bumpversion:file:pyproject.toml]
 
 [bumpversion:file:signac/version.py]
 
