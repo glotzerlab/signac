@@ -14,7 +14,6 @@ readme = "README.md"
 # https://numpy.org/neps/nep-0029-deprecation_policy.html
 requires-python = ">=3.8"
 license = { file = "LICENSE.txt" }
-# TODO: Should we continue including authors and maintainers in this way?
 maintainers = [{ name = "signac Developers", email = "signac-support@umich.edu" }]
 authors = [{ name = "Carl Simon Adorf et al.", email = "csadorf@umich.edu" }]
 keywords = ["simulation database index collaboration workflow"]
