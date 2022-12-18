@@ -29,7 +29,7 @@ All contributors must agree to the Contributor Agreement ([ContributorAgreement.
 * Use the [OneFlow](https://www.endoflineblog.com/oneflow-a-git-branching-model-and-workflow) model of development:
   - Both new features and bug fixes should be developed in branches based on `master`.
   - Hotfixes (critical bugs that need to be released *fast*) should be developed in a branch based on the latest tagged release.
-* Write code that is compatible with all supported versions of Python (listed in [setup.py](https://github.com/glotzerlab/signac/blob/master/setup.py)).
+* Write code that is compatible with all supported versions of Python (listed in [pyproject.toml](https://github.com/glotzerlab/signac/blob/master/pyproject.toml)).
 * Avoid introducing dependencies -- especially those that might be harder to install in high-performance computing environments.
 * Create [unit tests](https://en.wikipedia.org/wiki/Unit_testing) and [integration tests](https://en.wikipedia.org/wiki/Integration_testing) that cover the common cases and the corner cases of the code.
 * Preserve backwards-compatibility whenever possible, and make clear if something must change.
