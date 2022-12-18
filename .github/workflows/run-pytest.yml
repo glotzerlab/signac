@@ -51,7 +51,7 @@ jobs:
       if: ${{ matrix.config.dependencies == 'oldest' }}
     - name: Install the package
       run: |
-        pip install -e .
+        pip install .
     - name: Run MongoDB
       uses: supercharge/mongodb-github-action@1.7.0
       if: ${{ matrix.os == 'ubuntu-latest' && matrix.config.dependencies != 'minimal' }}

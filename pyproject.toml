@@ -53,7 +53,7 @@ Issues = "https://github.com/glotzerlab/signac/issues"
 
 [tool.setuptools]
 zip-safe = false
-packages = { find = {} }
+packages = { find = { namespaces = false, exclude = ["benchmarks*"]  } }
 
 [tool.black]
 target-version = ['py38']
