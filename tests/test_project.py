@@ -24,9 +24,9 @@ from test_job import TestJobBase
 import signac
 from signac._config import (
     PROJECT_CONFIG_FN,
-    get_project_config_fn,
-    load_config,
-    read_config_file,
+    _get_project_config_fn,
+    _load_config,
+    _read_config_file,
 )
 from signac.errors import (
     DestinationExistsError,
@@ -2291,7 +2291,7 @@ class TestProjectSchema(TestProjectBase):
         assert version.parse(self.project.config["schema_version"]) < version.parse(
             impossibly_high_schema_version
         )
-        config = read_config_file(get_project_config_fn(self.project.path))
+        config = _read_config_file(_get_project_config_fn(self.project.path))
         config["schema_version"] = impossibly_high_schema_version
         config.write()
         with pytest.raises(IncompatibleSchemaVersion):
@@ -2366,7 +2366,7 @@ class TestSchemaMigration:
 
             # If no schema version is present in the config it is equivalent to
             # version 0, so we test both explicit and implicit versions.
-            config = read_config_file(cfg_fn)
+            config = _read_config_file(cfg_fn)
             if implicit_version:
                 del config["schema_version"]
                 assert "schema_version" not in config
@@ -2383,7 +2383,7 @@ class TestSchemaMigration:
             err = io.StringIO()
             with redirect_stderr(err):
                 apply_migrations(dirname)
-            config = load_config(dirname)
+            config = _load_config(dirname)
             assert config["schema_version"] == "2"
             project = signac.get_project(path=dirname)
             assert project.config["schema_version"] == "2"
@@ -2441,7 +2441,7 @@ class TestProjectStoreBase(test_h5store.TestH5StoreBase):
         request.addfinalizer(self._tmp_dir.cleanup)
         self._tmp_pr = os.path.join(self._tmp_dir.name, "pr")
         os.mkdir(self._tmp_pr)
-        self.config = load_config()
+        self.config = _load_config()
         self.project = self.project_class.init_project(path=self._tmp_pr)
 
         self._fn_store = os.path.join(self._tmp_dir.name, "signac_data.h5")

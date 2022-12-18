@@ -15,7 +15,7 @@ This migration involves the following changes:
 
 import os
 
-from .._config import get_project_config_fn
+from .._config import _get_project_config_fn
 from .._synced_collections.backends.collection_json import BufferedJSONAttrDict
 from .._vendor import configobj
 from ..project import Project
@@ -74,7 +74,7 @@ def _migrate_v1_to_v2(root_directory):
 
     # Move signac.rc to .signac/config
     v1_fn = os.path.join(root_directory, "signac.rc")
-    v2_fn = get_project_config_fn(root_directory)
+    v2_fn = _get_project_config_fn(root_directory)
     os.mkdir(os.path.dirname(v2_fn))
     os.replace(v1_fn, v2_fn)
 

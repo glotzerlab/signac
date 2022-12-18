@@ -21,12 +21,12 @@ from tempfile import TemporaryDirectory
 from threading import RLock
 
 from ._config import (
-    Config,
-    get_project_config_fn,
-    load_config,
-    locate_config_dir,
-    raise_if_older_schema,
-    read_config_file,
+    _Config,
+    _get_project_config_fn,
+    _load_config,
+    _locate_config_dir,
+    _raise_if_older_schema,
+    _read_config_file,
 )
 from ._search_indexer import _SearchIndexer
 from ._synced_collections.backends.collection_json import BufferedJSONAttrDict
@@ -50,7 +50,7 @@ JOB_ID_LENGTH = 32
 JOB_ID_REGEX = re.compile(f"[a-f0-9]{{{JOB_ID_LENGTH}}}")
 
 
-class _ProjectConfig(Config):
+class _ProjectConfig(_Config):
     r"""Extends the project config to make it immutable.
 
     Parameters
@@ -104,15 +104,15 @@ class Project:
     def __init__(self, path=None):
         if path is None:
             path = os.getcwd()
-        if not os.path.isfile(get_project_config_fn(path)):
-            raise_if_older_schema(path)
+        if not os.path.isfile(_get_project_config_fn(path)):
+            _raise_if_older_schema(path)
             raise LookupError(
                 f"Unable to find project at path '{os.path.abspath(path)}'."
             )
 
         # Project constructor does not search upward, so the provided path must
         # be a project directory.
-        config = load_config(path)
+        config = _load_config(path)
         self._config = _ProjectConfig(config)
         self._lock = RLock()
 
@@ -1454,9 +1454,9 @@ class Project:
         try:
             project = cls.get_project(path=path, search=False)
         except LookupError:
-            fn_config = get_project_config_fn(path)
+            fn_config = _get_project_config_fn(path)
             _mkdir_p(os.path.dirname(fn_config))
-            config = read_config_file(fn_config)
+            config = _read_config_file(fn_config)
             config["schema_version"] = SCHEMA_VERSION
             config.write()
             project = cls.get_project(path=path)
@@ -1499,10 +1499,10 @@ class Project:
             )
 
         old_path = path
-        if not search and not os.path.isfile(get_project_config_fn(path)):
+        if not search and not os.path.isfile(_get_project_config_fn(path)):
             path = None
         else:
-            path = locate_config_dir(path)
+            path = _locate_config_dir(path)
 
         if not path:
             raise LookupError(

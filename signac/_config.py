@@ -19,11 +19,11 @@ schema_version = string(default='1')
 """
 
 
-def get_project_config_fn(path):
+def _get_project_config_fn(path):
     return os.path.abspath(os.path.join(path, PROJECT_CONFIG_FN))
 
 
-def raise_if_older_schema(root):
+def _raise_if_older_schema(root):
     """Raise if an older schema version is detected at the search path.
 
     Parameters
@@ -59,7 +59,7 @@ def raise_if_older_schema(root):
         pass
 
 
-def locate_config_dir(search_path):
+def _locate_config_dir(search_path):
     """Locates directory containing a signac configuration file in a directory hierarchy.
 
     Parameters
@@ -75,7 +75,7 @@ def locate_config_dir(search_path):
     orig_search_path = search_path
     search_path = os.path.abspath(search_path)
     while True:
-        if os.path.isfile(get_project_config_fn(search_path)):
+        if os.path.isfile(_get_project_config_fn(search_path)):
             return search_path
         if (up := os.path.dirname(search_path)) == search_path:
             break
@@ -89,7 +89,7 @@ def locate_config_dir(search_path):
 
     search_path = os.path.abspath(orig_search_path)
     while True:
-        raise_if_older_schema(search_path)
+        _raise_if_older_schema(search_path)
         if (up := os.path.dirname(search_path)) == search_path:
             logger.debug("Reached filesystem root, no config found.")
             return None
@@ -97,7 +97,7 @@ def locate_config_dir(search_path):
             search_path = up
 
 
-class Config(ConfigObj):
+class _Config(ConfigObj):
     """Manages configuration for a signac project."""
 
     def verify(self, *, preserve_errors=False):
@@ -105,10 +105,10 @@ class Config(ConfigObj):
         return super().validate(Validator(), preserve_errors=preserve_errors)
 
 
-def read_config_file(filename):
+def _read_config_file(filename):
     logger.debug(f"Reading config file '{filename}'.")
     try:
-        config = Config(filename, configspec=_CFG.split("\n"))
+        config = _Config(filename, configspec=_CFG.split("\n"))
     except (OSError, ConfigObjError) as error:
         raise ConfigError(f"Failed to read configuration file '{filename}':\n{error}")
     verification = config.verify()
@@ -123,7 +123,7 @@ def read_config_file(filename):
     return config
 
 
-def load_config(path=None):
+def _load_config(path=None):
     """Load configuration from a project directory.
 
     Parameters
@@ -133,21 +133,21 @@ def load_config(path=None):
 
     Returns
     --------
-    :class:`Config`
+    :class:`_Config`
         The composite configuration including both project-local and global
         config data if requested. Note that because this config is a composite,
         modifications to the returned value will not be reflected in the files.
     """
     if path is None:
         path = os.getcwd()
-    config = Config(configspec=_CFG.split("\n"))
+    config = _Config(configspec=_CFG.split("\n"))
 
     # Add in any global or user config files. For now this only finds user-specific
     # files, but it could be updated in the future to support e.g. system-wide config files.
     for fn in (USER_CONFIG_FN,):
         if os.path.isfile(fn):
-            config.merge(read_config_file(fn))
+            config.merge(_read_config_file(fn))
 
-    if os.path.isfile(get_project_config_fn(path)):
-        config.merge(read_config_file(get_project_config_fn(path)))
+    if os.path.isfile(_get_project_config_fn(path)):
+        config.merge(_read_config_file(_get_project_config_fn(path)))
     return config

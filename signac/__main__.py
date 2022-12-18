@@ -33,10 +33,10 @@ from . import get_project, init_project
 from ._config import (
     PROJECT_CONFIG_FN,
     USER_CONFIG_FN,
-    Config,
-    load_config,
-    locate_config_dir,
-    read_config_file,
+    _Config,
+    _load_config,
+    _locate_config_dir,
+    _read_config_file,
 )
 from ._utility import _add_verbosity_argument, _print_err, _query_yes_no, _safe_relpath
 from ._vendor.configobj import Section, flatten_errors
@@ -672,11 +672,11 @@ def main_config_show(args):
         raise ValueError("You can specify either -l/--local or -g/--global, not both.")
     elif args.local:
         if os.path.isfile(PROJECT_CONFIG_FN):
-            cfg = read_config_file(PROJECT_CONFIG_FN)
+            cfg = _read_config_file(PROJECT_CONFIG_FN)
     elif args.globalcfg:
-        cfg = read_config_file(USER_CONFIG_FN)
+        cfg = _read_config_file(USER_CONFIG_FN)
     else:
-        cfg = load_config(locate_config_dir(os.getcwd()))
+        cfg = _load_config(_locate_config_dir(os.getcwd()))
     if not cfg:
         if args.local:
             mode = "local"
@@ -694,7 +694,7 @@ def main_config_show(args):
     if not isinstance(cfg, Section):
         print(cfg)
     else:
-        for line in Config(cfg).write():
+        for line in _Config(cfg).write():
             print(line)
 
 
@@ -726,11 +726,11 @@ def main_config_verify(args):
         raise ValueError("You can specify either -l/--local or -g/--global, not both.")
     elif args.local:
         if os.path.isfile(PROJECT_CONFIG_FN):
-            cfg = read_config_file(PROJECT_CONFIG_FN)
+            cfg = _read_config_file(PROJECT_CONFIG_FN)
     elif args.globalcfg:
-        cfg = read_config_file(USER_CONFIG_FN)
+        cfg = _read_config_file(USER_CONFIG_FN)
     else:
-        cfg = load_config(locate_config_dir(os.getcwd()))
+        cfg = _load_config(_locate_config_dir(os.getcwd()))
     if not cfg:
         if args.local:
             mode = "local"
@@ -763,7 +763,7 @@ def main_config_set(args):
             "You need to specify either -l/--local or -g/--global "
             "to specify which configuration to modify."
         )
-    cfg = read_config_file(fn_config)
+    cfg = _read_config_file(fn_config)
     keys = args.key.split(".")
     if len(args.value) == 0:
         raise ValueError("No value argument provided!")
