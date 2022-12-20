@@ -52,7 +52,9 @@ Source = "https://github.com/glotzerlab/signac"
 Issues = "https://github.com/glotzerlab/signac/issues"
 
 [tool.setuptools]
-packages = { find = { namespaces = false, exclude = ["tests*", "benchmarks*"] } }
+[tools.setuptools.packages.find]
+namespaces = false
+exclude = ["tests*", "benchmarks*"]
 
 [tool.black]
 target-version = ['py38']
@@ -92,7 +94,7 @@ filterwarnings = "error"
 
 [tool.coverage.run]
 branch = true
-concurrency = [ "thread" , "multiprocessing" ]
+concurrency = ["thread", "multiprocessing"]
 parallel = true
 source = [ "signac" ]
 omit = [ "*/signac/_vendor/*" ]

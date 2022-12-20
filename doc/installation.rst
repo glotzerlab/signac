@@ -53,7 +53,7 @@ Consider installing :ref:`optional dependencies <optional_dependencies>`.
 Source Code Installation
 ========================
 
-Alternatively you can clone the `git repository <https://github.com/glotzerlab/signac>`_ and pip install it directly, or install directly from git.
+Alternatively you can clone the `git repository <https://github.com/glotzerlab/signac>`_ and pip install it directly (Option 1), or install directly from git (Option 2).
 
 .. code:: bash
 
