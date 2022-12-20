@@ -51,7 +51,6 @@ Download = "https://pypi.org/project/signac/"
 Source = "https://github.com/glotzerlab/signac"
 Issues = "https://github.com/glotzerlab/signac/issues"
 
-[tool.setuptools]
 [tools.setuptools.packages.find]
 namespaces = false
 exclude = ["tests*", "benchmarks*"]
