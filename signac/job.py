@@ -4,11 +4,12 @@
 """Job class defined here."""
 
 import errno
+import hashlib
+import json
 import logging
 import os
 import shutil
 from copy import deepcopy
-from json import JSONDecodeError
 from threading import RLock
 from typing import FrozenSet
 
@@ -18,13 +19,36 @@ from ._synced_collections.backends.collection_json import (
     json_attr_dict_validator,
 )
 from ._synced_collections.errors import KeyTypeError
+from ._synced_collections.utils import SyncedCollectionJSONEncoder
 from ._utility import _mkdir_p
 from .errors import DestinationExistsError, JobsCorruptedError
 from .h5store import H5StoreManager
-from .hashing import calc_id
 from .sync import sync_jobs
 
 logger = logging.getLogger(__name__)
+
+
+def calc_id(statepoint):
+    """Calculate and return a hash value for the given statepoint.
+
+    The hash is computed as an MD5 checksum of the input data. The input data
+    is first encoded as JSON, with dictionary keys sorted to ensure the hash
+    is reproducible.
+
+    Parameters
+    ----------
+    statepoint : dict
+        A JSON-encodable mapping.
+
+    Returns
+    -------
+    str
+        Encoded hash in hexadecimal format.
+    """
+    blob = json.dumps(statepoint, cls=SyncedCollectionJSONEncoder, sort_keys=True)
+    m = hashlib.md5()
+    m.update(blob.encode())
+    return m.hexdigest()
 
 
 # Note: All children of _StatePointDict will be of its parent type because they
@@ -203,7 +227,7 @@ class _StatePointDict(JSONAttrDict):
         """
         try:
             data = self._load_from_resource()
-        except JSONDecodeError:
+        except json.JSONDecodeError:
             raise JobsCorruptedError([job_id])
 
         if calc_id(data) != job_id:

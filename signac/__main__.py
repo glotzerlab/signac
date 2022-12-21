@@ -29,7 +29,15 @@ except ImportError:
 else:
     READLINE = True
 
-from . import config, get_project, init_project
+from . import get_project, init_project
+from ._config import (
+    PROJECT_CONFIG_FN,
+    USER_CONFIG_FN,
+    _Config,
+    _load_config,
+    _locate_config_dir,
+    _read_config_file,
+)
 from ._utility import _print_err, _query_yes_no, _safe_relpath
 from ._vendor.configobj import Section, flatten_errors
 from .diff import diff_jobs
@@ -663,12 +671,12 @@ def main_config_show(args):
     if args.local and args.globalcfg:
         raise ValueError("You can specify either -l/--local or -g/--global, not both.")
     elif args.local:
-        if os.path.isfile(config.PROJECT_CONFIG_FN):
-            cfg = config._read_config_file(config.PROJECT_CONFIG_FN)
+        if os.path.isfile(PROJECT_CONFIG_FN):
+            cfg = _read_config_file(PROJECT_CONFIG_FN)
     elif args.globalcfg:
-        cfg = config._read_config_file(config.USER_CONFIG_FN)
+        cfg = _read_config_file(USER_CONFIG_FN)
     else:
-        cfg = config._load_config(config._locate_config_dir(os.getcwd()))
+        cfg = _load_config(_locate_config_dir(os.getcwd()))
     if not cfg:
         if args.local:
             mode = "local"
@@ -686,7 +694,7 @@ def main_config_show(args):
     if not isinstance(cfg, Section):
         print(cfg)
     else:
-        for line in config._Config(cfg).write():
+        for line in _Config(cfg).write():
             print(line)
 
 
@@ -717,12 +725,12 @@ def main_config_verify(args):
     if args.local and args.globalcfg:
         raise ValueError("You can specify either -l/--local or -g/--global, not both.")
     elif args.local:
-        if os.path.isfile(config.PROJECT_CONFIG_FN):
-            cfg = config._read_config_file(config.PROJECT_CONFIG_FN)
+        if os.path.isfile(PROJECT_CONFIG_FN):
+            cfg = _read_config_file(PROJECT_CONFIG_FN)
     elif args.globalcfg:
-        cfg = config._read_config_file(config.USER_CONFIG_FN)
+        cfg = _read_config_file(USER_CONFIG_FN)
     else:
-        cfg = config._load_config(config._locate_config_dir(os.getcwd()))
+        cfg = _load_config(_locate_config_dir(os.getcwd()))
     if not cfg:
         if args.local:
             mode = "local"
@@ -746,16 +754,16 @@ def main_config_set(args):
     if args.local and args.globalcfg:
         raise ValueError("You can specify either -l/--local or -g/--global, not both.")
     elif args.local:
-        if os.path.isfile(config.PROJECT_CONFIG_FN):
-            fn_config = config.PROJECT_CONFIG_FN
+        if os.path.isfile(PROJECT_CONFIG_FN):
+            fn_config = PROJECT_CONFIG_FN
     elif args.globalcfg:
-        fn_config = config.USER_CONFIG_FN
+        fn_config = USER_CONFIG_FN
     else:
         raise ValueError(
             "You need to specify either -l/--local or -g/--global "
             "to specify which configuration to modify."
         )
-    cfg = config._read_config_file(fn_config)
+    cfg = _read_config_file(fn_config)
     keys = args.key.split(".")
     if len(args.value) == 0:
         raise ValueError("No value argument provided!")

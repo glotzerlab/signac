@@ -21,10 +21,7 @@ from multiprocessing.pool import ThreadPool
 from tempfile import TemporaryDirectory
 from threading import RLock
 
-from ._search_indexer import _SearchIndexer
-from ._synced_collections.backends.collection_json import BufferedJSONAttrDict
-from ._utility import _mkdir_p, _nested_dicts_to_dotted_keys
-from .config import (
+from ._config import (
     _Config,
     _get_project_config_fn,
     _load_config,
@@ -32,6 +29,9 @@ from .config import (
     _raise_if_older_schema,
     _read_config_file,
 )
+from ._search_indexer import _SearchIndexer
+from ._synced_collections.backends.collection_json import BufferedJSONAttrDict
+from ._utility import _mkdir_p, _nested_dicts_to_dotted_keys
 from .errors import (
     DestinationExistsError,
     IncompatibleSchemaVersion,
@@ -40,8 +40,7 @@ from .errors import (
 )
 from .filterparse import _add_prefix, _root_keys, parse_filter
 from .h5store import H5StoreManager
-from .hashing import calc_id
-from .job import Job
+from .job import Job, calc_id
 from .schema import ProjectSchema
 from .sync import sync_projects
 from .version import SCHEMA_VERSION, __version__

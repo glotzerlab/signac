@@ -15,11 +15,10 @@ This migration involves the following changes:
 
 import os
 
-from signac._synced_collections.backends.collection_json import BufferedJSONAttrDict
-from signac._vendor import configobj
-from signac.config import _get_project_config_fn
-from signac.project import Project
-
+from .._config import _get_project_config_fn
+from .._synced_collections.backends.collection_json import BufferedJSONAttrDict
+from .._vendor import configobj
+from ..project import Project
 from .v0_to_v1 import _load_config_v1
 
 # A minimal v2 config.
