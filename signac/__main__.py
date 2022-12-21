@@ -38,7 +38,7 @@ from ._config import (
     _locate_config_dir,
     _read_config_file,
 )
-from ._utility import _add_verbosity_argument, _print_err, _query_yes_no, _safe_relpath
+from ._utility import _print_err, _query_yes_no, _safe_relpath
 from ._vendor.configobj import Section, flatten_errors
 from .diff import diff_jobs
 from .errors import (
@@ -222,10 +222,10 @@ def main_remove(args):
             continue
         if args.clear:
             job.clear()
+            logging.info("Cleared f{job_id}")
         else:
             job.remove()
-        if args.verbose:
-            print(job_id)
+            logging.info("Removing f{job_id}")
 
 
 def main_move(args):
@@ -885,7 +885,13 @@ def main():
     parser.add_argument(
         "--version", action="store_true", help="Display the version number and exit."
     )
-    _add_verbosity_argument(parser, default=2)
+    parser.add_argument(
+        "-v",
+        "--verbosity",
+        help="Set level of verbosity.",
+        action="count",
+        default=2,
+    )
     parser.add_argument(
         "-y",
         "--yes",
@@ -1055,12 +1061,6 @@ def main():
         "--interactive",
         action="store_true",
         help="Request confirmation before attempting to remove/clear each job.",
-    )
-    parser_remove.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        help="Be verbose when removing/clearing files.",
     )
     parser_remove.set_defaults(func=main_remove)
 
@@ -1300,7 +1300,6 @@ def main():
         help="Optional: The directory of the project that should be modified for "
         "synchronization, defaults to the local project.",
     )
-    _add_verbosity_argument(parser_sync, default=2)
 
     sync_group = parser_sync.add_argument_group("copy options")
     sync_group.add_argument(
