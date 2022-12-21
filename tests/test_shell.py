@@ -12,7 +12,7 @@ import pytest
 from test_project import _initialize_v1_project
 
 import signac
-from signac import config
+from signac._config import USER_CONFIG_FN, _Config, _load_config, _read_config_file
 
 # Skip linked view tests on Windows
 WINDOWS = sys.platform == "win32"
@@ -743,18 +743,18 @@ class TestBasicShell:
 
         self.call("python -m signac init".split())
         out = self.call("python -m signac config --local show".split()).strip()
-        cfg = config._read_config_file(".signac/config")
-        expected = config._Config(cfg).write()
+        cfg = _read_config_file(".signac/config")
+        expected = _Config(cfg).write()
         assert out.split(os.linesep) == expected
 
         out = self.call("python -m signac config show".split()).strip()
-        cfg = config._load_config()
-        expected = config._Config(cfg).write()
+        cfg = _load_config()
+        expected = _Config(cfg).write()
         assert out.split(os.linesep) == expected
 
         out = self.call("python -m signac config --global show".split()).strip()
-        cfg = config._read_config_file(config.USER_CONFIG_FN)
-        expected = config._Config(cfg).write()
+        cfg = _read_config_file(USER_CONFIG_FN)
+        expected = _Config(cfg).write()
         assert out.split(os.linesep) == expected
 
     def test_config_set(self):
@@ -769,12 +769,12 @@ class TestBasicShell:
         assert "[x]" in cfg
         assert "y = z" in cfg
 
-        backup_config = os.path.exists(config.USER_CONFIG_FN)
-        global_config_path_backup = config.USER_CONFIG_FN + ".tmp"
+        backup_config = os.path.exists(USER_CONFIG_FN)
+        global_config_path_backup = USER_CONFIG_FN + ".tmp"
         try:
             # Make a backup of the global config if it exists
             if backup_config:
-                shutil.copy2(config.USER_CONFIG_FN, global_config_path_backup)
+                shutil.copy2(USER_CONFIG_FN, global_config_path_backup)
 
             # Test the global config CLI
             self.call("python -m signac config --global set b c".split())
@@ -785,9 +785,9 @@ class TestBasicShell:
             # Revert the global config to its previous state (or remove it if
             # it did not exist)
             if backup_config:
-                shutil.move(global_config_path_backup, config.USER_CONFIG_FN)
+                shutil.move(global_config_path_backup, USER_CONFIG_FN)
             else:
-                os.remove(config.USER_CONFIG_FN)
+                os.remove(USER_CONFIG_FN)
 
     def test_config_verify(self):
         # no config file
