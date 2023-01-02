@@ -4,5 +4,5 @@ pandas==1.5.2; implementation_name=='cpython'
 pymongo==4.3.3; implementation_name=='cpython'
 redis==4.3.5
 ruamel.yaml==0.17.21
-tables==3.7.0; implementation_name=='cpython'
+tables==3.8.0; implementation_name=='cpython'
 zarr==2.13.3; platform_system!='Windows'
