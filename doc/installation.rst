@@ -53,13 +53,18 @@ Consider installing :ref:`optional dependencies <optional_dependencies>`.
 Source Code Installation
 ========================
 
-Alternatively you can clone the `git repository <https://github.com/glotzerlab/signac>`_ and execute the ``setup.py`` script to install the package.
+Alternatively you can clone the `git repository <https://github.com/glotzerlab/signac>`_ and pip install it directly (Option 1), or install directly from git (Option 2).
 
 .. code:: bash
 
+  # Option 1
   git clone https://github.com/glotzerlab/signac.git
   cd signac
-  python setup.py install --user
+  pip install .
+
+  # Option 2
+  pip install git+https://github.com/glotzerlab/signac.git
+
 
 Consider installing :ref:`optional dependencies <optional_dependencies>`.
 
