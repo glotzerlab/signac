@@ -15,15 +15,13 @@ import warnings
 from collections import defaultdict
 from collections.abc import Iterable
 from contextlib import contextmanager
+from datetime import timedelta
 from itertools import groupby
 from multiprocessing.pool import ThreadPool
 from tempfile import TemporaryDirectory
 from threading import RLock
 
-from ._search_indexer import _SearchIndexer
-from ._synced_collections.backends.collection_json import BufferedJSONAttrDict
-from ._utility import _mkdir_p, _nested_dicts_to_dotted_keys, _split_and_print_progress
-from .config import (
+from ._config import (
     _Config,
     _get_project_config_fn,
     _load_config,
@@ -31,6 +29,9 @@ from .config import (
     _raise_if_older_schema,
     _read_config_file,
 )
+from ._search_indexer import _SearchIndexer
+from ._synced_collections.backends.collection_json import BufferedJSONAttrDict
+from ._utility import _mkdir_p, _nested_dicts_to_dotted_keys
 from .errors import (
     DestinationExistsError,
     IncompatibleSchemaVersion,
@@ -48,6 +49,59 @@ logger = logging.getLogger(__name__)
 
 JOB_ID_LENGTH = 32
 JOB_ID_REGEX = re.compile(f"[a-f0-9]{{{JOB_ID_LENGTH}}}")
+
+
+def _split_and_print_progress(iterable, num_chunks=10, write=None, desc="Progress: "):
+    """Split the progress and prints it.
+
+    Parameters
+    ----------
+    iterable : list
+        List of values to be chunked.
+    num_chunks : int, optional
+        Number of chunks to split the given iterable (Default value = 10).
+    write : callable, optional
+        Callable used to log messages. If None, ``print`` is used (Default
+        value = None).
+    desc : str, optional
+        Prefix of message to log (Default value = 'Progress: ').
+
+    Yields
+    ------
+    iterable
+
+    Raises
+    ------
+    ValueError
+        If num_chunks <= 0.
+
+    """
+    if num_chunks <= 0:
+        raise ValueError("num_chunks must be a positive integer.")
+    if write is None:
+        write = print
+    if num_chunks > 1:
+        N = len(iterable)
+        len_chunk = int(N / num_chunks)
+        intervals = []
+        show_est = False
+        for i in range(num_chunks - 1):
+            if i:
+                msg = f"{desc}{100 * i / num_chunks:3.0f}%"
+                if intervals:
+                    mean_interval = sum(intervals) / len(intervals)
+                    est_remaining = int(mean_interval * (num_chunks - i))
+                    if est_remaining > 10 or show_est:
+                        show_est = True
+                        msg += f" (ETR: {timedelta(seconds=est_remaining)}h)"
+                write(msg)
+            start = time.time()
+            yield iterable[i * len_chunk : (i + 1) * len_chunk]
+            intervals.append(time.time() - start)
+        yield iterable[(i + 1) * len_chunk :]
+        write(f"{desc}100%")
+    else:
+        yield iterable
 
 
 class _ProjectConfig(_Config):
