@@ -19,3 +19,15 @@ force-exclude = '''
 [tool.isort]
 profile = 'black'
 skip_glob = 'signac/_vendor/*'
+
+[tool.mypy]
+ignore_missing_imports = true
+scripts_are_modules = true
+exclude = [
+    'signac/_vendor/',
+    'tests/',
+]
+
+[[tool.mypy.overrides]]
+module = "signac._vendor.*"
+follow_imports = 'skip'
