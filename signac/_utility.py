@@ -6,8 +6,6 @@
 import os.path
 import sys
 from collections.abc import Mapping
-from datetime import timedelta
-from time import time
 
 
 def _print_err(*args, **kwargs):
@@ -76,32 +74,6 @@ def _query_yes_no(question, default="yes"):  # pragma: no cover
             print("Please respond with 'yes' or 'no' (or 'y' or 'n').")
 
 
-def _add_verbosity_argument(parser, default=0):
-    """Add a verbosity argument to parser.
-
-    Parameters
-    ----------
-    parser : :class:`argparse.ArgumentParser`
-        The parser to which to add a verbosity argument.
-    default : int
-        The default level, defaults to 0.
-
-    Notes
-    -----
-    The argument is '-v' or '--verbosity'.
-    Add multiple '-v' arguments, e.g. '-vv' or '-vvv' to
-    increase the level of verbosity.
-
-    """
-    parser.add_argument(
-        "-v",
-        "--verbosity",
-        help="Set level of verbosity.",
-        action="count",
-        default=default,
-    )
-
-
 def _mkdir_p(path):
     """Make a new directory, or do nothing if the directory already exists.
 
@@ -117,59 +89,6 @@ def _mkdir_p(path):
     # False and allows os.makedirs to raise FileExistsError as usual.
     if not os.path.isdir(path):
         os.makedirs(path, exist_ok=True)
-
-
-def _split_and_print_progress(iterable, num_chunks=10, write=None, desc="Progress: "):
-    """Split the progress and prints it.
-
-    Parameters
-    ----------
-    iterable : list
-        List of values to be chunked.
-    num_chunks : int, optional
-        Number of chunks to split the given iterable (Default value = 10).
-    write : callable, optional
-        Callable used to log messages. If None, ``print`` is used (Default
-        value = None).
-    desc : str, optional
-        Prefix of message to log (Default value = 'Progress: ').
-
-    Yields
-    ------
-    iterable
-
-    Raises
-    ------
-    ValueError
-        If num_chunks <= 0.
-
-    """
-    if num_chunks <= 0:
-        raise ValueError("num_chunks must be a positive integer.")
-    if write is None:
-        write = print
-    if num_chunks > 1:
-        N = len(iterable)
-        len_chunk = int(N / num_chunks)
-        intervals = []
-        show_est = False
-        for i in range(num_chunks - 1):
-            if i:
-                msg = f"{desc}{100 * i / num_chunks:3.0f}%"
-                if intervals:
-                    mean_interval = sum(intervals) / len(intervals)
-                    est_remaining = int(mean_interval * (num_chunks - i))
-                    if est_remaining > 10 or show_est:
-                        show_est = True
-                        msg += f" (ETR: {timedelta(seconds=est_remaining)}h)"
-                write(msg)
-            start = time()
-            yield iterable[i * len_chunk : (i + 1) * len_chunk]
-            intervals.append(time() - start)
-        yield iterable[(i + 1) * len_chunk :]
-        write(f"{desc}100%")
-    else:
-        yield iterable
 
 
 def _dotted_dict_to_nested_dicts(dotted_dict, delimiter_nested="."):

@@ -1,3 +1,61 @@
+# Copyright (c) 2020 The Regents of the University of Michigan
+# All rights reserved.
+# This software is licensed under the BSD 3-Clause License.
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools>=64.0.0"]
+
+[project]
+name = "signac"
+version = "1.8.0"
+description = "Manage large and heterogeneous data spaces on the file system."
+readme = "README.md"
+# Supported versions are determined according to NEP 29.
+# https://numpy.org/neps/nep-0029-deprecation_policy.html
+requires-python = ">=3.8"
+license = { file = "LICENSE.txt" }
+maintainers = [{ name = "signac Developers", email = "signac-support@umich.edu" }]
+authors = [{ name = "Carl Simon Adorf et al.", email = "csadorf@umich.edu" }]
+keywords = ["simulation", "database", "index", "collaboration", "workflow"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Topic :: Database",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = [
+    # Platform-independent file locking
+    "filelock>=3.0",
+    # Used for version parsing and comparison
+    "packaging>=15.0",
+    # Progress bars
+    "tqdm>=4.10.0",
+]
+
+[project.optional-dependencies]
+h5 = ["h5py"]
+
+[project.scripts]
+signac = "signac.__main__:main"
+
+[project.urls]
+Homepage = "https://signac.io"
+Documentation = "https://docs.signac.io"
+Download = "https://pypi.org/project/signac/"
+Source = "https://github.com/glotzerlab/signac"
+Issues = "https://github.com/glotzerlab/signac/issues"
+
+[tools.setuptools.packages.find]
+namespaces = false
+exclude = ["tests*", "benchmarks*"]
+
 [tool.black]
 target-version = ['py38']
 include = '\.pyi?$'
@@ -19,3 +77,24 @@ force-exclude = '''
 [tool.isort]
 profile = 'black'
 skip_glob = 'signac/_vendor/*'
+
+[tool.pydocstyle]
+convention = "numpy"
+match = "^((?!\\.sync-zenodo-metadata|setup).)*\\.py$"
+match-dir = "^((?!\\.|tests|_vendor).)*$"
+ignore-decorators = "deprecated"
+add-ignore = "D105, D107, D203, D204, D213"
+
+[tool.mypy]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+xfail_strict = true
+filterwarnings = "error"
+
+[tool.coverage.run]
+branch = true
+concurrency = ["thread", "multiprocessing"]
+parallel = true
+source = [ "signac" ]
+omit = [ "*/signac/_vendor/*" ]

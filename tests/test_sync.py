@@ -13,8 +13,7 @@ import signac
 from signac import JSONDict, sync
 from signac._utility import _mkdir_p
 from signac.errors import DocumentSyncConflict, FileSyncConflict, SchemaSyncConflict
-from signac.sync import _FileModifyProxy
-from signac.syncutil import _DocProxy
+from signac.sync import _DocProxy, _FileModifyProxy
 
 
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
@@ -239,7 +238,6 @@ class TestFileModifyProxyDocBackup:
         assert len(self.doc) == 0
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning")
 class TestFileModifyProxyJSONDocBackup(TestFileModifyProxyDocBackup):
     @pytest.fixture(autouse=True)
     def setUp(self, request):

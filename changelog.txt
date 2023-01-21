@@ -34,6 +34,10 @@ Changed
  - Tests are run with ``xfail_strict = True`` (#850).
  - Detection of an invalid config will raise an error rather than a debug log (#855).
  - The package namespace has been flattened so that most functionality is directly available in the ``signac`` namespace (#756, #868).
+ - The ``calc_id`` function has been moved from the ``hashing`` module to the ``job`` module (#873).
+ - Tests are run with all warnings treated as errors (#871).
+ - The contents of the ``syncutil`` module have been moved into ``sync`` (#869).
+ - The project now leverages a fully pyproject.toml-driven build (#878).
 
 Removed
 +++++++
@@ -52,7 +56,7 @@ Removed
  - The ability to pass indexes to various ``Project`` methods (#599).
  - The following ``JobsCursor`` methods: ``groupbydoc``, ``next`` (#601, #604).
  - The ``Project.config`` property is no longer mutable. Use the command line ``$ signac config`` to modify configuration (#608, #246, #244).
- - The following config related functions: ``get_config``, ``load_config``, ``read_config_file``, ``search_standard_dirs`` (#674, #753, #789, #847).
+ - The config module and all its functions, all of which have been made private (#674, #753, #789, #847, #877).
  - ``Project`` subclasses can no longer define a ``Job`` subclass to use (#588, #693).
  - The ``Collection`` class (#664, #667, #683).
  - The ``project`` CLI subcommand (#752).
