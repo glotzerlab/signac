@@ -1564,7 +1564,7 @@ class TestLinkedViewProject(TestProjectBase):
         all_links = list(_find_all_links(view_prefix))
         dst = set(
             map(
-                lambda l: os.path.realpath(os.path.join(view_prefix, l, "job")),
+                lambda link: os.path.realpath(os.path.join(view_prefix, link, "job")),
                 all_links,
             )
         )
@@ -1575,7 +1575,7 @@ class TestLinkedViewProject(TestProjectBase):
         assert len(all_links) == len(self.project)
         dst = set(
             map(
-                lambda l: os.path.realpath(os.path.join(view_prefix, l, "job")),
+                lambda link: os.path.realpath(os.path.join(view_prefix, link, "job")),
                 all_links,
             )
         )
@@ -1590,7 +1590,7 @@ class TestLinkedViewProject(TestProjectBase):
         assert len(all_links) == len(id_subset)
         dst = set(
             map(
-                lambda l: os.path.realpath(os.path.join(view_prefix, l, "job")),
+                lambda link: os.path.realpath(os.path.join(view_prefix, link, "job")),
                 all_links,
             )
         )
@@ -1602,7 +1602,7 @@ class TestLinkedViewProject(TestProjectBase):
         assert len(all_links) == len(self.project)
         dst = set(
             map(
-                lambda l: os.path.realpath(os.path.join(view_prefix, l, "job")),
+                lambda link: os.path.realpath(os.path.join(view_prefix, link, "job")),
                 all_links,
             )
         )
@@ -1614,7 +1614,7 @@ class TestLinkedViewProject(TestProjectBase):
         assert len(all_links) == len(self.project)
         dst = set(
             map(
-                lambda l: os.path.realpath(os.path.join(view_prefix, l, "job")),
+                lambda link: os.path.realpath(os.path.join(view_prefix, link, "job")),
                 all_links,
             )
         )
