@@ -1,0 +1,5 @@
+[flake8]
+max-line-length = 100
+exclude = _vendor
+select = E,F,W
+ignore = E123,E126,E203,E226,E241,E704,W503,W504

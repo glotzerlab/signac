@@ -68,7 +68,7 @@ def _locate_config_dir(search_path):
         Starting path to search.
 
     Returns
-    --------
+    -------
     str or None
         The directory containing the configuration file if one is found, otherwise None.
     """
@@ -132,7 +132,7 @@ def _load_config(path=None):
         The project path to pull project-local configuration data from.
 
     Returns
-    --------
+    -------
     :class:`_Config`
         The composite configuration including both project-local and global
         config data if requested. Note that because this config is a composite,
