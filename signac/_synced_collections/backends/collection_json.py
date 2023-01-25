@@ -538,7 +538,7 @@ right backend so that nested classes are created appropriately.
 class JSONAttrDict(JSONDict, AttrDict):
     r"""A dict-like data structure that synchronizes with a persistent JSON file.
 
-    Unlike :class:`JSONAttrDict`, this class also supports attribute-based access to
+    Unlike :class:`JSONDict`, this class also supports attribute-based access to
     dictionary contents, e.g. ``doc.foo == doc['foo']``.
 
     Examples
