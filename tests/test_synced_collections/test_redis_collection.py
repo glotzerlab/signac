@@ -28,7 +28,6 @@ except ImportError:
 
 
 class RedisCollectionTest:
-
     _key = "test"
 
     def store(self, synced_collection, data):

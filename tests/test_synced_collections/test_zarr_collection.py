@@ -16,7 +16,6 @@ except ImportError:
 
 
 class ZarrCollectionTest:
-
     _name = "test"
 
     def store(self, synced_collection, data):
