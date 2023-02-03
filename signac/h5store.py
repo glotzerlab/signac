@@ -172,7 +172,6 @@ def _h5get(store, grp, key, path=None):
 
 
 class _ensure_open:
-
     __slots__ = ["file", "open", "kwargs"]
 
     def __init__(self, file, **kwargs):

@@ -56,7 +56,6 @@ NESTED_HASH = "bd6f5828f4410b665bffcec46abeb8f3"
 
 
 class TestJobBase:
-
     project_class = signac.Project
 
     @pytest.fixture(autouse=True)

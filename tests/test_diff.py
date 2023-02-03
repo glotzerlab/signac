@@ -9,7 +9,6 @@ import signac
 
 
 class TestDiffBase:
-
     project_class = signac.Project
 
     @pytest.fixture(autouse=True)

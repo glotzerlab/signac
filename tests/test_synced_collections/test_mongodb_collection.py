@@ -52,7 +52,6 @@ except ImportError:
 
 
 class MongoDBCollectionTest:
-
     _uid = {"MongoDBCollection::name": "test"}
 
     def store(self, synced_collection, data):
