@@ -389,7 +389,7 @@ class TestSearchIndexer:
             (True, "bool"),
             (None, "null"),
         ]
-        for (v, t) in types:
+        for v, t in types:
             assert len(self.c.find({"a": {"$type": t}})) == 0
         for i, (v, t) in enumerate(types):
             self.c[str(i)] = {str(i): v}

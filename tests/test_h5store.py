@@ -130,7 +130,6 @@ class TestH5StoreOpen(TestH5StoreBase):
 
 
 class TestH5Store(TestH5StoreBase):
-
     valid_types = {
         "int": 123,
         "float": 123.456,
@@ -630,7 +629,6 @@ class TestH5StoreBytesData(TestH5Store):
 
 
 class TestH5StoreClosed(TestH5Store):
-
     valid_types = {
         "int": 123,
         "float": 123.456,
@@ -761,7 +759,6 @@ class TestH5StoreMultiProcessing(TestH5StoreBase):
             read()
 
     def test_multiple_reader_different_process_no_swmr(self):
-
         read_cmd = (
             r'python -c "from signac.h5store import H5Store; '
             r"h5s = H5Store({}, mode=\"r\"); list(h5s); "
@@ -779,7 +776,6 @@ class TestH5StoreMultiProcessing(TestH5StoreBase):
             raise
 
     def test_single_writer_multiple_reader_different_process_no_swmr(self):
-
         read_cmd = (
             r'python -c "from signac.h5store import H5Store; '
             r"h5s = H5Store({}, mode=\"r\"); list(h5s); "
@@ -794,7 +790,6 @@ class TestH5StoreMultiProcessing(TestH5StoreBase):
         python_implementation() != "CPython", reason="SWMR mode not available."
     )
     def test_single_writer_multiple_reader_different_process_swmr(self):
-
         read_cmd = (
             r'python -c "from signac.h5store import H5Store; '
             r"h5s = H5Store({}, mode=\"r\", swmr=True); list(h5s); "

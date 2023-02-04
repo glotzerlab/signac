@@ -56,7 +56,6 @@ class Contributor:
     "-i", "--in-place", type=bool, is_flag=True, help="Modify metadata in place."
 )
 def sync(ctx, in_place=False, check=True):
-
     with open("CITATION.cff", "rb") as file:
         citation = load(file.read(), Loader=Loader)
         authors = [

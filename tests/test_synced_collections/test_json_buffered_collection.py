@@ -829,20 +829,16 @@ class TestBufferedJSONListWriteConcern(TestBufferedJSONList):
 
 
 class TestBufferedJSONAttrDict(TestBufferedJSONDict, AttrDictTest):
-
     _collection_type = BufferedJSONAttrDict  # type: ignore
 
 
 class TestBufferedJSONAttrList(TestBufferedJSONList, AttrListTest):
-
     _collection_type = BufferedJSONAttrList  # type: ignore
 
 
 class TestMemoryBufferedJSONAttrDict(TestMemoryBufferedJSONDict, AttrDictTest):
-
     _collection_type = MemoryBufferedJSONAttrDict  # type: ignore
 
 
 class TestMemoryBufferedJSONAttrList(TestMemoryBufferedJSONList, AttrListTest):
-
     _collection_type = MemoryBufferedJSONAttrList  # type: ignore

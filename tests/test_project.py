@@ -1494,7 +1494,6 @@ project_repr_generators = [
 
 
 class TestProjectRepresentation(TestProjectBase):
-
     num_few_jobs = 10
     num_many_jobs = 200
 
@@ -2086,7 +2085,6 @@ class UpdateCacheAfterInitJobProject(signac.Project):
 
 
 class TestCachedProject(TestProject):
-
     project_class = UpdateCacheAfterInitJobProject
 
     def test_repr(self):
@@ -2432,7 +2430,6 @@ class TestProjectPickling(TestProjectBase):
 
 
 class TestProjectStoreBase(test_h5store.TestH5StoreBase):
-
     project_class = signac.Project
 
     @pytest.fixture(autouse=True)

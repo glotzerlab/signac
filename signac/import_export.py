@@ -212,7 +212,6 @@ def _make_path_function(jobs, path):
         path_function = _make_schema_based_path_function(jobs=jobs)
 
     elif path is False:
-
         # Just use the job id as path.
         def path_function(job):
             """Use job id to construct path.

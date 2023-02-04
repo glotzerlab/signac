@@ -18,7 +18,6 @@ from signac._synced_collections.backends.collection_json import (
 
 
 class JSONCollectionTest:
-
     _write_concern = False
     _fn = "test.json"
 
@@ -55,12 +54,10 @@ class JSONCollectionTest:
 
 
 class TestJSONDict(JSONCollectionTest, SyncedDictTest):
-
     _collection_type = JSONDict
 
 
 class TestJSONList(JSONCollectionTest, SyncedListTest):
-
     _collection_type = JSONList
 
 
@@ -73,10 +70,8 @@ class TestJSONListWriteConcern(TestJSONList):
 
 
 class TestJSONAttrDict(TestJSONDict, AttrDictTest):
-
     _collection_type = JSONAttrDict
 
 
 class TestJSONAttrList(TestJSONList, AttrListTest):
-
     _collection_type = JSONAttrList
