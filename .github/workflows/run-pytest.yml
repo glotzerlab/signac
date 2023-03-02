@@ -62,3 +62,5 @@ jobs:
       run: |
         pytest --cov=signac --cov-config=pyproject.toml --cov-report=xml tests/ -v
     - uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
