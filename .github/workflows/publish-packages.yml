@@ -41,14 +41,14 @@ jobs:
       run:
         python -m pip install signac --progress-bar off --no-index -f dist/
     - name: Run MongoDB
-      uses: supercharge/mongodb-github-action@1.7.0
+      uses: supercharge/mongodb-github-action@1.9.0
     - name: Run Redis
-      uses: supercharge/redis-github-action@1.4.0
+      uses: supercharge/redis-github-action@1.5.0
     - name: Test with pytest
       run:
         python -m pytest -v tests/
     - name: Upload artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
           name: release
           path: dist/
@@ -58,7 +58,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
             name: release
             path: dist/
