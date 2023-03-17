@@ -7,7 +7,7 @@ The **signac** package follows `semantic versioning <https://semver.org/>`_.
 Version 2
 =========
 
-[2.0.0] -- 2021-xx-xx
+[2.0.0] -- 2023-xx-xx
 ---------------------
 
 Added
