@@ -80,7 +80,7 @@ skip_glob = 'signac/_vendor/*'
 
 [tool.pydocstyle]
 convention = "numpy"
-match = "^((?!\\.sync-zenodo-metadata|setup).)*\\.py$"
+match = "^((?!setup).)*\\.py$"
 match-dir = "^((?!\\.|tests|_vendor).)*$"
 ignore-decorators = "deprecated"
 add-ignore = "D105, D107, D203, D204, D213"

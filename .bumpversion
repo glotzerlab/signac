@@ -11,5 +11,3 @@ message = Bump up to version {new_version}.
 [bumpversion:file:doc/conf.py]
 
 [bumpversion:file:CITATION.cff]
-
-[bumpversion:file:.zenodo.json]
