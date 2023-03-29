@@ -49,7 +49,7 @@ def _raise_if_older_schema(root):
             "error. Please contact the signac developers."
         )
         raise IncompatibleSchemaVersion(
-            "The signac schema version used by this project is "
+            "Detected signac project using schema version "
             f"{schema_version}, but signac {__version__} requires "
             f"schema version {SCHEMA_VERSION}. Try running python -m "
             "signac migrate."
