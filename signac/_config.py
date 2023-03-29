@@ -40,10 +40,8 @@ def _raise_if_older_schema(root):
     from .migration import _get_config_schema_version
     from .version import SCHEMA_VERSION, __version__
 
-    schema_version = int(SCHEMA_VERSION)
-
     try:
-        schema_version = _get_config_schema_version(root, schema_version)
+        schema_version = _get_config_schema_version(root, int(SCHEMA_VERSION))
         assert schema_version != int(SCHEMA_VERSION), (
             "Migration schema loader succeeded in loading a config file "
             "where normal loader failed. This indicates an internal "
