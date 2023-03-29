@@ -44,8 +44,9 @@ def _raise_if_older_schema(root):
         schema_version = _get_config_schema_version(root, int(SCHEMA_VERSION))
         assert schema_version != int(SCHEMA_VERSION), (
             "Migration schema loader succeeded in loading a config file "
-            "where normal loader failed. This indicates an internal "
-            "error, please contact the signac developers."
+            "where normal loader failed. Do you have config files for multiple "
+            "schemas? Otherwise, this indicates an internal "
+            "error. Please contact the signac developers."
         )
         raise IncompatibleSchemaVersion(
             "The signac schema version used by this project is "
