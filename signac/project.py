@@ -1508,6 +1508,7 @@ class Project:
         try:
             project = cls.get_project(path=path, search=False)
         except LookupError:
+            _raise_if_older_schema(path)
             fn_config = _get_project_config_fn(path)
             _mkdir_p(os.path.dirname(fn_config))
             config = _read_config_file(fn_config)
