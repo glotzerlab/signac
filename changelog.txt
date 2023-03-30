@@ -7,7 +7,7 @@ The **signac** package follows `semantic versioning <https://semver.org/>`_.
 Version 2
 =========
 
-[2.0.0] -- 2023-xx-xx
+[2.0.0] -- 2023-03-30
 ---------------------
 
 Added
@@ -15,7 +15,7 @@ Added
 
  - Official support for Python 3.11 (#875).
  - ``H5Store`` related errors are now included in the public API (#775).
- - Users can now access the project which a job belongs to from the job object.
+ - Users can now access the project to which a job belongs with the ``Job.project`` attribute (#808).
 
 Changed
 +++++++
