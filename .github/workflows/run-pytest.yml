@@ -4,10 +4,10 @@ on:
   # trigger on pull requests
   pull_request:
 
-  # trigger on all commits to master
+  # trigger on all commits to main
   push:
     branches:
-      - 'master'
+      - 'main'
 
   # trigger on request
   workflow_dispatch:
