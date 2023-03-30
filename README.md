@@ -54,7 +54,7 @@ Set up a new project:
 ```bash
 $ mkdir my_project
 $ cd my_project
-$ signac init MyProject
+$ signac init
 ```
 
 and access the project handle:
