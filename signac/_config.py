@@ -40,17 +40,16 @@ def _raise_if_older_schema(root):
     from .migration import _get_config_schema_version
     from .version import SCHEMA_VERSION, __version__
 
-    schema_version = int(SCHEMA_VERSION)
-
     try:
-        schema_version = _get_config_schema_version(root, schema_version)
+        schema_version = _get_config_schema_version(root, int(SCHEMA_VERSION))
         assert schema_version != int(SCHEMA_VERSION), (
             "Migration schema loader succeeded in loading a config file "
-            "where normal loader failed. This indicates an internal "
-            "error, please contact the signac developers."
+            "where normal loader failed. Do you have config files for multiple "
+            "schemas? Otherwise, this indicates an internal "
+            "error. Please contact the signac developers."
         )
         raise IncompatibleSchemaVersion(
-            "The signac schema version used by this project is "
+            "Detected signac project using schema version "
             f"{schema_version}, but signac {__version__} requires "
             f"schema version {SCHEMA_VERSION}. Try running python -m "
             "signac migrate."

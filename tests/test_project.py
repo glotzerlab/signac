@@ -2404,6 +2404,9 @@ class TestSchemaMigration:
                 signac.get_project(dirname)
 
             with pytest.raises(IncompatibleSchemaVersion):
+                signac.init_project(dirname)
+
+            with pytest.raises(IncompatibleSchemaVersion):
                 signac.Project(dirname)
 
 
