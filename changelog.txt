@@ -70,6 +70,7 @@ Removed
  - The ``Config`` class (#860).
  - The ``DictManager`` class (#858).
  - The ``signac.testing`` module (#863).
+ - Zenodo is no longer updated (#903).
 
 Version 1
 =========
