@@ -17,8 +17,8 @@ This project is open-source.
 Users are highly encouraged to contribute directly by implementing new features and fixing issues.
 Development for packages as part of the **signac** framework should follow the general development guidelines outlined `here <https://docs.signac.io/en/latest/community.html#contributions>`__.
 
-A brief summary of contributing guidelines are outlined in the `CONTRIBUTING.md <https://github.com/glotzerlab/signac/blob/master/CONTRIBUTING.md>`_ file as part of the repository.
-All contributors must agree to the `Contributor Agreement <https://github.com/glotzerlab/signac/blob/master/ContributorAgreement.md>`_ before their pull request can be merged.
+A brief summary of contributing guidelines are outlined in the `CONTRIBUTING.md <https://github.com/glotzerlab/signac/blob/main/CONTRIBUTING.md>`_ file as part of the repository.
+All contributors must agree to the `Contributor Agreement <https://github.com/glotzerlab/signac/blob/main/ContributorAgreement.md>`_ before their pull request can be merged.
 
 Set up a development environment
 --------------------------------
@@ -107,7 +107,7 @@ To install the tool, execute:
 The ``asv`` tool will install signac into an isolated virtual environment that is used for benchmarking.
 Below is a quick reference with some helpful commands:
 
-  * ``$ asv run master..mybranch`` benchmarks every commit from ``master`` to ``mybranch``.
+  * ``$ asv run main..mybranch`` benchmarks every commit from ``main`` to ``mybranch``.
   * ``$ asv publish`` generates a static HTML site showing benchmark results.
   * ``$ asv preview`` hosts a local preview of the generated HTML site.
   * ``$ asv dev`` runs benchmarks that are in development.
@@ -140,7 +140,7 @@ Then you can build the documentation from within the ``doc/`` directory as part 
 Updating the changelog
 ----------------------
 
-To update the changelog, add a one-line description to the `changelog.txt <https://github.com/glotzerlab/signac/blob/master/changelog.txt>`_ file within the ``next`` section.
+To update the changelog, add a one-line description to the `changelog.txt <https://github.com/glotzerlab/signac/blob/main/changelog.txt>`_ file within the ``next`` section.
 For example:
 
 .. code-block:: bash
