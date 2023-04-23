@@ -516,13 +516,11 @@ class Project:
             than one match.
 
         """
-        statepoint_none = statepoint is None
-        id_none = id is None
-        if statepoint_none and id_none:
+        if statepoint is None and id is None:
             raise ValueError("Must provide statepoint or id.")
-        if statepoint_none == id_none:
+        elif statepoint is not None and id is not None:
             raise ValueError("Either statepoint or id must be provided, but not both.")
-        if id_none:
+        elif id is None:
             # Second best case (Job will update self._sp_cache on init)
             return Job(project=self, statepoint=statepoint)
         try:
