@@ -9,26 +9,7 @@ All configuration values have a default; values that are commented out serve
 to show the default.
 """
 
-import sys
-from unittest.mock import MagicMock
-
 import sphinx_rtd_theme
-
-
-class Mock(MagicMock):
-    """Mocks modules and their contained objects."""
-
-    @classmethod
-    def __getattr__(cls, name):
-        if name == "_mock_methods":
-            return []
-        if name == "version_tuple":
-            return (3, 0)
-        return Mock()
-
-
-MOCK_MODULES = ["pymongo"]
-sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -87,7 +68,7 @@ release = "2.0.0"
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = "en"
 
 # There are two options for replacing |today|: either, you set today to some
 # non-false value, then it is used:
@@ -316,10 +297,11 @@ texinfo_documents = [
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
-    "pymongo": ("https://pymongo.readthedocs.io/en/stable/", None),
+    "synced_collections": (
+        "https://docs.signac.io/projects/synced-collections/en/latest/",
+        None,
+    ),
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
     "h5py": ("https://docs.h5py.org/en/stable/", None),
-    "zarr": ("https://zarr.readthedocs.io/en/stable", None),
-    "redis": ("https://redis-py.readthedocs.io/en/stable/", None),
     "numcodecs": ("https://numcodecs.readthedocs.io/en/stable/", None),
 }
