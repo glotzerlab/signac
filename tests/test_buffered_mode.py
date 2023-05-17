@@ -9,10 +9,10 @@ from tempfile import TemporaryDirectory
 from time import sleep
 
 import pytest
+from synced_collections.errors import BufferedError
 from test_project import TestProjectBase
 
 import signac
-from signac._synced_collections.errors import BufferedError
 
 PYPY = "PyPy" in platform.python_implementation()
 

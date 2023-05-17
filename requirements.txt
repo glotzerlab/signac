@@ -1,3 +1,6 @@
 filelock>=3.0
 packaging>=15.0
+# TODO: Test against the released package once available.
+# synced_collections>=1.0.0
+synced_collections @ git+https://github.com/glotzerlab/synced_collections@main
 tqdm>=4.10.0

@@ -2,9 +2,8 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import pytest
+from synced_collections.numpy_utils import NumpyConversionWarning
 from test_project import TestProjectBase
-
-from signac._synced_collections.numpy_utils import NumpyConversionWarning
 
 try:
     import numpy  # noqa
