@@ -7,6 +7,14 @@ The **signac** package follows `semantic versioning <https://semver.org/>`_.
 Version 2
 =========
 
+[2.1.0] -- 2023-XX-XX
+---------------------
+
+Changed
++++++++
+
+ - signac's "synced collections" backend used for reading/writing JSON files has been moved to a separate package called ``synced_collections``. See https://github.com/glotzerlab/synced_collections (#924).
+
 [2.0.0] -- 2023-03-30
 ---------------------
 
