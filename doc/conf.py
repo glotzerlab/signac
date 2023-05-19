@@ -303,5 +303,4 @@ intersphinx_mapping = {
     ),
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
     "h5py": ("https://docs.h5py.org/en/stable/", None),
-    "numcodecs": ("https://numcodecs.readthedocs.io/en/stable/", None),
 }
