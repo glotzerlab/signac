@@ -158,14 +158,6 @@ signac.sync module
     :undoc-members:
     :show-inheritance:
 
-signac.warnings module
-----------------------
-
-.. automodule:: signac.warnings
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 signac.errors module
 --------------------
 

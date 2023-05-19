@@ -7,6 +7,14 @@ The **signac** package follows `semantic versioning <https://semver.org/>`_.
 Version 2
 =========
 
+[2.1.0] -- 2023-XX-XX
+---------------------
+
+Changed
++++++++
+
+ - signac's "synced collections" backend used for reading/writing JSON files has been moved to a separate package called ``synced_collections``. See https://github.com/glotzerlab/synced_collections (#924).
+
 [2.0.0] -- 2023-03-30
 ---------------------
 
@@ -94,7 +102,7 @@ Changed
  - Project names have a default in anticipation of removing names entirely. Project names will be removed in signac 2.0 (#644).
  - ``Project.workspace`` is now a property, not a method (#685).
  - Continuous integration uses GitHub Actions instead of CircleCI (#776, #788).
- - Raise errors in testing when ``DeprecatedWarning``s or ``FutureWarning``s are raised (#713).
+ - Raise errors in testing when ``DeprecatedWarning`` or ``FutureWarning`` is raised (#713).
  - Change GitHub PR to check for uncompleted tasks (i.e. unchecked checkboxes) (#686).
 
 Deprecated

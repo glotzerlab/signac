@@ -1,3 +1,4 @@
 filelock>=3.0
 packaging>=15.0
+synced_collections>=1.0.0
 tqdm>=4.10.0

@@ -40,10 +40,6 @@ jobs:
     - name: Install wheel
       run:
         python -m pip install signac --progress-bar off --no-index -f dist/
-    - name: Run MongoDB
-      uses: supercharge/mongodb-github-action@1.9.0
-    - name: Run Redis
-      uses: supercharge/redis-github-action@1.5.0
     - name: Test with pytest
       run:
         python -m pytest -v tests/

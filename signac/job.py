@@ -13,13 +13,14 @@ from copy import deepcopy
 from threading import RLock
 from typing import FrozenSet
 
-from ._synced_collections.backends.collection_json import (
+from synced_collections.backends.collection_json import (
     BufferedJSONAttrDict,
     JSONAttrDict,
     json_attr_dict_validator,
 )
-from ._synced_collections.errors import KeyTypeError
-from ._synced_collections.utils import SyncedCollectionJSONEncoder
+from synced_collections.errors import KeyTypeError
+from synced_collections.utils import SyncedCollectionJSONEncoder
+
 from ._utility import _mkdir_p
 from .errors import DestinationExistsError, JobsCorruptedError
 from .h5store import H5StoreManager
@@ -424,7 +425,7 @@ class Job:
             you can access a dict copy of the state point by calling it, e.g.
             ``sp_dict = job.statepoint()`` instead of ``sp = job.statepoint``.
             For more information, see
-            :class:`~signac._synced_collections.backends.collection_json.JSONAttrDict`.
+            :class:`~synced_collections.backends.collection_json.JSONAttrDict`.
 
         See :ref:`signac statepoint <signac-cli-statepoint>` for the command line equivalent.
 

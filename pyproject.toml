@@ -35,6 +35,8 @@ dependencies = [
     "filelock>=3.0",
     # Used for version parsing and comparison
     "packaging>=15.0",
+    # Synced collections for signac's backend
+    "synced_collections>=1.0.0",
     # Progress bars
     "tqdm>=4.10.0",
 ]

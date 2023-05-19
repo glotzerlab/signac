@@ -9,10 +9,9 @@ data spaces, streamlines post-processing and analysis, and makes data
 collectively accessible.
 """
 
+from synced_collections.backends.collection_json import BufferedJSONAttrDict as JSONDict
+
 from . import errors, sync
-from ._synced_collections.backends.collection_json import (
-    BufferedJSONAttrDict as JSONDict,
-)
 from .diff import diff_jobs
 from .h5store import H5Store, H5StoreManager
 from .project import Project, TemporaryProject, get_job, get_project, init_project
