@@ -41,7 +41,7 @@ def create_linked_view(project, prefix=None, job_ids=None, path=None):
         Linked views cannot be created on Windows because
         symbolic links are not supported by the platform.
     RuntimeError
-        When state points contain one of ``[os.sep, " ", "*"]``.
+        When state points contain ``os.sep``.
 
     """
     from .import_export import _check_directory_structure_validity, _make_path_function
@@ -64,7 +64,7 @@ def create_linked_view(project, prefix=None, job_ids=None, path=None):
     key_list = [k for job in jobs for k in job.statepoint().keys()]
     value_list = [v for job in jobs for v in job.statepoint().values()]
     item_list = key_list + value_list
-    bad_chars = [os.sep, " ", "*"]
+    bad_chars = [os.sep]
     bad_items = [
         item
         for item in item_list
@@ -76,7 +76,7 @@ def create_linked_view(project, prefix=None, job_ids=None, path=None):
         err_msg = " ".join(
             [
                 f"In order to use view, state points should not contain {bad_chars}:",
-                *bad_items,
+                str(set(bad_items)),
             ]
         )
         raise RuntimeError(err_msg)
