@@ -7,7 +7,7 @@ requires = ["setuptools>=64.0.0"]
 
 [project]
 name = "signac"
-version = "2.0.0"
+version = "2.1.0"
 description = "Manage large and heterogeneous data spaces on the file system."
 readme = "README.md"
 # Supported versions are determined according to NEP 29.
