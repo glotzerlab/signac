@@ -2047,7 +2047,9 @@ class TestLinkedViewProject(TestProjectBase):
     @pytest.mark.skipif(WINDOWS, reason="Linked views unsupported on Windows.")
     def test_create_linked_view_weird_chars_in_file_name(self):
         shell_escaped_chars = [" ", "*", "~"]
-        statepoints = [{f"a{i}b": 0, "b": f"escaped{i}val"} for i in shell_escaped_chars]
+        statepoints = [
+            {f"a{i}b": 0, "b": f"escaped{i}val"} for i in shell_escaped_chars
+        ]
         view_prefix = os.path.join(self._tmp_pr, "view")
         for sp in statepoints:
             self.project.open_job(sp).init()
