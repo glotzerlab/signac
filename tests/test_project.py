@@ -2038,7 +2038,7 @@ class TestLinkedViewProject(TestProjectBase):
 
     @pytest.mark.skipif(WINDOWS, reason="Linked views unsupported on Windows.")
     def test_create_linked_view_with_slash_raises_error(self):
-        statepoints = {f"a{i}b": 0, "b": f"bad{os.sep}val"}
+        statepoint = {"b": f"bad{os.sep}val"}
         view_prefix = os.path.join(self._tmp_pr, "view")
         self.project.open_job(statepoint).init()
         with pytest.raises(RuntimeError):
