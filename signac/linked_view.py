@@ -67,8 +67,7 @@ def create_linked_view(project, prefix=None, job_ids=None, path=None):
     bad_items = [
         item
         for item in item_list
-        for char == os.sep
-        if isinstance(item, str) and char in item
+        if isinstance(item, str) and os.sep in item
     ]
 
     if any(bad_items):
