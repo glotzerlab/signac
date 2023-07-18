@@ -64,11 +64,7 @@ def create_linked_view(project, prefix=None, job_ids=None, path=None):
     key_list = [k for job in jobs for k in job.statepoint().keys()]
     value_list = [v for job in jobs for v in job.statepoint().values()]
     item_list = key_list + value_list
-    bad_items = [
-        item
-        for item in item_list
-        if isinstance(item, str) and os.sep in item
-    ]
+    bad_items = [item for item in item_list if isinstance(item, str) and os.sep in item]
 
     if any(bad_items):
         err_msg = " ".join(
