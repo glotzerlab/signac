@@ -7,6 +7,14 @@ The **signac** package follows `semantic versioning <https://semver.org/>`_.
 Version 2
 =========
 
+[2.2.0] -- 2023-xx-xx
+---------------------
+
+Changed
++++++++
+
+ - linked views now can contain spaces and other characters except directory separators (#926).
+
 [2.1.0] -- 2023-07-12
 ---------------------
 
