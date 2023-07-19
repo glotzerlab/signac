@@ -2038,13 +2038,22 @@ class TestLinkedViewProject(TestProjectBase):
 
     @pytest.mark.skipif(WINDOWS, reason="Linked views unsupported on Windows.")
     def test_create_linked_view_with_slash_raises_error(self):
-        bad_chars = [os.sep, " ", "*"]
-        statepoints = [{f"a{i}b": 0, "b": f"bad{i}val"} for i in bad_chars]
+        statepoint = {"b": f"bad{os.sep}val"}
+        view_prefix = os.path.join(self._tmp_pr, "view")
+        self.project.open_job(statepoint).init()
+        with pytest.raises(RuntimeError):
+            self.project.create_linked_view(prefix=view_prefix)
+
+    @pytest.mark.skipif(WINDOWS, reason="Linked views unsupported on Windows.")
+    def test_create_linked_view_weird_chars_in_file_name(self):
+        shell_escaped_chars = [" ", "*", "~"]
+        statepoints = [
+            {f"a{i}b": 0, "b": f"escaped{i}val"} for i in shell_escaped_chars
+        ]
         view_prefix = os.path.join(self._tmp_pr, "view")
         for sp in statepoints:
             self.project.open_job(sp).init()
-            with pytest.raises(RuntimeError):
-                self.project.create_linked_view(prefix=view_prefix)
+            self.project.create_linked_view(prefix=view_prefix)
 
     @pytest.mark.skipif(WINDOWS, reason="Linked views unsupported on Windows.")
     def test_create_linked_view_duplicate_paths(self):
