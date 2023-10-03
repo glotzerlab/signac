@@ -257,7 +257,7 @@ class H5Group(MutableMapping):
         with _ensure_open(self._store):
             if isinstance(self, Mapping) and isinstance(other, Mapping):
                 return super().__eq__(other)
-            elif type(other) == type(self):
+            elif type(other) is type(self):
                 return self._group == other._group
             else:
                 return super().__eq__(other)
