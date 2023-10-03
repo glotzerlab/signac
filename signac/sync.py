@@ -626,7 +626,7 @@ def sync_jobs(
     if doc_sync != DocSync.COPY:
         exclude.append(src.FN_DOCUMENT)
 
-    if type(dry_run) == _FileModifyProxy:
+    if type(dry_run) is _FileModifyProxy:
         proxy = dry_run
     else:
         proxy = _FileModifyProxy(

@@ -213,7 +213,7 @@ class TestH5Store(TestH5StoreBase):
             child1 = h5s["a"]
             child2 = h5s["a"]
             self.assertEqual(child1, child2)
-            assert type(child1) == type(child2)
+            assert type(child1) is type(child2)
             assert not child1
             assert not child2
             child1[key] = d
