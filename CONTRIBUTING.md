@@ -37,7 +37,7 @@ All contributors must agree to the Contributor Agreement ([ContributorAgreement.
 * Write API documentation in this package, and put usage information, guides, and concept overviews in the [framework documentation](https://docs.signac.io/) ([source](https://github.com/glotzerlab/signac-docs/)).
 * Use inclusive language in all documentation and code. The [Google developer documentation style guide](https://developers.google.com/style/inclusive-documentation) is a helpful reference.
 
-Please see the [Support](https://docs.signac.io/projects/signac-core/en/latest/support.html) section as part of the documentation for detailed development guidelines.
+Please see the [Support](https://docs.signac.io/projects/core/en/latest/support.html) section as part of the documentation for detailed development guidelines.
 
 ### Code Style
 
