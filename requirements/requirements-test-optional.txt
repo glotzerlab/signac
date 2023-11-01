@@ -1,4 +1,4 @@
-h5py==3.9.0; implementation_name=='cpython'
+h5py==3.10.0; implementation_name=='cpython'
 numpy==1.26.1
 pandas==2.1.1; implementation_name=='cpython'
 ruamel.yaml==0.17.33
