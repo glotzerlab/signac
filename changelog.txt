@@ -10,6 +10,11 @@ Version 2
 [2.2.0] -- 2023-xx-xx
 ---------------------
 
+Added
++++++
+
+ - Official support for Python 3.12 (#957).
+
 Changed
 +++++++
 
