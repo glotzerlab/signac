@@ -36,6 +36,9 @@ jobs:
             python: '3.8'
             dependencies: 'oldest'
           # Newest version tests for non-Linux OS
+          - os: 'ubuntu-latest'
+            python: '3.12'
+            dependencies: 'newest'
           - os: 'macos-latest'
             python: '3.12'
             dependencies: 'newest'
@@ -43,8 +46,7 @@ jobs:
             python: '3.12'
             dependencies: 'newest'
           # Minimal dependencies tests
-          - os: 'ubuntu-latest'
-            python: '3.12'
+          - python: '3.12'
             dependencies: 'minimal'
           - os: 'macos-latest'
             python: '3.12'
