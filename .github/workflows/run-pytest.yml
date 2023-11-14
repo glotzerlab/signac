@@ -16,6 +16,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   test:
+    name: test (${{ matrix.os }}, ${{ matrix.python }}, ${{ matrix.dependencies }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
