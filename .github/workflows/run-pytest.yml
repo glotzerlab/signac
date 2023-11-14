@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python: ['3.9', '3.10', '3.11', '3.12']
+        python: ['3.8', '3.9', '3.10', '3.11', '3.12']
         include:
           # Defaults to newest dependencies
           - dependencies: 'newest'
@@ -53,7 +53,7 @@ jobs:
             dependencies: 'minimal'
     steps:
     - uses: actions/checkout@v3
-    - name: Set up Python ${{ matrix.config.python }}
+    - name: Set up Python ${{ matrix.python }}
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.config.python }}
