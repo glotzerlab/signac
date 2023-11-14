@@ -56,16 +56,16 @@ jobs:
     - name: Set up Python ${{ matrix.python }}
       uses: actions/setup-python@v4
       with:
-        python-version: ${{ matrix.config.python }}
+        python-version: ${{ matrix.python }}
     - name: Install newest dependencies
       run: |
         pip install -r requirements/requirements-test.txt
         pip install -r requirements/requirements-test-optional.txt
-      if: ${{ matrix.config.dependencies == 'newest' }}
+      if: ${{ matrix.dependencies == 'newest' }}
     - name: Install minimal dependencies
       run: |
         pip install -r requirements/requirements-test.txt
-      if: ${{ matrix.config.dependencies == 'minimal' }}
+      if: ${{ matrix.dependencies == 'minimal' }}
     - name: Install oldest supported dependencies
       # To prevent Dependabot from updating the pinnings in this "oldest"
       # dependency list, we have to avoid the word "requirements" in the
@@ -73,7 +73,7 @@ jobs:
       # instead of "requirements."
       run: |
         pip install -r .github/workflows/ci-oldest-reqs.txt
-      if: ${{ matrix.config.dependencies == 'oldest' }}
+      if: ${{ matrix.dependencies == 'oldest' }}
     - name: Install the package
       run: |
         pip install -e .
