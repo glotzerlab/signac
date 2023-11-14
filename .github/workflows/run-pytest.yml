@@ -20,12 +20,37 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        config: [ {python: '3.9', dependencies: 'newest'},
-                  {python: '3.10', dependencies: 'newest'},
-                  {python: '3.11', dependencies: 'newest'},
-                  {python: '3.11', dependencies: 'minimal'},
-                  {python: '3.8', dependencies: 'oldest'} ]
+        os: [ubuntu-latest]
+        python: ['3.9', '3.10', '3.11', '3.12']
+        include:
+          # Defaults to newest dependencies
+          - dependencies: 'newest'
+          # Oldest dependency tests
+          - python: '3.8'
+            dependencies: 'oldest'
+          - os: 'macos-latest'
+            python: '3.8'
+            dependencies: 'oldest'
+          - os: 'windows-latest'
+            python: '3.8'
+            dependencies: 'oldest'
+          # Newest version tests for non-Linux OS
+          - os: 'macos-latest'
+            python: '3.12'
+            dependencies: 'newest'
+          - os: 'windows-latest'
+            python: '3.12'
+            dependencies: 'newest'
+          # Minimal dependencies tests
+          - os: 'ubuntu-latest'
+            python: '3.12'
+            dependencies: 'minimal'
+          - os: 'macos-latest'
+            python: '3.12'
+            dependencies: 'minimal'
+          - os: 'windows-latest'
+            python: '3.12'
+            dependencies: 'minimal'
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.config.python }}
