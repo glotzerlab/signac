@@ -1145,7 +1145,7 @@ def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
             "The jobs identified with the given schema function are not unique!"
         )
 
-    if sys.version_info[2] >= 12:
+    if sys.version_info[1] >= 12:  # minor version
         # the data filter should support all needed operations for users using signac's import
         # feature. Other filters assume Unix specific features.
         tarfile.extractall(path=tmpdir, filter="data")
