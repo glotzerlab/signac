@@ -47,7 +47,7 @@ jobs:
             python: '3.12'
             dependencies: 'newest'
           # Minimal dependencies tests
-          - default: 'false' 
+          - default: 'false'
             python: '3.12'
             dependencies: 'minimal'
           - os: 'macos-latest'
