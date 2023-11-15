@@ -23,7 +23,8 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python: ['3.8', '3.9', '3.10', '3.11', '3.12']
-        default: 'true'
+        # unused key to force creation of new entries in the matrix
+        unused: 'true'
         include:
           # Defaults to newest dependencies
           - dependencies: 'newest'
@@ -47,7 +48,7 @@ jobs:
             python: '3.12'
             dependencies: 'newest'
           # Minimal dependencies tests
-          - default: 'false'
+          - unused: 'false'
             python: '3.12'
             dependencies: 'minimal'
           - os: 'macos-latest'
