@@ -91,7 +91,7 @@ def create_linked_view(project, prefix=None, job_ids=None, path=None):
             print(
                 textwrap.dedent(
                     f"""\
-                -----------------------------------------------------------------
+                -------------------------------------------------------------------
                 Error:
                 {err.strerror}
 
@@ -103,7 +103,7 @@ def create_linked_view(project, prefix=None, job_ids=None, path=None):
                   2. In the search bar type 'Use developer features'.
                   3. Enable the item 'Developer mode'.
                 The details for Home edition and between Windows versions may vary.
-                -----------------------------------------------------------------
+                -------------------------------------------------------------------
                 """
                 )
             )
