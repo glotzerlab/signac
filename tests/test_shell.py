@@ -9,13 +9,10 @@ import sys
 from tempfile import TemporaryDirectory
 
 import pytest
-from test_project import _initialize_v1_project
+from test_project import WINDOWS, _initialize_v1_project, skip_windows_without_symlinks
 
 import signac
 from signac._config import USER_CONFIG_FN, _Config, _load_config, _read_config_file
-
-# Skip linked view tests on Windows
-WINDOWS = sys.platform == "win32"
 
 
 class DummyFile:
@@ -154,7 +151,7 @@ class TestBasicShell:
             assert str(key) in out
             assert str(value) in out
 
-    @pytest.mark.skipif(WINDOWS, reason="Symbolic links are unsupported on Windows.")
+    @skip_windows_without_symlinks
     def test_view_single(self):
         """Check whether command line views work for single job workspaces."""
         self.call("python -m signac init".split())
@@ -170,7 +167,7 @@ class TestBasicShell:
                 project.open_job(sp).path
             )
 
-    @pytest.mark.skipif(WINDOWS, reason="Symbolic links are unsupported on Windows.")
+    @skip_windows_without_symlinks
     def test_view(self):
         self.call("python -m signac init".split())
         project = signac.Project()
@@ -186,7 +183,7 @@ class TestBasicShell:
                 "view/a/{}/job".format(sp["a"])
             ) == os.path.realpath(project.open_job(sp).path)
 
-    @pytest.mark.skipif(WINDOWS, reason="Symbolic links are unsupported on Windows.")
+    @skip_windows_without_symlinks
     def test_view_prefix(self):
         self.call("python -m signac init".split())
         project = signac.Project()
@@ -202,7 +199,7 @@ class TestBasicShell:
                 "view/test_dir/a/{}/job".format(sp["a"])
             ) == os.path.realpath(project.open_job(sp).path)
 
-    @pytest.mark.skipif(WINDOWS, reason="Symbolic links are unsupported on Windows.")
+    @skip_windows_without_symlinks
     def test_view_incomplete_path_spec(self):
         self.call("python -m signac init".split())
         project = signac.Project()
