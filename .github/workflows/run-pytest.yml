@@ -49,6 +49,7 @@ jobs:
             dependencies: 'newest'
           # Minimal dependencies tests
           - default: 'false'
+            os: 'ubuntu-latest'
             python: '3.12'
             dependencies: 'minimal'
           - os: 'macos-latest'
