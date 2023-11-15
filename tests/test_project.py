@@ -2068,7 +2068,9 @@ class TestLinkedViewProject(TestProjectBase):
 
     @skip_windows_without_symlinks
     def test_create_linked_view_weird_chars_in_file_name(self):
-        shell_escaped_chars = [" ", "*", "~"]
+        shell_escaped_chars = [" ", "~"]
+        if not WINDOWS:
+            shell_escaped_chars.append("*")
         statepoints = [
             {f"a{i}b": 0, "b": f"escaped{i}val"} for i in shell_escaped_chars
         ]
