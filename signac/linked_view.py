@@ -88,11 +88,13 @@ def create_linked_view(project, prefix=None, job_ids=None, path=None):
         _update_view(prefix, links)
     except OSError as err:
         if sys.platform == "win32" and err.winerror == 1314:
-            print(textwrap.dedent(f"""\
+            print(
+                textwrap.dedent(
+                    f"""\
                 -----------------------------------------------------------------
                 Error:
                 {err.strerror}
-                
+
                 You may not have permission to create Windows symlinks.
                 To enable the creation of symlinks on Windows you need
                 to enable 'Developer mode' (requires administrative rights).
@@ -103,7 +105,8 @@ def create_linked_view(project, prefix=None, job_ids=None, path=None):
                 The details for Home edition and between Windows versions may vary.
                 -----------------------------------------------------------------
                 """
-            ))
+                )
+            )
         raise err.with_traceback(sys.exc_info()[2])
 
     return links
