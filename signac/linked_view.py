@@ -38,20 +38,14 @@ def create_linked_view(project, prefix=None, job_ids=None, path=None):
     Raises
     ------
     OSError
-        Linked views cannot be created on Windows because
-        symbolic links are not supported by the platform.
+        If symbolic links are not enabled on Windows,
+        linked views cannot be created.
+
     RuntimeError
         When state points contain ``os.sep``.
 
     """
     from .import_export import _check_directory_structure_validity, _make_path_function
-
-    # Windows does not support the creation of symbolic links.
-    if sys.platform == "win32":
-        raise OSError(
-            "signac cannot create linked views on Windows, because "
-            "symbolic links are not supported by the platform."
-        )
 
     if prefix is None:
         prefix = "view"
@@ -85,8 +79,35 @@ def create_linked_view(project, prefix=None, job_ids=None, path=None):
         for job in project.find_jobs():
             links["./job"] = job.path
         assert len(links) < 2
-    _check_directory_structure_validity(links.keys())
-    _update_view(prefix, links)
+
+    # Updating the view will fail on Windows, if symlinks are not enabled.
+    # Before re-raising the exception, print a helpful message for the expected error.
+    try:
+        _check_directory_structure_validity(links.keys())
+        _update_view(prefix, links)
+    except OSError as err:
+        if (sys.platform == "win32") & (err.winerror == 1314):
+            print("-----------------------------------------------------------------")
+            print(err.strerror)
+            print(" ")
+            print("You likely don't have permission to create Windows symlinks.")
+            print("To enable the creation of symlinks on Windows you need")
+            print("to enable 'Developer mode' (requires administrative rights).")
+            print(" ")
+            print("To enable 'Developer mode':")
+            print(" 1. Go to 'Settings'.")
+            print(" 2. In the search bar type 'Use developer features'")
+            print(" 3. Enable the item 'Developer mode'.")
+            print("The details may vary between different versions of Windows.")
+            print("")
+            print("If you use Python >=3.8 that's all there is to it.")
+            print("For Python <3.8, a few more steps are required.")
+            print("It gets more involved if your Windows is Home edition.")
+            print("For more details check:")
+            print("https://www.scivision.dev/windows-symbolic-link-permission-enable")
+            print("-----------------------------------------------------------------")
+            print(" ")
+        raise err.with_traceback(sys.exc_info()[2])
 
     return links
 
