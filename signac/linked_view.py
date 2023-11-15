@@ -7,6 +7,7 @@ import errno
 import logging
 import os
 import sys
+import textwrap
 from itertools import chain
 
 from ._utility import _mkdir_p
@@ -86,21 +87,23 @@ def create_linked_view(project, prefix=None, job_ids=None, path=None):
         _check_directory_structure_validity(links.keys())
         _update_view(prefix, links)
     except OSError as err:
-        if (sys.platform == "win32") & (err.winerror == 1314):
-            print("-----------------------------------------------------------------")
-            print(err.strerror)
-            print(" ")
-            print("You likely don't have permission to create Windows symlinks.")
-            print("To enable the creation of symlinks on Windows you need")
-            print("to enable 'Developer mode' (requires administrative rights).")
-            print(" ")
-            print("To enable 'Developer mode':")
-            print(" 1. Go to 'Settings'.")
-            print(" 2. In the search bar type 'Use developer features'")
-            print(" 3. Enable the item 'Developer mode'.")
-            print("The details for Home edition and between Windows versions may vary.")
-            print("-----------------------------------------------------------------")
-            print(" ")
+        if sys.platform == "win32" and err.winerror == 1314:
+            print(textwrap.dedent(f"""\
+                -----------------------------------------------------------------
+                Error:
+                {err.strerror}
+                
+                You may not have permission to create Windows symlinks.
+                To enable the creation of symlinks on Windows you need
+                to enable 'Developer mode' (requires administrative rights).
+                To enable 'Developer mode':
+                  1. Go to 'Settings'.
+                  2. In the search bar type 'Use developer features'.
+                  3. Enable the item 'Developer mode'.
+                The details for Home edition and between Windows versions may vary.
+                -----------------------------------------------------------------
+                """
+            ))
         raise err.with_traceback(sys.exc_info()[2])
 
     return links
