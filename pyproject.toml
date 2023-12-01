@@ -103,7 +103,7 @@ follow_imports = 'skip'
 xfail_strict = true
 filterwarnings = [
     "error",
-    "ignore::DeprecationWarning:datetime.datetime"
+    "ignore::DeprecationWarning:datetime"
 ]
 
 [tool.coverage.run]
