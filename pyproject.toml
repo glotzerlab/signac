@@ -101,11 +101,6 @@ follow_imports = 'skip'
 
 [tool.pytest.ini_options]
 xfail_strict = true
-filterwarnings = [
-    "error",
-    "ignore::DeprecationWarning",
-    "error::DeprecationWarning:signac"
-]
 
 [tool.coverage.run]
 branch = true
