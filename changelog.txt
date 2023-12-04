@@ -20,6 +20,7 @@ Changed
 
  - Restrict allowable tar file features in Python 3.12 (#957).
  - linked views now can contain spaces and other characters except directory separators (#926).
+ - linked views now can be created on Windows, if 'Developer mode' is enabled (#430).
 
 [2.1.0] -- 2023-07-12
 ---------------------

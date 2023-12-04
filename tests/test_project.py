@@ -1,6 +1,7 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+import functools
 import gzip
 import io
 import json
@@ -61,8 +62,29 @@ try:
 except ImportError:
     NUMPY = False
 
-# Skip linked view tests on Windows
 WINDOWS = sys.platform == "win32"
+
+
+@functools.lru_cache
+def _check_symlinks_supported():
+    """Check if symlinks are supported on the current platform."""
+    try:
+        with TemporaryDirectory() as tmp_dir:
+            os.symlink(
+                os.path.realpath(__file__), os.path.join(tmp_dir, "test_symlink")
+            )
+        return True
+    except (NotImplementedError, OSError):
+        return False
+
+
+def skip_windows_without_symlinks(test_func):
+    """Skip test if platform is Windows and symlinks are not supported."""
+
+    return pytest.mark.skipif(
+        WINDOWS and not _check_symlinks_supported(),
+        reason="Symbolic links are unsupported on Windows unless in Developer Mode.",
+    )(test_func)
 
 
 class TestProjectBase(TestJobBase):
@@ -188,7 +210,7 @@ class TestProject(TestProjectBase):
             # constructor: https://bugs.python.org/issue33234
             assert len(caplog.records) in (2, 3)
 
-    @pytest.mark.skipif(WINDOWS, reason="Symbolic links are unsupported on Windows.")
+    @skip_windows_without_symlinks
     def test_workspace_broken_link_error_on_find(self):
         with TemporaryDirectory() as tmp_dir:
             project = self.project_class.init_project(path=tmp_dir)
@@ -1534,7 +1556,7 @@ class TestProjectRepresentation(TestProjectBase):
 
 
 class TestLinkedViewProject(TestProjectBase):
-    @pytest.mark.skipif(WINDOWS, reason="Linked views unsupported on Windows.")
+    @skip_windows_without_symlinks
     def test_create_linked_view(self):
         def clean(filter=None):
             """Helper function for wiping out views"""
@@ -1620,7 +1642,7 @@ class TestLinkedViewProject(TestProjectBase):
         src = set(map(lambda j: os.path.realpath(j.path), self.project.find_jobs()))
         assert src == dst
 
-    @pytest.mark.skipif(WINDOWS, reason="Linked views unsupported on Windows.")
+    @skip_windows_without_symlinks
     def test_create_linked_view_homogeneous_schema_tree(self):
         view_prefix = os.path.join(self._tmp_pr, "view")
         a_vals = range(10)
@@ -1650,7 +1672,7 @@ class TestLinkedViewProject(TestProjectBase):
                         )
                     )
 
-    @pytest.mark.skipif(WINDOWS, reason="Linked views unsupported on Windows.")
+    @skip_windows_without_symlinks
     def test_create_linked_view_homogeneous_schema_tree_tree(self):
         view_prefix = os.path.join(self._tmp_pr, "view")
         a_vals = range(10)
@@ -1680,7 +1702,7 @@ class TestLinkedViewProject(TestProjectBase):
                         )
                     )
 
-    @pytest.mark.skipif(WINDOWS, reason="Linked views unsupported on Windows.")
+    @skip_windows_without_symlinks
     def test_create_linked_view_homogeneous_schema_tree_flat(self):
         view_prefix = os.path.join(self._tmp_pr, "view")
         a_vals = range(10)
@@ -1707,7 +1729,7 @@ class TestLinkedViewProject(TestProjectBase):
                         )
                     )
 
-    @pytest.mark.skipif(WINDOWS, reason="Linked views unsupported on Windows.")
+    @skip_windows_without_symlinks
     def test_create_linked_view_homogeneous_schema_flat_flat(self):
         view_prefix = os.path.join(self._tmp_pr, "view")
         a_vals = range(10)
@@ -1734,7 +1756,7 @@ class TestLinkedViewProject(TestProjectBase):
                         )
                     )
 
-    @pytest.mark.skipif(WINDOWS, reason="Linked views unsupported on Windows.")
+    @skip_windows_without_symlinks
     def test_create_linked_view_homogeneous_schema_flat_tree(self):
         view_prefix = os.path.join(self._tmp_pr, "view")
         a_vals = range(10)
@@ -1769,7 +1791,7 @@ class TestLinkedViewProject(TestProjectBase):
                             )
                         )
 
-    @pytest.mark.skipif(WINDOWS, reason="Linked views unsupported on Windows.")
+    @skip_windows_without_symlinks
     def test_create_linked_view_homogeneous_schema_nested(self):
         view_prefix = os.path.join(self._tmp_pr, "view")
         a_vals = range(2)
@@ -1801,7 +1823,7 @@ class TestLinkedViewProject(TestProjectBase):
                         )
                     )
 
-    @pytest.mark.skipif(WINDOWS, reason="Linked views unsupported on Windows.")
+    @skip_windows_without_symlinks
     def test_create_linked_view_homogeneous_schema_nested_provide_partial_path(self):
         view_prefix = os.path.join(self._tmp_pr, "view")
         a_vals = range(2)
@@ -1841,7 +1863,7 @@ class TestLinkedViewProject(TestProjectBase):
                         )
                     )
 
-    @pytest.mark.skipif(WINDOWS, reason="Linked views unsupported on Windows.")
+    @skip_windows_without_symlinks
     def test_create_linked_view_heterogeneous_disjoint_schema(self):
         view_prefix = os.path.join(self._tmp_pr, "view")
         a_vals = range(5)
@@ -1871,7 +1893,7 @@ class TestLinkedViewProject(TestProjectBase):
                     os.path.join(view_prefix, "c", sp["c"], "a", str(sp["a"]), "job")
                 )
 
-    @pytest.mark.skipif(WINDOWS, reason="Linked views unsupported on Windows.")
+    @skip_windows_without_symlinks
     def test_create_linked_view_heterogeneous_disjoint_schema_nested(self):
         view_prefix = os.path.join(self._tmp_pr, "view")
         a_vals = range(2)
@@ -1902,7 +1924,7 @@ class TestLinkedViewProject(TestProjectBase):
                     )
                 )
 
-    @pytest.mark.skipif(WINDOWS, reason="Linked views unsupported on Windows.")
+    @skip_windows_without_symlinks
     def test_create_linked_view_heterogeneous_fizz_schema_flat(self):
         view_prefix = os.path.join(self._tmp_pr, "view")
         a_vals = range(5)
@@ -1943,7 +1965,7 @@ class TestLinkedViewProject(TestProjectBase):
                             )
                         )
 
-    @pytest.mark.skipif(WINDOWS, reason="Linked views unsupported on Windows.")
+    @skip_windows_without_symlinks
     def test_create_linked_view_heterogeneous_schema_nested(self):
         view_prefix = os.path.join(self._tmp_pr, "view")
         a_vals = range(5)
@@ -1979,7 +2001,7 @@ class TestLinkedViewProject(TestProjectBase):
                         )
                     )
 
-    @pytest.mark.skipif(WINDOWS, reason="Linked views unsupported on Windows.")
+    @skip_windows_without_symlinks
     def test_create_linked_view_heterogeneous_schema_nested_partial_homogenous_path_provide(
         self,
     ):
@@ -2028,7 +2050,7 @@ class TestLinkedViewProject(TestProjectBase):
                         )
                     )
 
-    @pytest.mark.skipif(WINDOWS, reason="Linked views unsupported on Windows.")
+    @skip_windows_without_symlinks
     def test_create_linked_view_heterogeneous_schema_problematic(self):
         self.project.open_job(dict(a=1)).init()
         self.project.open_job(dict(a=1, b=1)).init()
@@ -2036,7 +2058,7 @@ class TestLinkedViewProject(TestProjectBase):
         with pytest.raises(RuntimeError):
             self.project.create_linked_view(view_prefix)
 
-    @pytest.mark.skipif(WINDOWS, reason="Linked views unsupported on Windows.")
+    @skip_windows_without_symlinks
     def test_create_linked_view_with_slash_raises_error(self):
         statepoint = {"b": f"bad{os.sep}val"}
         view_prefix = os.path.join(self._tmp_pr, "view")
@@ -2044,9 +2066,11 @@ class TestLinkedViewProject(TestProjectBase):
         with pytest.raises(RuntimeError):
             self.project.create_linked_view(prefix=view_prefix)
 
-    @pytest.mark.skipif(WINDOWS, reason="Linked views unsupported on Windows.")
+    @skip_windows_without_symlinks
     def test_create_linked_view_weird_chars_in_file_name(self):
-        shell_escaped_chars = [" ", "*", "~"]
+        shell_escaped_chars = [" ", "~"]
+        if not WINDOWS:
+            shell_escaped_chars.append("*")
         statepoints = [
             {f"a{i}b": 0, "b": f"escaped{i}val"} for i in shell_escaped_chars
         ]
@@ -2055,7 +2079,7 @@ class TestLinkedViewProject(TestProjectBase):
             self.project.open_job(sp).init()
             self.project.create_linked_view(prefix=view_prefix)
 
-    @pytest.mark.skipif(WINDOWS, reason="Linked views unsupported on Windows.")
+    @skip_windows_without_symlinks
     def test_create_linked_view_duplicate_paths(self):
         view_prefix = os.path.join(self._tmp_pr, "view")
         a_vals = range(2)
@@ -2268,7 +2292,7 @@ class TestProjectInit:
         assert project.get_job(job.fn("test_subdir")) == job
         assert signac.get_job(job.fn("test_subdir")) == job
 
-    @pytest.mark.skipif(WINDOWS, reason="Symbolic links are unsupported on Windows.")
+    @skip_windows_without_symlinks
     def test_get_job_symlink_other_project(self):
         # Test case: Get a job from a symlink in another project workspace
         path = self._tmp_dir.name
