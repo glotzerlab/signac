@@ -16,31 +16,63 @@ concurrency:
   cancel-in-progress: true
 jobs:
   test:
+    name: test (${{ matrix.os }}, ${{ matrix.python }}, ${{ matrix.dependencies }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        config: [ {python: '3.9', dependencies: 'newest'},
-                  {python: '3.10', dependencies: 'newest'},
-                  {python: '3.11', dependencies: 'newest'},
-                  {python: '3.11', dependencies: 'minimal'},
-                  {python: '3.8', dependencies: 'oldest'} ]
+        os: [ubuntu-latest]
+        python: ['3.8', '3.9', '3.10', '3.11', '3.12']
+        # Unused key to force creation of new entries in the matrix
+        default: ['true']
+        include:
+          # Defaults to newest dependencies
+          - dependencies: 'newest'
+          # Oldest dependency tests
+          - python: '3.8'
+            dependencies: 'oldest'
+          - os: 'macos-latest'
+            python: '3.8'
+            dependencies: 'oldest'
+          - os: 'windows-latest'
+            python: '3.8'
+            dependencies: 'oldest'
+          # Newest version tests for non-Linux OS
+          - os: 'ubuntu-latest'
+            python: '3.12'
+            dependencies: 'newest'
+          - os: 'macos-latest'
+            python: '3.12'
+            dependencies: 'newest'
+          - os: 'windows-latest'
+            python: '3.12'
+            dependencies: 'newest'
+          # Minimal dependencies tests
+          - default: 'false'
+            os: 'ubuntu-latest'
+            python: '3.12'
+            dependencies: 'minimal'
+          - os: 'macos-latest'
+            python: '3.12'
+            dependencies: 'minimal'
+          - os: 'windows-latest'
+            python: '3.12'
+            dependencies: 'minimal'
     steps:
     - uses: actions/checkout@v3
-    - name: Set up Python ${{ matrix.config.python }}
+    - name: Set up Python ${{ matrix.python }}
       uses: actions/setup-python@v4
       with:
-        python-version: ${{ matrix.config.python }}
+        python-version: ${{ matrix.python }}
     - name: Install newest dependencies
       run: |
         pip install -r requirements/requirements-test.txt
         pip install -r requirements/requirements-test-optional.txt
-      if: ${{ matrix.config.dependencies == 'newest' }}
+      if: ${{ matrix.dependencies == 'newest' }}
     - name: Install minimal dependencies
       run: |
         pip install -r requirements/requirements-test.txt
-      if: ${{ matrix.config.dependencies == 'minimal' }}
+      if: ${{ matrix.dependencies == 'minimal' }}
     - name: Install oldest supported dependencies
       # To prevent Dependabot from updating the pinnings in this "oldest"
       # dependency list, we have to avoid the word "requirements" in the
@@ -48,7 +80,7 @@ jobs:
       # instead of "requirements."
       run: |
         pip install -r .github/workflows/ci-oldest-reqs.txt
-      if: ${{ matrix.config.dependencies == 'oldest' }}
+      if: ${{ matrix.dependencies == 'oldest' }}
     - name: Install the package
       run: |
         pip install -e .

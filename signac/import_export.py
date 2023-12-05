@@ -9,6 +9,7 @@ import logging
 import os
 import re
 import shutil
+import sys
 import tarfile
 import zipfile
 from collections import Counter
@@ -1144,7 +1145,12 @@ def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
             "The jobs identified with the given schema function are not unique!"
         )
 
-    tarfile.extractall(path=tmpdir)
+    if sys.version_info[:2] >= (3, 12):
+        # the data filter should support all needed operations for users using signac's import
+        # feature. Other filters assume Unix specific features.
+        tarfile.extractall(path=tmpdir, filter="data")
+    else:
+        tarfile.extractall(path=tmpdir)
     for path, job in mappings.items():
         if not os.path.isdir(tmpdir):
             raise RuntimeError(f"The provided tmpdir {tmpdir} is not a directory.")

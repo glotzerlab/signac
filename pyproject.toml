@@ -27,6 +27,7 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
@@ -100,7 +101,10 @@ follow_imports = 'skip'
 
 [tool.pytest.ini_options]
 xfail_strict = true
-filterwarnings = "error"
+filterwarnings = [
+    "error",
+    "ignore::DeprecationWarning:dateutil.*",
+]
 
 [tool.coverage.run]
 branch = true
