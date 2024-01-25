@@ -11,6 +11,7 @@ import pytest
 
 from signac.filterparse import parse_filter_arg, parse_simple
 
+# also used in test_shell
 FILTERS = [
     {"a": 0},
     {"a.b": 0},
@@ -70,6 +71,8 @@ class TestFindCommandLineInterface:
 
     def test_interpret_json(self):
         def _assert_equal(q):
+            # TODO: full code path not tested with this test.
+            # _assert_equal and _find_expression, are not tested
             assert q == self._parse([json.dumps(q)])
 
         for f in FILTERS:

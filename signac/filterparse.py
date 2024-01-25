@@ -203,6 +203,8 @@ def _add_prefix(filter):
                 raise ValueError(
                     "The argument to a logical operator must be a list or a tuple!"
                 )
+        elif key == "$not":
+            yield key, dict(_add_prefix(value))
         elif "." in key and key.split(".", 1)[0] in ("sp", "doc"):
             yield key, value
         elif key in ("sp", "doc"):
