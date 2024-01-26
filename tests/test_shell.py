@@ -9,6 +9,7 @@ import sys
 from tempfile import TemporaryDirectory
 
 import pytest
+from test_find_command_line_interface import FILTERS
 from test_project import WINDOWS, _initialize_v1_project, skip_windows_without_symlinks
 
 import signac
@@ -282,7 +283,6 @@ class TestBasicShell:
 
         # ensure that there are no errors due to adding sp and doc prefixes
         # by testing on all the example complex expressions
-        from test_find_command_line_interface import FILTERS
         for f in FILTERS:
             command = "python -m signac find ".split() + [json.dumps(f)]
             self.call(command).strip()
