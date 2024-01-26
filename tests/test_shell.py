@@ -287,7 +287,6 @@ class TestBasicShell:
             command = "python -m signac find ".split() + [json.dumps(f)]
             self.call(command).strip()
 
-
     def test_diff(self):
         self.call("python -m signac init".split())
         project = signac.Project()
