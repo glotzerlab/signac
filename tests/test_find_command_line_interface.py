@@ -11,7 +11,6 @@ import pytest
 
 from signac.filterparse import parse_filter_arg, parse_simple
 
-
 VALUES = {"1": 1, "1.0": 1.0, "abc": "abc", "true": True, "false": False, "null": None}
 
 ARITHMETIC_EXPRESSIONS = [
@@ -39,7 +38,7 @@ class TestFindCommandLineInterface:
     def _parse(args):
         with redirect_stderr(StringIO()):
             return parse_filter_arg(args)
-        
+
     @pytest.mark.usefixtures("find_filter")
     def test_interpret_json(self, find_filter):
         def _assert_equal(q):
