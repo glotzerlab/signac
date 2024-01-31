@@ -195,7 +195,6 @@ def parse_filter_arg(args):
 
 def _add_prefix(filter):
     """Add prefix "sp." to a (possibly nested) filter."""
-
     # Logical operators ($and, $or, $not) should not be prefixed, but their values should.
     for key, value in filter.items():
         if key in ("$and", "$or"):
