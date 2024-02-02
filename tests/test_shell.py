@@ -217,7 +217,8 @@ class TestBasicShell:
         )
         assert "duplicate paths" in err
 
-    def test_find(self):
+    @pytest.mark.usefixtures("find_filter")
+    def test_find(self, find_filter):
         self.call("python -m signac init".split())
         project = signac.Project()
         sps = [{"a": i} for i in range(3)]
@@ -279,6 +280,12 @@ class TestBasicShell:
                 ).strip()
                 == [job.id for job in project.find_jobs({"doc.b": i})][0]
             )
+
+        # ensure that there are no errors due to adding sp and doc prefixes
+        # by testing on all the example complex expressions
+        for f in find_filter:
+            command = "python -m signac find ".split() + [json.dumps(f)]
+            self.call(command).strip()
 
     def test_diff(self):
         self.call("python -m signac init".split())

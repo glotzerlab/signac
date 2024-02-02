@@ -195,6 +195,7 @@ def parse_filter_arg(args):
 
 def _add_prefix(filter):
     """Add prefix "sp." to a (possibly nested) filter."""
+    # Logical operators ($and, $or, $not) should not be prefixed, but their values should.
     for key, value in filter.items():
         if key in ("$and", "$or"):
             if isinstance(value, list) or isinstance(value, tuple):
@@ -203,6 +204,8 @@ def _add_prefix(filter):
                 raise ValueError(
                     "The argument to a logical operator must be a list or a tuple!"
                 )
+        elif key == "$not":
+            yield key, dict(_add_prefix(value))
         elif "." in key and key.split(".", 1)[0] in ("sp", "doc"):
             yield key, value
         elif key in ("sp", "doc"):
