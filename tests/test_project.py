@@ -23,11 +23,19 @@ from packaging import version
 from test_job import TestJobBase
 
 import signac
-from signac._config import (PROJECT_CONFIG_FN, _get_project_config_fn,
-                            _load_config, _read_config_file)
-from signac.errors import (DestinationExistsError, IncompatibleSchemaVersion,
-                           JobsCorruptedError, StatepointParsingError,
-                           WorkspaceError)
+from signac._config import (
+    PROJECT_CONFIG_FN,
+    _get_project_config_fn,
+    _load_config,
+    _read_config_file,
+)
+from signac.errors import (
+    DestinationExistsError,
+    IncompatibleSchemaVersion,
+    JobsCorruptedError,
+    StatepointParsingError,
+    WorkspaceError,
+)
 from signac.job import calc_id
 from signac.linked_view import _find_all_links
 from signac.project import JobsCursor, Project  # noqa: F401

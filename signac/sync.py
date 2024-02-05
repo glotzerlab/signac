@@ -86,8 +86,12 @@ from filecmp import cmpfiles, dircmp
 from multiprocessing.pool import ThreadPool
 
 from ._utility import _query_yes_no, _safe_relpath
-from .errors import (DestinationExistsError, DocumentSyncConflict,
-                     FileSyncConflict, SchemaSyncConflict)
+from .errors import (
+    DestinationExistsError,
+    DocumentSyncConflict,
+    FileSyncConflict,
+    SchemaSyncConflict,
+)
 
 __all__ = [
     "FileSync",
