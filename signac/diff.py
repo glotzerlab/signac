@@ -3,7 +3,8 @@
 # This software is licensed under the BSD 3-Clause License.
 """Compute diffs of state points."""
 
-from ._utility import _dotted_dict_to_nested_dicts, _nested_dicts_to_dotted_keys
+from ._utility import (_dotted_dict_to_nested_dicts,
+                       _nested_dicts_to_dotted_keys)
 
 
 def diff_jobs(*jobs):

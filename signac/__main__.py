@@ -30,24 +30,13 @@ else:
     READLINE = True
 
 from . import get_project, init_project
-from ._config import (
-    PROJECT_CONFIG_FN,
-    USER_CONFIG_FN,
-    _Config,
-    _load_config,
-    _locate_config_dir,
-    _read_config_file,
-)
+from ._config import (PROJECT_CONFIG_FN, USER_CONFIG_FN, _Config, _load_config,
+                      _locate_config_dir, _read_config_file)
 from ._utility import _print_err, _query_yes_no, _safe_relpath
 from ._vendor.configobj import Section, flatten_errors
 from .diff import diff_jobs
-from .errors import (
-    DestinationExistsError,
-    DocumentSyncConflict,
-    FileSyncConflict,
-    SchemaSyncConflict,
-    SyncConflict,
-)
+from .errors import (DestinationExistsError, DocumentSyncConflict,
+                     FileSyncConflict, SchemaSyncConflict, SyncConflict)
 from .filterparse import parse_filter_arg
 from .import_export import _SchemaPathEvaluationError, export_jobs
 from .sync import DocSync, FileSync

@@ -9,10 +9,12 @@ import sys
 from tempfile import TemporaryDirectory
 
 import pytest
-from test_project import WINDOWS, _initialize_v1_project, skip_windows_without_symlinks
+from test_project import (WINDOWS, _initialize_v1_project,
+                          skip_windows_without_symlinks)
 
 import signac
-from signac._config import USER_CONFIG_FN, _Config, _load_config, _read_config_file
+from signac._config import (USER_CONFIG_FN, _Config, _load_config,
+                            _read_config_file)
 
 
 class DummyFile:

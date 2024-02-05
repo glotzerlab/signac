@@ -14,10 +14,7 @@ from threading import RLock
 from typing import FrozenSet
 
 from synced_collections.backends.collection_json import (
-    BufferedJSONAttrDict,
-    JSONAttrDict,
-    json_attr_dict_validator,
-)
+    BufferedJSONAttrDict, JSONAttrDict, json_attr_dict_validator)
 from synced_collections.errors import KeyTypeError
 from synced_collections.utils import SyncedCollectionJSONEncoder
 

@@ -12,7 +12,8 @@ from threading import RLock
 
 from ._dict_manager import _DictManager
 from ._utility import _safe_relpath
-from .errors import H5StoreAlreadyOpenError, H5StoreClosedError, InvalidKeyError
+from .errors import (H5StoreAlreadyOpenError, H5StoreClosedError,
+                     InvalidKeyError)
 
 __all__ = [
     "H5Store",

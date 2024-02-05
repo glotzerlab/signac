@@ -14,12 +14,8 @@ import pytest
 
 import signac
 from signac._config import _load_config
-from signac.errors import (
-    DestinationExistsError,
-    InvalidKeyError,
-    JobsCorruptedError,
-    KeyTypeError,
-)
+from signac.errors import (DestinationExistsError, InvalidKeyError,
+                           JobsCorruptedError, KeyTypeError)
 from signac.job import Job
 
 try:

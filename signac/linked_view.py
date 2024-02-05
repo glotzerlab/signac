@@ -46,7 +46,8 @@ def create_linked_view(project, prefix=None, job_ids=None, path=None):
         When state points contain ``os.sep``.
 
     """
-    from .import_export import _check_directory_structure_validity, _make_path_function
+    from .import_export import (_check_directory_structure_validity,
+                                _make_path_function)
 
     if prefix is None:
         prefix = "view"
