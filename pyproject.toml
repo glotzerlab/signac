@@ -104,6 +104,7 @@ xfail_strict = true
 filterwarnings = [
     "error",
     "ignore::DeprecationWarning:dateutil.*",
+    "ignore:\s*Pyarrow will become a required dependency of pandas:DeprecationWarning",
 ]
 
 [tool.coverage.run]
