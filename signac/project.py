@@ -921,7 +921,7 @@ class Project:
                 not self._sp_cache_warned
                 and self._sp_cache_misses > self._sp_cache_miss_warning_threshold
             ):
-                logger.warning(
+                logger.debug(
                     "High number of state point cache misses. Consider "
                     "updating the cache by running `signac update-cache`."
                 )
