@@ -282,20 +282,17 @@ class Job:
         if statepoint is None and id_ is None:
             raise ValueError("Either statepoint or id_ must be provided.")
         elif statepoint is not None:
-            self._statepoint_requires_init = False
             try:
                 self._id = calc_id(statepoint) if id_ is None else id_
             except TypeError:
                 raise KeyTypeError
-            self._statepoint = _StatePointDict(
-                jobs=[self], filename=self._statepoint_filename, data=statepoint
-            )
 
-            # Update the project's state point cache immediately if opened by state point
-            self._project._register(self.id, statepoint)
+            self._statepoint_dict = deepcopy(statepoint)
+            self._statepoint_requires_init = True
         else:
             # Only an id was provided. State point will be loaded lazily.
             self._id = id_
+            self._statepoint_dict = None
             self._statepoint_requires_init = True
 
     def _initialize_lazy_properties(self):
@@ -334,7 +331,7 @@ class Job:
 
     def __repr__(self):
         return "{}(project={}, statepoint={})".format(
-            self.__class__.__name__, repr(self._project), self.statepoint
+            self.__class__.__name__, repr(self._project), self.statepoint_dict
         )
 
     @property
@@ -407,6 +404,32 @@ class Job:
         self.statepoint = statepoint
 
     @property
+    def statepoint_dict(self):
+        """Get a copy of the job's statepoint as a dict.
+
+        `statepoint_dict` uses the statepoint cache to provide fast access to the
+        job's statepoint for reading.
+
+        .. note::
+
+            Create and update the statepoint cache with ``signac update-cache`` on the
+            command line.
+
+        .. seealso::
+
+            Use `statepoint` to modify the job's statepoint.
+
+        Returns
+        -------
+        dict
+            Returns the job's state point.
+        """
+        if self._statepoint_dict is None:
+            self._statepoint_dict = deepcopy(self._project._get_statepoint(self._id))
+
+        return self._statepoint_dict
+
+    @property
     def statepoint(self):
         """Get or set the job's state point.
 
@@ -415,6 +438,10 @@ class Job:
         For more information, see
         `Modifying the State Point
         <https://docs.signac.io/en/latest/jobs.html#modifying-the-state-point>`_.
+
+        .. tip::
+
+            Use `statepoint_dict` for faster access to read the statepoint.
 
         .. warning::
 
@@ -443,14 +470,23 @@ class Job:
         """
         with self._lock:
             if self._statepoint_requires_init:
-                # Load state point data lazily (on access).
-                self._statepoint = _StatePointDict(
-                    jobs=[self], filename=self._statepoint_filename
-                )
-                statepoint = self._statepoint.load(self.id)
+                if self._statepoint_dict is None:
+                    # Load state point data lazily (on access).
+                    self._statepoint = _StatePointDict(
+                        jobs=[self], filename=self._statepoint_filename,
+                    )
+                    statepoint = self._statepoint.load(self.id)
 
-                # Update the project's state point cache when loaded lazily
-                self._project._register(self.id, statepoint)
+                    self._statepoint_dict_requires_init = False
+
+                    # Update the project's state point cache when loaded lazily
+                    self._project._register(self.id, statepoint)
+                else:
+                    # Create _StatePointDict lazily with a known statepoint dict.
+                    self._statepoint = _StatePointDict(
+                        jobs=[self], filename=self._statepoint_filename, data=self._statepoint_dict
+                    )
+
                 self._statepoint_requires_init = False
 
         return self._statepoint

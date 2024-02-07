@@ -308,7 +308,7 @@ class TestJobSpInterface(TestJobBase):
 
     def test_interface_nested_kws(self):
         with pytest.raises(InvalidKeyError):
-            job = self.open_job({"a.b.c": 0})
+            job = self.open_job({"a.b.c": 0}).statepoint
 
         job = self.open_job(dict(a=dict(b=dict(c=2))))
         assert job.sp.a.b.c == 2

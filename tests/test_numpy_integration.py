@@ -22,6 +22,7 @@ class TestNumpyIntegration(TestProjectBase):
             b = numpy.float64(i) if i % 2 else numpy.float32(i)
             with pytest.warns(NumpyConversionWarning):
                 job = self.project.open_job(dict(a=a))
+                job.statepoint
             with pytest.warns(NumpyConversionWarning):
                 job.doc.b = b
             numpy.testing.assert_equal(job.doc.b, b)

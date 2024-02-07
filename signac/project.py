@@ -900,9 +900,9 @@ class Project:
                 not self._sp_cache_warned
                 and self._sp_cache_misses > self._sp_cache_miss_warning_threshold
             ):
-                logger.debug(
+                logger.warning(
                     "High number of state point cache misses. Consider "
-                    "to update cache with the Project.update_cache() method."
+                    "updating the cache by running `signac update-cache`."
                 )
                 self._sp_cache_warned = True
             statepoint = self._get_statepoint_from_workspace(job_id)
