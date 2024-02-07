@@ -1631,7 +1631,7 @@ class Project:
         project = cls.get_project(os.path.join(job_path, os.pardir))
 
         # Return the matched job id from the found project
-        return project.open_job(id=job_id)
+        return Job(project=project, id_=job_id)
 
     def __getstate__(self):
         state = dict(self.__dict__)
@@ -1688,7 +1688,7 @@ class _JobsCursorIterator:
         self._ids_iterator = iter(ids)
 
     def __next__(self):
-        return self._project.open_job(id=next(self._ids_iterator))
+        return Job(project=self._project, id_=next(self._ids_iterator))
 
     def __iter__(self):
         return type(self)(self._project, self._ids)
