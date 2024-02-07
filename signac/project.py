@@ -204,6 +204,7 @@ class Project:
         # can be used to re-open a job by id as long as that id remains in the
         # cache.
         self._sp_cache = {}
+        self._sp_cache_read = False
         self._sp_cache_misses = 0
         self._sp_cache_warned = False
         self._sp_cache_miss_warning_threshold = self.config.get(
@@ -518,6 +519,11 @@ class Project:
             than one match.
 
         """
+        if not self._sp_cache_read:
+            # Read the cache from disk on the first call.
+            self._read_cache()
+            self._sp_cache_read = True
+
         if statepoint is None and id is None:
             raise ValueError("Must provide statepoint or id.")
         elif statepoint is not None and id is not None:
@@ -901,10 +907,10 @@ class Project:
             corrupted.
 
         """
-        if not self._sp_cache:
-            # Triggers if no state points have been added to the cache, and all
-            # the values are None.
+        if not self._sp_cache_read:
+            # Read the cache from disk on the first call.
             self._read_cache()
+            self._sp_cache_read = True
         try:
             # State point cache hit
             return self._sp_cache[job_id]
