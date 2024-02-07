@@ -14,8 +14,8 @@ import time
 import warnings
 from collections import defaultdict
 from collections.abc import Iterable
-from copy import deepcopy
 from contextlib import contextmanager
+from copy import deepcopy
 from datetime import timedelta
 from itertools import groupby
 from multiprocessing.pool import ThreadPool
@@ -1780,9 +1780,7 @@ class JobsCursor:
 
     def __iter__(self):
         # Code duplication here for improved performance.
-        return _JobsCursorIterator(
-            self._project, self._ids
-        )
+        return _JobsCursorIterator(self._project, self._ids)
 
     def groupby(self, key=None, default=None):
         """Group jobs according to one or more state point or document parameters.

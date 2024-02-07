@@ -11,8 +11,8 @@ import os
 import shutil
 from copy import deepcopy
 from threading import RLock
-from typing import FrozenSet
 from types import MappingProxyType
+from typing import FrozenSet
 
 from synced_collections.backends.collection_json import (
     BufferedJSONAttrDict,
@@ -474,7 +474,8 @@ class Job:
                 if self._statepoint_mapping is None:
                     # Load state point data lazily (on access).
                     self._statepoint = _StatePointDict(
-                        jobs=[self], filename=self._statepoint_filename,
+                        jobs=[self],
+                        filename=self._statepoint_filename,
                     )
                     statepoint = self._statepoint.load(self.id)
 
@@ -483,7 +484,9 @@ class Job:
                 else:
                     # Create _StatePointDict lazily with a known statepoint dict.
                     self._statepoint = _StatePointDict(
-                        jobs=[self], filename=self._statepoint_filename, data=self._statepoint_mapping
+                        jobs=[self],
+                        filename=self._statepoint_filename,
+                        data=self._statepoint_mapping,
                     )
 
                 self._statepoint_requires_init = False
