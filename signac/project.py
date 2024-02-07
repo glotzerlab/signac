@@ -712,6 +712,20 @@ class Project:
 
         See :ref:`signac find <signac-cli-find>` for the command line equivalent.
 
+        .. tip::
+
+            To find a single job given a statepoint, use `open_job` with O(1) cost.
+
+        .. tip::
+
+            To find many groups of jobs, use your own code to loop through the project
+            once and build multiple matching lists.
+
+        .. warning::
+
+            `find_jobs` costs O(N) each time it is called. It applies the filter to
+            every job in the workspace.
+
         Parameters
         ----------
         filter : Mapping, optional
@@ -1681,6 +1695,12 @@ class JobsCursor:
 
     Enables simple iteration and grouping operations.
 
+    .. warning::
+
+        `JobsCursor` caches the jobs that match the filter. Call `Project.find_jobs`
+        again to update the search after making changes to jobs or the workspace
+        that would change the result of the search.
+
     Parameters
     ----------
     project : :class:`~signac.Project`
@@ -1700,6 +1720,25 @@ class JobsCursor:
         if self._filter == {}:
             self._filter = None
 
+        # Cache for matching ids.
+        self._id_cache = None
+
+    @property
+    def _ids(self):
+        """List of job ids that match the filter.
+
+        Populated on first use, then cached in subsequent calls.
+
+        Returns
+        -------
+        list[str]
+            Job ids that match the filter.
+        """
+        if self._id_cache is None:
+            self._id_cache = set(self._project._find_job_ids(self._filter))
+
+        return self._id_cache
+
     def __eq__(self, other):
         return self._project == other._project and self._filter == other._filter
 
@@ -1708,7 +1747,7 @@ class JobsCursor:
         if self._filter:
             # We use the standard function for determining job ids if and only if
             # any of the two filter is provided.
-            return len(self._project._find_job_ids(self._filter))
+            return len(self._ids)
         else:
             # Without filters, we can simply return the length of the whole project.
             return len(self._project)
@@ -1727,24 +1766,15 @@ class JobsCursor:
             True if the job matches the filter criteria and is initialized for this project.
 
         """
-        if job not in self._project:
-            # Exit early if the job is not in the project. This is O(1).
-            return False
         if self._filter:
-            # We use the standard function for determining job ids if a filter
-            # is provided. This is O(N) and could be optimized by caching the
-            # ids of state points that match a state point filter. Caching the
-            # matches for a document filter is not safe because the document
-            # can change.
-            return job.id in self._project._find_job_ids(self._filter)
-        # Without filters, we can simply check if the job is in the project.
-        # By the early-exit condition, we know the job must be contained.
-        return True
+            return job.id in self._ids
+
+        return job in self._project
 
     def __iter__(self):
         # Code duplication here for improved performance.
         return _JobsCursorIterator(
-            self._project, self._project._find_job_ids(self._filter)
+            self._project, self._ids
         )
 
     def groupby(self, key=None, default=None):
