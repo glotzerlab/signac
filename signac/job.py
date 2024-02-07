@@ -546,7 +546,7 @@ class Job:
         """
         with self._lock:
             if self._document is None:
-                self.init()
+                self.init(validate_statepoint=False)
                 fn_doc = os.path.join(self.path, self.FN_DOCUMENT)
                 self._document = BufferedJSONAttrDict(
                     filename=fn_doc, write_concern=True
@@ -627,9 +627,9 @@ class Job:
         """
         with self._lock:
             if self._stores is None:
-                self.init()
+                self.init(validate_statepoint=False)
                 self._stores = H5StoreManager(self.path)
-        return self.init()._stores
+        return self._stores
 
     @property
     def data(self):
@@ -676,7 +676,7 @@ class Job:
         """
         return self._project
 
-    def init(self, force=False):
+    def init(self, force=False, validate_statepoint=True):
         """Initialize the job's workspace directory.
 
         This function will do nothing if the directory and the job state point
@@ -691,6 +691,10 @@ class Job:
         force : bool, optional
             Overwrite any existing state point files, e.g., to repair them if
             they got corrupted (Default value = False).
+
+        validate_statepoint : bool, optional
+            When True (the default), load the job statepoint and ensure that it matches
+            the id. When False, exit early when the job directory exists.
 
         Returns
         -------
@@ -707,6 +711,10 @@ class Job:
         """
         with self._lock:
             try:
+                # Fast early exit when not validating.
+                if not validate_statepoint and os.path.isdir(self.path):
+                    return self
+
                 # Attempt early exit if the state point file exists and is valid.
                 try:
                     statepoint = self.statepoint.load(self.id)
@@ -935,7 +943,7 @@ class Job:
 
         """
         self._cwd.append(os.getcwd())
-        self.init()
+        self.init(validate_statepoint=False)
         logger.info(f"Enter workspace '{self.path}'.")
         os.chdir(self.path)
 
