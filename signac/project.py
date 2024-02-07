@@ -14,6 +14,7 @@ import time
 import warnings
 from collections import defaultdict
 from collections.abc import Iterable
+from copy import deepcopy
 from contextlib import contextmanager
 from datetime import timedelta
 from itertools import groupby
@@ -523,7 +524,7 @@ class Project:
             raise ValueError("Either statepoint or id must be provided, but not both.")
         elif statepoint is not None:
             # Second best case (Job will update self._sp_cache on init)
-            return Job(project=self, statepoint=statepoint)
+            return Job(project=self, statepoint=deepcopy(statepoint))
         try:
             # Optimal case (id is in the state point cache)
             return Job(project=self, statepoint=self._sp_cache[id], id_=id)
