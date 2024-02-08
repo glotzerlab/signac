@@ -297,8 +297,14 @@ class Job:
         else:
             # Only an id was provided. State point will be loaded lazily.
             self._id = id_
-            self._statepoint_mapping = None
             self._statepoint_requires_init = True
+
+            # Fetch the statepoint mapping from the project's cache. Don't load it
+            # from disk on a cache miss (will be loaded on demand).
+            try:
+                self._statepoint_mapping = project._sp_cache[id_]
+            except KeyError:
+                self._statepoint_mapping = None
 
     def _initialize_lazy_properties(self):
         """Initialize all properties that are designed to be loaded lazily."""
@@ -485,6 +491,7 @@ class Job:
 
                     # Update the project's state point cache when loaded lazily
                     self._project._register(self.id, statepoint)
+                    self._statepoint_mapping = statepoint
                 else:
                     # Create _StatePointDict lazily with a known statepoint dict.
                     self._statepoint = _StatePointDict(
