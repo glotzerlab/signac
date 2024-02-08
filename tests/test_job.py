@@ -492,6 +492,25 @@ class TestJobSpInterface(TestJobBase):
             with pytest.raises(TypeError):
                 job.doc = {key: "test"}
 
+    def test_statepoint_mapping_read_only(self):
+        statepoint = {"a": 0, "b": 1, "dict": {"value": "string"}}
+        job = self.open_job(statepoint=statepoint)
+        job.init()
+
+        assert "a" in job.statepoint_mapping
+        assert "b" in job.statepoint_mapping
+        assert "c" not in job.statepoint_mapping
+        assert "dict" in job.statepoint_mapping
+        assert job.statepoint_mapping["a"] == 0
+        assert job.statepoint_mapping["b"] == 1
+        assert job.statepoint_mapping["dict"] == {"value": "string"}
+        with pytest.raises(KeyError):
+            job.statepoint_mapping["c"]
+        assert list(job.statepoint_mapping.keys()) == ["a", "b", "dict"]
+
+        with pytest.raises(TypeError):
+            job.statepoint_mapping["c"] = 2
+
 
 class TestConfig(TestJobBase):
     def test_config_str(self):
