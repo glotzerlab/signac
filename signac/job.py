@@ -249,7 +249,8 @@ class Job:
 
     Jobs can be opened by ``statepoint`` or ``id_``. If both values are
     provided, it is the user's responsibility to ensure that the values
-    correspond.
+    correspond. Set ``directory_known`` to ``True`` when the job directory
+    is known to exist - this skips some expensive isdir checks.
 
     Parameters
     ----------
@@ -259,6 +260,8 @@ class Job:
         State point for the job. (Default value = None)
     id_ : str, optional
         The job identifier. (Default value = None)
+    directory_known : bool, optional
+        Set to true when the job directory is known to exist. (Default value = False)
 
     """
 
@@ -275,10 +278,11 @@ class Job:
     KEY_DATA = "signac_data"
     "The job's datastore key."
 
-    def __init__(self, project, statepoint=None, id_=None):
+    def __init__(self, project, statepoint=None, id_=None, directory_known=False):
         self._project = project
         self._lock = RLock()
         self._initialize_lazy_properties()
+        self._directory_known = directory_known
 
         if statepoint is None and id_ is None:
             raise ValueError("Either statepoint or id_ must be provided.")
@@ -714,8 +718,13 @@ class Job:
         with self._lock:
             try:
                 # Fast early exit when not validating.
-                if not validate_statepoint and os.path.isdir(self.path):
-                    return self
+                if not validate_statepoint:
+                    if self._directory_known:
+                        return self
+
+                    if os.path.isdir(self.path):
+                        self._directory_known = True
+                        return self
 
                 # Attempt early exit if the state point file exists and is valid.
                 try:
@@ -732,6 +741,8 @@ class Job:
                             "workspace directory for job '{}'.".format(self.id)
                         )
                         raise
+
+                    self._directory_known = True
 
                     # The state point save will not overwrite an existing file on
                     # disk unless force is True, so the subsequent load will catch
@@ -805,6 +816,8 @@ class Job:
                             raise error
                     self._document = None
                 self._stores = None
+
+            self._directory_known = False
 
     def move(self, project):
         """Move this job to project.

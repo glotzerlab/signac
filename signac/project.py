@@ -552,7 +552,7 @@ class Project:
             elif not self._contains_job_id(id):
                 # id does not exist in the project data space
                 raise KeyError(id)
-            return Job(project=self, id_=id)
+            return Job(project=self, id_=id, directory_known=True)
 
     def _job_dirs(self):
         """Generate ids of jobs in the workspace.
@@ -1631,7 +1631,7 @@ class Project:
         project = cls.get_project(os.path.join(job_path, os.pardir))
 
         # Return the matched job id from the found project
-        return Job(project=project, id_=job_id)
+        return Job(project=project, id_=job_id, directory_known=True)
 
     def __getstate__(self):
         state = dict(self.__dict__)
@@ -1688,7 +1688,9 @@ class _JobsCursorIterator:
         self._ids_iterator = iter(ids)
 
     def __next__(self):
-        return Job(project=self._project, id_=next(self._ids_iterator))
+        return Job(
+            project=self._project, id_=next(self._ids_iterator), directory_known=True
+        )
 
     def __iter__(self):
         return type(self)(self._project, self._ids)
