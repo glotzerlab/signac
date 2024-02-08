@@ -511,6 +511,24 @@ class TestJobSpInterface(TestJobBase):
         with pytest.raises(TypeError):
             job.statepoint_mapping["c"] = 2
 
+    def test_statepoint_mapping_lazy_init(self):
+        statepoint = {"a": 0}
+        job = self.project.open_job(statepoint=statepoint)
+        job.init()
+        id_ = job.id
+
+        # Clear the cache to force a lazy load of the statepoint mapping
+        self.project._sp_cache.clear()
+        job = self.project.open_job(id=id_)
+        job.statepoint_mapping
+
+    def test_no_args_error(self):
+        with pytest.raises(ValueError):
+            self.project.open_job()
+
+        with pytest.raises(ValueError):
+            Job(project=self.project)
+
 
 class TestConfig(TestJobBase):
     def test_config_str(self):
