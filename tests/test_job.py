@@ -492,26 +492,26 @@ class TestJobSpInterface(TestJobBase):
             with pytest.raises(TypeError):
                 job.doc = {key: "test"}
 
-    def test_statepoint_mapping_read_only(self):
+    def test_cached_statepoint_read_only(self):
         statepoint = {"a": 0, "b": 1, "dict": {"value": "string"}}
         job = self.open_job(statepoint=statepoint)
         job.init()
 
-        assert "a" in job.statepoint_mapping
-        assert "b" in job.statepoint_mapping
-        assert "c" not in job.statepoint_mapping
-        assert "dict" in job.statepoint_mapping
-        assert job.statepoint_mapping["a"] == 0
-        assert job.statepoint_mapping["b"] == 1
-        assert job.statepoint_mapping["dict"] == {"value": "string"}
+        assert "a" in job.cached_statepoint
+        assert "b" in job.cached_statepoint
+        assert "c" not in job.cached_statepoint
+        assert "dict" in job.cached_statepoint
+        assert job.cached_statepoint["a"] == 0
+        assert job.cached_statepoint["b"] == 1
+        assert job.cached_statepoint["dict"] == {"value": "string"}
         with pytest.raises(KeyError):
-            job.statepoint_mapping["c"]
-        assert list(job.statepoint_mapping.keys()) == ["a", "b", "dict"]
+            job.cached_statepoint["c"]
+        assert list(job.cached_statepoint.keys()) == ["a", "b", "dict"]
 
         with pytest.raises(TypeError):
-            job.statepoint_mapping["c"] = 2
+            job.cached_statepoint["c"] = 2
 
-    def test_statepoint_mapping_lazy_init(self):
+    def test_cached_statepoint_lazy_init(self):
         statepoint = {"a": 0}
         job = self.project.open_job(statepoint=statepoint)
         job.init()
@@ -520,7 +520,7 @@ class TestJobSpInterface(TestJobBase):
         # Clear the cache to force a lazy load of the statepoint mapping
         self.project._sp_cache.clear()
         job = self.project.open_job(id=id_)
-        job.statepoint_mapping
+        job.cached_statepoint
 
     def test_no_args_error(self):
         with pytest.raises(ValueError):

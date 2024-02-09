@@ -292,7 +292,7 @@ class Job:
             except TypeError:
                 raise KeyTypeError
 
-            self._statepoint_mapping = statepoint
+            self._cached_statepoint = statepoint
             self._statepoint_requires_init = True
         else:
             # Only an id was provided. State point will be loaded lazily.
@@ -302,9 +302,9 @@ class Job:
             # Fetch the statepoint mapping from the project's cache. Don't load it
             # from disk on a cache miss (will be loaded on demand).
             try:
-                self._statepoint_mapping = project._sp_cache[id_]
+                self._cached_statepoint = project._sp_cache[id_]
             except KeyError:
-                self._statepoint_mapping = None
+                self._cached_statepoint = None
 
     def _initialize_lazy_properties(self):
         """Initialize all properties that are designed to be loaded lazily."""
@@ -342,7 +342,7 @@ class Job:
 
     def __repr__(self):
         return "{}(project={}, statepoint={})".format(
-            self.__class__.__name__, repr(self._project), self.statepoint_mapping
+            self.__class__.__name__, repr(self._project), self.cached_statepoint
         )
 
     @property
@@ -415,30 +415,31 @@ class Job:
         self.statepoint = statepoint
 
     @property
-    def statepoint_mapping(self):
+    def cached_statepoint(self):
         """Get a copy of the job's statepoint as a read-only mapping.
 
-        `statepoint_mapping` uses the statepoint cache to provide fast access to the
-        job's statepoint for reading.
+        :py:attr:`cached_statepoint` uses the statepoint cache to provide fast access to
+        the job's statepoint for reading.
 
         .. note::
 
-            Create and update the statepoint cache with ``signac update-cache`` on the
+            Create and update the statepoint cache by calling
+            :py:meth:`Project.update_cache` or running``signac update-cache`` on the
             command line.
 
         .. seealso::
 
-            Use `statepoint` to modify the job's statepoint.
+            Use :py:attr:`statepoint` to modify the job's statepoint.
 
         Returns
         -------
         Mapping
             Returns the job's state point.
         """
-        if self._statepoint_mapping is None:
-            self._statepoint_mapping = self._project._get_statepoint(self._id)
+        if self._cached_statepoint is None:
+            self._cached_statepoint = self._project._get_statepoint(self._id)
 
-        return MappingProxyType(self._statepoint_mapping)
+        return MappingProxyType(self._cached_statepoint)
 
     @property
     def statepoint(self):
@@ -452,7 +453,7 @@ class Job:
 
         .. tip::
 
-            Use `statepoint_mapping` for faster access to read the statepoint.
+            Use :py:attr:`cached_statepoint` for fast access to read the statepoint.
 
         .. warning::
 
@@ -481,7 +482,7 @@ class Job:
         """
         with self._lock:
             if self._statepoint_requires_init:
-                if self._statepoint_mapping is None:
+                if self._cached_statepoint is None:
                     # Load state point data lazily (on access).
                     self._statepoint = _StatePointDict(
                         jobs=[self],
@@ -491,13 +492,13 @@ class Job:
 
                     # Update the project's state point cache when loaded lazily
                     self._project._register(self.id, statepoint)
-                    self._statepoint_mapping = statepoint
+                    self._cached_statepoint = statepoint
                 else:
                     # Create _StatePointDict lazily with a known statepoint dict.
                     self._statepoint = _StatePointDict(
                         jobs=[self],
                         filename=self._statepoint_filename,
-                        data=self._statepoint_mapping,
+                        data=self._cached_statepoint,
                     )
 
                 self._statepoint_requires_init = False
