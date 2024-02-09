@@ -14,7 +14,7 @@ Added
 +++++
 
  - Official support for Python 3.12 (#957).
- - ``Job.statepoint_mapping`` - cached and read only access to job statepoints. Faster than
+ - ``Job.cached_statepoint`` - cached and read only access to job statepoints. Faster than
    ``Job.statepoint`` (#975).
 
 Changed

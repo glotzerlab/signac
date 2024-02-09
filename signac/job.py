@@ -424,8 +424,8 @@ class Job:
         .. note::
 
             Create and update the statepoint cache by calling
-            :py:meth:`Project.update_cache` or running``signac update-cache`` on the
-            command line.
+            :py:meth:`project.update_cache <signac.Project.update_cache>`
+            or running ``signac update-cache`` on the command line.
 
         .. seealso::
 
@@ -453,7 +453,8 @@ class Job:
 
         .. tip::
 
-            Use :py:attr:`cached_statepoint` for fast access to read the statepoint.
+            Use :py:attr:`cached_statepoint` for fast read-only access to the
+            statepoint.
 
         .. warning::
 

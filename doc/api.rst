@@ -78,6 +78,7 @@ The Job class
 
 .. autosummary::
 
+    Job.cached_statepoint
     Job.clear
     Job.close
     Job.data
