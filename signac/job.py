@@ -299,7 +299,7 @@ class Job:
             self._id = id_
             self._statepoint_requires_init = True
 
-            # Fetch the statepoint mapping from the project's cache. Don't load it
+            # Fetch the cached statepoint from the project's cache. Don't load it
             # from disk on a cache miss (will be loaded on demand).
             try:
                 self._cached_statepoint = project._sp_cache[id_]

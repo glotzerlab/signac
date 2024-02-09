@@ -517,7 +517,7 @@ class TestJobSpInterface(TestJobBase):
         job.init()
         id_ = job.id
 
-        # Clear the cache to force a lazy load of the statepoint mapping
+        # Clear the cache to force a lazy load of the cached statepoint
         self.project._sp_cache.clear()
         job = self.project.open_job(id=id_)
         job.cached_statepoint
