@@ -2039,7 +2039,7 @@ class JobsCursor:
                 tuple with prefixed state point or document key and values.
 
             """
-            for key, value in _flatten(job.statepoint).items():
+            for key, value in _flatten(job.cached_statepoint).items():
                 prefixed_key = sp_prefix + key
                 if usecols(prefixed_key):
                     yield prefixed_key, value
