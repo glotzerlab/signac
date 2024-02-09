@@ -22,8 +22,10 @@ This makes it easier to operate on large data spaces, streamlines post-processin
   Examples, tutorials, topic guides, and package Python APIs.
 - [Package documentation](https://docs.signac.io/projects/core/):
   API reference for the **signac** package.
-- [Slack Chat Support](https://signac.io/slack-invite/):
-  Get help and ask questions on the **signac** Slack workspace.
+- [Discussion board](https://github.com/glotzerlab/signac/discussions/):
+  Ask the **signac** user community for help.
+- [Slack workspace](https://signac.io/slack-invite/):
+  Chat about **signac**.
 - [**signac** website](https://signac.io/):
   Framework overview and news.
 
