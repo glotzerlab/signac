@@ -1913,7 +1913,7 @@ class JobsCursor:
                 else:
 
                     def keyfunction(job):
-                        return job.sp[stripped_key]
+                        return job.cached_statepoint[stripped_key]
 
             else:
                 if _is_doc_key(key):
@@ -1924,7 +1924,7 @@ class JobsCursor:
                 else:
 
                     def keyfunction(job):
-                        return job.sp.get(stripped_key, default)
+                        return job.cached_statepoint.get(stripped_key, default)
 
         elif isinstance(key, Iterable):
             sp_keys = []
@@ -1943,7 +1943,7 @@ class JobsCursor:
 
                 def keyfunction(job):
                     return tuple(
-                        [job.sp[k] for k in sp_keys]
+                        [job.cached_statepoint[k] for k in sp_keys]
                         + [job.document[k] for k in doc_keys]
                     )
 
@@ -1951,7 +1951,7 @@ class JobsCursor:
 
                 def keyfunction(job):
                     return tuple(
-                        [job.sp.get(k, default) for k in sp_keys]
+                        [job.cached_statepoint.get(k, default) for k in sp_keys]
                         + [job.document.get(k, default) for k in doc_keys]
                     )
 
