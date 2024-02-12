@@ -1389,7 +1389,7 @@ class Project:
                         raise
             yield job_id, doc
 
-    def _update_in_memory_cache(self, validate=False):
+    def _update_in_memory_cache(self):
         """Update the in-memory state point cache to reflect the workspace."""
         logger.debug("Updating in-memory cache...")
         start = time.time()
@@ -1402,7 +1402,7 @@ class Project:
                 del self._sp_cache[id_]
 
             def _add(id_):
-                self._sp_cache[id_] = self._get_statepoint_from_workspace(id_, validate)
+                self._sp_cache[id_] = self._get_statepoint_from_workspace(id_)
 
             to_add_chunks = _split_and_print_progress(
                 iterable=list(to_add),
@@ -1429,7 +1429,7 @@ class Project:
             if error.errno != errno.ENOENT:
                 raise error
 
-    def update_cache(self, validate=True):
+    def update_cache(self):
         """Update the persistent state point cache.
 
         This function updates a persistent state point cache, which
@@ -1437,17 +1437,12 @@ class Project:
         including iteration and filtering or selection are expected
         to be significantly faster after calling this function, especially
         for large data spaces.
-
-        Parameters
-        ----------
-        validate : bool
-            When True, validate that any statepoint read from disk matches the job_id.
         """
         logger.info("Update cache...")
         start = time.time()
         cache = self._read_cache()
         cached_ids = set(self._sp_cache)
-        self._update_in_memory_cache(validate)
+        self._update_in_memory_cache()
         if cache is None or set(cache) != cached_ids:
             fn_cache = self.fn(self.FN_CACHE)
             fn_cache_tmp = fn_cache + "~"
