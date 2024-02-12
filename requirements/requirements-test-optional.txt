@@ -1,5 +1,5 @@
 h5py==3.10.0; implementation_name=='cpython'
-numpy==1.26.3
+numpy==1.26.4
 pandas==2.2.0; implementation_name=='cpython'
 ruamel.yaml==0.18.5
 tables==3.9.2; implementation_name=='cpython'
