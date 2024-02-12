@@ -2102,7 +2102,7 @@ class UpdateCacheAfterInitJob(signac.job.Job):
 
     def init(self, *args, **kwargs):
         job = super().init(*args, **kwargs)
-        self._project.update_cache()
+        self._project.update_cache(validate=False)
         return job
 
 
