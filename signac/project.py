@@ -1731,6 +1731,7 @@ class JobsCursor:
 
         # Cache for matching ids.
         self._id_cache = None
+        self._id_set_cache = None
 
     @property
     def _ids(self):
@@ -1744,9 +1745,25 @@ class JobsCursor:
             Job ids that match the filter.
         """
         if self._id_cache is None:
-            self._id_cache = set(self._project._find_job_ids(self._filter))
+            self._id_cache = self._project._find_job_ids(self._filter)
 
         return self._id_cache
+
+    @property
+    def _id_set(self):
+        """Set of job ids that match the filter.
+
+        Populated on first use, then cached in subsequent calls.
+
+        Returns
+        -------
+        set[str]
+            Job ids that match the filter.
+        """
+        if self._id_set_cache is None:
+            self._id_set_cache = set(self._ids)
+
+        return self._id_set_cache
 
     def __eq__(self, other):
         return self._project == other._project and self._filter == other._filter
@@ -1776,7 +1793,7 @@ class JobsCursor:
 
         """
         if self._filter:
-            return job.id in self._ids
+            return job.id in self._id_set
 
         return job in self._project
 
