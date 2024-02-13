@@ -721,7 +721,7 @@ class Project:
 
         .. tip::
 
-            To find a single job given a statepoint, use `open_job` with O(1) cost.
+            To find a single job given a state point, use `open_job` with O(1) cost.
 
         .. tip::
 
@@ -864,7 +864,7 @@ class Project:
         job_id : str
             Identifier of the job.
         validate : bool
-            When True, validate that any statepoint read from disk matches the job_id.
+            When True, validate that any state point read from disk matches the job_id.
 
         Raises
         ------
@@ -904,7 +904,7 @@ class Project:
         job_id : str
             A job id to get the state point for.
         validate : bool
-            When True, validate that any statepoint read from disk matches the job_id.
+            When True, validate that any state point read from disk matches the job_id.
 
 
         Returns

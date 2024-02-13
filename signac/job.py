@@ -416,20 +416,20 @@ class Job:
 
     @property
     def cached_statepoint(self):
-        """Get a copy of the job's statepoint as a read-only mapping.
+        """Get a copy of the job's state point as a read-only mapping.
 
-        :py:attr:`cached_statepoint` uses the statepoint cache to provide fast access to
-        the job's statepoint for reading.
+        :py:attr:`cached_statepoint` uses the state point cache to provide fast access to
+        the job's state point for reading.
 
         .. note::
 
-            Create and update the statepoint cache by calling
+            Create and update the state point cache by calling
             :py:meth:`project.update_cache <signac.Project.update_cache>`
             or running ``signac update-cache`` on the command line.
 
         .. seealso::
 
-            Use :py:attr:`statepoint` to modify the job's statepoint.
+            Use :py:attr:`statepoint` to modify the job's state point.
 
         Returns
         -------
@@ -454,7 +454,7 @@ class Job:
         .. tip::
 
             Use :py:attr:`cached_statepoint` for fast read-only access to the
-            statepoint.
+            state point.
 
         .. warning::
 
@@ -708,7 +708,7 @@ class Job:
             they got corrupted (Default value = False).
 
         validate_statepoint : bool, optional
-            When True (the default), load the job statepoint and ensure that it matches
+            When True (the default), load the job state point and ensure that it matches
             the id. When False, exit early when the job directory exists.
 
         Returns
