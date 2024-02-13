@@ -11,6 +11,7 @@ import os
 import shutil
 from copy import deepcopy
 from threading import RLock
+from types import MappingProxyType
 from typing import FrozenSet
 
 from synced_collections.backends.collection_json import (
@@ -248,7 +249,8 @@ class Job:
 
     Jobs can be opened by ``statepoint`` or ``id_``. If both values are
     provided, it is the user's responsibility to ensure that the values
-    correspond.
+    correspond. Set ``directory_known`` to ``True`` when the job directory
+    is known to exist - this skips some expensive isdir checks.
 
     Parameters
     ----------
@@ -258,6 +260,8 @@ class Job:
         State point for the job. (Default value = None)
     id_ : str, optional
         The job identifier. (Default value = None)
+    directory_known : bool, optional
+        Set to true when the job directory is known to exist. (Default value = False)
 
     """
 
@@ -274,29 +278,33 @@ class Job:
     KEY_DATA = "signac_data"
     "The job's datastore key."
 
-    def __init__(self, project, statepoint=None, id_=None):
+    def __init__(self, project, statepoint=None, id_=None, directory_known=False):
         self._project = project
         self._lock = RLock()
         self._initialize_lazy_properties()
+        self._directory_known = directory_known
 
         if statepoint is None and id_ is None:
             raise ValueError("Either statepoint or id_ must be provided.")
         elif statepoint is not None:
-            self._statepoint_requires_init = False
             try:
                 self._id = calc_id(statepoint) if id_ is None else id_
             except TypeError:
                 raise KeyTypeError
-            self._statepoint = _StatePointDict(
-                jobs=[self], filename=self._statepoint_filename, data=statepoint
-            )
 
-            # Update the project's state point cache immediately if opened by state point
-            self._project._register(self.id, statepoint)
+            self._cached_statepoint = statepoint
+            self._statepoint_requires_init = True
         else:
             # Only an id was provided. State point will be loaded lazily.
             self._id = id_
             self._statepoint_requires_init = True
+
+            # Fetch the cached statepoint from the project's cache. Don't load it
+            # from disk on a cache miss (will be loaded on demand).
+            try:
+                self._cached_statepoint = project._sp_cache[id_]
+            except KeyError:
+                self._cached_statepoint = None
 
     def _initialize_lazy_properties(self):
         """Initialize all properties that are designed to be loaded lazily."""
@@ -334,7 +342,7 @@ class Job:
 
     def __repr__(self):
         return "{}(project={}, statepoint={})".format(
-            self.__class__.__name__, repr(self._project), self.statepoint
+            self.__class__.__name__, repr(self._project), self.cached_statepoint
         )
 
     @property
@@ -407,6 +415,33 @@ class Job:
         self.statepoint = statepoint
 
     @property
+    def cached_statepoint(self):
+        """Get a copy of the job's state point as a read-only mapping.
+
+        :py:attr:`cached_statepoint` uses the state point cache to provide fast access to
+        the job's state point for reading.
+
+        .. note::
+
+            Create and update the state point cache by calling
+            :py:meth:`project.update_cache <signac.Project.update_cache>`
+            or running ``signac update-cache`` on the command line.
+
+        .. seealso::
+
+            Use :py:attr:`statepoint` to modify the job's state point.
+
+        Returns
+        -------
+        Mapping
+            Returns the job's state point.
+        """
+        if self._cached_statepoint is None:
+            self._cached_statepoint = self._project._get_statepoint(self._id)
+
+        return MappingProxyType(self._cached_statepoint)
+
+    @property
     def statepoint(self):
         """Get or set the job's state point.
 
@@ -415,6 +450,11 @@ class Job:
         For more information, see
         `Modifying the State Point
         <https://docs.signac.io/en/latest/jobs.html#modifying-the-state-point>`_.
+
+        .. tip::
+
+            Use :py:attr:`cached_statepoint` for fast read-only access to the
+            state point.
 
         .. warning::
 
@@ -443,14 +483,25 @@ class Job:
         """
         with self._lock:
             if self._statepoint_requires_init:
-                # Load state point data lazily (on access).
-                self._statepoint = _StatePointDict(
-                    jobs=[self], filename=self._statepoint_filename
-                )
-                statepoint = self._statepoint.load(self.id)
+                if self._cached_statepoint is None:
+                    # Load state point data lazily (on access).
+                    self._statepoint = _StatePointDict(
+                        jobs=[self],
+                        filename=self._statepoint_filename,
+                    )
+                    statepoint = self._statepoint.load(self.id)
 
-                # Update the project's state point cache when loaded lazily
-                self._project._register(self.id, statepoint)
+                    # Update the project's state point cache when loaded lazily
+                    self._project._register(self.id, statepoint)
+                    self._cached_statepoint = statepoint
+                else:
+                    # Create _StatePointDict lazily with a known statepoint dict.
+                    self._statepoint = _StatePointDict(
+                        jobs=[self],
+                        filename=self._statepoint_filename,
+                        data=self._cached_statepoint,
+                    )
+
                 self._statepoint_requires_init = False
 
         return self._statepoint
@@ -510,7 +561,7 @@ class Job:
         """
         with self._lock:
             if self._document is None:
-                self.init()
+                self.init(validate_statepoint=False)
                 fn_doc = os.path.join(self.path, self.FN_DOCUMENT)
                 self._document = BufferedJSONAttrDict(
                     filename=fn_doc, write_concern=True
@@ -591,9 +642,9 @@ class Job:
         """
         with self._lock:
             if self._stores is None:
-                self.init()
+                self.init(validate_statepoint=False)
                 self._stores = H5StoreManager(self.path)
-        return self.init()._stores
+        return self._stores
 
     @property
     def data(self):
@@ -640,7 +691,7 @@ class Job:
         """
         return self._project
 
-    def init(self, force=False):
+    def init(self, force=False, validate_statepoint=True):
         """Initialize the job's workspace directory.
 
         This function will do nothing if the directory and the job state point
@@ -655,6 +706,10 @@ class Job:
         force : bool, optional
             Overwrite any existing state point files, e.g., to repair them if
             they got corrupted (Default value = False).
+
+        validate_statepoint : bool, optional
+            When True (the default), load the job state point and ensure that it matches
+            the id. When False, exit early when the job directory exists.
 
         Returns
         -------
@@ -671,6 +726,15 @@ class Job:
         """
         with self._lock:
             try:
+                # Fast early exit when not validating.
+                if not validate_statepoint:
+                    if self._directory_known:
+                        return self
+
+                    if os.path.isdir(self.path):
+                        self._directory_known = True
+                        return self
+
                 # Attempt early exit if the state point file exists and is valid.
                 try:
                     statepoint = self.statepoint.load(self.id)
@@ -686,6 +750,8 @@ class Job:
                             "workspace directory for job '{}'.".format(self.id)
                         )
                         raise
+
+                    self._directory_known = True
 
                     # The state point save will not overwrite an existing file on
                     # disk unless force is True, so the subsequent load will catch
@@ -759,6 +825,8 @@ class Job:
                             raise error
                     self._document = None
                 self._stores = None
+
+            self._directory_known = False
 
     def move(self, project):
         """Move this job to project.
@@ -899,7 +967,7 @@ class Job:
 
         """
         self._cwd.append(os.getcwd())
-        self.init()
+        self.init(validate_statepoint=False)
         logger.info(f"Enter workspace '{self.path}'.")
         os.chdir(self.path)
 

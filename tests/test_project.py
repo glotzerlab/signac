@@ -513,7 +513,11 @@ class TestProject(TestProjectBase):
             with pytest.raises(JobsCorruptedError):
                 self.project.check()
             #  ... we reinitialize the initial job, ...
-            job.init()
+            try:
+                job.init()
+            except JobsCorruptedError:
+                # ... which raises the JobsCorruptedError in update_cache
+                pass
             with pytest.raises(JobsCorruptedError):
                 # ... which means the repair attempt must fail.
                 self.project.repair()

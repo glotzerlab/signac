@@ -15,6 +15,7 @@ import warnings
 from collections import defaultdict
 from collections.abc import Iterable
 from contextlib import contextmanager
+from copy import deepcopy
 from datetime import timedelta
 from itertools import groupby
 from multiprocessing.pool import ThreadPool
@@ -203,6 +204,7 @@ class Project:
         # can be used to re-open a job by id as long as that id remains in the
         # cache.
         self._sp_cache = {}
+        self._sp_cache_read = False
         self._sp_cache_misses = 0
         self._sp_cache_warned = False
         self._sp_cache_miss_warning_threshold = self.config.get(
@@ -517,13 +519,18 @@ class Project:
             than one match.
 
         """
+        if not self._sp_cache_read:
+            # Read the cache from disk on the first call.
+            self._read_cache()
+            self._sp_cache_read = True
+
         if statepoint is None and id is None:
             raise ValueError("Must provide statepoint or id.")
         elif statepoint is not None and id is not None:
             raise ValueError("Either statepoint or id must be provided, but not both.")
         elif statepoint is not None:
             # Second best case (Job will update self._sp_cache on init)
-            return Job(project=self, statepoint=statepoint)
+            return Job(project=self, statepoint=deepcopy(statepoint))
         try:
             # Optimal case (id is in the state point cache)
             return Job(project=self, statepoint=self._sp_cache[id], id_=id)
@@ -545,7 +552,7 @@ class Project:
             elif not self._contains_job_id(id):
                 # id does not exist in the project data space
                 raise KeyError(id)
-            return Job(project=self, id_=id)
+            return Job(project=self, id_=id, directory_known=True)
 
     def _job_dirs(self):
         """Generate ids of jobs in the workspace.
@@ -712,6 +719,20 @@ class Project:
 
         See :ref:`signac find <signac-cli-find>` for the command line equivalent.
 
+        .. tip::
+
+            To find a single job given a state point, use `open_job` with O(1) cost.
+
+        .. tip::
+
+            To find many groups of jobs, use your own code to loop through the project
+            once and build multiple matching lists.
+
+        .. warning::
+
+            `find_jobs` costs O(N) each time it is called. It applies the filter to
+            every job in the workspace.
+
         Parameters
         ----------
         filter : Mapping, optional
@@ -835,13 +856,20 @@ class Project:
         """
         self._sp_cache[id_] = statepoint
 
-    def _get_statepoint_from_workspace(self, job_id):
+    def _get_statepoint_from_workspace(self, job_id, validate=True):
         """Attempt to read the state point from the workspace.
 
         Parameters
         ----------
         job_id : str
             Identifier of the job.
+        validate : bool
+            When True, validate that any state point read from disk matches the job_id.
+
+        Raises
+        ------
+        :class:`signac.errors.JobsCorruptedError`
+            When one or more jobs are identified as corrupted.
 
         """
         # Performance-critical path. We can rely on the project workspace, job
@@ -850,7 +878,11 @@ class Project:
         fn_statepoint = os.sep.join((self.workspace, job_id, Job.FN_STATE_POINT))
         try:
             with open(fn_statepoint, "rb") as statepoint_file:
-                return json.loads(statepoint_file.read().decode())
+                statepoint = json.loads(statepoint_file.read().decode())
+                if validate and calc_id(statepoint) != job_id:
+                    raise JobsCorruptedError([job_id])
+
+                return statepoint
         except (OSError, ValueError) as error:
             if os.path.isdir(os.sep.join((self.workspace, job_id))):
                 logger.error(
@@ -861,7 +893,7 @@ class Project:
                 raise JobsCorruptedError([job_id])
             raise KeyError(job_id)
 
-    def _get_statepoint(self, job_id):
+    def _get_statepoint(self, job_id, validate=True):
         """Get the state point associated with a job id.
 
         The state point is retrieved from the internal cache, from
@@ -871,6 +903,9 @@ class Project:
         ----------
         job_id : str
             A job id to get the state point for.
+        validate : bool
+            When True, validate that any state point read from disk matches the job_id.
+
 
         Returns
         -------
@@ -886,10 +921,10 @@ class Project:
             corrupted.
 
         """
-        if not self._sp_cache:
-            # Triggers if no state points have been added to the cache, and all
-            # the values are None.
+        if not self._sp_cache_read:
+            # Read the cache from disk on the first call.
             self._read_cache()
+            self._sp_cache_read = True
         try:
             # State point cache hit
             return self._sp_cache[job_id]
@@ -902,10 +937,10 @@ class Project:
             ):
                 logger.debug(
                     "High number of state point cache misses. Consider "
-                    "to update cache with the Project.update_cache() method."
+                    "updating the cache by running `signac update-cache`."
                 )
                 self._sp_cache_warned = True
-            statepoint = self._get_statepoint_from_workspace(job_id)
+            statepoint = self._get_statepoint_from_workspace(job_id, validate)
             # Update the project's state point cache from this cache miss
             self._sp_cache[job_id] = statepoint
         return statepoint
@@ -1237,11 +1272,7 @@ class Project:
         logger.info("Checking workspace for corruption...")
         for job_id in self._find_job_ids():
             try:
-                statepoint = self._get_statepoint(job_id)
-                if calc_id(statepoint) != job_id:
-                    corrupted.append(job_id)
-                else:
-                    self.open_job(statepoint).init()
+                self._get_statepoint_from_workspace(job_id)
             except JobsCorruptedError as error:
                 corrupted.extend(error.job_ids)
         if corrupted:
@@ -1277,7 +1308,7 @@ class Project:
         for job_id in job_ids:
             try:
                 # First, check if we can look up the state point.
-                statepoint = self._get_statepoint(job_id)
+                statepoint = self._get_statepoint(job_id, validate=False)
                 # Check if state point and id correspond.
                 correct_id = calc_id(statepoint)
                 if correct_id != job_id:
@@ -1406,7 +1437,6 @@ class Project:
         including iteration and filtering or selection are expected
         to be significantly faster after calling this function, especially
         for large data spaces.
-
         """
         logger.info("Update cache...")
         start = time.time()
@@ -1610,7 +1640,7 @@ class Project:
         project = cls.get_project(os.path.join(job_path, os.pardir))
 
         # Return the matched job id from the found project
-        return project.open_job(id=job_id)
+        return Job(project=project, id_=job_id, directory_known=True)
 
     def __getstate__(self):
         state = dict(self.__dict__)
@@ -1667,7 +1697,9 @@ class _JobsCursorIterator:
         self._ids_iterator = iter(ids)
 
     def __next__(self):
-        return self._project.open_job(id=next(self._ids_iterator))
+        return Job(
+            project=self._project, id_=next(self._ids_iterator), directory_known=True
+        )
 
     def __iter__(self):
         return type(self)(self._project, self._ids)
@@ -1680,6 +1712,12 @@ class JobsCursor:
     use :meth:`~signac.Project.find_jobs` instead.
 
     Enables simple iteration and grouping operations.
+
+    .. warning::
+
+        `JobsCursor` caches the jobs that match the filter. Call `Project.find_jobs`
+        again to update the search after making changes to jobs or the workspace
+        that would change the result of the search.
 
     Parameters
     ----------
@@ -1700,6 +1738,42 @@ class JobsCursor:
         if self._filter == {}:
             self._filter = None
 
+        # Cache for matching ids.
+        self._id_cache = None
+        self._id_set_cache = None
+
+    @property
+    def _ids(self):
+        """List of job ids that match the filter.
+
+        Populated on first use, then cached in subsequent calls.
+
+        Returns
+        -------
+        list[str]
+            Job ids that match the filter.
+        """
+        if self._id_cache is None:
+            self._id_cache = self._project._find_job_ids(self._filter)
+
+        return self._id_cache
+
+    @property
+    def _id_set(self):
+        """Set of job ids that match the filter.
+
+        Populated on first use, then cached in subsequent calls.
+
+        Returns
+        -------
+        set[str]
+            Job ids that match the filter.
+        """
+        if self._id_set_cache is None:
+            self._id_set_cache = set(self._ids)
+
+        return self._id_set_cache
+
     def __eq__(self, other):
         return self._project == other._project and self._filter == other._filter
 
@@ -1708,7 +1782,7 @@ class JobsCursor:
         if self._filter:
             # We use the standard function for determining job ids if and only if
             # any of the two filter is provided.
-            return len(self._project._find_job_ids(self._filter))
+            return len(self._ids)
         else:
             # Without filters, we can simply return the length of the whole project.
             return len(self._project)
@@ -1727,25 +1801,14 @@ class JobsCursor:
             True if the job matches the filter criteria and is initialized for this project.
 
         """
-        if job not in self._project:
-            # Exit early if the job is not in the project. This is O(1).
-            return False
         if self._filter:
-            # We use the standard function for determining job ids if a filter
-            # is provided. This is O(N) and could be optimized by caching the
-            # ids of state points that match a state point filter. Caching the
-            # matches for a document filter is not safe because the document
-            # can change.
-            return job.id in self._project._find_job_ids(self._filter)
-        # Without filters, we can simply check if the job is in the project.
-        # By the early-exit condition, we know the job must be contained.
-        return True
+            return job.id in self._id_set
+
+        return job in self._project
 
     def __iter__(self):
         # Code duplication here for improved performance.
-        return _JobsCursorIterator(
-            self._project, self._project._find_job_ids(self._filter)
-        )
+        return _JobsCursorIterator(self._project, self._ids)
 
     def groupby(self, key=None, default=None):
         """Group jobs according to one or more state point or document parameters.
@@ -1845,7 +1908,7 @@ class JobsCursor:
                 else:
 
                     def keyfunction(job):
-                        return job.sp[stripped_key]
+                        return job.cached_statepoint[stripped_key]
 
             else:
                 if _is_doc_key(key):
@@ -1856,7 +1919,7 @@ class JobsCursor:
                 else:
 
                     def keyfunction(job):
-                        return job.sp.get(stripped_key, default)
+                        return job.cached_statepoint.get(stripped_key, default)
 
         elif isinstance(key, Iterable):
             sp_keys = []
@@ -1875,7 +1938,7 @@ class JobsCursor:
 
                 def keyfunction(job):
                     return tuple(
-                        [job.sp[k] for k in sp_keys]
+                        [job.cached_statepoint[k] for k in sp_keys]
                         + [job.document[k] for k in doc_keys]
                     )
 
@@ -1883,7 +1946,7 @@ class JobsCursor:
 
                 def keyfunction(job):
                     return tuple(
-                        [job.sp.get(k, default) for k in sp_keys]
+                        [job.cached_statepoint.get(k, default) for k in sp_keys]
                         + [job.document.get(k, default) for k in doc_keys]
                     )
 
@@ -2002,7 +2065,7 @@ class JobsCursor:
                 tuple with prefixed state point or document key and values.
 
             """
-            for key, value in _flatten(job.statepoint).items():
+            for key, value in _flatten(job.cached_statepoint).items():
                 prefixed_key = sp_prefix + key
                 if usecols(prefixed_key):
                     yield prefixed_key, value

@@ -308,7 +308,7 @@ class TestJobSpInterface(TestJobBase):
 
     def test_interface_nested_kws(self):
         with pytest.raises(InvalidKeyError):
-            job = self.open_job({"a.b.c": 0})
+            job = self.open_job({"a.b.c": 0}).statepoint
 
         job = self.open_job(dict(a=dict(b=dict(c=2))))
         assert job.sp.a.b.c == 2
@@ -491,6 +491,43 @@ class TestJobSpInterface(TestJobBase):
                 job.doc[key] = "test"
             with pytest.raises(TypeError):
                 job.doc = {key: "test"}
+
+    def test_cached_statepoint_read_only(self):
+        statepoint = {"a": 0, "b": 1, "dict": {"value": "string"}}
+        job = self.open_job(statepoint=statepoint)
+        job.init()
+
+        assert "a" in job.cached_statepoint
+        assert "b" in job.cached_statepoint
+        assert "c" not in job.cached_statepoint
+        assert "dict" in job.cached_statepoint
+        assert job.cached_statepoint["a"] == 0
+        assert job.cached_statepoint["b"] == 1
+        assert job.cached_statepoint["dict"] == {"value": "string"}
+        with pytest.raises(KeyError):
+            job.cached_statepoint["c"]
+        assert list(job.cached_statepoint.keys()) == ["a", "b", "dict"]
+
+        with pytest.raises(TypeError):
+            job.cached_statepoint["c"] = 2
+
+    def test_cached_statepoint_lazy_init(self):
+        statepoint = {"a": 0}
+        job = self.project.open_job(statepoint=statepoint)
+        job.init()
+        id_ = job.id
+
+        # Clear the cache to force a lazy load of the cached statepoint
+        self.project._sp_cache.clear()
+        job = self.project.open_job(id=id_)
+        job.cached_statepoint
+
+    def test_no_args_error(self):
+        with pytest.raises(ValueError):
+            self.project.open_job()
+
+        with pytest.raises(ValueError):
+            Job(project=self.project)
 
 
 class TestConfig(TestJobBase):
