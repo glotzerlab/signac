@@ -30,6 +30,11 @@ Fixed
 
  - Fixed parsing of ``$not`` query expressions on command line (#970).
 
+Removed
++++++++
+
+ - Unused ``ruamel.yaml`` dependency (#981).
+
 [2.1.0] -- 2023-07-12
 ---------------------
 
