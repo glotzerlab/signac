@@ -309,6 +309,7 @@ class H5Store(MutableMapping):
         documentation for more information.
 
     """
+
     __slots__ = ["_filename", "_file", "_kwargs"]
 
     _thread_lock = RLock()

@@ -2502,7 +2502,6 @@ class TestProjectStoreBase(test_h5store.TestH5StoreBase):
 
 
 class TestProjectStore(TestProjectStoreBase, test_h5store.TestH5Store):
-
     """
     This test opens multiple instances of H5Store, but
     the project data interface opens one instance of H5Store.
@@ -2514,7 +2513,6 @@ class TestProjectStore(TestProjectStoreBase, test_h5store.TestH5Store):
 
 
 class TestProjectStoreOpen(TestProjectStoreBase, test_h5store.TestH5StoreOpen):
-
     """
     This test opens multiple instances of H5Store, but
     the project data interface opens one instance of H5Store.
@@ -2562,7 +2560,6 @@ class TestProjectStoreMultiThreading(
 class TestProjectStoreMultiProcessing(
     TestProjectStoreBase, test_h5store.TestH5StoreMultiProcessing
 ):
-
     """
     These tests open multiple instances of H5Store, but
     the project data interface opens one instance of H5Store.
