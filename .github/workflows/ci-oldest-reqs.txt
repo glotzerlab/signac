@@ -1,12 +1,15 @@
 click==7.1.2
 coverage==5.3.1
 filelock==3.0.0
-h5py==2.10.0
-numpy==1.19.0
+h5py==2.10.0; platform_machine != "arm64" or platform_system != "Darwin"
+h5py==3.7.0; platform_machine == "arm64" or platform_system == "Darwin"
+numpy==1.19.0; platform_machine != "arm64" or platform_system != "Darwin"
+numpy==1.21.0; platform_machine == "arm64" and platform_system == "Darwin"
 packaging==15.0
-pandas==1.0.0
+pandas==1.0.0; platform_machine != "arm64" or platform_system != "Darwin"
+pandas==1.4.0; platform_machine == "arm64" and platform_system == "Darwin"
 pytest==6.2.1
 pytest-cov==2.10.1
 pytest-xdist==2.5.0
-tables==3.6.1
+tables==3.6.1; platform_machine != "arm64" or platform_system != "Darwin"
 tqdm==4.10.0
