@@ -1,4 +1,4 @@
-h5py==3.10.0; implementation_name=='cpython'
+h5py==3.11.0; implementation_name=='cpython'
 numpy==1.26.4
-pandas==2.2.1; implementation_name=='cpython'
+pandas==2.2.2; implementation_name=='cpython'
 tables==3.9.2; implementation_name=='cpython'
