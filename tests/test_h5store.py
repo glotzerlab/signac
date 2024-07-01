@@ -147,9 +147,9 @@ class TestH5Store(TestH5StoreBase):
         valid_types.update(
             {
                 "numpy_int_array": numpy.array([-1, 0, 1], dtype=numpy.int_),
-                "numpy_float_array": numpy.array([-1.5, 0, 1.5], dtype=numpy.float_),
+                "numpy_float_array": numpy.array([-1.5, 0, 1.5], dtype=numpy.float64),
                 "numpy_complex_array": numpy.array(
-                    [-1.5 + 3.14j, 0, 1.5 - 5.67j], dtype=numpy.complex_
+                    [-1.5 + 3.14j, 0, 1.5 - 5.67j], dtype=numpy.complex128
                 ),
                 # Note that NumPy's string type is handled kind of like a char
                 # array or bytes, not like Python str. numpy.unicode_ uses a
@@ -159,7 +159,7 @@ class TestH5Store(TestH5StoreBase):
                         b"abcde",
                         b"\x73\x69\x67\x6E\x61\x63\x00\xF0\x9F\x8E\xA8",
                     ],
-                    dtype=numpy.string_,
+                    dtype=numpy.bytes_,
                 ),
                 "numpy_void_array": numpy.array(
                     [
