@@ -9,9 +9,9 @@ All configuration values have a default; values that are commented out serve
 to show the default.
 """
 
-import sphinx_rtd_theme
-
 import os
+
+import sphinx_rtd_theme
 
 # Set canonical URL from the Read the Docs Domain
 html_baseurl = os.environ.get("READTHEDOCS_CANONICAL_URL", "")
