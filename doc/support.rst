@@ -4,11 +4,10 @@
 Support and Development
 =======================
 
-To get help using the **signac** package, join the `signac Slack workspace <https://signac.io/slack-invite/>`_ or send an email to `signac-support@umich.edu <mailto:signac-support@umich.edu>`_.
+Use the `signac discussion board <https://github.com/glotzerlab/signac/discussions/>`_ to
+post questions, ask for support, and discuss potential new features.
 
-The **signac** package is hosted on `GitHub <https://github.com/glotzerlab/signac>`_ and licensed under the open-source BSD 3-Clause license.
-Please use the `repository's issue tracker <https://github.com/glotzerlab/signac/issues>`_ to report bugs or request new features.
-
+File bug reports on `signac's issue tracker <https://github.com/glotzerlab/signac/issues>`_.
 
 Code contributions
 ==================
