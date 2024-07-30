@@ -38,6 +38,8 @@ try:
     PANDAS_AND_TABLES = True
 except ImportError:
     PANDAS_AND_TABLES = False
+except ValueError:
+    PANDAS_AND_TABLES = False
 
 try:
     import numpy  # noqa
