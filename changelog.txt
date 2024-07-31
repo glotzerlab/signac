@@ -7,6 +7,14 @@ The **signac** package follows `semantic versioning <https://semver.org/>`_.
 Version 2
 =========
 
+[2.2.1] -- 2024-xx-xx
+---------------------
+
+Fixed
++++++
+
+ - Support for Numpy 2.0 in tests (#997).
+
 [2.2.0] -- 2024-02-13
 ---------------------
 
