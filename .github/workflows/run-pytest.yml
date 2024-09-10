@@ -31,6 +31,8 @@ jobs:
           # Oldest dependency tests
           - python: '3.8'
             dependencies: 'oldest'
+          - python: '3.9'
+            dependencies: 'oldest'
           - os: 'macos-latest'
             python: '3.8'
             dependencies: 'oldest'
