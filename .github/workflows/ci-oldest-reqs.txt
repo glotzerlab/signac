@@ -3,7 +3,7 @@ coverage==5.3.1
 filelock==3.0.0
 h5py==2.10.0; platform_machine != "arm64" or platform_system != "Darwin"
 h5py==3.7.0; platform_machine == "arm64" or platform_system == "Darwin"
-numpy==1.19.0; platform_machine != "arm64" or platform_system != "Darwin"
+numpy==1.19.3; platform_machine != "arm64" or platform_system != "Darwin"
 numpy==1.21.0; platform_machine == "arm64" and platform_system == "Darwin"
 packaging==15.0
 pandas==1.0.0; platform_machine != "arm64" or platform_system != "Darwin"
