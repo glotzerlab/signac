@@ -6,7 +6,7 @@ h5py==3.7.0; platform_machine == "arm64" or platform_system == "Darwin"
 numpy==1.19.3; platform_machine != "arm64" or platform_system != "Darwin"
 numpy==1.21.0; platform_machine == "arm64" and platform_system == "Darwin"
 packaging==15.0
-pandas==1.0.0; platform_machine != "arm64" or platform_system != "Darwin"
+pandas==1.2.0; platform_machine != "arm64" or platform_system != "Darwin"
 pandas==1.4.0; platform_machine == "arm64" and platform_system == "Darwin"
 pytest==6.2.1
 pytest-cov==2.10.1
