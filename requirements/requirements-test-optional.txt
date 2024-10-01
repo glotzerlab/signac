@@ -1,4 +1,4 @@
-h5py==3.11.0; implementation_name=='cpython'
-numpy==2.1.0
-pandas==2.2.2; implementation_name=='cpython'
+h5py==3.12.1; implementation_name=='cpython'
+numpy==2.1.1
+pandas==2.2.3; implementation_name=='cpython'
 tables==3.10.1; implementation_name=='cpython' and platform_machine != "arm64" or platform_system != "Darwin"
