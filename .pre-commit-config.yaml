@@ -5,7 +5,7 @@ exclude: ^signac/_vendor/.*
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: 'v4.6.0'
+    rev: 'v5.0.0'
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
@@ -17,7 +17,7 @@ repos:
       - id: debug-statements
       - id: requirements-txt-fixer
   - repo: https://github.com/asottile/pyupgrade
-    rev: 'v3.16.0'
+    rev: 'v3.17.0'
     hooks:
       - id: pyupgrade
         args:
@@ -27,11 +27,11 @@ repos:
     hooks:
       - id: isort
   - repo: https://github.com/psf/black
-    rev: '24.4.2'
+    rev: '24.8.0'
     hooks:
       - id: black
   - repo: https://github.com/PyCQA/flake8
-    rev: '7.1.0'
+    rev: '7.1.1'
     hooks:
       - id: flake8
   - repo: https://github.com/PyCQA/pydocstyle
@@ -46,7 +46,7 @@ repos:
         additional_dependencies:
           - tomli
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: 'v1.10.1'
+    rev: 'v1.11.2'
     hooks:
       - id: mypy
         additional_dependencies:
