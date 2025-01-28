@@ -1810,6 +1810,26 @@ class JobsCursor:
         # Code duplication here for improved performance.
         return _JobsCursorIterator(self._project, self._ids)
 
+    def __getitem__(self, index):
+        """Get an item or slice of items from the `self._ids` list.
+
+        Parameters
+        ----------
+        index : int | slice
+            The jobs to get.
+
+        Returns
+        -------
+        :class:`~signac.job.Job` | :class:`~signac.project._JobsCursorIterator`
+            Single job or iterator of a slice of jobs.
+        """
+        ids_to_return = self._ids[index]
+
+        if isinstance(ids_to_return, list):
+            return _JobsCursorIterator(self._project, ids_to_return)
+
+        return Job(project=self._project, id_=ids_to_return, directory_known=True)
+
     def groupby(self, key=None, default=None):
         """Group jobs according to one or more state point or document parameters.
 
