@@ -6,8 +6,8 @@ signac (core) package documentation
     This is documentation for the **signac** *core package*, which is part of the signac_ framework.
     See `here <signac-docs_>`_ for a comprehensive introduction to the **signac** *framework*.
 
-.. _signac: https://signac.io/
-.. _signac-docs: https://docs.signac.io/
+.. _signac: https://signac.readthedocs.io/
+.. _signac-docs: https://signac.readthedocs.io/
 
 Contents
 --------
@@ -15,7 +15,7 @@ Contents
 .. toctree::
    :hidden:
 
-   Go to Framework Documentation <https://docs.signac.io/>
+   Go to Framework Documentation <https://signac.readthedocs.io/>
 
 .. toctree::
    :maxdepth: 2

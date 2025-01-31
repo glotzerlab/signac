@@ -308,7 +308,7 @@ texinfo_documents = [
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "synced_collections": (
-        "https://docs.signac.io/projects/synced-collections/en/latest/",
+        "https://signac.readthedocs.io/projects/synced-collections/en/latest/",
         None,
     ),
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),

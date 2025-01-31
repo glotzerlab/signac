@@ -304,7 +304,8 @@ class _SearchIndexer(dict):
             if len(nodes) > 1 and key in doc:
                 raise InvalidKeyError(
                     "Keys with dots ('.') are invalid.\n\n"
-                    "See https://signac.io/document-wide-migration/ "
+                    "See https://signac.readthedocs.io/en/latest/"
+                    "recipes.html#apply-document-wide-changes "
                     "for a recipe on how to replace dots in existing keys."
                 )
         logger.debug(f"Built index for key '{key}'.")

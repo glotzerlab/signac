@@ -49,8 +49,8 @@ h5 = ["h5py"]
 signac = "signac.__main__:main"
 
 [project.urls]
-Homepage = "https://signac.io"
-Documentation = "https://docs.signac.io"
+Homepage = "https://signac.readthedocs.io/"
+Documentation = "https://signac.readthedocs.io/"
 Download = "https://pypi.org/project/signac/"
 Source = "https://github.com/glotzerlab/signac"
 Issues = "https://github.com/glotzerlab/signac/issues"

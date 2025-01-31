@@ -374,7 +374,7 @@ class Job:
         This method will change the job id if the state point has been altered.
 
         For more information, see
-        `Modifying the State Point <https://docs.signac.io/en/latest/jobs.html#modifying-the-state-point>`_.
+        `Modifying the State Point <https://signac.readthedocs.io/en/latest/jobs.html#modifying-the-state-point>`_.
 
         .. warning::
 
@@ -449,7 +449,7 @@ class Job:
 
         For more information, see
         `Modifying the State Point
-        <https://docs.signac.io/en/latest/jobs.html#modifying-the-state-point>`_.
+        <https://signac.readthedocs.io/en/latest/jobs.html#modifying-the-state-point>`_.
 
         .. tip::
 
@@ -652,7 +652,7 @@ class Job:
 
         This property should be used for large array-like data, which can't be
         stored efficiently in the job document. For examples and usage, see
-        `Job Data Storage <https://docs.signac.io/en/latest/jobs.html#job-data-storage>`_.
+        `Job Data Storage <https://signac.readthedocs.io/en/latest/jobs.html#job-data-storage>`_.
 
         Equivalent to:
 
