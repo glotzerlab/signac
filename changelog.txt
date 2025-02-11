@@ -15,6 +15,8 @@ Fixed
 
  - Support for Numpy 2.0 in tests (#997).
  - Use ``tool.setuptools`` key in ``pyproject.toml`` (#1020).
+ - Define build command in ``asv.conf.json`` to enable support for asv 0.6.2 and
+ later (#1021).
 
 [2.2.0] -- 2024-02-13
 ---------------------
