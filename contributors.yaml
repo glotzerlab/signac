@@ -142,4 +142,9 @@ contributors:
     family-names: Anderson
     given-names: "Joshua A."
     affiliation: "University of Michigan"
+  -
+    family-names: Bradley
+    given-names: Jenna
+    affiliation: "University of Michigan"
+    orcid: "https://orcid.org/0009-0007-2443-2982"
 ...

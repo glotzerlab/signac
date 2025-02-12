@@ -36,7 +36,7 @@ from signac.errors import (
     StatepointParsingError,
     WorkspaceError,
 )
-from signac.job import calc_id
+from signac.job import Job, calc_id
 from signac.linked_view import _find_all_links
 from signac.project import JobsCursor, Project  # noqa: F401
 from signac.schema import ProjectSchema
@@ -615,6 +615,27 @@ class TestProject(TestProjectBase):
         assert job not in cursor
         job.init()
         assert job in cursor
+
+    def test_JobsCursor_getitem(self):
+        statepoints = [{"a": i, "b": i < 3} for i in range(5)]
+        for sp in statepoints:
+            self.project.open_job(sp).init()
+        cursor = self.project.find_jobs()
+        # Test single indexing
+        for i, job in enumerate(cursor):
+            assert job == cursor[i]
+            assert isinstance(cursor[i], Job)
+
+        # Test slice indexing
+        for start in range(0, len(cursor)):
+            for end in range(start, len(cursor)):
+                subset = cursor[slice(start, end)]
+
+                if start == end:
+                    assert len([*subset]) == 0
+
+                for i, job in enumerate(subset):
+                    assert job == cursor[start + i]
 
     def test_job_move(self):
         path = self._tmp_dir.name
