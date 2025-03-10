@@ -1101,7 +1101,7 @@ def main():
         "$ signac find key 42\n"
         "$ signac find '{\"a\": 42}'\n\n"
         "For the full syntax, see:\n"
-        "https://docs.signac.io/en/latest/query.html#simplified-filter",
+        "https://signac.readthedocs.io/en/latest/query.html#simplified-filter",
     )
     parser_find.add_argument(
         "filter",
@@ -1160,7 +1160,7 @@ def main():
         '"job") into the corresponding job directory.\n\n'
         "The jobs can be filtered using the query API used by the find "
         "command. For the full syntax, see:\n"
-        "https://docs.signac.io/en/latest/query.html#simplified-filter\n\n"
+        "https://signac.readthedocs.io/en/latest/query.html#simplified-filter\n\n"
         "All positional arguments must be provided before any keyword "
         "arguments. In particular, the prefix and path must be "
         "specified before arguments such as the filters, like in the "

@@ -456,7 +456,7 @@ class Project:
         This property should be used for large array-like data, which can't be
         stored efficiently in the project document. For examples and usage, see
         `Centralized Project Data
-        <https://docs.signac.io/en/latest/projects.html#centralized-project-data>`_.
+        <https://signac.readthedocs.io/en/latest/projects.html#centralized-project-data>`_.
 
         Equivalent to:
 
@@ -678,7 +678,7 @@ class Project:
         The filter argument must be a JSON-serializable Mapping of key-value
         pairs. The ``filter`` argument can search against both job state points
         and job documents. See
-        https://docs.signac.io/en/latest/query.html#query-namespaces
+        https://signac.readthedocs.io/en/latest/query.html#query-namespaces
         for a description of supported queries.
 
         Parameters
@@ -714,7 +714,7 @@ class Project:
         The filter argument must be a JSON-serializable Mapping of key-value
         pairs. The ``filter`` argument can search against both job state points
         and job documents. See
-        https://docs.signac.io/en/latest/query.html#query-namespaces
+        https://signac.readthedocs.io/en/latest/query.html#query-namespaces
         for a description of supported queries.
 
         See :ref:`signac find <signac-cli-find>` for the command line equivalent.
