@@ -47,11 +47,14 @@ def _build_job_statepoint_index(exclude_const, index):
 
     """
     indexes = {}
+    dotted_keys = set()
     for _id in index.find():
         doc = index[_id]
         for key, _ in _nested_dicts_to_dotted_keys(doc):
-            if key.split(".")[0] == "sp":
-                indexes[key] = index.build_index(key)
+            dotted_keys.add(key)
+    for key in dotted_keys:
+        if key.split(".")[0] == "sp":
+            indexes[key] = index.build_index(key)
 
     for key in sorted(indexes, key=lambda key: (len(indexes[key]), key)):
         if (
