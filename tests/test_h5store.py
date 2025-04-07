@@ -142,7 +142,7 @@ class TestH5Store(TestH5StoreBase):
         "int_array": array("i", [-1, 0, 1]),
         "uint_array": array("I", [0, 1, 2]),
         "dict": {"a": 1, "b": None, "c": "test"},
-        "bytes": b"\x73\x69\x67\x6E\x61\x63\x00\xF0\x9F\x8E\xA8",
+        "bytes": b"\x73\x69\x67\x6e\x61\x63\x00\xf0\x9f\x8e\xa8",
     }
 
     if NUMPY:
@@ -159,14 +159,14 @@ class TestH5Store(TestH5StoreBase):
                 "numpy_string_array": numpy.array(
                     [
                         b"abcde",
-                        b"\x73\x69\x67\x6E\x61\x63\x00\xF0\x9F\x8E\xA8",
+                        b"\x73\x69\x67\x6e\x61\x63\x00\xf0\x9f\x8e\xa8",
                     ],
                     dtype=numpy.bytes_,
                 ),
                 "numpy_void_array": numpy.array(
                     [
                         b"abcdefghijk",
-                        b"\x73\x69\x67\x6E\x61\x63\x00\xF0\x9F\x8E\xA8",
+                        b"\x73\x69\x67\x6e\x61\x63\x00\xf0\x9f\x8e\xa8",
                     ],
                     dtype="V",
                 ),
