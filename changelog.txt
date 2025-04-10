@@ -7,8 +7,13 @@ The **signac** package follows `semantic versioning <https://semver.org/>`_.
 Version 2
 =========
 
-[2.3.0] -- 2025-xx-xx
+[2.3.0] -- 2025-04-10
 ---------------------
+
+Added
++++++
+
+ - Implemented ``JobsCursor.__getitem__`` (#1017).
 
 Fixed
 +++++
@@ -17,9 +22,11 @@ Fixed
  - Use ``tool.setuptools`` key in ``pyproject.toml`` (#1020).
  - Define build command in ``asv.conf.json`` to enable support for asv 0.6.2 and
  later (#1021).
+ - Documentation build process (#1001).
 
 Changed
 +++++++
+
  - Improved performance of ``Project.detect_schema()`` (#1026).
 
 [2.2.0] -- 2024-02-13
