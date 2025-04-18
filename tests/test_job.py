@@ -54,6 +54,7 @@ BUILTINS_HASH = "7a80b58db53bbc544fc27fcaaba2ce44"
 
 NESTED_HASH = "bd6f5828f4410b665bffcec46abeb8f3"
 
+LIST_HASH = "e5a2c3bf962d0b886728c93825b1cc97"
 
 class TestJobBase:
     project_class = signac.Project
@@ -80,6 +81,12 @@ class TestJobBase:
         d["g"] = builtins_dict()
         return d
 
+    @classmethod
+    def list_of_dict(self):
+        d = dict(builtins_dict())
+        d["h"] = [builtins_dict()]
+        return d
+
 
 class TestJobID(TestJobBase):
     def test_builtins(self):
@@ -94,6 +101,10 @@ class TestJobID(TestJobBase):
     def test_nested(self):
         for i in range(10):
             assert str(self.project.open_job(self.nested_dict())) == NESTED_HASH
+
+    def test_list_of_dict(self):
+        for _ in range(10):
+            assert str(self.project.open_job(self.list_of_dict())) == LIST_HASH
 
     def test_sequences_identity(self):
         job1 = self.project.open_job({"a": [1.0, "1.0", 1, True]})
