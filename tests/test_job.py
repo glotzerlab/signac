@@ -83,7 +83,7 @@ class TestJobBase:
         return d
 
     @classmethod
-    def list_of_dict(self):
+    def dict_of_list_of_dict(self):
         d = dict(builtins_dict())
         d["h"] = [builtins_dict()]
         return d
@@ -103,9 +103,9 @@ class TestJobID(TestJobBase):
         for i in range(10):
             assert str(self.project.open_job(self.nested_dict())) == NESTED_HASH
 
-    def test_list_of_dict(self):
+    def test_dict_of_list_of_dict(self):
         for _ in range(10):
-            assert str(self.project.open_job(self.list_of_dict())) == LIST_HASH
+            assert str(self.project.open_job(self.dict_of_list_of_dict())) == LIST_HASH
 
     def test_sequences_identity(self):
         job1 = self.project.open_job({"a": [1.0, "1.0", 1, True]})
