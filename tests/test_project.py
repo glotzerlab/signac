@@ -713,7 +713,7 @@ class TestProject(TestProjectBase):
                     "d": [[i, 0, 0]],
                     "e": {"e2": [i, 0, 0]} if i % 2 else 0,  # heterogeneous!
                     "f": {"f2": [[i, 0, 0]]},
-                    "g": [{"h": [1, 2]}]
+                    "g": [{"h": [1, 2]}],
                 }
             ).init()
 

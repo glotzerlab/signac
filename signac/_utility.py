@@ -122,8 +122,7 @@ def _dotted_dict_to_nested_dicts(dotted_dict, delimiter_nested="."):
 
 class _hashable_dict(dict):
     def __hash__(self):
-        return hash(tuple(
-            sorted((k, _to_hashable(v)) for k, v in self.items())))
+        return hash(tuple(sorted((k, _to_hashable(v)) for k, v in self.items())))
 
 
 def _to_hashable(obj):
