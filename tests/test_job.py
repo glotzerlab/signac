@@ -56,7 +56,6 @@ NESTED_HASH = "bd6f5828f4410b665bffcec46abeb8f3"
 
 LIST_HASH = "e5a2c3bf962d0b886728c93825b1cc97"
 
-
 class TestJobBase:
     project_class = signac.Project
 
