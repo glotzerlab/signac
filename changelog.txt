@@ -13,7 +13,7 @@ Version 2
 Fixed
 +++++
 
- - Schema detection when a state point was a list of dictionaries having lists (#1030).
+ - Schema detection when a state point value is a list of dictionaries having lists (#1030).
 
 [2.3.0] -- 2025-04-10
 ---------------------
