@@ -12,6 +12,7 @@ import re
 import shutil
 import time
 import warnings
+import functools
 from collections import defaultdict
 from collections.abc import Iterable
 from contextlib import contextmanager
@@ -32,8 +33,8 @@ from ._config import (
     _raise_if_older_schema,
     _read_config_file,
 )
-from ._search_indexer import _SearchIndexer
-from ._utility import _mkdir_p, _nested_dicts_to_dotted_keys
+from ._search_indexer import _SearchIndexer, _DictPlaceholder
+from ._utility import _mkdir_p, _nested_dicts_to_dotted_keys, _to_hashable
 from .errors import (
     DestinationExistsError,
     IncompatibleSchemaVersion,
@@ -651,16 +652,7 @@ class Project:
             The detected project schema.
 
         """
-        from .schema import _build_job_statepoint_index
-
-        index = _SearchIndexer(self._build_index(include_job_document=False))
-        if subset is not None:
-            subset = {str(s) for s in subset}.intersection(index.keys())
-            index = _SearchIndexer((id_, index[id_]) for id_ in subset)
-        statepoint_index = _build_job_statepoint_index(
-            exclude_const=exclude_const, index=index
-        )
-
+        statepoint_index = self.detect_schema_index(exclude_const, subset)
         def _collect_by_type(values):
             """Construct a mapping of types to a set of elements drawn from the input values."""
             values_by_type = defaultdict(set)
@@ -671,6 +663,26 @@ class Project:
         return ProjectSchema(
             {key: _collect_by_type(value) for key, value in statepoint_index}
         )
+        
+    
+    def detect_schema_index(self, exclude_const=False, subset=None):
+        """Return just the state point index not collected by type.
+
+        """
+
+        from .schema import _build_job_statepoint_index
+
+        index = _SearchIndexer(self._build_index(include_job_document=False))
+        if subset is not None:
+            subset = {str(s) for s in subset}.intersection(index.keys())
+            index = _SearchIndexer((id_, index[id_]) for id_ in subset)
+        statepoint_index = _build_job_statepoint_index(
+            exclude_const=exclude_const, index=index
+        )
+
+        return statepoint_index
+
+
 
     def _find_job_ids(self, filter=None):
         """Find the job ids of all jobs matching the filter.
@@ -1653,6 +1665,90 @@ class Project:
         state["_lock"] = RLock()
         self.__dict__.update(state)
 
+    def _search_cache_for_val(self, sp_dict, cache, key, other_val):
+        sp_dict.update({key: other_val})
+        other_job_id = calc_id(sp_dict)
+        if other_job_id in cache:
+            return other_job_id
+        else:
+            return None
+
+    def _search_out(self, direction_multiplier, values, current_index, boundary, search_fun):
+        """Search values towards boundary from current_index using search_fun.
+
+        :param direction_multiplier: 1 means search in the positive direction from the index
+        :param values: iterator of values to index into
+        :param current_index: index in values to start searching from.
+         The value at this index is not accessed directly.
+        :param search_fun: function taking 1 argument returning jobid if there is a match
+        :param boundary: the index at which to stop
+        :param search_fun: function that decides if value exists in project
+
+        """
+
+        query_index = current_index + direction_multiplier
+        # search either query_index >= low_boundary or query_index <= high_boundary
+        while direction_multiplier * query_index <= boundary * direction_multiplier: 
+            val = values[query_index]
+            jobid = search_fun(val)
+            if jobid is None:
+                query_index += direction_multiplier
+            else:
+                break
+        else:
+            jobid = None
+            val = None
+        return jobid, val
+
+    def neighbors_of_job(self, jobid, my_map, my_cache, _sorted_schema):
+        _sp = my_cache[jobid]
+        nearby_entry = {}
+        for key, schema_values in _sorted_schema.items(): # from project
+            # allow comparison with output of schema, which is hashable
+            value = _to_hashable(_sp.get(key, _DictPlaceholder))
+            if value is _DictPlaceholder:
+                # Possible if schema is heterogeneous
+                continue
+
+            value_index = schema_values.index(value)
+            # need to pass _sp by copy
+            search_fun = functools.partial(self._search_cache_for_val, dict(_sp), my_cache, key)
+            previous_job = self._search_out(-1, schema_values, value_index, 0, search_fun)
+            next_job = self._search_out(1, schema_values, value_index, len(schema_values) - 1, search_fun)
+
+            this_d = {}
+            if next_job[0] is not None:
+                this_d.update({next_job[1]: my_map[next_job[0]]})
+            if previous_job[0] is not None:
+                this_d.update({previous_job[1]: my_map[previous_job[0]]})
+            nearby_entry.update({key: this_d})
+        return nearby_entry
+    
+    def make_neighbor_list(self, my_map, my_cache, _sorted_schema):
+        nearby_jobs = {}
+        for _id in my_cache:
+            nearby_jobs[my_map[_id]] = self.neighbors_of_job(_id, my_map, my_cache, _sorted_schema)
+        return nearby_jobs
+
+    def get_neighbors(self, ignore=None):
+        if ignore is not None:
+            pass
+            # _map, _cache = prepare_shadow_project()
+        else:
+            _cache = self._sp_cache
+            _map = {k: k for k in _cache}
+        schema_index = self.detect_schema_index()
+
+        def _collect_by_value(values):
+            out_vals = set()
+            for v in values:
+                out_vals.add(v)
+            return sorted(out_vals)
+        sorted_schema = {k: _collect_by_value(v) for k,v in schema_index}
+        
+        #sorted_schema = dict(sorted(sorted_schema, key=lambda t: t[0]))
+
+        return self.make_neighbor_list(_map, _cache, sorted_schema)
 
 @contextmanager
 def TemporaryProject(cls=None, **kwargs):
@@ -2144,7 +2240,6 @@ class JobsCursor:
 
         """
         return repr(self) + self._repr_html_jobs()
-
 
 def init_project(path=None):
     """Initialize a project.
