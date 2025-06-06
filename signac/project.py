@@ -1712,10 +1712,10 @@ class Project:
         current_index : int
            index into values to start searching from.
            The value at this index is not accessed directly.
-        search_fun : function
-            unary function returning jobid if it exists and None otherwise
         boundary_index : int
             the index at which to stop
+        search_fun : function
+            unary function returning jobid if it exists and None otherwise
 
         Returns
         -------
@@ -1781,6 +1781,17 @@ class Project:
         return nearby_entry
 
     def make_neighbor_list(self, shadow_map, dotted_sp_cache, sorted_schema):
+        """Iterate over jobs and get neighbors of each job.
+
+        Parameters
+        ----------
+        shadow_map : dict
+            Map from shadow job id to job id if ignoring certain keys, otherwise the identity map.
+        dotted_sp_cache : dict
+            Map from job id OR shadow job id to state point OR shadow state point in dotted key format
+        sorted_schema : dict
+            Map of keys to their values to search over
+        """
         nearby_jobs = {}
         for _id in dotted_sp_cache:
             nearby_jobs[shadow_map[_id]] = self.neighbors_of_job(_id, shadow_map, dotted_sp_cache, sorted_schema)
