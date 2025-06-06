@@ -1740,7 +1740,8 @@ class Project:
         # return {val: jobid}
         return jobid, val
 
-    def neighbors_of_job(self, jobid, shadow_map, dotted_sp_cache, sorted_schema):
+
+    def neighbors_of_job(self, statepoint, dotted_sp_cache, sorted_schema):
         """Return neighbor list of job with jobid.
 
         dotted_sp_cache must be in dotted key format, which is accessed by calling
@@ -1748,37 +1749,32 @@ class Project:
 
         Parameters
         ----------
-        jobid : str
-            Job id of job of which to find neighbors
-        shadow_map : dict
-            Map from job id to shadow job id if a key is ignored, used when
-            user provides `ignore` to get_neighbors. Otherwise, it is the identity map
+        statepoint : dict
+            Place to search from. Could be the shadow state point.
         dotted_sp_cache : dict
-            Map from job id to state point **in dotted keys format**
+            Map from job id OR shadow job id to state point OR shadow state point in dotted key format
         sorted_schema : dict
             Map from key (in dotted notation) to sorted values of the key to search over
         """
 
-        _sp = dotted_sp_cache[jobid]
-
         nearby_entry = {}
         for key, schema_values in sorted_schema.items(): # from project
             # allow comparison with output of schema, which is hashable
-            value = _to_hashable(_sp.get(key, _DictPlaceholder))
+            value = _to_hashable(statepoint.get(key, _DictPlaceholder))
             if value is _DictPlaceholder:
                 # Possible if schema is heterogeneous
                 continue
             value_index = schema_values.index(value)
-            # need to pass _sp by copy
-            search_fun = functools.partial(self._search_cache_for_val, dict(_sp), dotted_sp_cache, key)
+            # need to pass statepoint by copy
+            search_fun = functools.partial(self._search_cache_for_val, dict(statepoint), dotted_sp_cache, key)
             previous_jobid, previous_val = self._search_out(-1, schema_values, value_index, 0, search_fun)
             next_jobid, next_val = self._search_out(1, schema_values, value_index, len(schema_values) - 1, search_fun)
 
             this_d = {}
             if next_jobid is not None:
-                this_d.update({next_val: shadow_map[next_jobid]})
+                this_d.update({next_val: next_jobid})
             if previous_jobid is not None:
-                this_d.update({previous_val: shadow_map[previous_jobid]})
+                this_d.update({previous_val: previous_jobid})
             nearby_entry.update({key: this_d})
         return nearby_entry
 
@@ -1795,8 +1791,9 @@ class Project:
             Map of keys to their values to search over
         """
         nearby_jobs = {}
-        for _id in dotted_sp_cache:
-            nearby_jobs[shadow_map[_id]] = self.neighbors_of_job(_id, shadow_map, dotted_sp_cache, sorted_schema)
+        for _id, _sp in dotted_sp_cache.items():
+            shadow_job_neighbors = self.neighbors_of_job(_sp, dotted_sp_cache, sorted_schema)
+            nearby_jobs[shadow_map[_id]] = {key: shadow_map[shadow_id] for key, shadow_id in shadow_job_neighbors}
         return nearby_jobs
 
     def get_neighbors(self, ignore=None):
