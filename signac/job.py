@@ -1012,3 +1012,7 @@ class Job:
             setattr(result, key, deepcopy(value, memo))
         result._lock = RLock()
         return result
+
+    def neighbors(self, ignore=None):
+        # TODO, do we expose this to each job?
+        pass

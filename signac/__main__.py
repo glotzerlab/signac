@@ -196,6 +196,15 @@ def main_statepoint(args):
         else:
             print(json.dumps(job.statepoint(), indent=args.indent, sort_keys=args.sort))
 
+def main_neigbors(args):
+    # TODO
+    project = get_project()
+    if args.job_id:
+        jobs = (_open_job_by_id(project, jid) for jid in args.job_id)
+    for job in jobs:
+        print(job.get_neighbors())
+    pass
+
 
 def main_document(args):
     """Handle document subcommand."""

@@ -1740,6 +1740,11 @@ class Project:
         # return {val: jobid}
         return jobid, val
 
+    def job_my_neighbor(self, ignore, sorted_schema):
+        """Prototype going from job to neighbor with minimal mess"""
+        nl = self.neighbors_of_job()
+        for key, value in nl:
+            pass
 
     def neighbors_of_job(self, statepoint, dotted_sp_cache, sorted_schema):
         """Return neighbor list of job with jobid.
@@ -1778,6 +1783,14 @@ class Project:
             nearby_entry.update({key: this_d})
         return nearby_entry
 
+    def shadow_neighbor_list_to_neighbor_list(self, shadow_neighbor_list, shadow_map):
+        """Replace shadow job ids with actual job ids."""
+        neighbor_list = dict()
+        for jobid, neighbors in shadow_neighbor_list:
+            for neighbor_key, neighbor_vals in neighbors:
+                neighbor_list[jobid] = {neighbor_key: {k: shadow_map[i] for k,i in neighbor_vals.items()}}
+        return neighbor_list
+        
     def make_neighbor_list(self, shadow_map, dotted_sp_cache, sorted_schema):
         """Iterate over jobs and get neighbors of each job.
 
