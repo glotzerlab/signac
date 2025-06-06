@@ -1736,6 +1736,8 @@ class Project:
         else:
             jobid = None
             val = None
+        # todo
+        # return {val: jobid}
         return jobid, val
 
     def neighbors_of_job(self, jobid, shadow_map, dotted_sp_cache, sorted_schema):
