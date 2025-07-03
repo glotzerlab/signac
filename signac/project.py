@@ -1665,6 +1665,107 @@ class Project:
         state["_lock"] = RLock()
         self.__dict__.update(state)
 
+    def prepare_shadow_project(self, ignore):
+        """Detect neighbors and build cache for shadow project which comes from ignored keys.
+
+        Ignoring a key creates a subset of jobs, now identified with different job ids.
+        Call it shadow job id because we're making a projection of the project.
+
+        We can map from the shadow job id to the actual job id in the use cases identified.
+        Raise ValueError if this mapping is ill defined.
+
+        We can detect the neighbor list on the shadow project then map it back
+        to the real project.
+
+        TODO: Belongs in signac core eventually.
+
+        Returns shadow_map, shadow_cache
+
+        shadow_map is a map from shadow job id to project job id.
+
+        shadow_cache is an in-memory state point cache for the shadow project
+        mapping job id --> shadow state point
+
+
+        Use cases:
+
+        1) Seed that is different for every job.
+
+        2) State point key that changes in sync with another key.
+
+        Case 1:
+
+        {"a": 1, "b": 2, "seed": 0} -> jobid1
+        {"a": 1, "b": 3, "seed": 1} -> jobid2
+        {"a": 1, "b": 2} -> shadowid1
+        {"a": 1, "b": 3} -> shadowid2
+
+        shadowid1 <---> jobid1
+        shadowid2 <---> jobid2
+
+        Breaking case 1 with repeated shadow jobs
+        {"a": 1, "b": 2, "seed": 0} -> jobid1
+        {"a": 1, "b": 3, "seed": 1} -> jobid2
+        {"a": 1, "b": 3, "seed": 2} -> jobid3
+
+        {"a": 1, "b": 2} -> shadowid1
+        {"a": 1, "b": 3} -> shadowid2
+        {"a": 1, "b": 3} -> shadowid2 *conflict* No longer bijection. Maybe we can just keep track of these? Should be few cases.
+        Now we have shadowid2 .---> jobid2
+                              \\--> jobid3
+
+        Case 2:
+
+        {"a1": 10, "a2": 20} -> jobid1
+        {"a1": 2, "a2": 4} -> jobid2
+
+        {"a1": 10} -> shadowid1
+        {"a1": 2} -> shadowid2
+
+        Can still make the mapping between ids.
+
+        Breaking case 2:
+        {"a1": 10, "a2": 20} -> jobid1
+        {"a1": 2, "a2": 4} -> jobid2
+        {"a1": 2, "a2": 5} -> jobid3
+
+        {"a1": 10} -> shadowid1
+        {"a1": 2} -> shadowid2
+        {"a1": 2} -> shadowid2 --
+        Now we have shadowid2 .---> jobid2
+                              \\--> jobid3
+        """
+
+        shadow_cache = {} # like a state point cache
+        job_to_shadow = {} # goes from job id to shadow. Call it the projection?
+        for job in self:
+            shadow_sp = dict(job.cached_statepoint)
+            for ig in ignore:
+                shadow_sp.pop(ig, None)
+            shadow_id = calc_id(shadow_sp)
+            shadow_cache[shadow_id] = shadow_sp
+            job_to_shadow[job.id] = shadow_id
+
+        if len(set(job_to_shadow.values())) != len(job_to_shadow):
+            # map that has duplicates
+            duplicate_map = {}
+            for k,v in job_to_shadow.items():
+                try:
+                    duplicate_map[v].append(k)
+                except KeyError:
+                    duplicate_map[v] = [k]
+            # one of the breaking cases
+            # figure out who breaks
+            counts = Counter(job_to_shadow.values())
+            bads = []
+            for k,v in counts.items():
+                if v>1:
+                    bads.append(k)
+            err_str = "\n".join(f"Job ids: {', '.join(duplicate_map[b])}." for b in bads)
+            raise ValueError(f"Ignoring {ignore} makes it impossible to distinguish some jobs:\n{err_str}")
+        shadow_map = {v: k for k, v in job_to_shadow.items()}
+        return shadow_map, shadow_cache
+
     # key and other_val provided separately to be used with functools.partial
     def _search_cache_for_val(self, sp_dict, cache, key, other_val):
         """Return job id of similar job if present in cache.
@@ -1786,9 +1887,12 @@ class Project:
     def shadow_neighbor_list_to_neighbor_list(self, shadow_neighbor_list, shadow_map):
         """Replace shadow job ids with actual job ids."""
         neighbor_list = dict()
-        for jobid, neighbors in shadow_neighbor_list:
-            for neighbor_key, neighbor_vals in neighbors:
-                neighbor_list[jobid] = {neighbor_key: {k: shadow_map[i] for k,i in neighbor_vals.items()}}
+        for jobid, neighbors in shadow_neighbor_list.items():
+            this_d = {}
+            for neighbor_key, neighbor_vals in neighbors.items():
+                # neighbor_list.update({shadow_map[jobid]: {neighbor_key :{k: shadow_map[i] for k,i in neighbor_vals.items()}}})
+                this_d[neighbor_key] = {k: shadow_map[i] for k,i in neighbor_vals.items()}
+            neighbor_list[shadow_map[jobid]] = this_d
         return neighbor_list
         
     def make_neighbor_list(self, shadow_map, dotted_sp_cache, sorted_schema):
@@ -1805,15 +1909,30 @@ class Project:
         """
         nearby_jobs = {}
         for _id, _sp in dotted_sp_cache.items():
-            shadow_job_neighbors = self.neighbors_of_job(_sp, dotted_sp_cache, sorted_schema)
-            nearby_jobs[shadow_map[_id]] = {key: shadow_map[shadow_id] for key, shadow_id in shadow_job_neighbors}
+            # shadow_job_neighbors = self.neighbors_of_job(_sp, dotted_sp_cache, sorted_schema)
+            # print(shadow_job_neighbors)
+            nearby_jobs[_id] = self.neighbors_of_job(_sp, dotted_sp_cache, sorted_schema)
+            # {key: shadow_map[shadow_id] for key, shadow_id in shadow_job_neighbors.items()}
+            # breakpoint()
+        nearby_jobs = self.shadow_neighbor_list_to_neighbor_list(nearby_jobs, shadow_map)
+            # print(f"neighbors of {_id} are {shadow_job_neighbors}")
+            # this_d = {}
+            # #{key: shadow_map[shadow_id] for key, shadow_id in shadow_job_neighbors.items()}
+            # for key, shadow_id in shadow_job_neighbors.items():
+            #     if shadow_id != dict():
+            #         print(f"shadow_id: {shadow_id}")
+            #         this_d[key] = shadow_map[shadow_id]
+            # nearby_jobs[shadow_map[_id]] = this_d
         return nearby_jobs
 
     def get_neighbors(self, ignore=None):
         if ignore is not None:
-            pass
-            # _map, _cache = prepare_shadow_project()
+            if not isinstance(ignore, list):
+                ignore = [ignore]
+            _map, _cache = self.prepare_shadow_project(ignore = ignore)
         else:
+            ignore = [None]
+            self.update_cache()
             _cache = dict(self._sp_cache) # copy
             # the state point cache is incompatible with nested key notation
             for _id, _sp in _cache.items():
@@ -1830,6 +1949,11 @@ class Project:
                 for _, v in sorted(tuples_to_sort, key = lambda x: x[0]):
                     combined_values.extend(v)
             sorted_schema[key] = combined_values
+        need_to_ignore = [sorted_schema.pop(ig, None) for ig in ignore]
+        if any(a is None for a in need_to_ignore):
+            import warnings
+            ignore = [None]
+            warnings.warn("Ignored key not present in project.", RuntimeWarning)
         return self.make_neighbor_list(_map, _cache, sorted_schema)
 
 @contextmanager
