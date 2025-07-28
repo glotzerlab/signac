@@ -12,6 +12,7 @@ import re
 import sys
 import textwrap
 from contextlib import contextmanager, redirect_stderr
+from itertools import product
 from tarfile import TarFile
 from tempfile import TemporaryDirectory
 from time import time
@@ -835,6 +836,127 @@ class TestProject(TestProjectBase):
         )
 
         assert s_format2 == S_FORMAT2
+
+    def test_neighbors(self):
+        a_vals = [1, 2]
+        b_vals = [3, 4, 5]
+        for a,b in product(a_vals, b_vals):
+            self.project.open_job({"a": a, "b": b}).init()
+
+        neighbors = self.project.get_neighbors()
+
+        for a,b in product(a_vals, b_vals):
+            job = self.project.open_job({"a": a, "b": b})
+            this_neighbors = neighbors[job.id]
+
+            # a neighbors
+            if a == 1:
+                assert this_neighbors["a"][2] == self.project.open_job({"a": 2, "b": b}).id
+            elif a == 2:
+                assert this_neighbors["a"][1] == self.project.open_job({"a": 1, "b": b}).id
+
+            # b neighbors
+            if b == 3:
+                assert this_neighbors["b"][4] == self.project.open_job({"a": a, "b": 4}).id
+            elif b == 4:
+                assert this_neighbors["b"][3] == self.project.open_job({"a": a, "b": 3}).id
+                assert this_neighbors["b"][5] == self.project.open_job({"a": a, "b": 5}).id
+            elif b == 5:
+                assert this_neighbors["b"][4] == self.project.open_job({"a": a, "b": 4}).id
+
+    def test_neighbors_ignore(self):
+        b_vals = [3, 4, 5]
+        for b in b_vals:
+            self.project.open_job({"b": b, "2b": 2 * b}).init()
+
+        neighbors = self.project.get_neighbors(ignore = "2b")
+
+        for b in b_vals:
+            job = self.project.open_job({"b": b, "2b": 2 * b})
+            this_neighbors = neighbors[job.id]
+
+            if b == 3:
+                assert this_neighbors["b"][4] == self.project.open_job({"b": 4, "2b": 8}).id
+            elif b == 4:
+                assert this_neighbors["b"][3] == self.project.open_job({"b": 3, "2b": 6}).id
+                assert this_neighbors["b"][5] == self.project.open_job({"b": 5, "2b": 10}).id
+            elif b == 5:
+                assert this_neighbors["b"][4] == self.project.open_job({"b": 4, "2b": 8}).id
+
+    def test_neighbors_nested(self):
+        a_vals = [{"c": 2}, {"c": 3}, {"c": 4}]
+        for a in a_vals:
+            self.project.open_job({"a": a}).init()
+
+        neighbors = self.project.get_neighbors()
+
+        for a in a_vals:
+            job = self.project.open_job({"a": a})
+            this_neighbors = neighbors[job.id]
+            # note how the inconsistency in neighborlist access syntax comes from schema
+            if a == 2:
+                assert this_neighbors["a.c"][3] == self.project.open_job({"a": {"c": 3}}).id
+            elif a == 3:
+                assert this_neighbors["a.c"][2] == self.project.open_job({"a": {"c": 2}}).id
+                assert this_neighbors["a.c"][4] == self.project.open_job({"a": {"c": 4}}).id
+            elif a == 4:
+                assert this_neighbors["a.c"][3] == self.project.open_job({"a": {"c": 3}}).id
+
+    @pytest.mark.xfail(reason = "Schema doesn't distinguish truthy values. Asserting False til fix.")
+    def test_neighbors_varied_types(self):
+        a_vals = [True, None, False, 1, "1", "2", 1.2, 1.3, 2, "x", "y", {"c": 2}, [3,4], [5,6]]
+        a_types = [type(a) for a in a_vals]
+
+        for a in a_vals:
+            self.project.open_job({"a": a}).init()
+
+        neighbors = self.project.get_neighbors()
+        print(neighbors)
+        print(a_types)
+
+        for job in self.project:
+            this_neighbors = neighbors[job.id]
+            print(f"{job.sp.a=} has neighbors {this_neighbors}")
+        print("Schema doesn't distinguish 1 and True, 0 and False")
+        assert False
+# I manually sorted the output here:
+# job.sp.a=None has neighbors {'a': {False: '260210482a322cd86398136bd3f79f96'}}
+# job.sp.a=False has neighbors {'a': {1.2: '26c562927aa486aa8029af535ec39645', None: '542bac9c870e9cd102c3909922945a4d'}}
+# job.sp.a=1.2 has neighbors {'a': {1: '42b7b4f2921788ea14dac5566e6f06d0', False: '260210482a322cd86398136bd3f79f96'}}
+# job.sp.a=1 has neighbors {'a': {2: '9f8a8e5ba8c70c774d410a9107e2a32b', 1.2: '26c562927aa486aa8029af535ec39645'}}
+# job.sp.a=2 has neighbors {'a': {'1': '44550aefb0b85d9db968d11e4fdfa6bc', 1: '42b7b4f2921788ea14dac5566e6f06d0'}}
+# job.sp.a='1' has neighbors {'a': {'2': '7f73bfec07cbee1bda5fbaab4b45acd6', 2: '9f8a8e5ba8c70c774d410a9107e2a32b'}}
+# job.sp.a='2' has neighbors {'a': {'x': 'f5239c9772076e520bcbef45c51aae76', '1': '44550aefb0b85d9db968d11e4fdfa6bc'}}
+# job.sp.a='x' has neighbors {'a': {'y': 'e9257974c07297468e235b1ec5a98174', '2': '7f73bfec07cbee1bda5fbaab4b45acd6'}}
+# job.sp.a='y' has neighbors {'a': {(3, 4): '8ddd8542fd23352d5987ab4d73337e52', 'x': 'f5239c9772076e520bcbef45c51aae76'}}
+# job.sp.a=[3, 4] has neighbors {'a': {(5, 6): '015c092e565ba53f0c2d9630db3a13ec', 'y': 'e9257974c07297468e235b1ec5a98174'}}
+# job.sp.a=[5, 6] has neighbors {'a': {(3, 4): '8ddd8542fd23352d5987ab4d73337e52'}}
+
+# job.sp.a={'c': 2} has neighbors {'a.c': {}}
+
+# problem: Not in the main sequence. It takes the place of 1
+# job.sp.a=True has neighbors {'a': {2: '9f8a8e5ba8c70c774d410a9107e2a32b', 1.2: '26c562927aa486aa8029af535ec39645'}}
+
+# schema doesn't distinguish these
+
+    def test_neighbors_no(self):
+        self.project.open_job({"a": 1}).init()
+        self.project.open_job({"b": 1}).init()
+        neighbors = self.project.get_neighbors()
+
+        for job in self.project:
+            for v in neighbors[job.id].values():
+                assert len(v) == 0
+
+    def test_neighbors_ignore_dups(self):
+        a_vals = [1,2]
+        b_vals = [3,4,5]
+        for a,b in product(a_vals, b_vals):
+            self.project.open_job({"a": a, "b": b}).init()
+        with pytest.raises(ValueError):
+            self.project.get_neighbors(ignore = "a")
+        with pytest.raises(ValueError):
+            self.project.get_neighbors(ignore = "b")
 
     def test_jobs_groupby(self):
         def get_sp(i):
@@ -2373,6 +2495,9 @@ class TestProjectSchema(TestProjectBase):
         assert len(migrations) == 0
 
 
+class TestProjectNeighbors(TestProjectBase):
+    pass
+    
 def _initialize_v1_project(dirname, with_workspace=True, with_other_files=True):
     # Create v1 config file.
     cfg_fn = os.path.join(dirname, "signac.rc")
