@@ -1665,7 +1665,7 @@ class Project:
         state["_lock"] = RLock()
         self.__dict__.update(state)
 
-    def prepare_shadow_project(self, ignore):
+    def prepare_shadow_project(self, ignore: list):
         """Detect neighbors and build cache for shadow project which comes from ignored keys.
 
         Ignoring a key creates a subset of jobs, now identified with different job ids.
@@ -1925,13 +1925,12 @@ class Project:
             # nearby_jobs[shadow_map[_id]] = this_d
         return nearby_jobs
 
-    def get_neighbors(self, ignore=None):
-        if ignore is not None:
-            if not isinstance(ignore, list):
-                ignore = [ignore]
+    def get_neighbors(self, ignore = []):        
+        if not isinstance(ignore, list):
+            ignore = [ignore]
+        if len(ignore) > 0:
             _map, _cache = self.prepare_shadow_project(ignore = ignore)
         else:
-            ignore = [None]
             self.update_cache()
             _cache = dict(self._sp_cache) # copy
             # the state point cache is incompatible with nested key notation
@@ -1949,10 +1948,10 @@ class Project:
                 for _, v in sorted(tuples_to_sort, key = lambda x: x[0]):
                     combined_values.extend(v)
             sorted_schema[key] = combined_values
-        need_to_ignore = [sorted_schema.pop(ig, None) for ig in ignore]
-        if any(a is None for a in need_to_ignore):
-            import warnings
-            ignore = [None]
+        need_to_ignore = [sorted_schema.pop(ig, _DictPlaceholder) for ig in ignore]
+        if any(a is _DictPlaceholder for a in need_to_ignore):
+            # reset back to default
+            ignore = []
             warnings.warn("Ignored key not present in project.", RuntimeWarning)
         return self.make_neighbor_list(_map, _cache, sorted_schema)
 
