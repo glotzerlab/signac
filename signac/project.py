@@ -1677,14 +1677,12 @@ class Project:
         We can detect the neighbor list on the shadow project then map it back
         to the real project.
 
-        TODO: Belongs in signac core eventually.
-
         Returns shadow_map, shadow_cache
 
         shadow_map is a map from shadow job id to project job id.
 
         shadow_cache is an in-memory state point cache for the shadow project
-        mapping job id --> shadow state point
+        mapping shadow job id --> shadow state point
 
 
         Use cases:
@@ -1703,14 +1701,15 @@ class Project:
         shadowid1 <---> jobid1
         shadowid2 <---> jobid2
 
-        Breaking case 1 with repeated shadow jobs
+        Breaking case 1 with repeated shadow jobs:
+        
         {"a": 1, "b": 2, "seed": 0} -> jobid1
         {"a": 1, "b": 3, "seed": 1} -> jobid2
         {"a": 1, "b": 3, "seed": 2} -> jobid3
 
         {"a": 1, "b": 2} -> shadowid1
         {"a": 1, "b": 3} -> shadowid2
-        {"a": 1, "b": 3} -> shadowid2 *conflict* No longer bijection. Maybe we can just keep track of these? Should be few cases.
+        {"a": 1, "b": 3} -> shadowid2 *conflict* No longer bijection.
         Now we have shadowid2 .---> jobid2
                               \\--> jobid3
 
@@ -1736,8 +1735,8 @@ class Project:
                               \\--> jobid3
         """
 
-        shadow_cache = {} # like a state point cache
-        job_to_shadow = {} # goes from job id to shadow. Call it the projection?
+        shadow_cache = {} # like a state point cache, but for the shadow project
+        job_to_shadow = {} # goes from job id to shadow id. Call it the projection?
         for job in self:
             shadow_sp = dict(job.cached_statepoint)
             for ig in ignore:
@@ -1763,6 +1762,8 @@ class Project:
                     bads.append(k)
             err_str = "\n".join(f"Job ids: {', '.join(duplicate_map[b])}." for b in bads)
             raise ValueError(f"Ignoring {ignore} makes it impossible to distinguish some jobs:\n{err_str}")
+
+        # map from shadow job id to project job id
         shadow_map = {v: k for k, v in job_to_shadow.items()}
         return shadow_map, shadow_cache
 
