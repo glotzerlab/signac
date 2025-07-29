@@ -902,42 +902,26 @@ class TestProject(TestProjectBase):
             elif a == 4:
                 assert this_neighbors["a.c"][3] == self.project.open_job({"a": {"c": 3}}).id
 
-    @pytest.mark.xfail(reason = "Schema doesn't distinguish truthy values. Asserting False til fix.")
     def test_neighbors_varied_types(self):
-        a_vals = [True, None, False, 1, "1", "2", 1.2, 1.3, 2, "x", "y", {"c": 2}, [3,4], [5,6]]
-        a_types = [type(a) for a in a_vals]
+        # in sort order
+        # NoneType is first because it's capitalized
+        a_vals = [None, False, True, 1.2, 1.3, 2, "1", "2", "x", "y", (3,4), (5,6)]
 
+        job_ids = []
         for a in a_vals:
-            self.project.open_job({"a": a}).init()
+            job = self.project.open_job({"a": a}).init()
+            job_ids.append(job.id)
 
         neighbors = self.project.get_neighbors()
-        print(neighbors)
-        print(a_types)
 
-        for job in self.project:
-            this_neighbors = neighbors[job.id]
-            print(f"{job.sp.a=} has neighbors {this_neighbors}")
-        print("Schema doesn't distinguish 1 and True, 0 and False")
-        assert False
-# I manually sorted the output here:
-# job.sp.a=None has neighbors {'a': {False: '260210482a322cd86398136bd3f79f96'}}
-# job.sp.a=False has neighbors {'a': {1.2: '26c562927aa486aa8029af535ec39645', None: '542bac9c870e9cd102c3909922945a4d'}}
-# job.sp.a=1.2 has neighbors {'a': {1: '42b7b4f2921788ea14dac5566e6f06d0', False: '260210482a322cd86398136bd3f79f96'}}
-# job.sp.a=1 has neighbors {'a': {2: '9f8a8e5ba8c70c774d410a9107e2a32b', 1.2: '26c562927aa486aa8029af535ec39645'}}
-# job.sp.a=2 has neighbors {'a': {'1': '44550aefb0b85d9db968d11e4fdfa6bc', 1: '42b7b4f2921788ea14dac5566e6f06d0'}}
-# job.sp.a='1' has neighbors {'a': {'2': '7f73bfec07cbee1bda5fbaab4b45acd6', 2: '9f8a8e5ba8c70c774d410a9107e2a32b'}}
-# job.sp.a='2' has neighbors {'a': {'x': 'f5239c9772076e520bcbef45c51aae76', '1': '44550aefb0b85d9db968d11e4fdfa6bc'}}
-# job.sp.a='x' has neighbors {'a': {'y': 'e9257974c07297468e235b1ec5a98174', '2': '7f73bfec07cbee1bda5fbaab4b45acd6'}}
-# job.sp.a='y' has neighbors {'a': {(3, 4): '8ddd8542fd23352d5987ab4d73337e52', 'x': 'f5239c9772076e520bcbef45c51aae76'}}
-# job.sp.a=[3, 4] has neighbors {'a': {(5, 6): '015c092e565ba53f0c2d9630db3a13ec', 'y': 'e9257974c07297468e235b1ec5a98174'}}
-# job.sp.a=[5, 6] has neighbors {'a': {(3, 4): '8ddd8542fd23352d5987ab4d73337e52'}}
-
-# job.sp.a={'c': 2} has neighbors {'a.c': {}}
-
-# problem: Not in the main sequence. It takes the place of 1
-# job.sp.a=True has neighbors {'a': {2: '9f8a8e5ba8c70c774d410a9107e2a32b', 1.2: '26c562927aa486aa8029af535ec39645'}}
-
-# schema doesn't distinguish these
+        for i,a in enumerate(a_vals):
+            jobid = job_ids[i]
+            if i > 0:
+                prev_val = a_vals[i-1]
+                assert neighbors[jobid]["a"][prev_val] == job_ids[i-1]
+            if i < len(a_vals) - 1:
+                next_val = a_vals[i+1]
+                assert neighbors[jobid]["a"][next_val] == job_ids[i+1]
 
     def test_neighbors_no(self):
         self.project.open_job({"a": 1}).init()
@@ -2497,7 +2481,7 @@ class TestProjectSchema(TestProjectBase):
 
 class TestProjectNeighbors(TestProjectBase):
     pass
-    
+
 def _initialize_v1_project(dirname, with_workspace=True, with_other_files=True):
     # Create v1 config file.
     cfg_fn = os.path.join(dirname, "signac.rc")
