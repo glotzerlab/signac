@@ -1734,37 +1734,28 @@ class Project:
         Now we have shadowid2 .---> jobid2
                               \\--> jobid3
         """
-
         shadow_cache = {} # like a state point cache, but for the shadow project
-        job_to_shadow = {} # goes from job id to shadow id. Call it the projection?
+        job_projection = {} # goes from job id to shadow id
         for job in self:
             shadow_sp = dict(job.cached_statepoint)
             for ig in ignore:
                 shadow_sp.pop(ig, None)
             shadow_id = calc_id(shadow_sp)
             shadow_cache[shadow_id] = shadow_sp
-            job_to_shadow[job.id] = shadow_id
+            job_projection[job.id] = shadow_id
 
-        if len(set(job_to_shadow.values())) != len(job_to_shadow):
-            # map that has duplicates
-            duplicate_map = {}
-            for k,v in job_to_shadow.items():
-                try:
-                    duplicate_map[v].append(k)
-                except KeyError:
-                    duplicate_map[v] = [k]
-            # one of the breaking cases
-            # figure out who breaks
-            counts = Counter(job_to_shadow.values())
-            bads = []
-            for k,v in counts.items():
-                if v>1:
-                    bads.append(k)
-            err_str = "\n".join(f"Job ids: {', '.join(duplicate_map[b])}." for b in bads)
+        if len(set(job_projection.values())) != len(job_projection):
+            # Make a helpful error message for map that has duplicates
+            shadow_to_job = defaultdict(list)
+            counts = defaultdict(int)
+            for job_id, shadow_id in job_projection.items():
+                shadow_to_job[shadow_id].append(job_id)
+                counts[shadow_id] += 1
+            bad_jobids = [shadow_to_job[shadow_id] for shadow_id, num in counts.items() if num > 1]
+            err_str = "\n".join(f"Job ids: {', '.join(j)}." for j in bad_jobids)
             raise ValueError(f"Ignoring {ignore} makes it impossible to distinguish some jobs:\n{err_str}")
-
         # map from shadow job id to project job id
-        shadow_map = {v: k for k, v in job_to_shadow.items()}
+        shadow_map = {v: k for k, v in job_projection.items()}
         return shadow_map, shadow_cache
 
     # key and other_val provided separately to be used with functools.partial
