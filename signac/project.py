@@ -1882,34 +1882,29 @@ class Project:
         for jobid, neighbors in shadow_neighbor_list.items():
             this_d = {}
             for neighbor_key, neighbor_vals in neighbors.items():
-                # neighbor_list.update({shadow_map[jobid]: {neighbor_key :{k: shadow_map[i] for k,i in neighbor_vals.items()}}})
                 this_d[neighbor_key] = {k: shadow_map[i] for k,i in neighbor_vals.items()}
             neighbor_list[shadow_map[jobid]] = this_d
         return neighbor_list
         
-    def make_neighbor_list(self, shadow_map, dotted_sp_cache, sorted_schema):
+    def build_neighbor_list(self, dotted_sp_cache, sorted_schema):
         """Iterate over jobs and get neighbors of each job.
 
         Parameters
         ----------
-        shadow_map : dict
-            Map from shadow job id to job id if ignoring certain keys, otherwise the identity map.
         dotted_sp_cache : dict
-            Map from job id OR shadow job id to state point OR shadow state point in dotted key format
+            Map from job id to state point OR shadow job id to shadow state point in dotted key format
         sorted_schema : dict
             Map of keys to their values to search over
 
         Returns
         -------
-        neighborlist : dict
-            
+        neighbor_list : dict
+            {jobid: {state_point_key: {prev_value: neighbor_id, next_value: neighbor_id}}}
         """
-        nearby_jobs = {}
+        neighbor_list = {}
         for _id, _sp in dotted_sp_cache.items():
-            nearby_jobs[_id] = self.neighbors_of_job(_sp, dotted_sp_cache, sorted_schema)
-            # {key: shadow_map[shadow_id] for key, shadow_id in shadow_job_neighbors.items()}
-        nearby_jobs = self.shadow_neighbor_list_to_neighbor_list(nearby_jobs, shadow_map)
-        return nearby_jobs
+            neighbor_list[_id] = self.neighbors_of_job(_sp, dotted_sp_cache, sorted_schema)
+        return neighbor_list
 
     def get_neighbors(self, ignore = []):        
         if not isinstance(ignore, list):
@@ -1933,19 +1928,16 @@ class Project:
             warnings.warn("Ignored key not present in project.", RuntimeWarning)
 
         if len(ignore) > 0:
-            _map, _cache = self._prepare_shadow_project(ignore = ignore)
-            # nl =  make_neighbor_list(_map, _cache, sorted_schema)
-            # return self.shadow_neighbor_list_to_neighbor_list(nl, shadow_map)
+            shadow_map, shadow_cache = self._prepare_shadow_project(ignore = ignore)
+            nl = self.build_neighbor_list(shadow_cache, sorted_schema)
+            return self.shadow_neighbor_list_to_neighbor_list(nl, shadow_map)
         else:
             self.update_cache()
             _cache = dict(self._sp_cache) # copy
             # the state point cache is incompatible with nested key notation
             for _id, _sp in _cache.items():
                 _cache[_id] = {k : v for k, v in _nested_dicts_to_dotted_keys(_sp)}
-            _map = {k : k for k in _cache}
-
-
-        return self.make_neighbor_list(_map, _cache, sorted_schema)
+            return self.build_neighbor_list(_cache, sorted_schema)
 
 @contextmanager
 def TemporaryProject(cls=None, **kwargs):
