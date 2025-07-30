@@ -1665,8 +1665,8 @@ class Project:
         state["_lock"] = RLock()
         self.__dict__.update(state)
 
-    def prepare_shadow_project(self, ignore: list):
-        """Detect neighbors and build cache for shadow project which comes from ignored keys.
+    def _prepare_shadow_project(self, ignore: list):
+        """Build cache and mapping for shadow project, which comes from ignored keys.
 
         Ignoring a key creates a subset of jobs, now identified with different job ids.
         Call it shadow job id because we're making a projection of the project.
@@ -1840,7 +1840,7 @@ class Project:
             pass
 
     def neighbors_of_job(self, statepoint, dotted_sp_cache, sorted_schema):
-        """Return neighbor list of job with jobid.
+        """Return neighbor list of given state point.
 
         dotted_sp_cache must be in dotted key format, which is accessed by calling
         _nested_dicts_to_dotted_keys on each state point in the cache.
@@ -1877,7 +1877,7 @@ class Project:
         return nearby_entry
 
     def shadow_neighbor_list_to_neighbor_list(self, shadow_neighbor_list, shadow_map):
-        """Replace shadow job ids with actual job ids."""
+        """Replace shadow job ids with actual job ids in the neighbor list."""
         neighbor_list = dict()
         for jobid, neighbors in shadow_neighbor_list.items():
             this_d = {}
@@ -1898,30 +1898,44 @@ class Project:
             Map from job id OR shadow job id to state point OR shadow state point in dotted key format
         sorted_schema : dict
             Map of keys to their values to search over
+
+        Returns
+        -------
+        neighborlist : dict
+            
         """
         nearby_jobs = {}
         for _id, _sp in dotted_sp_cache.items():
-            # shadow_job_neighbors = self.neighbors_of_job(_sp, dotted_sp_cache, sorted_schema)
-            # print(shadow_job_neighbors)
             nearby_jobs[_id] = self.neighbors_of_job(_sp, dotted_sp_cache, sorted_schema)
             # {key: shadow_map[shadow_id] for key, shadow_id in shadow_job_neighbors.items()}
-            # breakpoint()
         nearby_jobs = self.shadow_neighbor_list_to_neighbor_list(nearby_jobs, shadow_map)
-            # print(f"neighbors of {_id} are {shadow_job_neighbors}")
-            # this_d = {}
-            # #{key: shadow_map[shadow_id] for key, shadow_id in shadow_job_neighbors.items()}
-            # for key, shadow_id in shadow_job_neighbors.items():
-            #     if shadow_id != dict():
-            #         print(f"shadow_id: {shadow_id}")
-            #         this_d[key] = shadow_map[shadow_id]
-            # nearby_jobs[shadow_map[_id]] = this_d
         return nearby_jobs
 
     def get_neighbors(self, ignore = []):        
         if not isinstance(ignore, list):
             ignore = [ignore]
+        # For each state point parameter, make a flat list sorted by values it takes in the project.
+        # This is almost like schema, but the schema separates items by type.
+        # The schema also uses dotted keys.
+        # To sort between different types, put in order of the name of the type
+        schema = self.detect_schema()
+        sorted_schema = {}
+        for key, schema_values in schema.items():
+            tuples_to_sort = []
+            for type_name in schema_values:
+                tuples_to_sort.append((type_name.__name__, sorted(schema_values[type_name])))
+                combined_values = []
+                for _, v in sorted(tuples_to_sort, key = lambda x: x[0]):
+                    combined_values.extend(v)
+            sorted_schema[key] = combined_values
+        need_to_ignore = [sorted_schema.pop(ig, _DictPlaceholder) for ig in ignore]
+        if any(a is _DictPlaceholder for a in need_to_ignore):
+            warnings.warn("Ignored key not present in project.", RuntimeWarning)
+
         if len(ignore) > 0:
-            _map, _cache = self.prepare_shadow_project(ignore = ignore)
+            _map, _cache = self._prepare_shadow_project(ignore = ignore)
+            # nl =  make_neighbor_list(_map, _cache, sorted_schema)
+            # return self.shadow_neighbor_list_to_neighbor_list(nl, shadow_map)
         else:
             self.update_cache()
             _cache = dict(self._sp_cache) # copy
@@ -1929,22 +1943,8 @@ class Project:
             for _id, _sp in _cache.items():
                 _cache[_id] = {k : v for k, v in _nested_dicts_to_dotted_keys(_sp)}
             _map = {k : k for k in _cache}
-        schema = self.detect_schema()
-        sorted_schema = {}
-        for key in schema:
-            # sort values by the names of the types
-            tuples_to_sort = []
-            for typ in schema[key]:
-                tuples_to_sort.append((typ.__name__, sorted(schema[key][typ])))
-                combined_values = []
-                for _, v in sorted(tuples_to_sort, key = lambda x: x[0]):
-                    combined_values.extend(v)
-            sorted_schema[key] = combined_values
-        need_to_ignore = [sorted_schema.pop(ig, _DictPlaceholder) for ig in ignore]
-        if any(a is _DictPlaceholder for a in need_to_ignore):
-            # reset back to default
-            ignore = []
-            warnings.warn("Ignored key not present in project.", RuntimeWarning)
+
+
         return self.make_neighbor_list(_map, _cache, sorted_schema)
 
 @contextmanager
