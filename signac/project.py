@@ -1825,13 +1825,8 @@ class Project:
             if jobid is None:
                 query_index += search_direction
             else:
-                break
-        else:
-            jobid = None
-            val = None
-        # todo
-        # return {val: jobid}
-        return jobid, val
+                return {val: jobid}
+        return None
 
     def job_my_neighbor(self, ignore, sorted_schema):
         """Prototype going from job to neighbor with minimal mess"""
@@ -1865,14 +1860,14 @@ class Project:
             value_index = schema_values.index(value)
             # need to pass statepoint by copy
             search_fun = functools.partial(self._search_cache_for_val, dict(statepoint), dotted_sp_cache, key)
-            previous_jobid, previous_val = self._search_out(-1, schema_values, value_index, 0, search_fun)
-            next_jobid, next_val = self._search_out(1, schema_values, value_index, len(schema_values) - 1, search_fun)
+            prev_neighbor = self._search_out(-1, schema_values, value_index, 0, search_fun)
+            next_neighbor = self._search_out(1, schema_values, value_index, len(schema_values) - 1, search_fun)
 
             this_d = {}
-            if next_jobid is not None:
-                this_d.update({next_val: next_jobid})
-            if previous_jobid is not None:
-                this_d.update({previous_val: previous_jobid})
+            if next_neighbor is not None:
+                this_d.update(next_neighbor)
+            if prev_neighbor is not None:
+                this_d.update(prev_neighbor)
             nearby_entry.update({key: this_d})
         return nearby_entry
 
