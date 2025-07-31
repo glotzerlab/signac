@@ -1,7 +1,5 @@
-import signac
-
-def prepare_shadow_project(project, ignore):
-    """Detect neighbors and build cache for shadow project which comes from ignored keys.
+def _prepare_shadow_project(self, ignore: list):
+    """Build cache and mapping for shadow project, which comes from ignored keys.
 
     Ignoring a key creates a subset of jobs, now identified with different job ids.
     Call it shadow job id because we're making a projection of the project.
@@ -12,14 +10,12 @@ def prepare_shadow_project(project, ignore):
     We can detect the neighbor list on the shadow project then map it back
     to the real project.
 
-    TODO: Belongs in signac core eventually.
-
     Returns shadow_map, shadow_cache
 
     shadow_map is a map from shadow job id to project job id.
 
     shadow_cache is an in-memory state point cache for the shadow project
-    mapping job id --> shadow state point
+    mapping shadow job id --> shadow state point
 
 
     Use cases:
@@ -38,14 +34,15 @@ def prepare_shadow_project(project, ignore):
     shadowid1 <---> jobid1
     shadowid2 <---> jobid2
 
-    Breaking case 1 with repeated shadow jobs
+    Breaking case 1 with repeated shadow jobs:
+
     {"a": 1, "b": 2, "seed": 0} -> jobid1
     {"a": 1, "b": 3, "seed": 1} -> jobid2
     {"a": 1, "b": 3, "seed": 2} -> jobid3
 
     {"a": 1, "b": 2} -> shadowid1
     {"a": 1, "b": 3} -> shadowid2
-    {"a": 1, "b": 3} -> shadowid2 *conflict* No longer bijection. Maybe we can just keep track of these? Should be few cases.
+    {"a": 1, "b": 3} -> shadowid2 *conflict* No longer bijection.
     Now we have shadowid2 .---> jobid2
                           \\--> jobid3
 
@@ -70,94 +67,169 @@ def prepare_shadow_project(project, ignore):
     Now we have shadowid2 .---> jobid2
                           \\--> jobid3
     """
-
-    shadow_cache = {} # like a state point cache
-    job_to_shadow = {} # goes from job id to shadow. Call it the projection?
-    for job in project:
+    shadow_cache = {} # like a state point cache, but for the shadow project
+    job_projection = {} # goes from job id to shadow id
+    for job in self:
         shadow_sp = dict(job.cached_statepoint)
         for ig in ignore:
             shadow_sp.pop(ig, None)
         shadow_id = calc_id(shadow_sp)
         shadow_cache[shadow_id] = shadow_sp
-        job_to_shadow[job.id] = shadow_id
+        job_projection[job.id] = shadow_id
 
-    if len(set(job_to_shadow.values())) != len(job_to_shadow):
-        # map that has duplicates
-        duplicate_map = {}
-        for k,v in job_to_shadow.items():
-            try:
-                duplicate_map[v].append(k)
-            except KeyError:
-                duplicate_map[v] = [k]
-        # one of the breaking cases
-        # figure out who breaks
-        counts = Counter(job_to_shadow.values())
-        bads = []
-        for k,v in counts.items():
-            if v>1:
-                bads.append(k)
-        err_str = "\n".join(f"Job ids: {', '.join(duplicate_map[b])}." for b in bads)
-        raise ValueError(f"Ignoring key '{self.ignore}' makes it impossible to distinguish some jobs:\n{err_str}")
-    shadow_map = {v: k for k, v in job_to_shadow.items()}
+    if len(set(job_projection.values())) != len(job_projection):
+        # Make a helpful error message for map that has duplicates
+        shadow_to_job = defaultdict(list)
+        counts = defaultdict(int)
+        for job_id, shadow_id in job_projection.items():
+            shadow_to_job[shadow_id].append(job_id)
+            counts[shadow_id] += 1
+        bad_jobids = [shadow_to_job[shadow_id] for shadow_id, num in counts.items() if num > 1]
+        err_str = "\n".join(f"Job ids: {', '.join(j)}." for j in bad_jobids)
+        raise ValueError(f"Ignoring {ignore} makes it impossible to distinguish some jobs:\n{err_str}")
+    # map from shadow job id to project job id
+    shadow_map = {v: k for k, v in job_projection.items()}
     return shadow_map, shadow_cache
-    
-def make_neighbor_list(self, my_map, my_cache, _sorted_schema):
-    nearby_jobs = {}
-    for _id, _sp in my_cache.items():
-        nearby_entry = {}
-        for key, schema_values in _sorted_schema.items(): # from project
-            # allow comparison with output of schema, which is hashable
-            value = _to_hashable(_sp.get(key, _DictPlaceholder))
-            if value is _DictPlaceholder:
-                # Possible if schema is heterogeneous
-                continue
 
-            value_index = schema_values.index(value)
-            # need to pass _sp by copy
-            search_fun = functools.partial(self._search_cache_for_val, dict(_sp), my_cache, key)
-            previous_job = self._search_out(-1, schema_values, value_index, 0, search_fun)
-            next_job = self._search_out(1, schema_values, value_index, len(schema_values) - 1, search_fun)
-
-            this_d = {}
-            if next_job[0] is not None:
-                this_d.update({next_job[1]: my_map[next_job[0]]})
-            if previous_job[0] is not None:
-                this_d.update({previous_job[1]: my_map[previous_job[0]]})
-            nearby_entry.update({key: this_d})
-        nearby_jobs[my_map[_id]] = nearby_entry
-    return nearby_jobs
-
-def _search_out(self, direction_multiplier, values, current_index, boundary, search_fun):
-    """Search values towards boundary from current_index using search_fun.
-
-    :param direction_multiplier: 1 means search in the positive direction from the index
-    :param values: iterator of values to index into
-    :param current_index: index in values to start searching from.
-     The value at this index is not accessed directly.
-    :param search_fun: function taking 1 argument returning jobid if there is a match
-    :param boundary: the index at which to stop
-    :param search_fun: function that decides if value exists in project
-
-    """
-
-    query_index = current_index + direction_multiplier
-    # search either query_index >= low_boundary or query_index <= high_boundary
-    while direction_multiplier * query_index <= boundary * direction_multiplier: 
-        val = values[query_index]
-        jobid = search_fun(val)
-        if jobid is None:
-            query_index += direction_multiplier
-        else:
-            break
-    else:
-        jobid = None
-        val = None
-    return jobid, val
-
+# key and other_val provided separately to be used with functools.partial
 def _search_cache_for_val(self, sp_dict, cache, key, other_val):
+    """Return job id of similar job if present in cache.
+
+    The similar job is obtained by modifying sp_dict to
+    include {key: other_val}.
+
+    Internally converts sp_dict from dotted keys to nested dicts format.
+
+    Parameters
+    ----------
+    sp_dict : dict
+        sp_dict must not be a reference to a state point because it will be
+        modified in this function
+    cache : dict
+        state point cache
+    key : str
+        The key whose value to change
+    other_val
+        The new value of key to search for
+
+    Returns
+    -------
+    job id of similar job
+    None, if not present
+    """
     sp_dict.update({key: other_val})
+    # schema output not compatible with dotted key notation
+    sp_dict = _dotted_dict_to_nested_dicts(sp_dict)
     other_job_id = calc_id(sp_dict)
     if other_job_id in cache:
         return other_job_id
     else:
         return None
+
+def _search_out(self, search_direction, values, current_index, boundary_index, search_fun):
+    """Search in values towards boundary_index from current_index using search_fun.
+
+    Parameters
+    ----------
+    search_direction : int, 1 or -1
+        1 means search in the positive direction from the index
+    values : iterable
+        values to index into when searching
+    current_index : int
+       index into values to start searching from.
+       The value at this index is not accessed directly.
+    boundary_index : int
+        the index at which to stop
+    search_fun : function
+        unary function returning jobid if it exists and None otherwise
+
+    Returns
+    -------
+    Tuple of (jobid, val)
+    jobid : str
+        job id of the nearest job in the search_direction
+    val : value of the key at the neighbor jobid
+    """
+    query_index = current_index + search_direction
+    # search either query_index >= low_boundary or query_index <= high_boundary
+    while search_direction * query_index <= boundary_index * search_direction:
+        val = values[query_index]
+        jobid = search_fun(val)
+        if jobid is None:
+            query_index += search_direction
+        else:
+            return {val: jobid}
+    return None
+
+def job_my_neighbor(self, ignore, sorted_schema):
+    """Prototype going from job to neighbor with minimal mess"""
+    nl = self.neighbors_of_sp()
+    for key, value in nl:
+        pass
+
+def neighbors_of_sp(self, statepoint, dotted_sp_cache, sorted_schema):
+    """Return neighbor list of given state point.
+
+    dotted_sp_cache must be in dotted key format, which is accessed by calling
+    _nested_dicts_to_dotted_keys on each state point in the cache.
+
+    Parameters
+    ----------
+    statepoint : dict
+        Place to search from. Could be the shadow state point.
+    dotted_sp_cache : dict
+        Map from job id OR shadow job id to state point OR shadow state point in dotted key format
+    sorted_schema : dict
+        Map from key (in dotted notation) to sorted values of the key to search over
+    """
+
+    nearby_entry = {}
+    for key, schema_values in sorted_schema.items(): # from project
+        # allow comparison with output of schema, which is hashable
+        value = _to_hashable(statepoint.get(key, _DictPlaceholder))
+        if value is _DictPlaceholder:
+            # Possible if schema is heterogeneous
+            continue
+        value_index = schema_values.index(value)
+        # need to pass statepoint by copy
+        search_fun = functools.partial(self._search_cache_for_val, dict(statepoint), dotted_sp_cache, key)
+        prev_neighbor = self._search_out(-1, schema_values, value_index, 0, search_fun)
+        next_neighbor = self._search_out(1, schema_values, value_index, len(schema_values) - 1, search_fun)
+
+        this_d = {}
+        if next_neighbor is not None:
+            this_d.update(next_neighbor)
+        if prev_neighbor is not None:
+            this_d.update(prev_neighbor)
+        nearby_entry.update({key: this_d})
+    return nearby_entry
+
+def shadow_neighbor_list_to_neighbor_list(self, shadow_neighbor_list, shadow_map):
+    """Replace shadow job ids with actual job ids in the neighbor list."""
+    neighbor_list = dict()
+    for jobid, neighbors in shadow_neighbor_list.items():
+        this_d = {}
+        for neighbor_key, neighbor_vals in neighbors.items():
+            this_d[neighbor_key] = {k: shadow_map[i] for k,i in neighbor_vals.items()}
+        neighbor_list[shadow_map[jobid]] = this_d
+    return neighbor_list
+
+def build_neighbor_list(self, dotted_sp_cache, sorted_schema):
+    """Iterate over cached state points and get neighbors of each state point.
+
+    Parameters
+    ----------
+    dotted_sp_cache : dict
+        Map from job id to state point OR shadow job id to shadow state point in dotted key format
+    sorted_schema : dict
+        Map of keys to their values to search over
+
+    Returns
+    -------
+    neighbor_list : dict
+        {jobid: {state_point_key: {prev_value: neighbor_id, next_value: neighbor_id}}}
+    """
+    neighbor_list = {}
+    for _id, _sp in dotted_sp_cache.items():
+        neighbor_list[_id] = self.neighbors_of_sp(_sp, dotted_sp_cache, sorted_schema)
+    return neighbor_list
