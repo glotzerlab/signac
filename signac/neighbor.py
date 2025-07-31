@@ -168,12 +168,6 @@ def _search_out(search_direction, values, current_index, boundary_index, search_
             return {val: jobid}
     return None
 
-def job_my_neighbor(ignore, sorted_schema):
-    """Prototype going from job to neighbor with minimal mess"""
-    nl = neighbors_of_sp()
-    for key, value in nl:
-        pass
-
 def neighbors_of_sp(statepoint, dotted_sp_cache, sorted_schema):
     """Return neighbor list of given state point.
 

@@ -1666,19 +1666,12 @@ class Project:
         state["_lock"] = RLock()
         self.__dict__.update(state)
 
-    # def job_my_neighbor(self, ignore, sorted_schema):
-    #     """Prototype going from job to neighbor with minimal mess"""
-    #     nl = self.neighbors_of_sp()
-    #     for key, value in nl:
-    #         pass
-
-    def get_neighbors(self, ignore = []):        
-        if not isinstance(ignore, list):
-            ignore = [ignore]
-        # For each state point parameter, make a flat list sorted by values it takes in the project.
-        # This is almost like schema, but the schema separates items by type.
-        # The schema also uses dotted keys.
-        # To sort between different types, put in order of the name of the type
+    def flat_schema(self):
+        """For each state point parameter, make a flat list sorted by values it takes in the project.
+        This is almost like schema, but the schema separates items by type.
+        The schema also uses dotted keys.
+        To sort between different types, put in order of the name of the type
+        """
         schema = self.detect_schema()
         sorted_schema = {}
         for key, schema_values in schema.items():
@@ -1689,6 +1682,13 @@ class Project:
                 for _, v in sorted(tuples_to_sort, key = lambda x: x[0]):
                     combined_values.extend(v)
             sorted_schema[key] = combined_values
+        return sorted_schema
+
+    def get_neighbors(self, ignore = []):
+        if not isinstance(ignore, list):
+            ignore = [ignore]
+
+        sorted_schema = self.flat_schema()
         need_to_ignore = [sorted_schema.pop(ig, _DictPlaceholder) for ig in ignore]
         if any(a is _DictPlaceholder for a in need_to_ignore):
             warnings.warn("Ignored key not present in project.", RuntimeWarning)

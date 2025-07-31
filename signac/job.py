@@ -27,6 +27,7 @@ from .errors import DestinationExistsError, JobsCorruptedError
 from .h5store import H5StoreManager
 from .sync import sync_jobs
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -979,6 +980,14 @@ class Job:
         except IndexError:
             pass
 
+    def neighbors(self, ignore = []):
+        """Prototype going from job to neighbor with minimal mess"""
+        from .neighbor import neighbors_of_sp
+        sp_cache = self._project._sp_cache
+        sorted_schema = self._project.flat_schema()
+        neighbors = neighbors_of_sp(self.cached_statepoint, sp_cache, sorted_schema)
+        return neighbors
+        
     def __enter__(self):
         self.open()
         return self
@@ -1013,6 +1022,3 @@ class Job:
         result._lock = RLock()
         return result
 
-    def neighbors(self, ignore=None):
-        # TODO, do we expose this to each job?
-        pass
