@@ -1,4 +1,11 @@
-def _prepare_shadow_project(self, ignore: list):
+from functools import partial
+from collections import defaultdict
+
+from .job import calc_id
+from ._utility import _to_hashable, _dotted_dict_to_nested_dicts
+from ._search_indexer import _DictPlaceholder
+
+def prepare_shadow_project(sp_cache, ignore: list):
     """Build cache and mapping for shadow project, which comes from ignored keys.
 
     Ignoring a key creates a subset of jobs, now identified with different job ids.
@@ -69,13 +76,13 @@ def _prepare_shadow_project(self, ignore: list):
     """
     shadow_cache = {} # like a state point cache, but for the shadow project
     job_projection = {} # goes from job id to shadow id
-    for job in self:
-        shadow_sp = dict(job.cached_statepoint)
+    for jobid, sp in sp_cache.items():
+        shadow_sp = dict(sp)
         for ig in ignore:
             shadow_sp.pop(ig, None)
         shadow_id = calc_id(shadow_sp)
         shadow_cache[shadow_id] = shadow_sp
-        job_projection[job.id] = shadow_id
+        job_projection[jobid] = shadow_id
 
     if len(set(job_projection.values())) != len(job_projection):
         # Make a helpful error message for map that has duplicates
@@ -92,7 +99,7 @@ def _prepare_shadow_project(self, ignore: list):
     return shadow_map, shadow_cache
 
 # key and other_val provided separately to be used with functools.partial
-def _search_cache_for_val(self, sp_dict, cache, key, other_val):
+def _search_cache_for_val(sp_dict, cache, key, other_val):
     """Return job id of similar job if present in cache.
 
     The similar job is obtained by modifying sp_dict to
@@ -126,7 +133,7 @@ def _search_cache_for_val(self, sp_dict, cache, key, other_val):
     else:
         return None
 
-def _search_out(self, search_direction, values, current_index, boundary_index, search_fun):
+def _search_out(search_direction, values, current_index, boundary_index, search_fun):
     """Search in values towards boundary_index from current_index using search_fun.
 
     Parameters
@@ -161,13 +168,13 @@ def _search_out(self, search_direction, values, current_index, boundary_index, s
             return {val: jobid}
     return None
 
-def job_my_neighbor(self, ignore, sorted_schema):
+def job_my_neighbor(ignore, sorted_schema):
     """Prototype going from job to neighbor with minimal mess"""
-    nl = self.neighbors_of_sp()
+    nl = neighbors_of_sp()
     for key, value in nl:
         pass
 
-def neighbors_of_sp(self, statepoint, dotted_sp_cache, sorted_schema):
+def neighbors_of_sp(statepoint, dotted_sp_cache, sorted_schema):
     """Return neighbor list of given state point.
 
     dotted_sp_cache must be in dotted key format, which is accessed by calling
@@ -192,9 +199,9 @@ def neighbors_of_sp(self, statepoint, dotted_sp_cache, sorted_schema):
             continue
         value_index = schema_values.index(value)
         # need to pass statepoint by copy
-        search_fun = functools.partial(self._search_cache_for_val, dict(statepoint), dotted_sp_cache, key)
-        prev_neighbor = self._search_out(-1, schema_values, value_index, 0, search_fun)
-        next_neighbor = self._search_out(1, schema_values, value_index, len(schema_values) - 1, search_fun)
+        search_fun = partial(_search_cache_for_val, dict(statepoint), dotted_sp_cache, key)
+        prev_neighbor = _search_out(-1, schema_values, value_index, 0, search_fun)
+        next_neighbor = _search_out(1, schema_values, value_index, len(schema_values) - 1, search_fun)
 
         this_d = {}
         if next_neighbor is not None:
@@ -204,7 +211,7 @@ def neighbors_of_sp(self, statepoint, dotted_sp_cache, sorted_schema):
         nearby_entry.update({key: this_d})
     return nearby_entry
 
-def shadow_neighbor_list_to_neighbor_list(self, shadow_neighbor_list, shadow_map):
+def shadow_neighbor_list_to_neighbor_list(shadow_neighbor_list, shadow_map):
     """Replace shadow job ids with actual job ids in the neighbor list."""
     neighbor_list = dict()
     for jobid, neighbors in shadow_neighbor_list.items():
@@ -214,7 +221,7 @@ def shadow_neighbor_list_to_neighbor_list(self, shadow_neighbor_list, shadow_map
         neighbor_list[shadow_map[jobid]] = this_d
     return neighbor_list
 
-def build_neighbor_list(self, dotted_sp_cache, sorted_schema):
+def build_neighbor_list(dotted_sp_cache, sorted_schema):
     """Iterate over cached state points and get neighbors of each state point.
 
     Parameters
@@ -231,5 +238,5 @@ def build_neighbor_list(self, dotted_sp_cache, sorted_schema):
     """
     neighbor_list = {}
     for _id, _sp in dotted_sp_cache.items():
-        neighbor_list[_id] = self.neighbors_of_sp(_sp, dotted_sp_cache, sorted_schema)
+        neighbor_list[_id] = neighbors_of_sp(_sp, dotted_sp_cache, sorted_schema)
     return neighbor_list
