@@ -1830,11 +1830,11 @@ class Project:
 
     def job_my_neighbor(self, ignore, sorted_schema):
         """Prototype going from job to neighbor with minimal mess"""
-        nl = self.neighbors_of_job()
+        nl = self.neighbors_of_sp()
         for key, value in nl:
             pass
 
-    def neighbors_of_job(self, statepoint, dotted_sp_cache, sorted_schema):
+    def neighbors_of_sp(self, statepoint, dotted_sp_cache, sorted_schema):
         """Return neighbor list of given state point.
 
         dotted_sp_cache must be in dotted key format, which is accessed by calling
@@ -1882,7 +1882,7 @@ class Project:
         return neighbor_list
         
     def build_neighbor_list(self, dotted_sp_cache, sorted_schema):
-        """Iterate over jobs and get neighbors of each job.
+        """Iterate over cached state points and get neighbors of each state point.
 
         Parameters
         ----------
@@ -1898,7 +1898,7 @@ class Project:
         """
         neighbor_list = {}
         for _id, _sp in dotted_sp_cache.items():
-            neighbor_list[_id] = self.neighbors_of_job(_sp, dotted_sp_cache, sorted_schema)
+            neighbor_list[_id] = self.neighbors_of_sp(_sp, dotted_sp_cache, sorted_schema)
         return neighbor_list
 
     def get_neighbors(self, ignore = []):        
