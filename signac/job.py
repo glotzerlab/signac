@@ -980,7 +980,7 @@ class Job:
         except IndexError:
             pass
 
-    def neighbors(self, ignore = []):
+    def get_neighbors(self, ignore = []):
         """Prototype going from job to neighbor with minimal mess"""
         from .neighbor import neighbors_of_sp
         sp_cache = self._project._sp_cache
