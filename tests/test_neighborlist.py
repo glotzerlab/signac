@@ -85,6 +85,18 @@ class TestNeighborList(TestProject):
                 assert this_neighbors["a.c"][4] == self.project.open_job({"a": {"c": 4}}).id
                 assert this_neighbors["a.c"]["hello"] == self.project.open_job({"a": {"c": "hello"}}).id
 
+    def test_neighbors_disjoint_ignore(self):
+        for a,b in product([1,2,3], [5,6,7]):
+            self.project.open_job({"a": a, "b": b, "2b": 2*b}).init()
+        for x in [{"n": "nested"}, {"n": "values"}]:
+            self.project.open_job({"x": x}).init()
+
+        neighbor_list = self.project.get_neighbors(ignore = ["2b"])
+
+        flat_schema = self.project._flat_schema()
+        job = self.project.open_job({"x": {"n": "nested"}})
+        assert len(neighbor_list[job.id]) > 0
+
     def test_neighbors_varied_types(self):
         # in sort order
         # NoneType is first because it's capitalized

@@ -283,6 +283,8 @@ def get_neighbor_list(sp_cache, sorted_schema, ignore):
     """
     if len(ignore) > 0:
         shadow_map, shadow_cache = prepare_shadow_project(sp_cache, ignore = ignore)
+        for _id, _sp in shadow_cache.items():
+            shadow_cache[_id] = {k : v for k, v in _nested_dicts_to_dotted_keys(_sp)}
         nl = _build_neighbor_list(shadow_cache, sorted_schema)
         return shadow_neighbor_list_to_neighbor_list(nl, shadow_map)
     else:
