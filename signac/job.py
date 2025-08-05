@@ -984,8 +984,8 @@ class Job:
         """Prototype going from job to neighbor with minimal mess"""
         from .neighbor import neighbors_of_sp
         sp_cache = self._project._sp_cache
-        sorted_schema = self._project.flat_schema()
         neighbors = neighbors_of_sp(self.cached_statepoint, sp_cache, sorted_schema)
+        sorted_schema = self._project._flat_schema()
         return neighbors
         
     def __enter__(self):
