@@ -8,8 +8,9 @@ from ._search_indexer import _DictPlaceholder
 def prepare_shadow_project(sp_cache, ignore: list):
     """Build cache and mapping for shadow project, which comes from ignored keys.
 
-    Ignoring a key creates a subset of jobs, now identified with different job ids.
-    Call it "shadow" job id because we're making a projection of the project.
+    We use cache lookups for speedy searching. Ignoring a key creates a subset of jobs, now
+    identified with different job ids. Call it "shadow" job id because we're making a projection of
+    the project.
 
     We can map from the shadow job id to the actual job id in the use cases identified.
     Raise ValueError if this mapping is ill defined.
@@ -17,8 +18,14 @@ def prepare_shadow_project(sp_cache, ignore: list):
     We can detect the neighbor list on the shadow project then map it back
     to the real project.
 
-    Returns shadow_map, shadow_cache
+    Parameters
+    ----------
+    sp_cache, state point cache
+    ignore: list of str
+        state point keys
 
+    Returns
+    -------
     shadow_map is a map from shadow job id to project job id.
 
     shadow_cache is an in-memory state point cache for the shadow project
@@ -73,6 +80,7 @@ def prepare_shadow_project(sp_cache, ignore: list):
     {"a1": 2} -> shadowid2 --
     Now we have shadowid2 .---> jobid2
                           \\--> jobid3
+
     """
     shadow_cache = {} # like a state point cache, but for the shadow project
     job_projection = {} # goes from job id to shadow id
@@ -99,18 +107,18 @@ def prepare_shadow_project(sp_cache, ignore: list):
     return shadow_map, shadow_cache
 
 # key and other_val provided separately to be used with functools.partial
-def _search_cache_for_val(sp_dict, cache, key, other_val):
-    """Return job id of a job similar to sp_dict if present in cache.
+def _search_cache_for_val(statepoint, cache, key, other_val):
+    """Return job id of a job similar to statepoint if present in cache.
 
-    The similar job is obtained by modifying sp_dict to include {key: other_val}.
+    The similar job is obtained by modifying statepoint to include {key: other_val}.
 
-    Internally converts sp_dict from dotted keys to nested dicts format.
+    Internally converts statepoint from dotted keys to nested dicts format.
 
     Parameters
     ----------
-    sp_dict : dict
-        state point of job to modify. sp_dict must not be a reference to a state point because it
-        will be modified in this function
+    statepoint : dict
+        state point of job to modify. statepoint must not be a reference because it will be
+        modified in this function
     cache : dict
         project state point cache to search in
     key : str
@@ -123,10 +131,10 @@ def _search_cache_for_val(sp_dict, cache, key, other_val):
     job id of similar job
     None, if not present
     """
-    sp_dict.update({key: other_val})
+    statepoint.update({key: other_val})
     # schema output not compatible with dotted key notation
-    sp_dict = _dotted_dict_to_nested_dicts(sp_dict)
-    other_job_id = calc_id(sp_dict)
+    statepoint = _dotted_dict_to_nested_dicts(statepoint)
+    other_job_id = calc_id(statepoint)
     if other_job_id in cache:
         return other_job_id
     else:
@@ -151,12 +159,12 @@ def _search_out(search_direction, values, current_index, boundary_index, search_
 
     Returns
     -------
+    None if jobid not found
+    
     {val: jobid} if jobid found per search_fun
     jobid : str
         job id of the nearest job in the search_direction
     val : value of the key at the neighbor jobid
-
-    None otherwise
     """
     query_index = current_index + search_direction
     # search either query_index >= low_boundary or query_index <= high_boundary
@@ -187,7 +195,7 @@ def neighbors_of_sp(statepoint, dotted_sp_cache, sorted_schema):
         Map from key (in dotted notation) to sorted values of the key to search over
     """
 
-    nearby_entry = {}
+    neighbors = {}
     for key, schema_values in sorted_schema.items(): # from project
         # allow comparison with output of schema, which is hashable
         value = _to_hashable(statepoint.get(key, _DictPlaceholder))
@@ -205,8 +213,8 @@ def neighbors_of_sp(statepoint, dotted_sp_cache, sorted_schema):
             this_d.update(next_neighbor)
         if prev_neighbor is not None:
             this_d.update(prev_neighbor)
-        nearby_entry.update({key: this_d})
-    return nearby_entry
+        neighbors.update({key: this_d})
+    return neighbors
 
 def shadow_neighbor_list_to_neighbor_list(shadow_neighbor_list, shadow_map):
     """Replace shadow job ids with actual job ids in the neighbor list.
@@ -226,7 +234,7 @@ def shadow_neighbor_list_to_neighbor_list(shadow_neighbor_list, shadow_map):
         neighbor_list[shadow_map[jobid]] = this_d
     return neighbor_list
 
-def build_neighbor_list(dotted_sp_cache, sorted_schema):
+def _build_neighbor_list(dotted_sp_cache, sorted_schema):
     """Iterate over cached state points and get neighbors of each state point.
 
     Parameters
@@ -247,12 +255,26 @@ def build_neighbor_list(dotted_sp_cache, sorted_schema):
     return neighbor_list
 
 def get_neighbor_list(sp_cache, sorted_schema, ignore):
+    """Build neighbor list while handling ignored keys.
+
+    Parameters
+    ----------
+    sp_cache : dict
+        Project state point cache
+    sorted_schema : dict
+        Map of keys to their values to search over
+
+    Returns
+    -------
+    neighbor_list : dict
+        {jobid: {state_point_key: {prev_value: neighbor_id, next_value: neighbor_id}}}
+    """
     if len(ignore) > 0:
         shadow_map, shadow_cache = prepare_shadow_project(sp_cache, ignore = ignore)
-        nl = build_neighbor_list(shadow_cache, sorted_schema)
+        nl = _build_neighbor_list(shadow_cache, sorted_schema)
         return shadow_neighbor_list_to_neighbor_list(nl, shadow_map)
     else:
         # the state point cache is incompatible with nested key notation
         for _id, _sp in sp_cache.items():
             sp_cache[_id] = {k : v for k, v in _nested_dicts_to_dotted_keys(_sp)}
-        return build_neighbor_list(sp_cache, sorted_schema)
+        return _build_neighbor_list(sp_cache, sorted_schema)
