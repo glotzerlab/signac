@@ -990,6 +990,10 @@ class Job:
         """
         from .neighbor import neighbors_of_sp, prepare_shadow_project, shadow_neighbors_to_neighbors
         from ._utility import _nested_dicts_to_dotted_keys
+
+        if not isinstance(ignore, list):
+            ignore = [ignore]
+
         sp_cache = self._project._sp_cache
         sorted_schema = self._project._flat_schema()
         if len(ignore) > 0:
