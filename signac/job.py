@@ -981,11 +981,30 @@ class Job:
             pass
 
     def get_neighbors(self, ignore = []):
-        """Prototype going from job to neighbor with minimal mess"""
-        from .neighbor import neighbors_of_sp
+        """Return the neighbors of this job.
+
+        Parameters
+        ----------
+        ignore : list
+            List of state point parameters to ignore when building neighbor list
+        """
+        from .neighbor import neighbors_of_sp, prepare_shadow_project, shadow_neighbor_list_to_neighbor_list
         sp_cache = self._project._sp_cache
-        neighbors = neighbors_of_sp(self.cached_statepoint, sp_cache, sorted_schema)
         sorted_schema = self._project._flat_schema()
+        if len(ignore) > 0:
+            # TODO reduce code duplication here. Existing code focuses on doing all at once and converting to shadow space early
+            shadow_map, shadow_cache = prepare_shadow_project(sp_cache, ignore = ignore)
+            # sp = shadow_cache[shadow_... ?
+            sp = dict(self.cached_statepoint)
+            ig = [sp.pop(i, None) for i in ignore]
+            neighbors = neighbors_of_sp(sp, shadow_cache, sorted_schema)
+            # convert back from shadow id
+            this_d = {}
+            for neighbor_key, neighbor_vals in neighbors.items():
+                this_d[neighbor_key] = {k: shadow_map[i] for k,i in neighbor_vals.items()}
+                neighbors = this_d
+        else:
+            neighbors = neighbors_of_sp(self.cached_statepoint, sp_cache, sorted_schema)
         return neighbors
         
     def __enter__(self):

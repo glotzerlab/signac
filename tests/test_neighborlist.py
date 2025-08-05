@@ -46,7 +46,10 @@ class TestNeighborList(TestProject):
 
         for b in b_vals:
             job = self.project.open_job({"b": b, "2b": 2 * b})
+            neighbors_job = job.get_neighbors(ignore = ["2b"])
+
             this_neighbors = neighbor_list[job.id]
+            assert this_neighbors == neighbors_job
 
             if b == 3:
                 assert this_neighbors["b"][4] == self.project.open_job({"b": 4, "2b": 8}).id
@@ -65,7 +68,10 @@ class TestNeighborList(TestProject):
 
         for a in a_vals:
             job = self.project.open_job({"a": a})
+            neighbors_job = job.get_neighbors()
+
             this_neighbors = neighbor_list[job.id]
+            assert this_neighbors == neighbors_job
             # note how the inconsistency in neighborlist access syntax comes from schema
             if a == 2:
                 assert this_neighbors["a.c"][3] == self.project.open_job({"a": {"c": 3}}).id
@@ -89,12 +95,17 @@ class TestNeighborList(TestProject):
 
         for i,a in enumerate(a_vals):
             jobid = job_ids[i]
+            job = self.project.open_job(id = jobid)
+
+            neighbors_job = job.get_neighbors()
+            this_neighbors = neighbor_list[jobid]
+            assert this_neighbors == neighbors_job
             if i > 0:
                 prev_val = a_vals[i-1]
-                assert neighbor_list[jobid]["a"][prev_val] == job_ids[i-1]
+                assert this_neighbors["a"][prev_val] == job_ids[i-1]
             if i < len(a_vals) - 1:
                 next_val = a_vals[i+1]
-                assert neighbor_list[jobid]["a"][next_val] == job_ids[i+1]
+                assert this_neighbors["a"][next_val] == job_ids[i+1]
 
     def test_neighbors_no(self):
         self.project.open_job({"a": 1}).init()
@@ -103,6 +114,8 @@ class TestNeighborList(TestProject):
 
         for job in self.project:
             for v in neighbor_list[job.id].values():
+                assert len(v) == 0
+            for v in job.get_neighbors().values():
                 assert len(v) == 0
 
     def test_neighbors_ignore_dups(self):
@@ -114,6 +127,11 @@ class TestNeighborList(TestProject):
             self.project.get_neighbors(ignore = "a")
         with pytest.raises(ValueError):
             self.project.get_neighbors(ignore = "b")
+        for job in self.project:
+            with pytest.raises(ValueError):
+                job.get_neighbors(ignore = "a")
+            with pytest.raises(ValueError):
+                job.get_neighbors(ignore = "b")
 
     
     
