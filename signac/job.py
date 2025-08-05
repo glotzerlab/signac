@@ -989,6 +989,7 @@ class Job:
             List of state point parameters to ignore when building neighbor list
         """
         from .neighbor import neighbors_of_sp, prepare_shadow_project, shadow_neighbors_to_neighbors
+        from ._utility import _nested_dicts_to_dotted_keys
         sp_cache = self._project._sp_cache
         sorted_schema = self._project._flat_schema()
         if len(ignore) > 0:
@@ -997,6 +998,7 @@ class Job:
             # sp = shadow_cache[shadow_... ?
             sp = dict(self.cached_statepoint)
             ig = [sp.pop(i, None) for i in ignore]
+            sp = dict(_nested_dicts_to_dotted_keys(sp))
             neighbors = neighbors_of_sp(sp, shadow_cache, sorted_schema)
             neighbors = shadow_neighbors_to_neighbors(neighbors, shadow_map)
         else:
