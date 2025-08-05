@@ -843,26 +843,30 @@ class TestProject(TestProjectBase):
         for a,b in product(a_vals, b_vals):
             self.project.open_job({"a": a, "b": b}).init()
 
-        neighbors = self.project.get_neighbors()
+        neighbor_list = self.project.get_neighbors()
 
         for a,b in product(a_vals, b_vals):
             job = self.project.open_job({"a": a, "b": b})
-            this_neighbors = neighbors[job.id]
 
-            # a neighbors
-            if a == 1:
-                assert this_neighbors["a"][2] == self.project.open_job({"a": 2, "b": b}).id
-            elif a == 2:
-                assert this_neighbors["a"][1] == self.project.open_job({"a": 1, "b": b}).id
+            neighbors_project = neighbor_list[job.id]
+            neighbors_job = job.get_neighbors()
+            assert neighbors_project == neighbors_job
+            
+            for this_neighbors in [neighbors_project, neighbors_job]:
+                # a neighbors
+                if a == 1:
+                    assert this_neighbors["a"][2] == self.project.open_job({"a": 2, "b": b}).id
+                elif a == 2:
+                    assert this_neighbors["a"][1] == self.project.open_job({"a": 1, "b": b}).id
 
-            # b neighbors
-            if b == 3:
-                assert this_neighbors["b"][4] == self.project.open_job({"a": a, "b": 4}).id
-            elif b == 4:
-                assert this_neighbors["b"][3] == self.project.open_job({"a": a, "b": 3}).id
-                assert this_neighbors["b"][5] == self.project.open_job({"a": a, "b": 5}).id
-            elif b == 5:
-                assert this_neighbors["b"][4] == self.project.open_job({"a": a, "b": 4}).id
+                # b neighbors
+                if b == 3:
+                    assert this_neighbors["b"][4] == self.project.open_job({"a": a, "b": 4}).id
+                elif b == 4:
+                    assert this_neighbors["b"][3] == self.project.open_job({"a": a, "b": 3}).id
+                    assert this_neighbors["b"][5] == self.project.open_job({"a": a, "b": 5}).id
+                elif b == 5:
+                    assert this_neighbors["b"][4] == self.project.open_job({"a": a, "b": 4}).id
 
     def test_neighbors_ignore(self):
         b_vals = [3, 4, 5]
