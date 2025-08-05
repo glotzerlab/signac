@@ -9,7 +9,7 @@ def prepare_shadow_project(sp_cache, ignore: list):
     """Build cache and mapping for shadow project, which comes from ignored keys.
 
     Ignoring a key creates a subset of jobs, now identified with different job ids.
-    Call it shadow job id because we're making a projection of the project.
+    Call it "shadow" job id because we're making a projection of the project.
 
     We can map from the shadow job id to the actual job id in the use cases identified.
     Raise ValueError if this mapping is ill defined.
@@ -100,20 +100,19 @@ def prepare_shadow_project(sp_cache, ignore: list):
 
 # key and other_val provided separately to be used with functools.partial
 def _search_cache_for_val(sp_dict, cache, key, other_val):
-    """Return job id of similar job if present in cache.
+    """Return job id of a job similar to sp_dict if present in cache.
 
-    The similar job is obtained by modifying sp_dict to
-    include {key: other_val}.
+    The similar job is obtained by modifying sp_dict to include {key: other_val}.
 
     Internally converts sp_dict from dotted keys to nested dicts format.
 
     Parameters
     ----------
     sp_dict : dict
-        sp_dict must not be a reference to a state point because it will be
-        modified in this function
+        state point of job to modify. sp_dict must not be a reference to a state point because it
+        will be modified in this function
     cache : dict
-        state point cache
+        project state point cache to search in
     key : str
         The key whose value to change
     other_val
@@ -152,10 +151,12 @@ def _search_out(search_direction, values, current_index, boundary_index, search_
 
     Returns
     -------
-    Tuple of (jobid, val)
+    {val: jobid} if jobid found per search_fun
     jobid : str
         job id of the nearest job in the search_direction
     val : value of the key at the neighbor jobid
+
+    None otherwise
     """
     query_index = current_index + search_direction
     # search either query_index >= low_boundary or query_index <= high_boundary
@@ -169,7 +170,9 @@ def _search_out(search_direction, values, current_index, boundary_index, search_
     return None
 
 def neighbors_of_sp(statepoint, dotted_sp_cache, sorted_schema):
-    """Return neighbor list of given state point.
+    """Return neighbors of given state point by searching along sorted_schema in dotted_sp_cache.
+
+    State point and cache must both use either job ids or shadow job ids.
 
     dotted_sp_cache must be in dotted key format, which is accessed by calling
     _nested_dicts_to_dotted_keys on each state point in the cache.
@@ -177,9 +180,9 @@ def neighbors_of_sp(statepoint, dotted_sp_cache, sorted_schema):
     Parameters
     ----------
     statepoint : dict
-        Place to search from. Could be the shadow state point.
+        Place to search from
     dotted_sp_cache : dict
-        Map from job id OR shadow job id to state point OR shadow state point in dotted key format
+        Map from job id to state point in dotted key format
     sorted_schema : dict
         Map from key (in dotted notation) to sorted values of the key to search over
     """
@@ -206,7 +209,15 @@ def neighbors_of_sp(statepoint, dotted_sp_cache, sorted_schema):
     return nearby_entry
 
 def shadow_neighbor_list_to_neighbor_list(shadow_neighbor_list, shadow_map):
-    """Replace shadow job ids with actual job ids in the neighbor list."""
+    """Replace shadow job ids with actual job ids in the neighbor list.
+
+    Parameters
+    ----------
+    shadow_neighbor_list : dict
+        neighbor list containing shadow job ids
+    shadow_map : dict
+        map from shadow job id to project job id
+    """
     neighbor_list = dict()
     for jobid, neighbors in shadow_neighbor_list.items():
         this_d = {}
@@ -234,3 +245,4 @@ def build_neighbor_list(dotted_sp_cache, sorted_schema):
     for _id, _sp in dotted_sp_cache.items():
         neighbor_list[_id] = neighbors_of_sp(_sp, dotted_sp_cache, sorted_schema)
     return neighbor_list
+

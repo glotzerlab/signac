@@ -1668,6 +1668,7 @@ class Project:
 
     def flat_schema(self):
         """For each state point parameter, make a flat list sorted by values it takes in the project.
+
         This is almost like schema, but the schema separates items by type.
         The schema also uses dotted keys.
         To sort between different types, put in order of the name of the type
@@ -1685,6 +1686,25 @@ class Project:
         return sorted_schema
 
     def get_neighbors(self, ignore = []):
+        """Builds a neighbor list of jobs in the project.
+
+        A neighbor of a job differs in the value of one state point. If a change of certain state
+        point parameters should not define. For example, this is useful of two state point
+        parameters always change together.
+        
+        The neighbor list is a dictionary of dictionaries of dictionaries in the following format:
+        {jobid: {state_point_key: {prev_value: neighbor_id, next_value: neighbor_id}, ...}, ...}
+
+        Parameters
+        ----------
+        ignore : list of str
+            List of keys to ignore when building neighbor list.
+
+        Returns
+        -------
+        neighbor_list
+
+        """
         if not isinstance(ignore, list):
             ignore = [ignore]
 
@@ -1701,7 +1721,6 @@ class Project:
             nl = build_neighbor_list(shadow_cache, sorted_schema)
             return shadow_neighbor_list_to_neighbor_list(nl, shadow_map)
         else:
-
             # the state point cache is incompatible with nested key notation
             for _id, _sp in _cache.items():
                 _cache[_id] = {k : v for k, v in _nested_dicts_to_dotted_keys(_sp)}
