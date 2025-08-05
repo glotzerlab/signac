@@ -216,22 +216,34 @@ def neighbors_of_sp(statepoint, dotted_sp_cache, sorted_schema):
         neighbors.update({key: this_d})
     return neighbors
 
+def shadow_neighbors_to_neighbors(shadow_neighbors, shadow_map):
+    """Replace shadow job ids with actual job ids in the neighbors of one job.
+
+    Parameters
+    ----------
+    shadow_neighbors : dict of state point parameters to neighbor values to shadow job id
+        neighbors containing shadow job ids
+    shadow_map : dict
+        map from shadow job id to project job id
+    """
+    neighbors = dict()
+    for neighbor_key, neighbor_vals in shadow_neighbors.items():
+        neighbors[neighbor_key] = {k: shadow_map[i] for k,i in neighbor_vals.items()}
+    return neighbors
+
 def shadow_neighbor_list_to_neighbor_list(shadow_neighbor_list, shadow_map):
     """Replace shadow job ids with actual job ids in the neighbor list.
 
     Parameters
     ----------
-    shadow_neighbor_list : dict
-        neighbor list containing shadow job ids
+    shadow_neighbor_list : dict of shadow job ids to state point parameters to neighbor values to shadow job id
+        neighbors containing shadow job ids
     shadow_map : dict
         map from shadow job id to project job id
     """
     neighbor_list = dict()
-    for jobid, neighbors in shadow_neighbor_list.items():
-        this_d = {}
-        for neighbor_key, neighbor_vals in neighbors.items():
-            this_d[neighbor_key] = {k: shadow_map[i] for k,i in neighbor_vals.items()}
-        neighbor_list[shadow_map[jobid]] = this_d
+    for jobid, shadow_neighbors in shadow_neighbor_list.items():
+        neighbor_list[shadow_map[jobid]] = shadow_neighbors_to_neighbors(shadow_neighbors, shadow_map)
     return neighbor_list
 
 def _build_neighbor_list(dotted_sp_cache, sorted_schema):
