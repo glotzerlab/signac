@@ -2,7 +2,7 @@ from functools import partial
 from collections import defaultdict
 
 from .job import calc_id
-from ._utility import _to_hashable, _dotted_dict_to_nested_dicts
+from ._utility import _to_hashable, _dotted_dict_to_nested_dicts, _nested_dicts_to_dotted_keys
 from ._search_indexer import _DictPlaceholder
 
 def prepare_shadow_project(sp_cache, ignore: list):
@@ -246,3 +246,13 @@ def build_neighbor_list(dotted_sp_cache, sorted_schema):
         neighbor_list[_id] = neighbors_of_sp(_sp, dotted_sp_cache, sorted_schema)
     return neighbor_list
 
+def get_neighbor_list(sp_cache, sorted_schema, ignore):
+    if len(ignore) > 0:
+        shadow_map, shadow_cache = prepare_shadow_project(sp_cache, ignore = ignore)
+        nl = build_neighbor_list(shadow_cache, sorted_schema)
+        return shadow_neighbor_list_to_neighbor_list(nl, shadow_map)
+    else:
+        # the state point cache is incompatible with nested key notation
+        for _id, _sp in sp_cache.items():
+            sp_cache[_id] = {k : v for k, v in _nested_dicts_to_dotted_keys(_sp)}
+        return build_neighbor_list(sp_cache, sorted_schema)

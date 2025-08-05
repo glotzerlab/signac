@@ -33,7 +33,7 @@ from ._config import (
     _raise_if_older_schema,
     _read_config_file,
 )
-from .neighbor import build_neighbor_list, shadow_neighbor_list_to_neighbor_list, prepare_shadow_project
+from .neighbor import get_neighbor_list
 from ._search_indexer import _SearchIndexer, _DictPlaceholder
 from ._utility import _mkdir_p, _nested_dicts_to_dotted_keys, _to_hashable, _dotted_dict_to_nested_dicts
 from .errors import (
@@ -1711,20 +1711,14 @@ class Project:
         sorted_schema = self.flat_schema()
         need_to_ignore = [sorted_schema.pop(ig, _DictPlaceholder) for ig in ignore]
         if any(a is _DictPlaceholder for a in need_to_ignore):
+            ignore = []
             warnings.warn("Ignored key not present in project.", RuntimeWarning)
 
         self.update_cache()
         _cache = dict(self._sp_cache) # copy
 
-        if len(ignore) > 0:
-            shadow_map, shadow_cache = prepare_shadow_project(_cache, ignore = ignore)
-            nl = build_neighbor_list(shadow_cache, sorted_schema)
-            return shadow_neighbor_list_to_neighbor_list(nl, shadow_map)
-        else:
-            # the state point cache is incompatible with nested key notation
-            for _id, _sp in _cache.items():
-                _cache[_id] = {k : v for k, v in _nested_dicts_to_dotted_keys(_sp)}
-            return build_neighbor_list(_cache, sorted_schema)
+        return get_neighbor_list(_cache, sorted_schema, ignore)
+    
 
 @contextmanager
 def TemporaryProject(cls=None, **kwargs):
