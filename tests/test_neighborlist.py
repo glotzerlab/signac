@@ -70,18 +70,20 @@ class TestNeighborList(TestProject):
             job = self.project.open_job({"a": a})
             neighbors_job = job.get_neighbors()
 
+            c = a["c"]
+
             this_neighbors = neighbor_list[job.id]
             # assert this_neighbors == neighbors_job
             # note how the inconsistency in neighborlist access syntax comes from schema
-            if a == 2:
+            if c == 2:
                 assert this_neighbors["a.c"][3] == self.project.open_job({"a": {"c": 3}}).id
-            elif a == 3:
+            elif c == 3:
                 assert this_neighbors["a.c"][2] == self.project.open_job({"a": {"c": 2}}).id
                 assert this_neighbors["a.c"][4] == self.project.open_job({"a": {"c": 4}}).id
-            elif a == 4:
+            elif c == 4:
                 assert this_neighbors["a.c"][3] == self.project.open_job({"a": {"c": 3}}).id
                 assert this_neighbors["a.c"]["5"] == self.project.open_job({"a": {"c": "5"}}).id
-            elif a == "5":
+            elif c == "5":
                 assert this_neighbors["a.c"][4] == self.project.open_job({"a": {"c": 4}}).id
                 assert this_neighbors["a.c"]["hello"] == self.project.open_job({"a": {"c": "hello"}}).id
 
