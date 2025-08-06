@@ -26,10 +26,11 @@ def prepare_shadow_project(sp_cache, ignore: list):
 
     Returns
     -------
-    shadow_map is a map from shadow job id to project job id.
+    shadow_map
+        a map from shadow job id to project job id.
 
-    shadow_cache is an in-memory state point cache for the shadow project
-    mapping shadow job id --> shadow state point
+    shadow_cache
+        an in-memory state point cache for the shadow project mapping shadow job id --> shadow state point, in dotted key format
 
 
     Use cases:
@@ -89,7 +90,8 @@ def prepare_shadow_project(sp_cache, ignore: list):
         for ig in ignore:
             shadow_sp.pop(ig, None)
         shadow_id = calc_id(shadow_sp)
-        shadow_cache[shadow_id] = shadow_sp
+        # The cache needs to be in dotted key format, so just convert it here
+        shadow_cache[shadow_id] = dict(_nested_dicts_to_dotted_keys(shadow_sp))
         job_projection[jobid] = shadow_id
 
     if len(set(job_projection.values())) != len(job_projection):
@@ -283,8 +285,6 @@ def get_neighbor_list(sp_cache, sorted_schema, ignore):
     """
     if len(ignore) > 0:
         shadow_map, shadow_cache = prepare_shadow_project(sp_cache, ignore = ignore)
-        for _id, _sp in shadow_cache.items():
-            shadow_cache[_id] = {k : v for k, v in _nested_dicts_to_dotted_keys(_sp)}
         nl = _build_neighbor_list(shadow_cache, sorted_schema)
         return shadow_neighbor_list_to_neighbor_list(nl, shadow_map)
     else:

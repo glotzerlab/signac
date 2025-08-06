@@ -1001,8 +1001,6 @@ class Job:
         if len(ignore) > 0:
             # TODO reduce code duplication here. Existing code focuses on doing all at once and converting to shadow space early
             shadow_map, shadow_cache = prepare_shadow_project(sp_cache, ignore = ignore)
-            for _id, _sp in shadow_cache.items():
-                shadow_cache[_id] = {k : v for k, v in _nested_dicts_to_dotted_keys(_sp)}
             ig = [sp.pop(i, None) for i in ignore]
             neighbors = neighbors_of_sp(sp, shadow_cache, sorted_schema)
             neighbors = shadow_neighbors_to_neighbors(neighbors, shadow_map)
