@@ -46,7 +46,7 @@ from .errors import (
 from .filterparse import _add_prefix, _root_keys, parse_filter
 from .h5store import H5StoreManager
 from .job import Job, calc_id
-from .neighbor import get_neighbor_list
+from ._neighbor import get_neighbor_list
 from .schema import ProjectSchema
 from .sync import sync_projects
 from .version import SCHEMA_VERSION, __version__

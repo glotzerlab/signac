@@ -990,7 +990,7 @@ class Job:
         """
         from ._search_indexer import _DictPlaceholder
         from ._utility import _nested_dicts_to_dotted_keys
-        from .neighbor import (
+        from ._neighbor import (
             neighbors_of_sp,
             prepare_shadow_project,
             shadow_neighbors_to_neighbors,
