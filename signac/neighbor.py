@@ -77,7 +77,7 @@ def prepare_shadow_project(sp_cache, ignore: list):
 
     {"a1": 10} -> shadowid1
     {"a1": 2} -> shadowid2
-    {"a1": 2} -> shadowid2 --
+    {"a1": 2} -> shadowid2
     Now we have shadowid2 .---> jobid2
                           \\--> jobid3
 
@@ -182,13 +182,13 @@ def neighbors_of_sp(statepoint, dotted_sp_cache, sorted_schema):
 
     State point and cache must both use either job ids or shadow job ids.
 
-    dotted_sp_cache must be in dotted key format, which is accessed by calling
+    statepoint and dotted_sp_cache must be in dotted key format, which is accessed by calling
     _nested_dicts_to_dotted_keys on each state point in the cache.
 
     Parameters
     ----------
     statepoint : dict
-        Place to search from
+        State point to start search from, in dotted key format
     dotted_sp_cache : dict
         Map from job id to state point in dotted key format
     sorted_schema : dict

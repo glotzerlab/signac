@@ -21,7 +21,6 @@ class TestNeighborList(TestProject):
 
             this_neighbors = neighbors_project
             
-            # for this_neighbors in [neighbors_project, neighbors_job]:
             # a neighbors
             if a == 1:
                 assert this_neighbors["a"][2] == self.project.open_job({"a": 2, "b": b}).id
@@ -73,7 +72,7 @@ class TestNeighborList(TestProject):
             c = a["c"]
 
             this_neighbors = neighbor_list[job.id]
-            # assert this_neighbors == neighbors_job
+            assert this_neighbors == neighbors_job
             # note how the inconsistency in neighborlist access syntax comes from schema
             if c == 2:
                 assert this_neighbors["a.c"][3] == self.project.open_job({"a": {"c": 3}}).id
@@ -95,9 +94,12 @@ class TestNeighborList(TestProject):
 
         neighbor_list = self.project.get_neighbors(ignore = ["2b"])
 
-        flat_schema = self.project._flat_schema()
         job = self.project.open_job({"x": {"n": "nested"}})
-        assert len(neighbor_list[job.id]) > 0
+        neighbors_job = job.get_neighbors(ignore = ["2b"])
+        neighbors_project = neighbor_list[job.id]
+
+        assert neighbors_project == neighbors_job
+        assert neighbors_project["x.n"]["values"] == self.project.open_job({"x": {"n": "values"}}).id
 
     def test_neighbors_varied_types(self):
         # in sort order
