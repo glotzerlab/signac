@@ -658,7 +658,15 @@ class Project:
             The detected project schema.
 
         """
-        statepoint_index = self.detect_schema_index(exclude_const, subset)
+        from .schema import _build_job_statepoint_index
+
+        index = _SearchIndexer(self._build_index(include_job_document=False))
+        if subset is not None:
+            subset = {str(s) for s in subset}.intersection(index.keys())
+            index = _SearchIndexer((id_, index[id_]) for id_ in subset)
+        statepoint_index = _build_job_statepoint_index(
+            exclude_const=exclude_const, index=index
+        )
 
         def _collect_by_type(values):
             """Construct a mapping of types to a set of elements drawn from the input values."""
@@ -670,21 +678,6 @@ class Project:
         return ProjectSchema(
             {key: _collect_by_type(value) for key, value in statepoint_index}
         )
-
-    def detect_schema_index(self, exclude_const=False, subset=None):
-        """Return just the state point index not collected by type."""
-
-        from .schema import _build_job_statepoint_index
-
-        index = _SearchIndexer(self._build_index(include_job_document=False))
-        if subset is not None:
-            subset = {str(s) for s in subset}.intersection(index.keys())
-            index = _SearchIndexer((id_, index[id_]) for id_ in subset)
-        statepoint_index = _build_job_statepoint_index(
-            exclude_const=exclude_const, index=index
-        )
-
-        return statepoint_index
 
     def _find_job_ids(self, filter=None):
         """Find the job ids of all jobs matching the filter.

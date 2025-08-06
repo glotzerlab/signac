@@ -255,22 +255,6 @@ class _SearchIndexer(dict):
 
     """
 
-    def build_all_index(self):
-        # figure out keys from all jobs
-
-        # go through jobs, getting keys of each job
-        for _id, spdoc in self.items():
-            v = spdoc["sp"]
-            if type(v) is list:
-                index[_to_hashable(v)].add(_id)
-            elif type(v) is dict:
-                index[_DictPlaceholder].add(_id)
-            else:
-                index[v].add(_id)
-
-    def get_index(self, key):
-        pass
-
     def build_index(self, key):
         """Build index for a given key.
 
@@ -295,7 +279,7 @@ class _SearchIndexer(dict):
         logger.debug(f"Building index for key '{key}'...")
         nodes = key.split(".")
         index = _TypedSetDefaultDict()
-        # breakpoint()
+
         for _id, doc in self.items():
             try:
                 v = doc
