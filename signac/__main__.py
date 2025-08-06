@@ -198,6 +198,7 @@ def main_statepoint(args):
 
 
 def main_neighbors(args):
+    """Handle the neighbors subcommand."""
     project = get_project()
     if args.job_id:
         jobs = (_open_job_by_id(project, jid) for jid in args.job_id)

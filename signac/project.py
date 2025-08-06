@@ -32,6 +32,7 @@ from ._config import (
     _raise_if_older_schema,
     _read_config_file,
 )
+from ._neighbor import get_neighbor_list
 from ._search_indexer import _DictPlaceholder, _SearchIndexer
 from ._utility import (
     _mkdir_p,
@@ -46,7 +47,6 @@ from .errors import (
 from .filterparse import _add_prefix, _root_keys, parse_filter
 from .h5store import H5StoreManager
 from .job import Job, calc_id
-from ._neighbor import get_neighbor_list
 from .schema import ProjectSchema
 from .sync import sync_projects
 from .version import SCHEMA_VERSION, __version__

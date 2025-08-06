@@ -988,13 +988,13 @@ class Job:
         ignore : list
             List of state point parameters to ignore when building neighbor list
         """
-        from ._search_indexer import _DictPlaceholder
-        from ._utility import _nested_dicts_to_dotted_keys
         from ._neighbor import (
             neighbors_of_sp,
             prepare_shadow_project,
             shadow_neighbors_to_neighbors,
         )
+        from ._search_indexer import _DictPlaceholder
+        from ._utility import _nested_dicts_to_dotted_keys
 
         if not isinstance(ignore, list):
             ignore = [ignore]
@@ -1009,7 +1009,8 @@ class Job:
             warnings.warn("Ignored key not present in project.", RuntimeWarning)
 
         if len(ignore) > 0:
-            ig = [sp.pop(i, None) for i in ignore]
+            for i in ignore:
+                sp.pop(i, None)
             shadow_map, shadow_cache = prepare_shadow_project(sp_cache, ignore=ignore)
             neighbors = neighbors_of_sp(sp, shadow_cache, sorted_schema)
             neighbors = shadow_neighbors_to_neighbors(neighbors, shadow_map)

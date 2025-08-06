@@ -257,8 +257,9 @@ def shadow_neighbor_list_to_neighbor_list(shadow_neighbor_list, shadow_map):
 
     Parameters
     ----------
-    shadow_neighbor_list : dict of shadow job ids to state point parameters to neighbor values to shadow job id
-        neighbors containing shadow job ids
+    shadow_neighbor_list : dict
+        neighbor_list containing shadow job ids
+        dict shadow job ids to state point parameters to neighbor values to shadow job id
     shadow_map : dict
         map from shadow job id to project job id
     """
