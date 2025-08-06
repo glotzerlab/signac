@@ -200,6 +200,7 @@ def neighbors_of_sp(statepoint, dotted_sp_cache, sorted_schema):
     neighbors = {}
     for key, schema_values in sorted_schema.items(): # from project
         # allow comparison with output of schema, which is hashable
+        # and which is in dotted key format
         value = _to_hashable(statepoint.get(key, _DictPlaceholder))
         if value is _DictPlaceholder:
             # Possible if schema is heterogeneous
@@ -256,7 +257,7 @@ def _build_neighbor_list(dotted_sp_cache, sorted_schema):
     dotted_sp_cache : dict
         Map from job id to state point OR shadow job id to shadow state point in dotted key format
     sorted_schema : dict
-        Map of keys to their values to search over
+        Map of dotted keys to their values to search over
 
     Returns
     -------
@@ -276,7 +277,7 @@ def get_neighbor_list(sp_cache, sorted_schema, ignore):
     sp_cache : dict
         Project state point cache
     sorted_schema : dict
-        Map of keys to their values to search over
+        Map of dotted keys to their values to search over
 
     Returns
     -------
@@ -288,7 +289,6 @@ def get_neighbor_list(sp_cache, sorted_schema, ignore):
         nl = _build_neighbor_list(shadow_cache, sorted_schema)
         return shadow_neighbor_list_to_neighbor_list(nl, shadow_map)
     else:
-        # the state point cache is incompatible with nested key notation
-        for _id, _sp in sp_cache.items():
-            sp_cache[_id] = {k : v for k, v in _nested_dicts_to_dotted_keys(_sp)}
+        # the state point cache needs to be in dotted keys to enable searching over schema values
+        sp_cache = {_id: dict(_nested_dicts_to_dotted_keys(_sp)) for _id, _sp in sp_cache.items()}
         return _build_neighbor_list(sp_cache, sorted_schema)

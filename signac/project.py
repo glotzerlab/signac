@@ -1670,7 +1670,6 @@ class Project:
         """For each state point parameter, make a flat list sorted by values it takes in the project.
 
         This is almost like schema, but the schema separates items by type.
-        The schema also uses dotted keys.
         To sort between different types, put in order of the name of the type
         """
         schema = self.detect_schema()
