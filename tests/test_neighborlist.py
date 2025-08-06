@@ -35,6 +35,8 @@ class TestNeighborList(TestProject):
                 assert this_neighbors["b"][5] == self.project.open_job({"a": a, "b": 5}).id
             elif b == 5:
                 assert this_neighbors["b"][4] == self.project.open_job({"a": a, "b": 4}).id
+        with pytest.raises(RuntimeWarning):
+            self.project.get_neighbors(ignore = ["not_present"])
 
     def test_neighbors_ignore(self):
         b_vals = [3, 4, 5]
