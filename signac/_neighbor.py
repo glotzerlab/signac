@@ -1,5 +1,6 @@
 from collections import defaultdict
 from functools import partial
+from typing import DefaultDict
 
 from ._search_indexer import _DictPlaceholder
 from ._utility import (
@@ -103,7 +104,7 @@ def prepare_shadow_project(sp_cache, ignore: list):
     if len(set(job_projection.values())) != len(job_projection):
         # Make a helpful error message for map that has duplicates
         shadow_to_job = defaultdict(list)
-        counts = defaultdict(int)
+        counts: DefaultDict[str, int] = defaultdict(int)
         for job_id, shadow_id in job_projection.items():
             shadow_to_job[shadow_id].append(job_id)
             counts[shadow_id] += 1
