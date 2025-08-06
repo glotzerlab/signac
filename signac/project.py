@@ -4,7 +4,6 @@
 """The signac Project and JobsCursor classes."""
 
 import errno
-import functools
 import gzip
 import json
 import logging
@@ -13,7 +12,7 @@ import re
 import shutil
 import time
 import warnings
-from collections import Counter, defaultdict
+from collections import defaultdict
 from collections.abc import Iterable
 from contextlib import contextmanager
 from copy import deepcopy
@@ -35,10 +34,8 @@ from ._config import (
 )
 from ._search_indexer import _DictPlaceholder, _SearchIndexer
 from ._utility import (
-    _dotted_dict_to_nested_dicts,
     _mkdir_p,
     _nested_dicts_to_dotted_keys,
-    _to_hashable,
 )
 from .errors import (
     DestinationExistsError,
@@ -1661,7 +1658,7 @@ class Project:
         self.__dict__.update(state)
 
     def _flat_schema(self):
-        """For each state point parameter, make a flat list sorted by values it takes in the project.
+        """For each state point parameter, make a flat list sorted by its values in the project.
 
         This is almost like schema, but the schema separates items by type.
         To sort between different types, put in order of the name of the type

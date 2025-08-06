@@ -12,7 +12,6 @@ import re
 import sys
 import textwrap
 from contextlib import contextmanager, redirect_stderr
-from itertools import product
 from tarfile import TarFile
 from tempfile import TemporaryDirectory
 from time import time

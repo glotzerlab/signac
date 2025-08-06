@@ -11,7 +11,7 @@ from .job import calc_id
 
 
 def prepare_shadow_project(sp_cache, ignore: list):
-    """Build cache and mapping for shadow project, which comes from ignored keys.
+    r"""Build cache and mapping for shadow project, which comes from ignored keys.
 
     We use cache lookups for speedy searching. Ignoring a key creates a subset of jobs, now
     identified with different job ids. Call it "shadow" job id because we're making a projection of
@@ -35,7 +35,8 @@ def prepare_shadow_project(sp_cache, ignore: list):
         a map from shadow job id to project job id.
 
     shadow_cache
-        an in-memory state point cache for the shadow project mapping shadow job id --> shadow state point, in dotted key format
+        an in-memory state point cache for the shadow project mapping
+        shadow job id --> shadow state point, in dotted key format
 
 
     Use cases:
@@ -208,7 +209,6 @@ def neighbors_of_sp(statepoint, dotted_sp_cache, sorted_schema):
     sorted_schema : dict
         Map from key (in dotted notation) to sorted values of the key to search over
     """
-
     neighbors = {}
     for key, schema_values in sorted_schema.items():  # from project
         # allow comparison with output of schema, which is hashable
@@ -246,7 +246,7 @@ def shadow_neighbors_to_neighbors(shadow_neighbors, shadow_map):
     shadow_map : dict
         map from shadow job id to project job id
     """
-    neighbors = dict()
+    neighbors = {}
     for neighbor_key, neighbor_vals in shadow_neighbors.items():
         neighbors[neighbor_key] = {k: shadow_map[i] for k, i in neighbor_vals.items()}
     return neighbors
@@ -262,7 +262,7 @@ def shadow_neighbor_list_to_neighbor_list(shadow_neighbor_list, shadow_map):
     shadow_map : dict
         map from shadow job id to project job id
     """
-    neighbor_list = dict()
+    neighbor_list = {}
     for jobid, shadow_neighbors in shadow_neighbor_list.items():
         neighbor_list[shadow_map[jobid]] = shadow_neighbors_to_neighbors(
             shadow_neighbors, shadow_map
