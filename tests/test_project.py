@@ -2377,6 +2377,7 @@ class TestProjectSchema(TestProjectBase):
 class TestProjectNeighbors(TestProjectBase):
     pass
 
+
 def _initialize_v1_project(dirname, with_workspace=True, with_other_files=True):
     # Create v1 config file.
     cfg_fn = os.path.join(dirname, "signac.rc")

@@ -1,9 +1,14 @@
-from functools import partial
 from collections import defaultdict
+from functools import partial
 
-from .job import calc_id
-from ._utility import _to_hashable, _dotted_dict_to_nested_dicts, _nested_dicts_to_dotted_keys
 from ._search_indexer import _DictPlaceholder
+from ._utility import (
+    _dotted_dict_to_nested_dicts,
+    _nested_dicts_to_dotted_keys,
+    _to_hashable,
+)
+from .job import calc_id
+
 
 def prepare_shadow_project(sp_cache, ignore: list):
     """Build cache and mapping for shadow project, which comes from ignored keys.
@@ -83,8 +88,8 @@ def prepare_shadow_project(sp_cache, ignore: list):
                           \\--> jobid3
 
     """
-    shadow_cache = {} # like a state point cache, but for the shadow project
-    job_projection = {} # goes from job id to shadow id
+    shadow_cache = {}  # like a state point cache, but for the shadow project
+    job_projection = {}  # goes from job id to shadow id
     for jobid, sp in sp_cache.items():
         shadow_sp = dict(sp)
         for ig in ignore:
@@ -101,12 +106,17 @@ def prepare_shadow_project(sp_cache, ignore: list):
         for job_id, shadow_id in job_projection.items():
             shadow_to_job[shadow_id].append(job_id)
             counts[shadow_id] += 1
-        bad_jobids = [shadow_to_job[shadow_id] for shadow_id, num in counts.items() if num > 1]
+        bad_jobids = [
+            shadow_to_job[shadow_id] for shadow_id, num in counts.items() if num > 1
+        ]
         err_str = "\n".join(f"Job ids: {', '.join(j)}." for j in bad_jobids)
-        raise ValueError(f"Ignoring {ignore} makes it impossible to distinguish some jobs:\n{err_str}")
+        raise ValueError(
+            f"Ignoring {ignore} makes it impossible to distinguish some jobs:\n{err_str}"
+        )
     # map from shadow job id to project job id
     shadow_map = {v: k for k, v in job_projection.items()}
     return shadow_map, shadow_cache
+
 
 # key and other_val provided separately to be used with functools.partial
 def _search_cache_for_val(statepoint, cache, key, other_val):
@@ -142,6 +152,7 @@ def _search_cache_for_val(statepoint, cache, key, other_val):
     else:
         return None
 
+
 def _search_out(search_direction, values, current_index, boundary_index, search_fun):
     """Search in values towards boundary_index from current_index using search_fun.
 
@@ -162,7 +173,7 @@ def _search_out(search_direction, values, current_index, boundary_index, search_
     Returns
     -------
     None if jobid not found
-    
+
     {val: jobid} if jobid found per search_fun
     jobid : str
         job id of the nearest job in the search_direction
@@ -178,6 +189,7 @@ def _search_out(search_direction, values, current_index, boundary_index, search_
         else:
             return {val: jobid}
     return None
+
 
 def neighbors_of_sp(statepoint, dotted_sp_cache, sorted_schema):
     """Return neighbors of given state point by searching along sorted_schema in dotted_sp_cache.
@@ -198,7 +210,7 @@ def neighbors_of_sp(statepoint, dotted_sp_cache, sorted_schema):
     """
 
     neighbors = {}
-    for key, schema_values in sorted_schema.items(): # from project
+    for key, schema_values in sorted_schema.items():  # from project
         # allow comparison with output of schema, which is hashable
         # and which is in dotted key format
         value = _to_hashable(statepoint.get(key, _DictPlaceholder))
@@ -207,9 +219,13 @@ def neighbors_of_sp(statepoint, dotted_sp_cache, sorted_schema):
             continue
         value_index = schema_values.index(value)
         # need to pass statepoint by copy
-        search_fun = partial(_search_cache_for_val, dict(statepoint), dotted_sp_cache, key)
+        search_fun = partial(
+            _search_cache_for_val, dict(statepoint), dotted_sp_cache, key
+        )
         prev_neighbor = _search_out(-1, schema_values, value_index, 0, search_fun)
-        next_neighbor = _search_out(1, schema_values, value_index, len(schema_values) - 1, search_fun)
+        next_neighbor = _search_out(
+            1, schema_values, value_index, len(schema_values) - 1, search_fun
+        )
 
         this_d = {}
         if next_neighbor is not None:
@@ -218,6 +234,7 @@ def neighbors_of_sp(statepoint, dotted_sp_cache, sorted_schema):
             this_d.update(prev_neighbor)
         neighbors.update({key: this_d})
     return neighbors
+
 
 def shadow_neighbors_to_neighbors(shadow_neighbors, shadow_map):
     """Replace shadow job ids with actual job ids in the neighbors of one job.
@@ -231,8 +248,9 @@ def shadow_neighbors_to_neighbors(shadow_neighbors, shadow_map):
     """
     neighbors = dict()
     for neighbor_key, neighbor_vals in shadow_neighbors.items():
-        neighbors[neighbor_key] = {k: shadow_map[i] for k,i in neighbor_vals.items()}
+        neighbors[neighbor_key] = {k: shadow_map[i] for k, i in neighbor_vals.items()}
     return neighbors
+
 
 def shadow_neighbor_list_to_neighbor_list(shadow_neighbor_list, shadow_map):
     """Replace shadow job ids with actual job ids in the neighbor list.
@@ -246,8 +264,11 @@ def shadow_neighbor_list_to_neighbor_list(shadow_neighbor_list, shadow_map):
     """
     neighbor_list = dict()
     for jobid, shadow_neighbors in shadow_neighbor_list.items():
-        neighbor_list[shadow_map[jobid]] = shadow_neighbors_to_neighbors(shadow_neighbors, shadow_map)
+        neighbor_list[shadow_map[jobid]] = shadow_neighbors_to_neighbors(
+            shadow_neighbors, shadow_map
+        )
     return neighbor_list
+
 
 def _build_neighbor_list(dotted_sp_cache, sorted_schema):
     """Iterate over cached state points and get neighbors of each state point.
@@ -269,6 +290,7 @@ def _build_neighbor_list(dotted_sp_cache, sorted_schema):
         neighbor_list[_id] = neighbors_of_sp(_sp, dotted_sp_cache, sorted_schema)
     return neighbor_list
 
+
 def get_neighbor_list(sp_cache, sorted_schema, ignore):
     """Build neighbor list while handling ignored keys.
 
@@ -285,10 +307,13 @@ def get_neighbor_list(sp_cache, sorted_schema, ignore):
         {jobid: {state_point_key: {prev_value: neighbor_id, next_value: neighbor_id}}}
     """
     if len(ignore) > 0:
-        shadow_map, shadow_cache = prepare_shadow_project(sp_cache, ignore = ignore)
+        shadow_map, shadow_cache = prepare_shadow_project(sp_cache, ignore=ignore)
         nl = _build_neighbor_list(shadow_cache, sorted_schema)
         return shadow_neighbor_list_to_neighbor_list(nl, shadow_map)
     else:
         # the state point cache needs to be in dotted keys to enable searching over schema values
-        sp_cache = {_id: dict(_nested_dicts_to_dotted_keys(_sp)) for _id, _sp in sp_cache.items()}
+        sp_cache = {
+            _id: dict(_nested_dicts_to_dotted_keys(_sp))
+            for _id, _sp in sp_cache.items()
+        }
         return _build_neighbor_list(sp_cache, sorted_schema)

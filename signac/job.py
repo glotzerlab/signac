@@ -10,7 +10,6 @@ import logging
 import os
 import shutil
 import warnings
-
 from copy import deepcopy
 from threading import RLock
 from types import MappingProxyType
@@ -28,7 +27,6 @@ from ._utility import _mkdir_p
 from .errors import DestinationExistsError, JobsCorruptedError
 from .h5store import H5StoreManager
 from .sync import sync_jobs
-
 
 logger = logging.getLogger(__name__)
 
@@ -982,7 +980,7 @@ class Job:
         except IndexError:
             pass
 
-    def get_neighbors(self, ignore = []):
+    def get_neighbors(self, ignore=[]):
         """Return the neighbors of this job.
 
         Parameters
@@ -990,9 +988,13 @@ class Job:
         ignore : list
             List of state point parameters to ignore when building neighbor list
         """
-        from .neighbor import neighbors_of_sp, prepare_shadow_project, shadow_neighbors_to_neighbors
-        from ._utility import _nested_dicts_to_dotted_keys
         from ._search_indexer import _DictPlaceholder
+        from ._utility import _nested_dicts_to_dotted_keys
+        from .neighbor import (
+            neighbors_of_sp,
+            prepare_shadow_project,
+            shadow_neighbors_to_neighbors,
+        )
 
         if not isinstance(ignore, list):
             ignore = [ignore]
@@ -1008,11 +1010,14 @@ class Job:
 
         if len(ignore) > 0:
             ig = [sp.pop(i, None) for i in ignore]
-            shadow_map, shadow_cache = prepare_shadow_project(sp_cache, ignore = ignore)
+            shadow_map, shadow_cache = prepare_shadow_project(sp_cache, ignore=ignore)
             neighbors = neighbors_of_sp(sp, shadow_cache, sorted_schema)
             neighbors = shadow_neighbors_to_neighbors(neighbors, shadow_map)
         else:
-            sp_cache = {_id: dict(_nested_dicts_to_dotted_keys(_sp)) for _id, _sp in sp_cache.items()}
+            sp_cache = {
+                _id: dict(_nested_dicts_to_dotted_keys(_sp))
+                for _id, _sp in sp_cache.items()
+            }
             neighbors = neighbors_of_sp(sp, sp_cache, sorted_schema)
         return neighbors
 

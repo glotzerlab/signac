@@ -4,6 +4,7 @@
 """The signac Project and JobsCursor classes."""
 
 import errno
+import functools
 import gzip
 import json
 import logging
@@ -12,8 +13,7 @@ import re
 import shutil
 import time
 import warnings
-import functools
-from collections import defaultdict, Counter
+from collections import Counter, defaultdict
 from collections.abc import Iterable
 from contextlib import contextmanager
 from copy import deepcopy
@@ -33,9 +33,13 @@ from ._config import (
     _raise_if_older_schema,
     _read_config_file,
 )
-from .neighbor import get_neighbor_list
-from ._search_indexer import _SearchIndexer, _DictPlaceholder
-from ._utility import _mkdir_p, _nested_dicts_to_dotted_keys, _to_hashable, _dotted_dict_to_nested_dicts
+from ._search_indexer import _DictPlaceholder, _SearchIndexer
+from ._utility import (
+    _dotted_dict_to_nested_dicts,
+    _mkdir_p,
+    _nested_dicts_to_dotted_keys,
+    _to_hashable,
+)
 from .errors import (
     DestinationExistsError,
     IncompatibleSchemaVersion,
@@ -45,6 +49,7 @@ from .errors import (
 from .filterparse import _add_prefix, _root_keys, parse_filter
 from .h5store import H5StoreManager
 from .job import Job, calc_id
+from .neighbor import get_neighbor_list
 from .schema import ProjectSchema
 from .sync import sync_projects
 from .version import SCHEMA_VERSION, __version__
@@ -654,6 +659,7 @@ class Project:
 
         """
         statepoint_index = self.detect_schema_index(exclude_const, subset)
+
         def _collect_by_type(values):
             """Construct a mapping of types to a set of elements drawn from the input values."""
             values_by_type = defaultdict(set)
@@ -665,11 +671,8 @@ class Project:
             {key: _collect_by_type(value) for key, value in statepoint_index}
         )
 
-
     def detect_schema_index(self, exclude_const=False, subset=None):
-        """Return just the state point index not collected by type.
-
-        """
+        """Return just the state point index not collected by type."""
 
         from .schema import _build_job_statepoint_index
 
@@ -682,8 +685,6 @@ class Project:
         )
 
         return statepoint_index
-
-
 
     def _find_job_ids(self, filter=None):
         """Find the job ids of all jobs matching the filter.
@@ -1677,14 +1678,16 @@ class Project:
         for key, schema_values in schema.items():
             tuples_to_sort = []
             for type_name in schema_values:
-                tuples_to_sort.append((type_name.__name__, sorted(schema_values[type_name])))
+                tuples_to_sort.append(
+                    (type_name.__name__, sorted(schema_values[type_name]))
+                )
                 combined_values = []
-                for _, v in sorted(tuples_to_sort, key = lambda x: x[0]):
+                for _, v in sorted(tuples_to_sort, key=lambda x: x[0]):
                     combined_values.extend(v)
             sorted_schema[key] = combined_values
         return sorted_schema
 
-    def get_neighbors(self, ignore = []):
+    def get_neighbors(self, ignore=[]):
         """Return the neighbors of each job in the project.
 
         The neighbors of a job are jobs that differ along one state point parameter.
@@ -1730,7 +1733,7 @@ class Project:
         self.update_cache()
         # pass a copy of cache
         return get_neighbor_list(dict(self._sp_cache), sorted_schema, ignore)
-    
+
 
 @contextmanager
 def TemporaryProject(cls=None, **kwargs):
@@ -2222,6 +2225,7 @@ class JobsCursor:
 
         """
         return repr(self) + self._repr_html_jobs()
+
 
 def init_project(path=None):
     """Initialize a project.

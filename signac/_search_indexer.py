@@ -254,6 +254,7 @@ class _SearchIndexer(dict):
     ``_SearchIndexer(iterable, **kwargs)``.
 
     """
+
     def build_all_index(self):
         # figure out keys from all jobs
 
@@ -266,10 +267,10 @@ class _SearchIndexer(dict):
                 index[_DictPlaceholder].add(_id)
             else:
                 index[v].add(_id)
-    
+
     def get_index(self, key):
         pass
-    
+
     def build_index(self, key):
         """Build index for a given key.
 
