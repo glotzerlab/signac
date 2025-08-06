@@ -15,6 +15,8 @@ class TestNeighborList(TestProject):
         for a,b in product(a_vals, b_vals):
             job = self.project.open_job({"a": a, "b": b})
             neighbors_job = job.get_neighbors()
+            with pytest.raises(RuntimeWarning):
+                job.get_neighbors(ignore = ["not_present"])
             
             neighbors_project = neighbor_list[job.id]
             assert neighbors_project == neighbors_job
@@ -37,6 +39,7 @@ class TestNeighborList(TestProject):
                 assert this_neighbors["b"][4] == self.project.open_job({"a": a, "b": 4}).id
         with pytest.raises(RuntimeWarning):
             self.project.get_neighbors(ignore = ["not_present"])
+
 
     def test_neighbors_ignore(self):
         b_vals = [3, 4, 5]
