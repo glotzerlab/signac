@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import shutil
+import warnings
 from copy import deepcopy
 from threading import RLock
 from types import MappingProxyType
@@ -978,6 +979,48 @@ class Job:
             logger.info("Leave workspace.")
         except IndexError:
             pass
+
+    def get_neighbors(self, ignore=[]):
+        """Return the neighbors of this job.
+
+        Parameters
+        ----------
+        ignore : list
+            List of state point parameters to ignore when building neighbor list
+        """
+        from ._neighbor import (
+            neighbors_of_sp,
+            prepare_shadow_project,
+            shadow_neighbors_to_neighbors,
+        )
+        from ._search_indexer import _DictPlaceholder
+        from ._utility import _nested_dicts_to_dotted_keys
+
+        if not isinstance(ignore, list):
+            ignore = [ignore]
+
+        sp_cache = self._project._sp_cache
+
+        sorted_schema = self._project._flat_schema()
+        sp = dict(_nested_dicts_to_dotted_keys(self.cached_statepoint))
+        need_to_ignore = [sorted_schema.pop(i, _DictPlaceholder) for i in ignore]
+        if any(a is _DictPlaceholder for a in need_to_ignore):
+            ignore = []
+            warnings.warn("Ignored key not present in project.", RuntimeWarning)
+
+        if len(ignore) > 0:
+            for i in ignore:
+                sp.pop(i, None)
+            shadow_map, shadow_cache = prepare_shadow_project(sp_cache, ignore=ignore)
+            neighbors = neighbors_of_sp(sp, shadow_cache, sorted_schema)
+            neighbors = shadow_neighbors_to_neighbors(neighbors, shadow_map)
+        else:
+            sp_cache = {
+                _id: dict(_nested_dicts_to_dotted_keys(_sp))
+                for _id, _sp in sp_cache.items()
+            }
+            neighbors = neighbors_of_sp(sp, sp_cache, sorted_schema)
+        return neighbors
 
     def __enter__(self):
         self.open()

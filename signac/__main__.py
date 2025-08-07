@@ -197,6 +197,15 @@ def main_statepoint(args):
             print(json.dumps(job.statepoint(), indent=args.indent, sort_keys=args.sort))
 
 
+def main_neighbors(args):
+    """Handle the neighbors subcommand."""
+    project = get_project()
+    if args.job_id:
+        jobs = (_open_job_by_id(project, jid) for jid in args.job_id)
+    for job in jobs:
+        pprint(job.get_neighbors())
+
+
 def main_document(args):
     """Handle document subcommand."""
     project = get_project()
@@ -966,6 +975,17 @@ def main():
         help="Sort the state point keys for output.",
     )
     parser_statepoint.set_defaults(func=main_statepoint)
+
+    parser_neighbor = subparsers.add_parser(
+        "neighbors", description="Print the neighbors of the job"
+    )
+    parser_neighbor.add_argument(
+        "job_id",
+        nargs="*",
+        type=str,
+        help="One or more job ids. The corresponding jobs must be initialized.",
+    )
+    parser_neighbor.set_defaults(func=main_neighbors)
 
     parser_diff = subparsers.add_parser(
         "diff", description="Find the difference among job state points."

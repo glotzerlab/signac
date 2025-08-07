@@ -32,8 +32,12 @@ from ._config import (
     _raise_if_older_schema,
     _read_config_file,
 )
-from ._search_indexer import _SearchIndexer
-from ._utility import _mkdir_p, _nested_dicts_to_dotted_keys
+from ._neighbor import get_neighbor_list
+from ._search_indexer import _DictPlaceholder, _SearchIndexer
+from ._utility import (
+    _mkdir_p,
+    _nested_dicts_to_dotted_keys,
+)
 from .errors import (
     DestinationExistsError,
     IncompatibleSchemaVersion,
@@ -1652,6 +1656,73 @@ class Project:
         # Locks are not pickleable and must be added back to the state
         state["_lock"] = RLock()
         self.__dict__.update(state)
+
+    def _flat_schema(self):
+        """For each state point parameter, make a flat list sorted by its values in the project.
+
+        This is almost like schema, but the schema separates items by type.
+        To sort between different types, put in order of the name of the type
+        """
+        schema = self.detect_schema()
+        sorted_schema = {}
+        for key, schema_values in schema.items():
+            tuples_to_sort = []
+            for type_name in schema_values:
+                tuples_to_sort.append(
+                    (type_name.__name__, sorted(schema_values[type_name]))
+                )
+                combined_values = []
+                for _, v in sorted(tuples_to_sort, key=lambda x: x[0]):
+                    combined_values.extend(v)
+            sorted_schema[key] = combined_values
+        return sorted_schema
+
+    def get_neighbors(self, ignore=[]):
+        """Return the neighbors of each job in the project.
+
+        The neighbors of a job are jobs that differ along one state point parameter.
+
+        If neighbors are not being detected correctly, it is likely that there are several state
+        point parameters changing together. In this case, pass a list of state point parameters to
+        ignore to the `ignore` argument.
+
+        The neighbor list is a dictionary of dictionaries of dictionaries in the following format:
+        {jobid: {state_point_key: {prev_value: neighbor_id, next_value: neighbor_id}, ...}, ...}
+
+        Parameters
+        ----------
+        ignore : list of str
+            List of keys to ignore when building neighbor list.
+
+        Returns
+        -------
+        neighbor_list : dict
+            {jobid: {state_point_key: {prev_value: neighbor_id, next_value: neighbor_id}}}
+
+        Example
+        -------
+        .. code-block:: python
+
+            neighbor_list = project.get_neighbors()
+            for job in project:
+                neighbors = neighbor_list[job.id]
+                print(f"Job {job.id}")
+                for key,v in job.sp.items():
+                    print(f"has {key}={v} with neighbor jobs {key}-->{f" and {key}-->".join(
+                    f"{new_val} at job id {jid}" for new_val,jid in neighbors[key].items())}")
+        """
+        if not isinstance(ignore, list):
+            ignore = [ignore]
+
+        sorted_schema = self._flat_schema()
+        need_to_ignore = [sorted_schema.pop(ig, _DictPlaceholder) for ig in ignore]
+        if any(a is _DictPlaceholder for a in need_to_ignore):
+            ignore = []
+            warnings.warn("Ignored key not present in project.", RuntimeWarning)
+
+        self.update_cache()
+        # pass a copy of cache
+        return get_neighbor_list(dict(self._sp_cache), sorted_schema, ignore)
 
 
 @contextmanager
