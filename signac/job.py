@@ -1003,10 +1003,14 @@ class Job:
 
         sorted_schema = self._project._flat_schema()
         sp = dict(_nested_dicts_to_dotted_keys(self.cached_statepoint))
-        need_to_ignore = [sorted_schema.pop(i, _DictPlaceholder) for i in ignore]
-        if any(a is _DictPlaceholder for a in need_to_ignore):
-            ignore = []
-            warnings.warn("Ignored key not present in project.", RuntimeWarning)
+        need_to_ignore = [sorted_schema.pop(ig, _DictPlaceholder) for ig in ignore]
+        if any(is_bad_key := list(a is _DictPlaceholder for a in need_to_ignore)):
+            # any uses up the iterator
+            from itertools import compress
+            bad_keys = list(compress(ignore, is_bad_key))
+            warnings.warn(f"Ignored state point parameter{"s" if len(bad_keys)>1 else ""} {bad_keys} not present in project.", RuntimeWarning)
+            for b in bad_keys:
+                ignore.remove(b)
 
         if len(ignore) > 0:
             for i in ignore:

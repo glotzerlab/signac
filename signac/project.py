@@ -17,7 +17,7 @@ from collections.abc import Iterable
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import timedelta
-from itertools import groupby
+from itertools import compress, groupby
 from multiprocessing.pool import ThreadPool
 from tempfile import TemporaryDirectory
 from threading import RLock
@@ -1716,9 +1716,11 @@ class Project:
 
         sorted_schema = self._flat_schema()
         need_to_ignore = [sorted_schema.pop(ig, _DictPlaceholder) for ig in ignore]
-        if any(a is _DictPlaceholder for a in need_to_ignore):
-            ignore = []
-            warnings.warn("Ignored key not present in project.", RuntimeWarning)
+        if any(is_bad_key := list(a is _DictPlaceholder for a in need_to_ignore)):
+            bad_keys = list(compress(ignore, is_bad_key))
+            warnings.warn(f"Ignored state point parameter{"s" if len(bad_keys)>1 else ""} {bad_keys} not present in project.", RuntimeWarning)
+            for b in bad_keys:
+                ignore.remove(b)
 
         self.update_cache()
         # pass a copy of cache
