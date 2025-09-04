@@ -203,7 +203,7 @@ def main_neighbors(args):
     if args.job_id:
         jobs = (_open_job_by_id(project, jid) for jid in args.job_id)
     for job in jobs:
-        pprint(job.get_neighbors())
+        pprint(job.get_neighbors(ignore=args.ignore))
 
 
 def main_document(args):
@@ -985,6 +985,11 @@ def main():
         type=str,
         help="One or more job ids. The corresponding jobs must be initialized.",
     )
+    parser_neighbor.add_argument(
+        "--ignore",
+        nargs="+",
+        type=str,
+        help="State point keys to ignore when finding neighbors. Useful for state point parameters that change together.")
     parser_neighbor.set_defaults(func=main_neighbors)
 
     parser_diff = subparsers.add_parser(
@@ -994,6 +999,7 @@ def main():
         "job_id",
         nargs="*",
         type=str,
+        default=[],
         help="One or more job ids. The corresponding jobs must be initialized.",
     )
     parser_diff.add_argument(
