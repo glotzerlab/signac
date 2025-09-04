@@ -196,12 +196,13 @@ class TestNeighborList(TestProject):
         b_vals = [3, 4, 5]
         for a, b in product(a_vals, b_vals):
             self.project.open_job({"a": a, "b": b}).init()
-        with pytest.raises(ValueError):
+        # match with single quote to avoid matching on the a in "makes"
+        with pytest.raises(ValueError, match="'a'"):
             self.project.get_neighbors(ignore="a")
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="'b'"):
             self.project.get_neighbors(ignore="b")
         for job in self.project:
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match="'a'"):
                 job.get_neighbors(ignore="a")
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match="'b'"):
                 job.get_neighbors(ignore="b")
