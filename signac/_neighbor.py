@@ -229,13 +229,12 @@ def neighbors_of_sp(statepoint, dotted_sp_cache, sorted_schema):
         )
 
         this_d = {}
-        if next_neighbor is not None:
-            this_d.update(next_neighbor)
         if prev_neighbor is not None:
             this_d.update(prev_neighbor)
+        if next_neighbor is not None:
+            this_d.update(next_neighbor)
         neighbors.update({key: this_d})
     return neighbors
-
 
 def shadow_neighbors_to_neighbors(shadow_neighbors, shadow_map):
     """Replace shadow job ids with actual job ids in the neighbors of one job.
