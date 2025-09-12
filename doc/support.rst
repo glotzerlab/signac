@@ -24,22 +24,6 @@ Set up a development environment
 
 Start by `forking <https://github.com/glotzerlab/signac/fork/>`_ the project.
 
-We highly recommend to setup a dedicated development environment,
-for example with `venv <https://docs.python.org/3/library/venv.html>`_:
-
-.. code-block:: bash
-
-    ~ $ python -m venv ~/envs/signac-dev
-    ~ $ source ~/envs/signac-dev/bin/activate
-    (signac-dev) ~ $ pip install pre-commit
-
-or alternatively with `conda <https://conda.io/docs/>`_:
-
-.. code-block:: bash
-
-    ~ $ conda create -n signac-dev -c conda-forge python=3 pre-commit
-    ~ $ conda activate signac-dev
-
 Then clone your fork and install the package from source with:
 
 .. code-block:: bash
@@ -50,16 +34,7 @@ Then clone your fork and install the package from source with:
 The ``-e`` option stands for *editable*, which means that the package is directly loaded from the source code repository.
 That means any changes made to the source code are immediately reflected upon reloading the Python interpreter.
 
-The `pre-commit tool <https://pre-commit.com/>`__ is used to enforce code style guidelines.
-To install the tool and configure pre-commit hooks, execute:
-
-.. code-block:: bash
-
-    (signac-dev) signac $ pip install pre-commit
-    (signac-dev) signac $ pre-commit install
-
-With the pre-commit hook, your code will be checked for syntax and style before you make a commit.
-The continuous integration pipeline for the package will perform these checks as well, so running these tests before committing / pushing will prevent the pipeline from failing due to style-related issues.
+The `prek tool <https://prek.j178.dev/>`__ is used to enforce code style guidelines.
 
 The development workflow
 ------------------------
