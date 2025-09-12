@@ -41,7 +41,7 @@ Please see the [Support](https://signac.readthedocs.io/projects/core/en/latest/s
 
 ### Code Style
 
-The [pre-commit tool](https://pre-commit.com/) is used to enforce code style guidelines. Use `pip install pre-commit` to install the tool and `pre-commit install` to configure pre-commit hooks.
+The [prek tool](https://prek.j178.dev/) is used to enforce code style guidelines.
 
 ## Reviewing Pull Requests
 

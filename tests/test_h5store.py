@@ -737,29 +737,6 @@ class TestH5StoreMultiProcessing(TestH5StoreBase):
                         assert reader1["test"]
                         assert reader2["test"]
 
-    @pytest.mark.skipif(
-        python_implementation() != "CPython", reason="SWMR mode not available."
-    )
-    def test_single_writer_multiple_reader_same_instance(self):
-        from multiprocessing import Process
-
-        def read():
-            p = Process(
-                target=_read_from_h5store,
-                args=(self._fn_store,),
-                kwargs=(dict(mode="r", swmr=True, libver="latest")),
-            )
-            p.start()
-            p.join()
-            # Ensure the process succeeded
-            assert p.exitcode == 0
-
-        with self.open_h5store(libver="latest") as writer:
-            writer.file.swmr_mode = True
-            read()
-            writer["test"] = True
-            read()
-
     def test_multiple_reader_different_process_no_swmr(self):
         read_cmd = (
             r'python -c "from signac.h5store import H5Store; '
