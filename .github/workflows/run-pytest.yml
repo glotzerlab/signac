@@ -22,7 +22,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04]
-        python: ['3.9', '3.10', '3.11', '3.12', '3.13']
+        python: ['3.10', '3.11', '3.12', '3.13']
         # Unused key to force creation of new entries in the matrix
         default: ['true']
         include:
@@ -39,7 +39,7 @@ jobs:
     - name: Set up Python environment
       uses: glotzerlab/workflows/setup-uv@1fe577d5430222a9793694a14cdb316cf8f720e1 # 0.9.0
       with:
-        lockfile: "requirements/requirements-test-all.txt"        
+        lockfile: "requirements/requirements-test-all-py${{ matrix.python }}.txt"
     - name: Install the package
       run: |
         uv pip install . --no-build-isolation --no-deps --system -v
