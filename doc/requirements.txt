@@ -124,6 +124,8 @@ rpds-py==0.27.1
     # via
     #   jsonschema
     #   referencing
+setuptools==80.9.0
+    # via -r requirements.in
 six==1.17.0
     # via python-dateutil
 snowballstemmer==3.0.1

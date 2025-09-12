@@ -42,6 +42,8 @@ python-dateutil==2.9.0.post0
     # via pandas
 pytz==2025.2
     # via pandas
+setuptools==80.9.0
+    # via -r requirements.in
 six==1.17.0
     # via python-dateutil
 synced-collections==1.0.0
