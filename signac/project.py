@@ -1657,13 +1657,13 @@ class Project:
         state["_lock"] = RLock()
         self.__dict__.update(state)
 
-    def _flat_schema(self):
+    def _flat_schema(self, exclude_const=False):
         """For each state point parameter, make a flat list sorted by its values in the project.
 
         This is almost like schema, but the schema separates items by type.
         To sort between different types, put in order of the name of the type
         """
-        schema = self.detect_schema()
+        schema = self.detect_schema(exclude_const=exclude_const)
         sorted_schema = {}
         for key, schema_values in schema.items():
             tuples_to_sort = []
@@ -1714,7 +1714,7 @@ class Project:
         if not isinstance(ignore, list):
             ignore = [ignore]
 
-        sorted_schema = self._flat_schema()
+        sorted_schema = self._flat_schema(exclude_const = True)
         need_to_ignore = [sorted_schema.pop(ig, _DictPlaceholder) for ig in ignore]
         if any(is_bad_key := list(a is _DictPlaceholder for a in need_to_ignore)):
             bad_keys = list(compress(ignore, is_bad_key))
