@@ -980,6 +980,7 @@ class Job:
         except IndexError:
             pass
 
+    # TODO considering not exposing this entry point since it's mainly for the CLI
     def get_neighbors(self, ignore=[]):
         """Return the neighbors of this job, mainly for command line use.
 
