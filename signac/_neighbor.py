@@ -28,7 +28,8 @@ def prepare_shadow_project(sp_cache, ignore: list):
     ----------
     sp_cache, state point cache
     ignore: list of str
-        state point keys
+        state point keys to ignore, with nested keys specified in dotted key
+        format
 
     Returns
     -------
@@ -36,8 +37,10 @@ def prepare_shadow_project(sp_cache, ignore: list):
         a map from shadow job id to project job id.
 
     shadow_cache
-        an in-memory state point cache for the shadow project mapping
+        an in-memory state point cache for the shadow project that maps
         shadow job id --> shadow state point, in dotted key format
+        The shadow job id is computed from the nested key format with
+        the ignored keys removed.
 
 
     Use cases:
@@ -93,12 +96,14 @@ def prepare_shadow_project(sp_cache, ignore: list):
     shadow_cache = {}  # like a state point cache, but for the shadow project
     job_projection = {}  # goes from job id to shadow id
     for jobid, sp in sp_cache.items():
-        shadow_sp = dict(sp)
+        # Remove ignored keys while in dotted key format
+        shadow_sp_dotted = dict(_nested_dicts_to_dotted_keys(sp))
         for ig in ignore:
-            shadow_sp.pop(ig, None)
-        shadow_id = calc_id(shadow_sp)
+            shadow_sp_dotted.pop(ig, None)
+        # id calculated from nested keys
+        shadow_id = calc_id(_dotted_dict_to_nested_dicts(shadow_sp_dotted))
         # The cache needs to be in dotted key format, so just convert it here
-        shadow_cache[shadow_id] = dict(_nested_dicts_to_dotted_keys(shadow_sp))
+        shadow_cache[shadow_id] = shadow_sp_dotted
         job_projection[jobid] = shadow_id
 
     if len(set(job_projection.values())) != len(job_projection):
@@ -115,7 +120,7 @@ def prepare_shadow_project(sp_cache, ignore: list):
         raise ValueError(
             f"Ignoring {ignore} makes it impossible to distinguish some jobs:\n{err_str}"
         )
-    # map from shadow job id to project job id
+    # invert the map to go from shadow job id to project job id
     shadow_map = {v: k for k, v in job_projection.items()}
     return shadow_map, shadow_cache
 
