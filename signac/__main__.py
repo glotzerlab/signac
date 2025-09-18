@@ -187,7 +187,7 @@ def main_statepoint(args):
     """Handle statepoint subcommand."""
     project = get_project()
     if args.job_id:
-        jobs = (_open_job_by_id(project, jid) for jid in args.job_id)
+        jobs = (_open_job_by_id(project, job_id) for job_id in args.job_id)
     else:
         jobs = project
     for job in jobs:
@@ -201,7 +201,7 @@ def main_neighbors(args):
     """Handle the neighbors subcommand."""
     project = get_project()
     if args.job_id:
-        jobs = (_open_job_by_id(project, jid) for jid in args.job_id)
+        jobs = (_open_job_by_id(project, job_id) for job_id in args.job_id)
     for job in jobs:
         nl = job.get_neighbors(ignore=args.ignore)
         pprint({k: v for k, v in nl.items() if len(v) > 0})

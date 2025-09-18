@@ -28,17 +28,16 @@ def prepare_shadow_project(sp_cache, ignore: list):
     ----------
     sp_cache, state point cache
     ignore: list of str
-        state point keys to ignore, with nested keys specified in dotted key
-        format
+        State point keys to ignore, with nested keys specified in dotted key format
 
     Returns
     -------
     shadow_map
-        a map from shadow job id to project job id.
+        A map from shadow job id to project job id
 
     shadow_cache
-        an in-memory state point cache for the shadow project that maps
-        shadow job id --> shadow state point, in dotted key format
+        An in-memory state point cache for the shadow project that maps
+        shadow job id --> shadow state point, in dotted key format.
         The shadow job id is computed from the nested key format with
         the ignored keys removed.
 
@@ -136,10 +135,10 @@ def _search_cache_for_val(statepoint, cache, key, other_val):
     Parameters
     ----------
     statepoint : dict
-        state point of job to modify. statepoint must not be a reference because it will be
-        modified in this function
+        State point of job to modify. Statepoint must not be a reference because it will be
+        modified in this function.
     cache : dict
-        project state point cache to search in
+        Project state point cache to search in
     key : str
         The key whose value to change
     other_val
@@ -147,7 +146,7 @@ def _search_cache_for_val(statepoint, cache, key, other_val):
 
     Returns
     -------
-    job id of similar job
+    Job id of similar job
     None, if not present
     """
     statepoint.update({key: other_val})
@@ -168,14 +167,14 @@ def _search_out(search_direction, values, current_index, boundary_index, search_
     search_direction : int, 1 or -1
         1 means search in the positive direction from the index
     values : iterable
-        values to index into when searching
+        Values to index into when searching
     current_index : int
-       index into values to start searching from.
+       Index into values to start searching from.
        The value at this index is not accessed directly.
     boundary_index : int
-        the index at which to stop
+        The index at which to stop
     search_fun : function
-        unary function returning jobid if it exists and None otherwise
+        Unary function returning jobid if it exists and None otherwise
 
     Returns
     -------
@@ -183,8 +182,8 @@ def _search_out(search_direction, values, current_index, boundary_index, search_
 
     {val: jobid} if jobid found per search_fun
     jobid : str
-        job id of the nearest job in the search_direction
-    val : value of the key at the neighbor jobid
+        Job id of the nearest job in the search_direction
+    val : Value of the key at the neighbor jobid
     """
     query_index = current_index + search_direction
     # search either query_index >= low_boundary or query_index <= high_boundary
@@ -203,7 +202,7 @@ def neighbors_of_sp(statepoint, dotted_sp_cache, sorted_schema):
 
     State point and cache must both use either job ids or shadow job ids.
 
-    statepoint and dotted_sp_cache must be in dotted key format, which is accessed by calling
+    Statepoint and dotted_sp_cache must be in dotted key format, which is accessed by calling
     _nested_dicts_to_dotted_keys on each state point in the cache.
 
     Parameters
@@ -248,9 +247,9 @@ def shadow_neighbors_to_neighbors(shadow_neighbors, shadow_map):
     Parameters
     ----------
     shadow_neighbors : dict of state point parameters to neighbor values to shadow job id
-        neighbors containing shadow job ids
+        Neighbors containing shadow job ids
     shadow_map : dict
-        map from shadow job id to project job id
+        Map from shadow job id to project job id
     """
     neighbors = {}
     for neighbor_key, neighbor_vals in shadow_neighbors.items():
@@ -264,10 +263,10 @@ def shadow_neighbor_list_to_neighbor_list(shadow_neighbor_list, shadow_map):
     Parameters
     ----------
     shadow_neighbor_list : dict
-        neighbor_list containing shadow job ids
-        dict shadow job ids to state point parameters to neighbor values to shadow job id
+        `neighbor_list` containing shadow job ids.
+        dict of shadow job ids to state point parameters to neighbor values to shadow job id
     shadow_map : dict
-        map from shadow job id to project job id
+        Map from shadow job id to project job id
     """
     neighbor_list = {}
     for jobid, shadow_neighbors in shadow_neighbor_list.items():

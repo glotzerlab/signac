@@ -1004,7 +1004,7 @@ class Job:
         sorted_schema = self._project._flat_schema()
         sp = dict(_nested_dicts_to_dotted_keys(self.cached_statepoint))
         need_to_ignore = [sorted_schema.pop(ig, _DictPlaceholder) for ig in ignore]
-        if any(is_bad_key := list(a is _DictPlaceholder for a in need_to_ignore)):
+        if any(is_bad_key := [a is _DictPlaceholder for a in need_to_ignore]):
             # any uses up the iterator
             from itertools import compress
 
@@ -1013,8 +1013,8 @@ class Job:
                 f"Ignored state point parameter{'s' if len(bad_keys) > 1 else ''} {bad_keys} not present in project.",
                 RuntimeWarning,
             )
-            for b in bad_keys:
-                ignore.remove(b)
+            for bad_key in bad_keys:
+                ignore.remove(bad_key)
 
         if len(ignore) > 0:
             for i in ignore:

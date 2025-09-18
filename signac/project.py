@@ -1699,7 +1699,8 @@ class Project:
         Returns
         -------
         neighbor_list : dict
-            {jobid: {state_point_key: {prev_value: neighbor_id, next_value: neighbor_id}}}
+            A mapping of jobid to state point keys to previous and next job ids along each key
+            (see above).
 
         Example
         -------
@@ -1718,15 +1719,15 @@ class Project:
 
         sorted_schema = self._flat_schema(exclude_const=True)
         need_to_ignore = [sorted_schema.pop(ig, _DictPlaceholder) for ig in ignore]
-        if any(is_bad_key := list(a is _DictPlaceholder for a in need_to_ignore)):
+        if any(is_bad_key := [a is _DictPlaceholder for a in need_to_ignore]):
             bad_keys = list(compress(ignore, is_bad_key))
             warnings.warn(
                 f"Ignored state point parameter{'s' if len(bad_keys) > 1 else ''} {bad_keys
                 } not present in project.",
                 RuntimeWarning,
             )
-            for b in bad_keys:
-                ignore.remove(b)
+            for bad_key in bad_keys:
+                ignore.remove(bad_key)
 
         self.update_cache()
         # pass a copy of cache
