@@ -87,6 +87,34 @@ class TestNeighborList(TestProject):
                     == self.project.open_job({"b": 4, "2b": 8}).id
                 )
 
+    def test_neighbors_ignore_nested(self):
+
+        a_vals = [{"b": 2, "c": 2}, {"b": 3, "c": 3}]
+        for a in a_vals:
+            self.project.open_job({"a": a}).init()
+
+        neighbor_list = self.project.get_neighbors(ignore = "a.b")
+
+        for a in a_vals:
+            job = self.project.open_job({"a": a})
+            neighbors_job = job.get_neighbors(ignore = "a.b")
+
+            c = a["c"]
+
+            this_neighbors = neighbor_list[job.id]
+            assert this_neighbors == neighbors_job
+
+            if c == 2:
+                assert (
+                    this_neighbors["a.c"][3]
+                    == self.project.open_job({"a": {"b": 3, "c": 3}}).id
+                )
+            elif c == 3:
+                assert (
+                    this_neighbors["a.c"][2]
+                    == self.project.open_job({"a": {"b": 2, "c": 2}}).id
+                )
+
     def test_neighbors_nested(self):
         a_vals = [{"c": 2}, {"c": 3}, {"c": 4}, {"c": "5"}, {"c": "hello"}]
         for a in a_vals:
