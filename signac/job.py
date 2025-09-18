@@ -981,12 +981,37 @@ class Job:
             pass
 
     def get_neighbors(self, ignore=[]):
-        """Return the neighbors of this job.
+        """Return the neighbors of this job, mainly for command line use.
+
+        Use `Project.get_neighbors()` to get the neighbors of all jobs in the project.
+
+        The neighbors of a job are jobs that differ along one state point parameter.
+
+        Job neighbors are provided in a dictionary containing
+        {state_point_key: {prev_value: neighbor_id, next_value: neighbor_id}, ...},
+        where `state_point_key` is each of the non-constant state point parameters in the project
+        (equivalent to the output of `project.detect_schema(exclude_const = True)`). For nested
+        state point keys, the state point key is in "dotted key" notation, like the output of
+        `detect_schema`.
+
+        Along each state_point_key, a job can have 0, 1 or 2 neighbors. For 0 neighbors, the job
+        neighbors dictionary is empty. For 2 neighbors, the neighbors are in sort order. State point
+        values of different types are ordered by their type name.
+        
+        If neighbors are not being detected correctly, it is likely that there are several state
+        point parameters changing together. In this case, pass a list of state point parameters to
+        ignore to the `ignore` argument. If a state point value is a dictionary (a "nested key"),
+        then the ignore list must be specified in "dotted key" notation.
 
         Parameters
         ----------
         ignore : list
             List of state point parameters to ignore when building neighbor list
+
+        Returns
+        -------
+        neighbors : dict
+            A map of state point key to 0-2 neighbor values (or none) to job ids (see above)
         """
         from ._neighbor import (
             neighbors_of_sp,

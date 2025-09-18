@@ -1680,27 +1680,35 @@ class Project:
         return sorted_schema
 
     def get_neighbors(self, ignore=[]):
-        """Return the neighbors of each job in the project.
+        """Return a map of job ids to job neighbors.
 
         The neighbors of a job are jobs that differ along one state point parameter.
 
+        Job neighbors are provided in a dictionary containing
+        {state_point_key: {prev_value: neighbor_id, next_value: neighbor_id}, ...},
+        where `state_point_key` is each of the non-constant state point parameters in the project
+        (equivalent to the output of `project.detect_schema(exclude_const = True)`). For nested
+        state point keys, the state point key is in "dotted key" notation, like the output of
+        `detect_schema`.
+
+        Along each state_point_key, a job can have 0, 1 or 2 neighbors. For 0 neighbors, the job
+        neighbors dictionary is empty. For 2 neighbors, the neighbors are in sort order. State point
+        values of different types are ordered by their type name.
+        
         If neighbors are not being detected correctly, it is likely that there are several state
         point parameters changing together. In this case, pass a list of state point parameters to
-        ignore to the `ignore` argument.
-
-        The neighbor list is a dictionary of dictionaries of dictionaries in the following format:
-        {jobid: {state_point_key: {prev_value: neighbor_id, next_value: neighbor_id}, ...}, ...}
-
+        ignore to the `ignore` argument. If a state point value is a dictionary (a "nested key"),
+        then the ignore list must be specified in "dotted key" notation.
+        
         Parameters
         ----------
         ignore : list of str
-            List of keys to ignore when building neighbor list.
+            List of keys to ignore when building neighbor list
 
         Returns
         -------
         neighbor_list : dict
-            A mapping of jobid to state point keys to previous and next job ids along each key
-            (see above).
+            A map of job id to job neighbors (see above).
 
         Example
         -------
@@ -1713,6 +1721,7 @@ class Project:
                 for key,v in job.sp.items():
                     print(f"has {key}={v} with neighbor jobs {key}-->{f" and {key}-->".join(
                     f"{new_val} at job id {jid}" for new_val,jid in neighbors[key].items())}")
+
         """
         if not isinstance(ignore, list):
             ignore = [ignore]
