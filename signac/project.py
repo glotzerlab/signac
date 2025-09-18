@@ -1326,8 +1326,9 @@ class Project:
                         os.replace(invalid_wd, correct_wd)
                     except OSError as error:
                         logger.critical(
-                            "Unable to fix location of job with "
-                            " id '{}': '{}'.".format(job_id, error)
+                            "Unable to fix location of job with  id '{}': '{}'.".format(
+                                job_id, error
+                            )
                         )
                         corrupted.append(job_id)
                         continue
@@ -1346,8 +1347,9 @@ class Project:
                     job.init()
                 except Exception as error:
                     logger.error(
-                        "Error during initialization of job with "
-                        "id '{}': '{}'.".format(job_id, error)
+                        "Error during initialization of job with id '{}': '{}'.".format(
+                            job_id, error
+                        )
                     )
                     try:  # Attempt to fix the job state point file.
                         job.init(force=True)
@@ -1714,12 +1716,13 @@ class Project:
         if not isinstance(ignore, list):
             ignore = [ignore]
 
-        sorted_schema = self._flat_schema(exclude_const = True)
+        sorted_schema = self._flat_schema(exclude_const=True)
         need_to_ignore = [sorted_schema.pop(ig, _DictPlaceholder) for ig in ignore]
         if any(is_bad_key := list(a is _DictPlaceholder for a in need_to_ignore)):
             bad_keys = list(compress(ignore, is_bad_key))
             warnings.warn(
-                f"Ignored state point parameter{'s' if len(bad_keys)>1 else ''} {bad_keys} not present in project.",
+                f"Ignored state point parameter{'s' if len(bad_keys) > 1 else ''} {bad_keys
+                } not present in project.",
                 RuntimeWarning,
             )
             for b in bad_keys:

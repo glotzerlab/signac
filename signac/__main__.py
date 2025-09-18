@@ -990,7 +990,8 @@ def main():
         "--ignore",
         nargs="+",
         type=str,
-        help="State point keys to ignore when finding neighbors. Useful for state point parameters that change together.",
+        help="State point keys to ignore when finding neighbors. "
+        "Useful for state point parameters that change together.",
     )
     parser_neighbor.set_defaults(func=main_neighbors)
 
