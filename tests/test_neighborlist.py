@@ -88,16 +88,15 @@ class TestNeighborList(TestProject):
                 )
 
     def test_neighbors_ignore_nested(self):
-
         a_vals = [{"b": 2, "c": 2}, {"b": 3, "c": 3}]
         for a in a_vals:
             self.project.open_job({"a": a}).init()
 
-        neighbor_list = self.project.get_neighbors(ignore = "a.b")
+        neighbor_list = self.project.get_neighbors(ignore="a.b")
 
         for a in a_vals:
             job = self.project.open_job({"a": a})
-            neighbors_job = job.get_neighbors(ignore = "a.b")
+            neighbors_job = job.get_neighbors(ignore="a.b")
 
             c = a["c"]
 
