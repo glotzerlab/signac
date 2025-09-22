@@ -998,7 +998,7 @@ class Job:
         Along each state_point_key, a job can have 0, 1 or 2 neighbors. For 0 neighbors, the job
         neighbors dictionary is empty. For 2 neighbors, the neighbors are in sort order. State point
         values of different types are ordered by their type name.
-        
+
         If neighbors are not being detected correctly, it is likely that there are several state
         point parameters changing together. In this case, pass a list of state point parameters to
         ignore to the `ignore` argument. If a state point value is a dictionary (a "nested key"),
