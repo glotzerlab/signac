@@ -1036,7 +1036,7 @@ class Job:
 
             bad_keys = list(compress(ignore, is_bad_key))
             warnings.warn(
-                f"Ignored state point parameter{'s' if len(bad_keys) > 1 else ''} {bad_keys}"\
+                f"Ignored state point parameter{'s' if len(bad_keys) > 1 else ''} {bad_keys}"
                 " not present in project.",
                 RuntimeWarning,
             )
