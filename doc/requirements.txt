@@ -10,7 +10,7 @@ attrs==25.3.0
     #   referencing
 babel==2.17.0
     # via sphinx
-beautifulsoup4==4.13.5
+beautifulsoup4==4.14.2
     # via nbconvert
 bleach==6.2.0
     # via nbconvert
@@ -37,7 +37,7 @@ idna==3.10
     # via requests
 imagesize==1.4.1
     # via sphinx
-ipython==9.5.0
+ipython==9.6.0
     # via -r doc/requirements.in
 ipython-pygments-lexers==1.1.1
     # via ipython
@@ -64,7 +64,7 @@ jupyter-core==5.8.1
     #   nbformat
 jupyterlab-pygments==0.3.0
     # via nbconvert
-markupsafe==3.0.2
+markupsafe==3.0.3
     # via
     #   jinja2
     #   nbconvert
@@ -181,7 +181,7 @@ typing-extensions==4.15.0
     # via beautifulsoup4
 urllib3==2.5.0
     # via requests
-wcwidth==0.2.13
+wcwidth==0.2.14
     # via prompt-toolkit
 webencodings==0.5.1
     # via
