@@ -15,9 +15,9 @@ class TestNeighborList(TestProject):
 
         for a, b in product(a_vals, b_vals):
             job = self.project.open_job({"a": a, "b": b})
-            neighbors_job = job.get_neighbors()
+            neighbors_job = job._get_neighbors()
             with pytest.warns(RuntimeWarning, match="not_present"):
-                job.get_neighbors(ignore=["not_present"])
+                job._get_neighbors(ignore=["not_present"])
 
             neighbors_project = neighbor_list[job.id]
             assert neighbors_project == neighbors_job
@@ -62,7 +62,7 @@ class TestNeighborList(TestProject):
 
         for b in b_vals:
             job = self.project.open_job({"b": b, "2b": 2 * b})
-            neighbors_job = job.get_neighbors(ignore=["2b"])
+            neighbors_job = job._get_neighbors(ignore=["2b"])
 
             this_neighbors = neighbor_list[job.id]
             assert this_neighbors == neighbors_job
@@ -96,7 +96,7 @@ class TestNeighborList(TestProject):
 
         for a in a_vals:
             job = self.project.open_job({"a": a})
-            neighbors_job = job.get_neighbors(ignore="a.b")
+            neighbors_job = job._get_neighbors(ignore="a.b")
 
             c = a["c"]
 
@@ -123,7 +123,7 @@ class TestNeighborList(TestProject):
 
         for a in a_vals:
             job = self.project.open_job({"a": a})
-            neighbors_job = job.get_neighbors()
+            neighbors_job = job._get_neighbors()
 
             c = a["c"]
 
@@ -172,7 +172,7 @@ class TestNeighborList(TestProject):
         neighbor_list = self.project.get_neighbors(ignore=["2b"])
 
         job = self.project.open_job({"x": {"n": "nested"}})
-        neighbors_job = job.get_neighbors(ignore=["2b"])
+        neighbors_job = job._get_neighbors(ignore=["2b"])
         neighbors_project = neighbor_list[job.id]
 
         assert neighbors_project == neighbors_job
@@ -197,7 +197,7 @@ class TestNeighborList(TestProject):
             jobid = job_ids[i]
             job = self.project.open_job(id=jobid)
 
-            neighbors_job = job.get_neighbors()
+            neighbors_job = job._get_neighbors()
             this_neighbors = neighbor_list[jobid]
             assert this_neighbors == neighbors_job
             if i > 0:
@@ -215,7 +215,7 @@ class TestNeighborList(TestProject):
         for job in self.project:
             for v in neighbor_list[job.id].values():
                 assert len(v) == 0
-            for v in job.get_neighbors().values():
+            for v in job._get_neighbors().values():
                 assert len(v) == 0
 
     def test_neighbors_ignore_dups(self):
@@ -230,6 +230,6 @@ class TestNeighborList(TestProject):
             self.project.get_neighbors(ignore="b")
         for job in self.project:
             with pytest.raises(ValueError, match="'a'"):
-                job.get_neighbors(ignore="a")
+                job._get_neighbors(ignore="a")
             with pytest.raises(ValueError, match="'b'"):
-                job.get_neighbors(ignore="b")
+                job._get_neighbors(ignore="b")

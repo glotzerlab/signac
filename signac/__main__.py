@@ -203,7 +203,7 @@ def main_neighbors(args):
     if args.job_id:
         jobs = (_open_job_by_id(project, job_id) for job_id in args.job_id)
     for job in jobs:
-        nl = job.get_neighbors(ignore=args.ignore)
+        nl = job._get_neighbors(ignore=args.ignore)
         pprint({k: v for k, v in nl.items() if len(v) > 0})
 
 
