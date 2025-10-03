@@ -4,8 +4,6 @@
 """Provides features for importing and exporting data."""
 
 import errno
-import json
-import orjson
 import logging
 import os
 import re
@@ -18,6 +16,8 @@ from contextlib import closing, contextmanager
 from string import Formatter
 from tempfile import TemporaryDirectory
 from zipfile import ZIP_DEFLATED, ZipFile
+
+import orjson
 
 from ._search_indexer import _SearchIndexer
 from ._utility import _dotted_dict_to_nested_dicts, _mkdir_p

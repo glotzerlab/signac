@@ -4,8 +4,9 @@
 """Parse the filter arguments."""
 
 import json
-import orjson
 from collections.abc import Mapping
+
+import orjson
 
 from ._utility import _print_err
 

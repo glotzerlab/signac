@@ -5,8 +5,6 @@
 
 import errno
 import gzip
-import json
-import orjson
 import logging
 import os
 import re
@@ -23,6 +21,7 @@ from multiprocessing.pool import ThreadPool
 from tempfile import TemporaryDirectory
 from threading import RLock
 
+import orjson
 from synced_collections.backends.collection_json import BufferedJSONAttrDict
 
 from ._config import (
@@ -1449,7 +1448,7 @@ class Project:
             fn_cache_tmp = fn_cache + "~"
             try:
                 with gzip.open(fn_cache_tmp, "wb") as cachefile:
-                    cachefile.write(json.dumps(self._sp_cache).encode())
+                    cachefile.write(orjson.dumps(self._sp_cache))
             except OSError:  # clean-up
                 try:
                     os.remove(fn_cache_tmp)

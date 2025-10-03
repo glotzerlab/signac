@@ -3,13 +3,13 @@
 # This software is licensed under the BSD 3-Clause License.
 """Implement class for indexing signac Projects."""
 
-import json
-import orjson
 import logging
 import operator
 import re
 from math import isclose
 from numbers import Number
+
+import orjson
 
 from ._utility import _nested_dicts_to_dotted_keys, _to_hashable
 from .errors import InvalidKeyError

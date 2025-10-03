@@ -10,7 +10,6 @@ import difflib
 import errno
 import importlib
 import json
-import orjson
 import logging
 import os
 import platform
@@ -21,6 +20,7 @@ import warnings
 from pprint import pformat, pprint
 from rlcompleter import Completer
 
+import orjson
 from tqdm import tqdm
 
 try:
