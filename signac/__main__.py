@@ -990,6 +990,7 @@ def main():
         "--ignore",
         nargs="+",
         type=str,
+        default=[],
         help="State point keys to ignore when finding neighbors. "
         "Useful for state point parameters that change together.",
     )
