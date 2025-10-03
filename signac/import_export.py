@@ -5,6 +5,7 @@
 
 import errno
 import json
+import orjson
 import logging
 import os
 import re
@@ -836,7 +837,7 @@ def _analyze_directory_for_import(root, project, schema):
         """
         try:
             with open(os.path.join(path, Job.FN_STATE_POINT), "rb") as file:
-                return json.loads(file.read().decode())
+                return orjson.loads(file.read())
         except OSError as error:
             if error.errno != errno.ENOENT:
                 raise error
@@ -955,7 +956,7 @@ def _analyze_zipfile_for_import(zipfile, project, schema):
         # Must use forward slashes, not os.path.sep.
         fn_statepoint = path + "/" + Job.FN_STATE_POINT
         if fn_statepoint in names:
-            return json.loads(zipfile.read(fn_statepoint).decode())
+            return orjson.loads(zipfile.read(fn_statepoint))
 
     # Determine schema function
     if schema is None:
@@ -1104,7 +1105,7 @@ def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
         fn_statepoint = _tarfile_path_join(path, Job.FN_STATE_POINT)
         try:
             with closing(tarfile.extractfile(fn_statepoint)) as file:
-                return json.loads(file.read())
+                return orjson.loads(file.read())
         except KeyError:
             pass
 

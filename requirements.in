@@ -3,3 +3,4 @@ packaging>=15.0
 synced_collections>=1.0.0
 tqdm>=4.46.1
 setuptools
+orjson

@@ -10,6 +10,7 @@ import difflib
 import errno
 import importlib
 import json
+import orjson
 import logging
 import os
 import platform
@@ -170,7 +171,7 @@ def main_job(args):
     else:
         sp = args.statepoint
     try:
-        statepoint = json.loads(sp)
+        statepoint = orjson.loads(sp)
     except ValueError:
         _print_err(f"Error while reading state point: '{sp}'")
         raise

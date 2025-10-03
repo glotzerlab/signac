@@ -4,6 +4,7 @@
 """Implement class for indexing signac Projects."""
 
 import json
+import orjson
 import logging
 import operator
 import re
@@ -489,7 +490,7 @@ class _SearchIndexer(dict):
         if not filter_:
             return set(self)
 
-        filter_ = json.loads(json.dumps(filter_))  # Normalize
+        filter_ = orjson.loads(orjson.dumps(filter_))  # Normalize
         if not isinstance(filter_, dict):
             raise ValueError(f"Invalid filter: {filter_}")
         return self._find_result(filter_)

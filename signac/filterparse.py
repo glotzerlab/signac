@@ -4,6 +4,7 @@
 """Parse the filter arguments."""
 
 import json
+import orjson
 from collections.abc import Mapping
 
 from ._utility import _print_err
@@ -53,13 +54,13 @@ def _parse_json(q):
 
     Raises
     ------
-    JSONDecodeError
+    ValueError
         Raised if the input cannot be parsed as JSON.
 
     """
     try:
-        return json.loads(q)
-    except json.JSONDecodeError:
+        return orjson.loads(q)
+    except ValueError:
         _print_err(f"Failed to parse query argument. Ensure that '{q}' is valid JSON!")
         raise
 

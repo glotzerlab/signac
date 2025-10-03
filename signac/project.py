@@ -6,6 +6,7 @@
 import errno
 import gzip
 import json
+import orjson
 import logging
 import os
 import re
@@ -878,7 +879,7 @@ class Project:
         fn_statepoint = os.sep.join((self.workspace, job_id, Job.FN_STATE_POINT))
         try:
             with open(fn_statepoint, "rb") as statepoint_file:
-                statepoint = json.loads(statepoint_file.read().decode())
+                statepoint = orjson.loads(statepoint_file.read())
                 if validate and calc_id(statepoint) != job_id:
                     raise JobsCorruptedError([job_id])
 
@@ -1383,7 +1384,7 @@ class Project:
                     # os.path.join for speed.
                     fn_document = os.sep.join((self.workspace, job_id, Job.FN_DOCUMENT))
                     with open(fn_document, "rb") as file:
-                        doc["doc"] = json.loads(file.read().decode())
+                        doc["doc"] = orjson.loads(file.read())
                 except OSError as error:
                     if error.errno != errno.ENOENT:
                         raise
@@ -1469,7 +1470,7 @@ class Project:
         start = time.time()
         try:
             with gzip.open(self.fn(self.FN_CACHE), "rb") as cachefile:
-                cache = json.loads(cachefile.read().decode())
+                cache = orjson.loads(cachefile.read())
             self._sp_cache.update(cache)
         except OSError as error:
             if error.errno != errno.ENOENT:
