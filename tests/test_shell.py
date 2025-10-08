@@ -452,7 +452,7 @@ class TestBasicShell:
         for a,b in product([1,2], [2,3]):
             job = project.open_job({"a":a, "b":b}).init()
         out = self.call(f"python -m signac neighbors {job.id} --ignore b".split(), error=True,
-                        aise_error=False)
+                        raise_error=False)
         assert "impossible to distinguish" in out
         assert "'b'" in out
 
