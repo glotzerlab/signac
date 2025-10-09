@@ -1,12 +1,12 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-from itertools import product
 import json
 import os
 import shutil
 import subprocess
 import sys
+from itertools import product
 from tempfile import TemporaryDirectory
 
 import pytest
@@ -440,19 +440,24 @@ class TestBasicShell:
     def test_neighbors_ignore_not_present(self):
         self.call("python -m signac init".split())
         project = signac.Project()
-        job = project.open_job({"a":1}).init()
-        out = self.call(f"python -m signac neighbors {job.id} --ignore not_in_project".split(),
-                        error=True)
+        job = project.open_job({"a": 1}).init()
+        out = self.call(
+            f"python -m signac neighbors {job.id} --ignore not_in_project".split(),
+            error=True,
+        )
         assert "not_in_project" in out
         assert "not present" in out
 
     def test_neighbors_ignore(self):
         self.call("python -m signac init".split())
         project = signac.Project()
-        for a,b in product([1,2], [2,3]):
-            job = project.open_job({"a":a, "b":b}).init()
-        out = self.call(f"python -m signac neighbors {job.id} --ignore b".split(), error=True,
-                        raise_error=False)
+        for a, b in product([1, 2], [2, 3]):
+            job = project.open_job({"a": a, "b": b}).init()
+        out = self.call(
+            f"python -m signac neighbors {job.id} --ignore b".split(),
+            error=True,
+            raise_error=False,
+        )
         assert "impossible to distinguish" in out
         assert "'b'" in out
 
