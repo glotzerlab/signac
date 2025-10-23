@@ -14,11 +14,11 @@ execnet==2.1.1
     # via pytest-xdist
 filelock==3.20.0
     # via -r requirements.in
-h5py==3.15.0
+h5py==3.15.1
     # via -r requirements/requirements-test-optional.in
 idna==3.11
     # via requests
-iniconfig==2.1.0
+iniconfig==2.3.0
     # via pytest
 msgpack==1.1.2
     # via blosc2
