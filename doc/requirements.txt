@@ -37,7 +37,7 @@ idna==3.11
     # via requests
 imagesize==1.4.1
     # via sphinx
-ipython==9.6.0
+ipython==9.7.0
     # via -r doc/requirements.in
 ipython-pygments-lexers==1.1.1
     # via ipython
