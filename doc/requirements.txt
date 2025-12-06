@@ -12,7 +12,7 @@ babel==2.17.0
     # via sphinx
 beautifulsoup4==4.14.3
     # via nbconvert
-bleach==6.3.0
+bleach[css]==6.3.0
     # via nbconvert
 certifi==2025.11.12
     # via requests
@@ -31,14 +31,12 @@ executing==2.2.1
     # via stack-data
 fastjsonschema==2.21.2
     # via nbformat
-filelock==3.20.0
-    # via -r requirements.in
 idna==3.11
     # via requests
 imagesize==1.4.1
     # via sphinx
 ipython==9.8.0
-    # via -r doc/requirements.in
+    # via -r requirements.in
 ipython-pygments-lexers==1.1.1
     # via ipython
 jedi==0.19.2
@@ -54,7 +52,7 @@ jsonschema-specifications==2025.9.1
     # via jsonschema
 jupyter-client==8.6.3
     # via
-    #   -r doc/requirements.in
+    #   -r requirements.in
     #   nbclient
 jupyter-core==5.9.1
     # via
@@ -76,7 +74,7 @@ nbclient==0.10.2
     # via nbconvert
 nbconvert==7.16.6
     # via
-    #   -r doc/requirements.in
+    #   -r requirements.in
     #   nbsphinx
 nbformat==5.10.4
     # via
@@ -84,10 +82,9 @@ nbformat==5.10.4
     #   nbconvert
     #   nbsphinx
 nbsphinx==0.9.8
-    # via -r doc/requirements.in
+    # via -r requirements.in
 packaging==25.0
     # via
-    #   -r requirements.in
     #   nbconvert
     #   sphinx
 pandocfilters==1.5.1
@@ -126,8 +123,6 @@ rpds-py==0.30.0
     # via
     #   jsonschema
     #   referencing
-setuptools==80.9.0
-    # via -r requirements.in
 six==1.17.0
     # via python-dateutil
 snowballstemmer==3.0.1
@@ -136,13 +131,13 @@ soupsieve==2.8
     # via beautifulsoup4
 sphinx==8.2.3
     # via
-    #   -r doc/requirements.in
+    #   -r requirements.in
     #   nbsphinx
     #   sphinx-rtd-theme
     #   sphinxcontrib-jquery
     #   sphinxcontrib-programoutput
 sphinx-rtd-theme==3.0.2
-    # via -r doc/requirements.in
+    # via -r requirements.in
 sphinxcontrib-applehelp==2.0.0
     # via sphinx
 sphinxcontrib-devhelp==2.0.0
@@ -154,21 +149,17 @@ sphinxcontrib-jquery==4.1
 sphinxcontrib-jsmath==1.0.1
     # via sphinx
 sphinxcontrib-programoutput==0.18
-    # via -r doc/requirements.in
+    # via -r requirements.in
 sphinxcontrib-qthelp==2.0.0
     # via sphinx
 sphinxcontrib-serializinghtml==2.0.0
     # via sphinx
 stack-data==0.6.3
     # via ipython
-synced-collections==1.0.0
-    # via -r requirements.in
 tinycss2==1.4.0
     # via bleach
 tornado==6.5.2
     # via jupyter-client
-tqdm==4.67.1
-    # via -r requirements.in
 traitlets==5.14.3
     # via
     #   ipython
@@ -181,7 +172,7 @@ traitlets==5.14.3
     #   nbsphinx
 typing-extensions==4.15.0
     # via beautifulsoup4
-urllib3==2.5.0
+urllib3==2.6.0
     # via requests
 wcwidth==0.2.14
     # via prompt-toolkit
