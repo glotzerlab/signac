@@ -6,7 +6,7 @@ certifi==2025.11.12
     # via requests
 charset-normalizer==3.4.4
     # via requests
-coverage==7.12.0
+coverage==7.13.0
     # via
     #   -r requirements/requirements-test.in
     #   pytest-cov
@@ -55,7 +55,7 @@ py-cpuinfo==9.0.0
     #   tables
 pygments==2.19.2
     # via pytest
-pytest==9.0.1
+pytest==9.0.2
     # via
     #   -r requirements/requirements-test.in
     #   pytest-cov
@@ -86,5 +86,5 @@ typing-extensions==4.15.0
     # via tables
 tzdata==2025.2
     # via pandas
-urllib3==2.6.0
+urllib3==2.6.1
     # via requests
