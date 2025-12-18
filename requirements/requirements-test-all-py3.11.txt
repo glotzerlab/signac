@@ -84,7 +84,7 @@ tqdm==4.67.1
     # via -r requirements.in
 typing-extensions==4.15.0
     # via tables
-tzdata==2025.2
+tzdata==2025.3
     # via pandas
-urllib3==2.6.1
+urllib3==2.6.2
     # via requests
