@@ -28,7 +28,7 @@ numexpr==2.14.1
     # via
     #   blosc2
     #   tables
-numpy==2.4.0
+numpy==2.4.1
     # via
     #   -r requirements/requirements-test-optional.in
     #   blosc2
@@ -78,7 +78,7 @@ synced-collections==1.0.0
     # via -r requirements.in
 tables==3.10.2
     # via -r requirements/requirements-test-optional.in
-tomli==2.3.0
+tomli==2.4.0
     # via coverage
 tqdm==4.67.1
     # via -r requirements.in
