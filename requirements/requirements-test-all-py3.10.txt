@@ -80,7 +80,7 @@ synced-collections==1.0.0
     # via -r requirements.in
 tables==3.10.1
     # via -r requirements/requirements-test-optional.in
-tomli==2.3.0
+tomli==2.4.0
     # via
     #   coverage
     #   pytest
