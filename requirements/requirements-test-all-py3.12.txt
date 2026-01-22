@@ -36,12 +36,12 @@ numpy==2.4.1
     #   numexpr
     #   pandas
     #   tables
-packaging==25.0
+packaging==26.0
     # via
     #   -r requirements.in
     #   pytest
     #   tables
-pandas==2.3.3
+pandas==3.0.0
     # via -r requirements/requirements-test-optional.in
 platformdirs==4.5.1
     # via blosc2
@@ -66,11 +66,9 @@ pytest-xdist==3.8.0
     # via -r requirements/requirements-test.in
 python-dateutil==2.9.0.post0
     # via pandas
-pytz==2025.2
-    # via pandas
 requests==2.32.5
     # via blosc2
-setuptools==80.9.0
+setuptools==80.10.1
     # via -r requirements.in
 six==1.17.0
     # via python-dateutil
@@ -82,7 +80,5 @@ tqdm==4.67.1
     # via -r requirements.in
 typing-extensions==4.15.0
     # via tables
-tzdata==2025.3
-    # via pandas
 urllib3==2.6.3
     # via requests
