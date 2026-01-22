@@ -38,7 +38,7 @@ numpy==2.2.6
     #   numexpr
     #   pandas
     #   tables
-packaging==25.0
+packaging==26.0
     # via
     #   -r requirements.in
     #   pytest
@@ -72,7 +72,7 @@ pytz==2025.2
     # via pandas
 requests==2.32.5
     # via blosc2
-setuptools==80.9.0
+setuptools==80.10.1
     # via -r requirements.in
 six==1.17.0
     # via python-dateutil
