@@ -17,7 +17,7 @@ from collections.abc import Iterable
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import timedelta
-from itertools import groupby
+from itertools import compress, groupby
 from multiprocessing.pool import ThreadPool
 from tempfile import TemporaryDirectory
 from threading import RLock
@@ -32,8 +32,12 @@ from ._config import (
     _raise_if_older_schema,
     _read_config_file,
 )
-from ._search_indexer import _SearchIndexer
-from ._utility import _mkdir_p, _nested_dicts_to_dotted_keys
+from ._neighbor import get_neighbor_list
+from ._search_indexer import _DictPlaceholder, _SearchIndexer
+from ._utility import (
+    _mkdir_p,
+    _nested_dicts_to_dotted_keys,
+)
 from .errors import (
     DestinationExistsError,
     IncompatibleSchemaVersion,
@@ -1322,8 +1326,9 @@ class Project:
                         os.replace(invalid_wd, correct_wd)
                     except OSError as error:
                         logger.critical(
-                            "Unable to fix location of job with "
-                            " id '{}': '{}'.".format(job_id, error)
+                            "Unable to fix location of job with  id '{}': '{}'.".format(
+                                job_id, error
+                            )
                         )
                         corrupted.append(job_id)
                         continue
@@ -1342,8 +1347,9 @@ class Project:
                     job.init()
                 except Exception as error:
                     logger.error(
-                        "Error during initialization of job with "
-                        "id '{}': '{}'.".format(job_id, error)
+                        "Error during initialization of job with id '{}': '{}'.".format(
+                            job_id, error
+                        )
                     )
                     try:  # Attempt to fix the job state point file.
                         job.init(force=True)
@@ -1652,6 +1658,89 @@ class Project:
         # Locks are not pickleable and must be added back to the state
         state["_lock"] = RLock()
         self.__dict__.update(state)
+
+    def _flat_schema(self, exclude_const=False):
+        """For each state point parameter, make a flat list sorted by its values in the project.
+
+        This is almost like schema, but the schema separates items by type.
+        To sort between different types, put in order of the name of the type
+        """
+        schema = self.detect_schema(exclude_const=exclude_const)
+        sorted_schema = {}
+        for key, schema_values in schema.items():
+            tuples_to_sort = []
+            for type_name in schema_values:
+                tuples_to_sort.append(
+                    (type_name.__name__, sorted(schema_values[type_name]))
+                )
+                combined_values = []
+                for _, v in sorted(tuples_to_sort, key=lambda x: x[0]):
+                    combined_values.extend(v)
+            sorted_schema[key] = combined_values
+        return sorted_schema
+
+    def get_neighbors(self, ignore=[]):
+        """Return a map of job ids to job neighbors.
+
+        The neighbors of a job are jobs that differ along one state point parameter.
+
+        Job neighbors are provided in a dictionary containing
+        {state_point_key: {prev_value: neighbor_id, next_value: neighbor_id}, ...},
+        where `state_point_key` is each of the non-constant state point parameters in the project
+        (equivalent to the output of `project.detect_schema(exclude_const = True)`). For nested
+        state point keys, the state point key is in "dotted key" notation, like the output of
+        `detect_schema`.
+
+        Along each state_point_key, a job can have 0, 1 or 2 neighbors. For 0 neighbors, the job
+        neighbors dictionary is empty. For 2 neighbors, the neighbors are in sort order. State point
+        values of different types are ordered by their type name.
+
+        If neighbors are not being detected correctly, it is likely that there are several state
+        point parameters changing together. In this case, pass a list of state point parameters to
+        ignore to the `ignore` argument. If a state point value is a dictionary (a "nested key"),
+        then the ignore list must be specified in "dotted key" notation.
+
+        Parameters
+        ----------
+        ignore : list of str
+            List of keys to ignore when building neighbor list
+
+        Returns
+        -------
+        neighbor_list : dict
+            A map of job id to job neighbors (see above).
+
+        Example
+        -------
+        .. code-block:: python
+
+            neighbor_list = project.get_neighbors()
+            for job in project:
+                neighbors = neighbor_list[job.id]
+                print(f"Job {job.id}")
+                for key,v in job.sp.items():
+                    print(f"has {key}={v} with neighbor jobs {key}-->{f" and {key}-->".join(
+                    f"{new_val} at job id {jid}" for new_val,jid in neighbors[key].items())}")
+
+        """
+        if not isinstance(ignore, list):
+            ignore = [ignore]
+
+        sorted_schema = self._flat_schema(exclude_const=True)
+        need_to_ignore = [sorted_schema.pop(ig, _DictPlaceholder) for ig in ignore]
+        if any(is_bad_key := [a is _DictPlaceholder for a in need_to_ignore]):
+            bad_keys = list(compress(ignore, is_bad_key))
+            warnings.warn(
+                f"Ignored state point parameter{'s' if len(bad_keys) > 1 else ''} {bad_keys}"
+                " not present in project.",
+                RuntimeWarning,
+            )
+            for bad_key in bad_keys:
+                ignore.remove(bad_key)
+
+        self.update_cache()
+        # pass a copy of cache
+        return get_neighbor_list(dict(self._sp_cache), sorted_schema, ignore)
 
 
 @contextmanager
