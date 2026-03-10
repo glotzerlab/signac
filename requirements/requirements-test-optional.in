@@ -1,0 +1,4 @@
+h5py; implementation_name=='cpython'
+numpy
+pandas; implementation_name=='cpython'
+tables; implementation_name=='cpython' and platform_machine != "arm64" or platform_system != "Darwin"
