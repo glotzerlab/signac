@@ -14,9 +14,9 @@ beautifulsoup4==4.14.3
     # via nbconvert
 bleach==6.3.0
     # via nbconvert
-certifi==2026.1.4
+certifi==2026.2.25
     # via requests
-charset-normalizer==3.4.4
+charset-normalizer==3.4.5
     # via requests
 decorator==5.2.1
     # via ipython
@@ -31,13 +31,13 @@ executing==2.2.1
     # via stack-data
 fastjsonschema==2.21.2
     # via nbformat
-filelock==3.24.3
+filelock==3.25.2
     # via -r requirements.in
 idna==3.11
     # via requests
-imagesize==1.4.1
+imagesize==2.0.0
     # via sphinx
-ipython==9.10.0
+ipython==9.11.0
     # via -r doc/requirements.in
 ipython-pygments-lexers==1.1.1
     # via ipython
@@ -96,7 +96,7 @@ parso==0.8.6
     # via jedi
 pexpect==4.9.0
     # via ipython
-platformdirs==4.9.2
+platformdirs==4.9.4
     # via jupyter-core
 prompt-toolkit==3.0.52
     # via ipython
@@ -126,7 +126,7 @@ rpds-py==0.30.0
     # via
     #   jsonschema
     #   referencing
-setuptools==82.0.0
+setuptools==82.0.1
     # via -r requirements.in
 six==1.17.0
     # via python-dateutil
@@ -153,7 +153,7 @@ sphinxcontrib-jquery==4.1
     # via sphinx-rtd-theme
 sphinxcontrib-jsmath==1.0.1
     # via sphinx
-sphinxcontrib-programoutput==0.18
+sphinxcontrib-programoutput==0.19
     # via -r doc/requirements.in
 sphinxcontrib-qthelp==2.0.0
     # via sphinx
@@ -165,7 +165,7 @@ synced-collections==1.0.0
     # via -r requirements.in
 tinycss2==1.4.0
     # via bleach
-tornado==6.5.4
+tornado==6.5.5
     # via jupyter-client
 tqdm==4.67.3
     # via -r requirements.in
