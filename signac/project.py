@@ -1707,20 +1707,19 @@ class Project:
 
         Returns
         -------
-        neighbor_list : dict
-            A map of job id to job neighbors (see above).
+        A map of job id to job neighbors (see above).
 
         Example
         -------
         .. code-block:: python
 
-            neighbor_list = project.get_neighbors()
+            neighbor_map = project.get_neighbors()
             for job in project:
-                neighbors = neighbor_list[job.id]
+                neighbors = neighbor_map[job.id]
                 print(f"Job {job.id}")
-                for key,v in job.sp.items():
-                    print(f"has {key}={v} with neighbor jobs {key}-->{f" and {key}-->".join(
-                    f"{new_val} at job id {jid}" for new_val,jid in neighbors[key].items())}")
+                for key, sp_val in job.sp.items():
+                    print(f"has {key}={sp_val} with neighbor jobs {key}-->{f" and {key}-->".join(
+                    f"{val} at job id {neigh_id}" for val, neigh_id in neighbors[key].items())}")
 
         """
         if not isinstance(ignore, list):
