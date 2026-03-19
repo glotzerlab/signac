@@ -4,9 +4,9 @@ blosc2==4.1.2
     # via tables
 certifi==2026.2.25
     # via requests
-charset-normalizer==3.4.5
+charset-normalizer==3.4.6
     # via requests
-coverage==7.13.4
+coverage==7.13.5
     # via
     #   -r requirements/requirements-test.in
     #   pytest-cov
