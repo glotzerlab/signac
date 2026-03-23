@@ -1,0 +1,93 @@
+#:schema https://www.schemastore.org/prek.json
+
+minimum_prek_version = "0.3.8"
+
+exclude = "^signac/_vendor/.*"
+
+[[repos]]
+repo = "builtin"
+hooks = [
+  { id = "end-of-file-fixer" },
+  { id = "trailing-whitespace" },
+  {
+    id = "check-json",
+    exclude = "asv.conf.json"
+  },
+  { id = "check-yaml" },
+  { id = "check-toml" },
+  { id = "check-case-conflict" },
+  { id = "mixed-line-ending" },
+  { id = "check-added-large-files" },
+  { id = "check-executables-have-shebangs" },
+  { id = "check-symlinks" },
+  { id = "detect-private-key" },
+  { id = "check-vcs-permalinks" },
+  { id = "check-shebang-scripts-are-executable" },
+  { id = "check-illegal-windows-names" },
+]
+
+[[repos]]
+repo = "https://github.com/PyCQA/isort"
+rev = "6.0.1"
+hooks = [
+  { id = "isort" }
+]
+
+[[repos]]
+repo = "https://github.com/psf/black"
+rev = "25.1.0"
+hooks = [
+  { id = "black" }
+]
+
+[[repos]]
+repo = "https://github.com/PyCQA/flake8"
+rev = "7.3.0"
+hooks = [
+  { id = "flake8" }
+]
+
+[[repos]]
+repo = "https://github.com/PyCQA/pydocstyle"
+rev = "6.3.0"
+hooks = [
+  {
+    id = "pydocstyle",
+    exclude = """
+(?x)^(
+  ^doc/|
+  ^tests/
+)
+""",
+    additional_dependencies = ["tomli"]
+  }
+]
+
+[[repos]]
+repo = "https://github.com/pre-commit/mirrors-mypy"
+rev = "v1.16.1"
+hooks = [
+  {
+    id = "mypy",
+    additional_dependencies = ["types-filelock"]
+  }
+]
+
+[[repos]]
+repo = "https://github.com/rhysd/actionlint"
+rev = "v1.7.11"
+hooks = [
+  { id = "actionlint" }
+]
+
+[[repos]]
+repo = "https://github.com/mit-d/check-unicode"
+rev = "v0.5.0"
+hooks = [
+  { id = "check-unicode",
+    args = [
+      "--allow-printable",
+      "--check-confusables",
+    ]
+  }
+]
