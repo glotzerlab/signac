@@ -63,7 +63,7 @@
        id="text6"><tspan
    font-weight="bold"
    id="tspan8"
-   style="font-weight:bold;fill:#008000">import</tspan> <tspan
+   style="font-weight:bold;fill:#008000">import</tspan> <tspan
    font-weight="bold"
    id="tspan10"
    style="font-weight:bold;fill:#0000ff">signac</tspan></text>
@@ -71,9 +71,9 @@
        x="0"
        y="33"
        xml:space="preserve"
-       id="text12">project <tspan
+       id="text12">project <tspan
    id="tspan14"
-   style="fill:#666666">=</tspan> signac<tspan
+   style="fill:#666666">=</tspan> signac<tspan
    id="tspan16"
    style="fill:#666666">.</tspan>get_project()</text>
     <text
@@ -83,103 +83,103 @@
        id="text18"><tspan
    font-weight="bold"
    id="tspan20"
-   style="font-weight:bold;fill:#008000">for</tspan> p <tspan
+   style="font-weight:bold;fill:#008000">for</tspan> p <tspan
    font-weight="bold"
    id="tspan22"
-   style="font-weight:bold;fill:#aa22ff">in</tspan> <tspan
+   style="font-weight:bold;fill:#aa22ff">in</tspan> <tspan
    id="tspan24"
-   style="fill:#666666">0.1</tspan>, <tspan
+   style="fill:#666666">0.1</tspan>, <tspan
    id="tspan26"
-   style="fill:#666666">1.0</tspan>, <tspan
+   style="fill:#666666">1.0</tspan>, <tspan
    id="tspan28"
    style="fill:#666666">10.0</tspan>:</text>
     <text
        x="0"
        y="71"
        xml:space="preserve"
-       id="text30">    sp <tspan
+       id="text30">    sp <tspan
    id="tspan32"
-   style="fill:#666666">=</tspan> {<tspan
+   style="fill:#666666">=</tspan> {<tspan
    id="tspan34"
    style="fill:#ba2121">'</tspan><tspan
    id="tspan36"
    style="fill:#ba2121">p</tspan><tspan
    id="tspan38"
-   style="fill:#ba2121">'</tspan>: p, <tspan
+   style="fill:#ba2121">'</tspan>: p, <tspan
    id="tspan40"
    style="fill:#ba2121">'</tspan><tspan
    id="tspan42"
    style="fill:#ba2121">T</tspan><tspan
    id="tspan44"
-   style="fill:#ba2121">'</tspan>: <tspan
+   style="fill:#ba2121">'</tspan>: <tspan
    id="tspan46"
-   style="fill:#666666">1.0</tspan>, <tspan
+   style="fill:#666666">1.0</tspan>, <tspan
    id="tspan48"
    style="fill:#ba2121">'</tspan><tspan
    id="tspan50"
    style="fill:#ba2121">N</tspan><tspan
    id="tspan52"
-   style="fill:#ba2121">'</tspan>: <tspan
+   style="fill:#ba2121">'</tspan>: <tspan
    id="tspan54"
    style="fill:#666666">1000</tspan>}</text>
     <text
        x="0"
        y="90"
        xml:space="preserve"
-       id="text56">    <tspan
+       id="text56">    <tspan
    font-weight="bold"
    id="tspan58"
-   style="font-weight:bold;fill:#008000">with</tspan> project<tspan
+   style="font-weight:bold;fill:#008000">with</tspan> project<tspan
    id="tspan60"
-   style="fill:#666666">.</tspan>open_job(sp) <tspan
+   style="fill:#666666">.</tspan>open_job(sp) <tspan
    font-weight="bold"
    id="tspan62"
-   style="font-weight:bold;fill:#008000">as</tspan> job:</text>
+   style="font-weight:bold;fill:#008000">as</tspan> job:</text>
     <text
        x="0"
        y="109"
        xml:space="preserve"
-       id="text64">        <tspan
+       id="text64">        <tspan
    font-weight="bold"
    id="tspan66"
-   style="font-weight:bold;fill:#008000">if</tspan> <tspan
+   style="font-weight:bold;fill:#008000">if</tspan> <tspan
    id="tspan68"
    style="fill:#ba2121">'</tspan><tspan
    id="tspan70"
    style="fill:#ba2121">V</tspan><tspan
    id="tspan72"
-   style="fill:#ba2121">'</tspan> <tspan
+   style="fill:#ba2121">'</tspan> <tspan
    font-weight="bold"
    id="tspan74"
-   style="font-weight:bold;fill:#aa22ff">not</tspan> <tspan
+   style="font-weight:bold;fill:#aa22ff">not</tspan> <tspan
    font-weight="bold"
    id="tspan76"
-   style="font-weight:bold;fill:#aa22ff">in</tspan> job<tspan
+   style="font-weight:bold;fill:#aa22ff">in</tspan> job<tspan
    id="tspan78"
    style="fill:#666666">.</tspan>document:</text>
     <text
        x="0"
        y="128"
        xml:space="preserve"
-       id="text80">            V <tspan
+       id="text80">            V <tspan
    id="tspan82"
-   style="fill:#666666">=</tspan> sp[<tspan
+   style="fill:#666666">=</tspan> sp[<tspan
    id="tspan84"
    style="fill:#ba2121">'</tspan><tspan
    id="tspan86"
    style="fill:#ba2121">N</tspan><tspan
    id="tspan88"
-   style="fill:#ba2121">'</tspan>] <tspan
+   style="fill:#ba2121">'</tspan>] <tspan
    id="tspan90"
-   style="fill:#666666">*</tspan> sp[<tspan
+   style="fill:#666666">*</tspan> sp[<tspan
    id="tspan92"
    style="fill:#ba2121">'</tspan><tspan
    id="tspan94"
    style="fill:#ba2121">T</tspan><tspan
    id="tspan96"
-   style="fill:#ba2121">'</tspan>] <tspan
+   style="fill:#ba2121">'</tspan>] <tspan
    id="tspan98"
-   style="fill:#666666">/</tspan> sp[<tspan
+   style="fill:#666666">/</tspan> sp[<tspan
    id="tspan100"
    style="fill:#ba2121">'</tspan><tspan
    id="tspan102"
@@ -190,7 +190,7 @@
        x="0"
        y="147"
        xml:space="preserve"
-       id="text106">            job<tspan
+       id="text106">            job<tspan
    id="tspan108"
    style="fill:#666666">.</tspan>document[<tspan
    id="tspan110"
@@ -198,9 +198,9 @@
    id="tspan112"
    style="fill:#ba2121">V</tspan><tspan
    id="tspan114"
-   style="fill:#ba2121">'</tspan>] <tspan
+   style="fill:#ba2121">'</tspan>] <tspan
    id="tspan116"
-   style="fill:#666666">=</tspan> V</text>
+   style="fill:#666666">=</tspan> V</text>
     <text
        x="0"
        y="166"
@@ -213,17 +213,17 @@
        id="text120"><tspan
    font-weight="bold"
    id="tspan122"
-   style="font-weight:bold;fill:#008000">for</tspan> doc <tspan
+   style="font-weight:bold;fill:#008000">for</tspan> doc <tspan
    font-weight="bold"
    id="tspan124"
-   style="font-weight:bold;fill:#aa22ff">in</tspan> project<tspan
+   style="font-weight:bold;fill:#aa22ff">in</tspan> project<tspan
    id="tspan126"
    style="fill:#666666">.</tspan>index():</text>
     <text
        x="0"
        y="204"
        xml:space="preserve"
-       id="text128">    <tspan
+       id="text128">    <tspan
    font-weight="bold"
    id="tspan130"
    style="font-weight:bold;fill:#008000">print</tspan>(doc)</text>
