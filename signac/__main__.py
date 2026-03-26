@@ -187,7 +187,7 @@ def main_statepoint(args):
     """Handle statepoint subcommand."""
     project = get_project()
     if args.job_id:
-        jobs = (_open_job_by_id(project, jid) for jid in args.job_id)
+        jobs = (_open_job_by_id(project, job_id) for job_id in args.job_id)
     else:
         jobs = project
     for job in jobs:
@@ -195,6 +195,16 @@ def main_statepoint(args):
             pprint(job.statepoint(), depth=args.pretty)
         else:
             print(json.dumps(job.statepoint(), indent=args.indent, sort_keys=args.sort))
+
+
+def main_neighbors(args):
+    """Handle the neighbors subcommand."""
+    project = get_project()
+    if args.job_id:
+        jobs = (_open_job_by_id(project, job_id) for job_id in args.job_id)
+        for job in jobs:
+            nl = job._get_neighbors(ignore=args.ignore)
+            pprint({k: v for k, v in nl.items() if len(v) > 0})
 
 
 def main_document(args):
@@ -967,6 +977,25 @@ def main():
     )
     parser_statepoint.set_defaults(func=main_statepoint)
 
+    parser_neighbor = subparsers.add_parser(
+        "neighbors", description="Print the neighbors of the job"
+    )
+    parser_neighbor.add_argument(
+        "job_id",
+        nargs="*",
+        type=str,
+        help="One or more job ids. The corresponding jobs must be initialized.",
+    )
+    parser_neighbor.add_argument(
+        "--ignore",
+        nargs="+",
+        type=str,
+        default=[],
+        help="State point keys to ignore when finding neighbors. "
+        "Useful for state point parameters that change together.",
+    )
+    parser_neighbor.set_defaults(func=main_neighbors)
+
     parser_diff = subparsers.add_parser(
         "diff", description="Find the difference among job state points."
     )
@@ -974,6 +1003,7 @@ def main():
         "job_id",
         nargs="*",
         type=str,
+        default=[],
         help="One or more job ids. The corresponding jobs must be initialized.",
     )
     parser_diff.add_argument(
