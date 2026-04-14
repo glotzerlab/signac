@@ -53,7 +53,7 @@ py-cpuinfo==9.0.0
     # via tables
 pygments==2.19.2
     # via pytest
-pytest==9.0.2
+pytest==9.0.3
     # via
     #   -r requirements/requirements-test.in
     #   pytest-cov
