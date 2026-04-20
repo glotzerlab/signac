@@ -4,7 +4,7 @@ alabaster==1.0.0
     # via sphinx
 asttokens==3.0.1
     # via stack-data
-attrs==25.4.0
+attrs==26.1.0
     # via
     #   jsonschema
     #   referencing
@@ -16,7 +16,7 @@ bleach==6.3.0
     # via nbconvert
 certifi==2026.2.25
     # via requests
-charset-normalizer==3.4.6
+charset-normalizer==3.4.7
     # via requests
 decorator==5.2.1
     # via ipython
@@ -31,13 +31,13 @@ executing==2.2.1
     # via stack-data
 fastjsonschema==2.21.2
     # via nbformat
-filelock==3.25.2
+filelock==3.29.0
     # via -r requirements.in
 idna==3.11
     # via requests
 imagesize==2.0.0
     # via sphinx
-ipython==9.11.0
+ipython==9.12.0
     # via -r doc/requirements.in
 ipython-pygments-lexers==1.1.1
     # via ipython
@@ -74,7 +74,7 @@ mistune==3.2.0
     # via nbconvert
 nbclient==0.10.4
     # via nbconvert
-nbconvert==7.17.0
+nbconvert==7.17.1
     # via
     #   -r doc/requirements.in
     #   nbsphinx
@@ -85,7 +85,7 @@ nbformat==5.10.4
     #   nbsphinx
 nbsphinx==0.9.8
     # via -r doc/requirements.in
-packaging==26.0
+packaging==26.1
     # via
     #   -r requirements.in
     #   nbconvert
@@ -96,7 +96,7 @@ parso==0.8.6
     # via jedi
 pexpect==4.9.0
     # via ipython
-platformdirs==4.9.4
+platformdirs==4.9.6
     # via jupyter-core
 prompt-toolkit==3.0.52
     # via ipython
@@ -104,7 +104,7 @@ ptyprocess==0.7.0
     # via pexpect
 pure-eval==0.2.3
     # via stack-data
-pygments==2.19.2
+pygments==2.20.0
     # via
     #   ipython
     #   ipython-pygments-lexers
@@ -118,7 +118,7 @@ referencing==0.37.0
     # via
     #   jsonschema
     #   jsonschema-specifications
-requests==2.32.5
+requests==2.33.1
     # via sphinx
 roman-numerals==4.1.0
     # via sphinx
