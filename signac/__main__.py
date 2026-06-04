@@ -883,7 +883,8 @@ def main():
         "--debug", action="store_true", help="Show traceback on error for debugging."
     )
     parser.add_argument(
-        "--version", action="store_true", help="Display the version number and exit."
+        "--version", action="version", help="Display the version number and exit.",
+        version = f"signac {__version__}"
     )
     parser.add_argument(
         "-v",
@@ -1593,13 +1594,6 @@ def main():
         help="Do not ask for confirmation.",
     )
     parser_migrate.set_defaults(func=main_migrate)
-
-    # This is a hack, as argparse itself does not
-    # allow to parse only --version without any
-    # of the other required arguments.
-    if "--version" in sys.argv:
-        print("signac", __version__)
-        sys.exit(0)
 
     args = parser.parse_args()
     if args.debug:
