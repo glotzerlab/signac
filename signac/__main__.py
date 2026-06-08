@@ -1003,7 +1003,6 @@ def main():
         "job_id",
         nargs="*",
         type=str,
-        default=[],
         help="One or more job ids. The corresponding jobs must be initialized.",
     )
     parser_diff.add_argument(
