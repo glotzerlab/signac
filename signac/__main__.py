@@ -893,8 +893,10 @@ def main():
         "--debug", action="store_true", help="Show traceback on error for debugging."
     )
     parser.add_argument(
-        "--version", action="version", help="Display the version number and exit.",
-        version = f"signac {__version__}"
+        "--version",
+        action="version",
+        help="Display the version number and exit.",
+        version=f"signac {__version__}",
     )
     parser.add_argument(
         "-v",
