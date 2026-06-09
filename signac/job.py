@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import shutil
+import warnings
 from copy import deepcopy
 from threading import RLock
 from types import MappingProxyType
@@ -978,6 +979,82 @@ class Job:
             logger.info("Leave workspace.")
         except IndexError:
             pass
+
+    def _get_neighbors(self, ignore=[]):
+        """Return the neighbors of this job, mainly for command line use.
+
+        Use `Project.get_neighbors()` to get the neighbors of all jobs in the project.
+
+        The neighbors of a job are jobs that differ along one state point parameter.
+
+        Job neighbors are provided in a dictionary containing
+        {state_point_key: {prev_value: neighbor_id, next_value: neighbor_id}, ...},
+        where `state_point_key` is each of the non-constant state point parameters in the project
+        (equivalent to the output of `project.detect_schema(exclude_const = True)`). For nested
+        state point keys, the state point key is in "dotted key" notation, like the output of
+        `detect_schema`.
+
+        Along each state_point_key, a job can have 0, 1 or 2 neighbors. For 0 neighbors, the job
+        neighbors dictionary is empty. For 2 neighbors, the neighbors are in sort order. State point
+        values of different types are ordered by their type name.
+
+        If neighbors are not being detected correctly, it is likely that there are several state
+        point parameters changing together. In this case, pass a list of state point parameters to
+        ignore to the `ignore` argument. If a state point value is a dictionary (a "nested key"),
+        then the ignore list must be specified in "dotted key" notation.
+
+        Parameters
+        ----------
+        ignore : list
+            List of state point parameters to ignore when building neighbor list
+
+        Returns
+        -------
+        neighbors : dict
+            A map of state point key to 0-2 neighbor values (or none) to job ids (see above)
+        """
+        from ._neighbor import (
+            neighbors_of_sp,
+            prepare_shadow_project,
+            shadow_neighbors_to_neighbors,
+        )
+        from ._search_indexer import _DictPlaceholder
+        from ._utility import _nested_dicts_to_dotted_keys
+
+        if not isinstance(ignore, list):
+            ignore = [ignore]
+
+        sp_cache = self._project._sp_cache
+
+        sorted_schema = self._project._flat_schema()
+        sp = dict(_nested_dicts_to_dotted_keys(self.cached_statepoint))
+        need_to_ignore = [sorted_schema.pop(ig, _DictPlaceholder) for ig in ignore]
+        if any(is_bad_key := [a is _DictPlaceholder for a in need_to_ignore]):
+            # any uses up the iterator
+            from itertools import compress
+
+            bad_keys = list(compress(ignore, is_bad_key))
+            warnings.warn(
+                f"Ignored state point parameter{'s' if len(bad_keys) > 1 else ''} {bad_keys}"
+                " not present in project.",
+                RuntimeWarning,
+            )
+            for bad_key in bad_keys:
+                ignore.remove(bad_key)
+
+        if len(ignore) > 0:
+            for i in ignore:
+                sp.pop(i, None)
+            shadow_map, shadow_cache = prepare_shadow_project(sp_cache, ignore=ignore)
+            neighbors = neighbors_of_sp(sp, shadow_cache, sorted_schema)
+            neighbors = shadow_neighbors_to_neighbors(neighbors, shadow_map)
+        else:
+            sp_cache = {
+                _id: dict(_nested_dicts_to_dotted_keys(_sp))
+                for _id, _sp in sp_cache.items()
+            }
+            neighbors = neighbors_of_sp(sp, sp_cache, sorted_schema)
+        return neighbors
 
     def __enter__(self):
         self.open()
