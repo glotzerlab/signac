@@ -1440,9 +1440,11 @@ class Project:
         """
         logger.info("Update cache...")
         start = time.time()
-        cache = self._read_cache()
+        cache = self._read_cache() # why twice?
+        # _read_cache currently only returns what's IN the file, even while it updates _sp_cache
         cached_ids = set(self._sp_cache)
-        self._update_in_memory_cache()
+        self._update_in_memory_cache() # this check comes too late?
+        # doesn't work if more
         if cache is None or set(cache) != cached_ids:
             fn_cache = self.fn(self.FN_CACHE)
             fn_cache_tmp = fn_cache + "~"
@@ -1478,7 +1480,7 @@ class Project:
         else:
             delta = time.time() - start
             logger.debug(f"Read cache in {delta:.3f} seconds.")
-            return cache
+            return cache # this is only the files on disk, even though self._sp_cache could have extras
 
     @contextmanager
     def temporary_project(self, dir=None):

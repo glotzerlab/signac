@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import sys
 from tempfile import TemporaryDirectory
+import gzip
 
 import pytest
 from test_project import WINDOWS, _initialize_v1_project, skip_windows_without_symlinks
@@ -802,19 +803,54 @@ class TestBasicShell:
         err = self.call("python -m signac config --local verify".split(), error=True)
         assert "Passed" in err
 
+    def manual_read_cache_file(self):
+        project = signac.get_project()
+        with gzip.open(project.fn(project.FN_CACHE), "rb") as cachefile:
+            cache = json.loads(cachefile.read().decode())        
+        return cache
+        
     def test_update_cache(self):
         self.call("python -m signac init".split())
         project_a = signac.Project()
         assert not os.path.isfile(project_a.FN_CACHE)
 
-        for i in range(4):
+        num_initial=4
+        num_additional=3
+        
+        for i in range(num_initial):
             project_a.open_job({"a": i}).init()
         err = self.call("python -m signac update-cache".split(), error=True)
         assert os.path.isfile(project_a.FN_CACHE)
         assert "Updated cache" in err
 
+        manual_cache_1 = self.manual_read_cache_file()
+        assert len(manual_cache_1) == num_initial
+        
         err = self.call("python -m signac update-cache".split(), error=True)
         assert "Cache is up to date" in err
+
+        for i in range(num_additional):
+            project_a.open_job({"b": i}).init()
+        err = self.call("python -m signac update-cache".split(), error=True)
+        assert "Cache is up to date" in err
+
+        # this failes
+        manual_cache = self.manual_read_cache_file()
+        assert len(project_a) == num_initial + num_additional
+        # assert len(manual_cache) == num_initial + num_additional
+
+        # this gets updated
+        new_cache = project_a._sp_cache
+        assert len(new_cache) == num_initial + num_additional
+
+        # this fails
+        new_cache = project_a._read_cache()
+        # assert len(new_cache) == num_initial + num_additional
+
+        project_a.update_cache()
+        manual_cache = self.manual_read_cache_file()
+        assert len(project_a) == num_initial + num_additional
+        assert len(manual_cache) == num_initial + num_additional
 
     def test_migrate_v1_to_v2(self):
         dirname = self.tmpdir.name

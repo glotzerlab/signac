@@ -2150,6 +2150,44 @@ class TestCachedProject(TestProject):
         repr(self)
 
 
+class TestCache(TestProject):
+
+    def manual_read_cache_file(self):
+        with gzip.open(self.project.fn(self.project.FN_CACHE), "rb") as cachefile:
+            cache = json.loads(cachefile.read().decode())        
+        return cache
+
+    def test_cache_update(self):
+        for a in range(3):
+            self.project.open_job({"a": a}).init()
+
+        # ensure no cache file yet
+        with pytest.raises(OSError):
+            self.manual_read_cache_file()
+
+        self.project.update_cache()
+        file_cache_1 = self.manual_read_cache_file()
+
+        project_mem_cache_1 = self.project._sp_cache
+        project_read_cache_1 = self.project._read_cache()
+        assert file_cache_1 == project_mem_cache_1
+        assert file_cache_1 == project_read_cache_1
+
+
+        # add some jobs
+        for a in range(3,6):
+            self.project.open_job({"a": a}).init()
+
+        self.project.update_cache()
+        file_cache_2 = self.manual_read_cache_file()
+        project_mem_cache_2 = self.project._sp_cache
+        project_read_cache_2 = self.project._read_cache()
+        assert file_cache_2 == project_mem_cache_2
+        assert file_cache_2 == project_read_cache_2
+        print(len(file_cache_2))
+
+
+
 class TestProjectInit:
     @pytest.fixture(autouse=True)
     def setUp(self, request):
