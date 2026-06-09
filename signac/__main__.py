@@ -978,8 +978,9 @@ def main():
     parser_statepoint.set_defaults(func=main_statepoint)
 
     parser_neighbor = subparsers.add_parser(
-        "neighbors", description="Print the neighbors of the job.",
-        epilog="Use `Project.get_neighbors()` to get the neighbors of all jobs in the project."
+        "neighbors",
+        description="Print the neighbors of the job.",
+        epilog="Use `Project.get_neighbors()` to get the neighbors of all jobs in the project.",
     )
     parser_neighbor.add_argument(
         "job_id",
