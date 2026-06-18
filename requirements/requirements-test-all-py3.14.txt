@@ -33,7 +33,7 @@ mdit-py-plugins==0.6.1
     # via textual
 mdurl==0.1.2
     # via markdown-it-py
-msgpack==1.2.0
+msgpack==1.2.1
     # via blosc2
 ndindex==1.10.1
     # via blosc2
