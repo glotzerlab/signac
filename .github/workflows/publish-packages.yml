@@ -28,7 +28,7 @@ jobs:
         lockfile: "requirements/requirements-test-all-py3.13.txt"
     - name: Build a binary wheel and a source tarball
       run:
-        uv build --sdist --wheel --outdir dist/ .
+        uv build --sdist --wheel --out-dir dist/ .
     - name: Install wheel
       run:
         uv pip install signac --progress-bar off --no-index -f dist/
