@@ -2,9 +2,9 @@
 #    uv pip compile requirements.in requirements/requirements-test.in requirements/requirements-test-optional.in --python-version=3.11 --output-file=requirements/requirements-test-all-py3.11.txt
 annotated-types==0.7.0
     # via pydantic
-blosc2==4.3.3
+blosc2==4.5.1
     # via tables
-certifi==2026.5.20
+certifi==2026.6.17
     # via requests
 charset-normalizer==3.4.7
     # via requests
@@ -14,15 +14,26 @@ coverage==7.14.1
     #   pytest-cov
 execnet==2.1.2
     # via pytest-xdist
-filelock==3.29.0
+filelock==3.29.4
     # via -r requirements.in
 h5py==3.16.0
     # via -r requirements/requirements-test-optional.in
-idna==3.16
+idna==3.18
     # via requests
 iniconfig==2.3.0
     # via pytest
-msgpack==1.1.2
+linkify-it-py==2.1.0
+    # via markdown-it-py
+markdown-it-py==4.2.0
+    # via
+    #   mdit-py-plugins
+    #   rich
+    #   textual
+mdit-py-plugins==0.6.1
+    # via textual
+mdurl==0.1.2
+    # via markdown-it-py
+msgpack==1.2.1
     # via blosc2
 ndindex==1.10.1
     # via blosc2
@@ -45,6 +56,10 @@ packaging==26.2
     #   tables
 pandas==3.0.3
     # via -r requirements/requirements-test-optional.in
+platformdirs==4.10.0
+    # via textual
+plotext==5.3.2
+    # via textual-plotext
 pluggy==1.6.0
     # via
     #   pytest
@@ -56,8 +71,11 @@ pydantic==2.13.4
 pydantic-core==2.46.4
     # via pydantic
 pygments==2.20.0
-    # via pytest
-pytest==9.0.3
+    # via
+    #   pytest
+    #   rich
+    #   textual
+pytest==9.1.0
     # via
     #   -r requirements/requirements-test.in
     #   pytest-cov
@@ -70,6 +88,10 @@ python-dateutil==2.9.0.post0
     # via pandas
 requests==2.34.2
     # via blosc2
+rich==15.0.0
+    # via
+    #   blosc2
+    #   textual
 setuptools==82.0.1
     # via -r requirements.in
 six==1.17.0
@@ -78,18 +100,27 @@ synced-collections==1.0.0
     # via -r requirements.in
 tables==3.11.1
     # via -r requirements/requirements-test-optional.in
+textual==8.2.7
+    # via
+    #   blosc2
+    #   textual-plotext
+textual-plotext==1.0.1
+    # via blosc2
 threadpoolctl==3.6.0
     # via blosc2
 tomli==2.4.1
     # via coverage
-tqdm==4.67.3
+tqdm==4.68.3
     # via -r requirements.in
 typing-extensions==4.15.0
     # via
     #   pydantic
     #   pydantic-core
+    #   textual
     #   typing-inspection
 typing-inspection==0.4.2
     # via pydantic
+uc-micro-py==2.0.0
+    # via linkify-it-py
 urllib3==2.7.0
     # via requests
