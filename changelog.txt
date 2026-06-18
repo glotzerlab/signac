@@ -20,6 +20,11 @@ Fixed
 
  - Schema detection when a state point value is a list of dictionaries having lists (#1030).
 
+Changed
++++++++
+
+ - Version CLI command now uses argparse implementation (#1112).
+
 [2.3.0] -- 2025-04-10
 ---------------------
 
