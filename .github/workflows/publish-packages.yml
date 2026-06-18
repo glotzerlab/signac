@@ -31,7 +31,7 @@ jobs:
         uv build --sdist --wheel --out-dir dist/ .
     - name: Install wheel
       run:
-        uv pip install signac --progress-bar off --no-index -f dist/
+        uv pip install signac --no-progress --no-index -f dist/
     - name: Test with pytest
       run:
         python -m pytest -v tests/
