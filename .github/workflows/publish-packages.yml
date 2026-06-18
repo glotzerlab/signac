@@ -25,13 +25,13 @@ jobs:
     - name: Set up Python environment
       uses: glotzerlab/workflows/setup-uv@00c67cb577c36bdc2570845fc62d1a30e3383012 # 0.14.0
       with:
-        lockfile: "requirements/requirements-test-all-py3.13.txt"
+        lockfile: "requirements/requirements-test-all-py3.14.txt"
     - name: Build a binary wheel and a source tarball
       run:
-        uv build --sdist --wheel --outdir dist/ .
+        uv build --sdist --wheel --out-dir dist/ .
     - name: Install wheel
       run:
-        uv pip install signac --progress-bar off --no-index -f dist/
+        uv pip install signac --system --no-progress --no-index -f dist/
     - name: Test with pytest
       run:
         python -m pytest -v tests/
