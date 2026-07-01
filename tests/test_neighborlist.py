@@ -52,6 +52,8 @@ class TestNeighborList(TestProject):
                 )
         with pytest.warns(RuntimeWarning, match="not_present"):
             self.project.get_neighbors(ignore=["not_present"])
+        with pytest.warns(RuntimeWarning, match="not_present"):
+            self.project.get_neighbors(ignore=["not_present", "another_not_present"])
 
     def test_neighbors_ignore(self):
         b_vals = [3, 4, 5]
@@ -87,6 +89,43 @@ class TestNeighborList(TestProject):
                     == self.project.open_job({"b": 4, "2b": 8}).id
                 )
 
+    def test_neighbors_ignore_constant(self):
+        b_vals = [3, 4, 5]
+        for b in b_vals:
+            self.project.open_job({"b": b, "2b": 2 * b, "constant": 1}).init()
+
+        neighbor_list = self.project.get_neighbors(ignore=["2b", "constant"])
+        for b in b_vals:
+            job = self.project.open_job({"b": b, "2b": 2 * b, "constant": 1})
+            neighbors_job = job._get_neighbors(ignore=["2b", "constant"])
+
+            this_neighbors = neighbor_list[job.id]
+            assert this_neighbors == neighbors_job
+
+            if b == 3:
+                assert (
+                    this_neighbors["b"][4]
+                    == self.project.open_job({"b": 4, "2b": 8, "constant": 1}).id
+                )
+            elif b == 4:
+                assert (
+                    this_neighbors["b"][3]
+                    == self.project.open_job({"b": 3, "2b": 6, "constant": 1}).id
+                )
+                assert (
+                    this_neighbors["b"][5]
+                    == self.project.open_job({"b": 5, "2b": 10, "constant": 1}).id
+                )
+            elif b == 5:
+                assert (
+                    this_neighbors["b"][4]
+                    == self.project.open_job({"b": 4, "2b": 8, "constant": 1}).id
+                )
+
+        with pytest.warns(RuntimeWarning, match="not_present"):
+            self.project.get_neighbors(ignore=["not_present", "2b"])
+        with pytest.warns(RuntimeWarning, match="not_present"):
+            self.project.get_neighbors(ignore=["not_present", "constant"])
     def test_neighbors_ignore_nested(self):
         a_vals = [{"b": 2, "c": 2}, {"b": 3, "c": 3}]
         for a in a_vals:
