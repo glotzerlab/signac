@@ -127,6 +127,13 @@ class TestNeighborList(TestProject):
         with pytest.warns(RuntimeWarning, match="not_present"):
             self.project.get_neighbors(ignore=["not_present", "constant"])
 
+    def test_neighbors_no_neighbors(self):
+        job = self.project.open_job({"constant": 1, "constant_2": 2}).init()
+        neighbor_list = self.project.get_neighbors()
+        assert neighbor_list[job.id] == {}
+
+        neighbor_list = self.project.get_neighbors(ignore = "constant")
+        assert neighbor_list[job.id] == {}
     def test_neighborlist_structure(self):
 
         for a,b in product([1,2,3], [5,6,7]):
@@ -197,6 +204,8 @@ class TestNeighborList(TestProject):
             self.project.open_job({"constant": 1, "x": x}).init()
 
         neighbor_list = self.project.get_neighbors(ignore = ["2b"])
+
+        assert "constant" not in neighbor_list
 
         for job in self.project:
             neighbors = neighbor_list[job.id]
