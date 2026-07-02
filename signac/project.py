@@ -1725,7 +1725,8 @@ class Project:
         if not isinstance(ignore, list):
             ignore = [ignore]
 
-        sorted_schema = self._flat_schema(exclude_const=True)
+        sorted_schema = self._flat_schema(exclude_const=False)
+
         need_to_ignore = [sorted_schema.pop(ig, _DictPlaceholder) for ig in ignore]
         if any(is_bad_key := [a is _DictPlaceholder for a in need_to_ignore]):
             bad_keys = list(compress(ignore, is_bad_key))
@@ -1736,6 +1737,10 @@ class Project:
             )
             for bad_key in bad_keys:
                 ignore.remove(bad_key)
+        # now take out constant keys
+        const_keys = [key for key,val in sorted_schema.items() if len(val)==1]
+        for key in const_keys:
+            sorted_schema.pop(key)
 
         self.update_cache()
         # pass a copy of cache
