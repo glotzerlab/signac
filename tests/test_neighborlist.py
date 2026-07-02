@@ -211,7 +211,6 @@ class TestNeighborList(TestProject):
             neighbors = neighbor_list[job.id]
             for key, neighbor_vals in neighbors.items():
                 for neighbor_value, neighbor_job_id in neighbor_vals.items():
-                    print(neighbor_value, neighbor_job_id, key)
                     if neighbor_job_id == "1db325b31be7b4e378e7daf95ba1275e":
                         # that's job with b:None
                         print(f"ignoring {neighbor_value=} and {neighbor_job_id=}")
