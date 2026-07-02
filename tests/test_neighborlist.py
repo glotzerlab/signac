@@ -94,7 +94,7 @@ class TestNeighborList(TestProject):
         for b in b_vals:
             self.project.open_job({"b": b, "2b": 2 * b, "constant": 1}).init()
 
-        neighbor_list = self.project.get_neighbors(ignore = "2b")
+        neighbor_list = self.project.get_neighbors(ignore="2b")
         assert "constant" not in neighbor_list
 
         neighbor_list = self.project.get_neighbors(ignore=["2b", "constant"])
