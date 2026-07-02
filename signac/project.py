@@ -1738,7 +1738,7 @@ class Project:
             for bad_key in bad_keys:
                 ignore.remove(bad_key)
         # now take out constant keys
-        const_keys = [key for key,val in sorted_schema.items() if len(val)==1]
+        const_keys = [key for key, val in sorted_schema.items() if len(val) == 1]
         for key in const_keys:
             sorted_schema.pop(key)
 

@@ -132,14 +132,15 @@ class TestNeighborList(TestProject):
         neighbor_list = self.project.get_neighbors()
         assert neighbor_list[job.id] == {}
 
-        neighbor_list = self.project.get_neighbors(ignore = "constant")
+        neighbor_list = self.project.get_neighbors(ignore="constant")
         assert neighbor_list[job.id] == {}
+
     def test_neighborlist_structure(self):
 
-        for a,b in product([1,2,3], [5,6,7]):
-            self.project.open_job({"a": a, "b": b, "2b": 2*b}).init()
+        for a, b in product([1, 2, 3], [5, 6, 7]):
+            self.project.open_job({"a": a, "b": b, "2b": 2 * b}).init()
 
-        for b in [8,9,10]:
+        for b in [8, 9, 10]:
             self.project.open_job({"a": 1, "b": b}).init()
 
         # works across data types
@@ -149,11 +150,11 @@ class TestNeighborList(TestProject):
         # see isolated jobs
         self.project.open_job({"a": 1, "c": True, "b": "eight"}).init()
 
-        for c,b in product([True,False], ["eight", "nine"]):
+        for c, b in product([True, False], ["eight", "nine"]):
             self.project.open_job({"c": c, "b": b}).init()
 
         # works on lists
-        for c,b in product([True,False], [[1,2], [1,5]]):
+        for c, b in product([True, False], [[1, 2], [1, 5]]):
             self.project.open_job({"c": c, "b": b}).init()
 
         # works on nested values
@@ -161,13 +162,12 @@ class TestNeighborList(TestProject):
         for x in [{"n": "nested"}, {"n": "values"}]:
             self.project.open_job({"x": x}).init()
 
-        neighbor_list = self.project.get_neighbors(ignore = ["2b"])
+        neighbor_list = self.project.get_neighbors(ignore=["2b"])
 
         for job in self.project:
             neighbors = neighbor_list[job.id]
             for key, neighbor_vals in neighbors.items():
                 for neighbor_value, neighbor_job_id in neighbor_vals.items():
-                    print(neighbor_value, neighbor_job_id, key)
                     if neighbor_job_id == "47c6f9a7c0d88ab60a9e8de4ed002e6f":
                         # that's job with b:None
                         print(f"ignoring {neighbor_value=} and {neighbor_job_id=}")
@@ -178,10 +178,10 @@ class TestNeighborList(TestProject):
 
     def test_neighborlist_structure_with_constant(self):
 
-        for a,b in product([1,2,3], [5,6,7]):
-            self.project.open_job({"constant": 1, "a": a, "b": b, "2b": 2*b}).init()
+        for a, b in product([1, 2, 3], [5, 6, 7]):
+            self.project.open_job({"constant": 1, "a": a, "b": b, "2b": 2 * b}).init()
 
-        for b in [8,9,10]:
+        for b in [8, 9, 10]:
             self.project.open_job({"constant": 1, "a": 1, "b": b}).init()
 
         # works across data types
@@ -191,11 +191,11 @@ class TestNeighborList(TestProject):
         # see isolated jobs
         self.project.open_job({"constant": 1, "a": 1, "c": True, "b": "eight"}).init()
 
-        for c,b in product([True,False], ["eight", "nine"]):
+        for c, b in product([True, False], ["eight", "nine"]):
             self.project.open_job({"constant": 1, "c": c, "b": b}).init()
 
         # works on lists
-        for c,b in product([True,False], [[1,2], [1,5]]):
+        for c, b in product([True, False], [[1, 2], [1, 5]]):
             self.project.open_job({"constant": 1, "c": c, "b": b}).init()
 
         # works on nested values
@@ -203,7 +203,7 @@ class TestNeighborList(TestProject):
         for x in [{"n": "nested"}, {"n": "values"}]:
             self.project.open_job({"constant": 1, "x": x}).init()
 
-        neighbor_list = self.project.get_neighbors(ignore = ["2b"])
+        neighbor_list = self.project.get_neighbors(ignore=["2b"])
 
         assert "constant" not in neighbor_list
 
@@ -219,7 +219,7 @@ class TestNeighborList(TestProject):
                         assert neighbor_value is not None
                     assert neighbor_job_id
                     assert key
-        
+
     def test_neighbors_ignore_nested(self):
         a_vals = [{"b": 2, "c": 2}, {"b": 3, "c": 3}]
         for a in a_vals:
