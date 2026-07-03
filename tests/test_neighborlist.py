@@ -55,6 +55,19 @@ class TestNeighborList(TestProject):
         with pytest.warns(RuntimeWarning, match="not_present"):
             self.project.get_neighbors(ignore=["not_present", "another_not_present"])
 
+    def test_neighbors_added_removed_keys(self):
+        # codifies that neighbors aren't detected between jobs that
+        # differ in added/removed keys
+        a1 = self.project.open_job({"a": 1}).init()
+        a2 = self.project.open_job({"a": 2}).init()
+        a2b1 = self.project.open_job({"a": 2, "b": 1}).init()
+
+        nl = self.project.get_neighbors()
+        assert nl[a1.id]["a"][2] == a2.id
+        assert nl[a2.id]["a"][1] == a1.id
+        assert nl[a2b1.id]["a"] == {}
+        assert nl[a2b1.id]["b"] == {}
+
     def test_neighbors_ignore(self):
         b_vals = [3, 4, 5]
         for b in b_vals:
