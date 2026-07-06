@@ -66,7 +66,13 @@ class TestNeighborList(TestProject):
         assert nl[a1.id]["a"][2] == a2.id
         assert nl[a2.id]["a"][1] == a1.id
         assert nl[a2b1.id]["a"] == {}
-        assert nl[a2b1.id]["b"] == {}
+
+        # only state point params that change are present for each job's nl
+        with pytest.raises(KeyError):
+           nl[a1.id]["b"]
+        with pytest.raises(KeyError):
+           nl[a2b1.id]["b"]
+
 
     def test_neighbors_ignore(self):
         b_vals = [3, 4, 5]
