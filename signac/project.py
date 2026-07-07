@@ -1739,9 +1739,7 @@ class Project:
                 ignore.remove(bad_key)
         # now take out constant keys
         sorted_schema = {
-            key: val
-            for key, val in sorted_schema.items()
-            if len(val) != 1
+            key: val for key, val in sorted_schema.items() if len(val) != 1
         }
 
         self.update_cache()
