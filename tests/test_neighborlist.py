@@ -69,10 +69,9 @@ class TestNeighborList(TestProject):
 
         # only state point params that change are present for each job's nl
         with pytest.raises(KeyError):
-           nl[a1.id]["b"]
+            nl[a1.id]["b"]
         with pytest.raises(KeyError):
-           nl[a2b1.id]["b"]
-
+            nl[a2b1.id]["b"]
 
     def test_neighbors_ignore(self):
         b_vals = [3, 4, 5]
@@ -158,7 +157,6 @@ class TestNeighborList(TestProject):
         assert neighbor_list[job.id] == {}
 
     def test_neighborlist_structure(self):
-
         for a, b in product([1, 2, 3], [5, 6, 7]):
             self.project.open_job({"a": a, "b": b, "2b": 2 * b}).init()
 
@@ -199,7 +197,6 @@ class TestNeighborList(TestProject):
                     assert key
 
     def test_neighborlist_structure_with_constant(self):
-
         for a, b in product([1, 2, 3], [5, 6, 7]):
             self.project.open_job({"constant": 1, "a": a, "b": b, "2b": 2 * b}).init()
 
