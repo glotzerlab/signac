@@ -178,7 +178,8 @@ class TestNeighborList(TestProject):
             self.project.open_job({"c": c, "b": b}).init()
 
         # works on nested values
-        # although they appear in the neighbor list like nl[id]["x.n"] because of internal limitations with schema
+        # although they appear in the neighbor list like nl[id]["x.n"]
+        # because of internal limitations with schema
         for x in [{"n": "nested"}, {"n": "values"}]:
             self.project.open_job({"x": x}).init()
 
@@ -218,7 +219,8 @@ class TestNeighborList(TestProject):
             self.project.open_job({"constant": 1, "c": c, "b": b}).init()
 
         # works on nested values
-        # although they appear in the neighbor list like nl[id]["x.n"] because of internal limitations with schema
+        # although they appear in the neighbor list like nl[id]["x.n"]
+        # because of internal limitations with schema
         for x in [{"n": "nested"}, {"n": "values"}]:
             self.project.open_job({"constant": 1, "x": x}).init()
 
