@@ -207,6 +207,7 @@ class Project:
         # of "id: statepoint" is valid even after a job has been removed, and
         # can be used to re-open a job by id as long as that id remains in the
         # cache.
+        # Should that superset be written to disk?
         self._sp_cache = {}
         self._sp_cache_read = False
         self._sp_cache_misses = 0
@@ -525,7 +526,7 @@ class Project:
         """
         if not self._sp_cache_read:
             # Read the cache from disk on the first call.
-            self._read_cache()
+            self._sp_cache.update(self._read_cache())
             self._sp_cache_read = True
 
         if statepoint is None and id is None:
@@ -927,7 +928,7 @@ class Project:
         """
         if not self._sp_cache_read:
             # Read the cache from disk on the first call.
-            self._read_cache()
+            self._sp_cache.update(self._read_cache())
             self._sp_cache_read = True
         try:
             # State point cache hit
@@ -1307,7 +1308,7 @@ class Project:
             job_ids = self._find_job_ids()
 
         # Load internal cache from all available external sources.
-        self._read_cache()
+        self._sp_cache.update(self._read_cache())
         corrupted = []
         for job_id in job_ids:
             try:
@@ -1396,11 +1397,12 @@ class Project:
             yield job_id, doc
 
     def _update_in_memory_cache(self):
-        """Update the in-memory state point cache to reflect the workspace."""
+        """Update the in-memory state point cache (self._sp_cache) to reflect the workspace."""
         logger.debug("Updating in-memory cache...")
         start = time.time()
         job_ids = set(self._job_dirs())
         cached_ids = set(self._sp_cache)
+        # to add/remove from self._sp_cache
         to_add = job_ids.difference(cached_ids)
         to_remove = cached_ids.difference(job_ids)
         if to_add or to_remove:
@@ -1435,23 +1437,29 @@ class Project:
             if error.errno != errno.ENOENT:
                 raise error
 
-    def update_cache(self):
+    def update_cache(self): # todo change name to write_cache
         """Update the persistent state point cache.
 
-        This function updates a persistent state point cache, which
-        is stored in the project directory. Most data space operations,
-        including iteration and filtering or selection are expected
-        to be significantly faster after calling this function, especially
-        for large data spaces.
+        This function updates a persistent state point cache, which is
+        stored in the project configuration directory. Most data space
+        operations, including iteration and filtering or selection are
+        expected to be significantly faster after calling this function,
+        especially for large data spaces.
+
         """
         logger.info("Update cache...")
         start = time.time()
-        cache = self._read_cache() # why twice?
-        # _read_cache currently only returns what's IN the file, even while it updates _sp_cache
+        self._update_in_memory_cache()
+        # now self._sp_cache matches the job ids in workspace
+
+        cache_file = self._read_cache() # why twice?
+        # and now self._sp_cache adds anything in the disk cache
+
+        # _read_cache currently only returns what's IN the file, even though it updates _sp_cache
         cached_ids = set(self._sp_cache)
-        self._update_in_memory_cache() # this check comes too late?
-        # doesn't work if more
-        if cache is None or set(cache) != cached_ids:
+
+        # doesn't work if more jobs added
+        if cache_file is None or set(cache_file) != cached_ids:
             fn_cache = self.fn(self.FN_CACHE)
             fn_cache_tmp = fn_cache + "~"
             try:
@@ -1481,11 +1489,11 @@ class Project:
         try:
             with gzip.open(self.fn(self.FN_CACHE), "rb") as cachefile:
                 cache = json.loads(cachefile.read().decode())
-            self._sp_cache.update(cache)
             # this update confuses the point of this function
             # if left in, the cache tests fail (before
             # the fix in update_cache moving self._update_in_memory_cache up)
             # if taken out, the test restore fails
+            # self._sp_cache.update(cache)
         except OSError as error:
             if error.errno != errno.ENOENT:
                 raise
