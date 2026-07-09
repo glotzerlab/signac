@@ -1437,8 +1437,9 @@ class Project:
             if error.errno != errno.ENOENT:
                 raise error
 
-    def update_cache(self): # todo change name to write_cache
-        """Update the persistent state point cache.
+    # todo change name to write_cache to better capture the meaning of this function
+    def update_cache(self, prune=False):
+        """Update the state point cache on disk.
 
         This function updates a persistent state point cache, which is
         stored in the project configuration directory. Most data space
@@ -1446,20 +1447,28 @@ class Project:
         expected to be significantly faster after calling this function,
         especially for large data spaces.
 
+        Parameters
+        ----------
+        prune : bool, optional
+            Default False. If True, the written disk cache could decrease
+            in coverage to match recently removed jobs
+
         """
         logger.info("Update cache...")
         start = time.time()
         self._update_in_memory_cache()
         # now self._sp_cache matches the job ids in workspace
 
-        cache_file = self._read_cache() # why twice?
-        # and now self._sp_cache adds anything in the disk cache
-
-        # _read_cache currently only returns what's IN the file, even though it updates _sp_cache
+        cache_file = self._read_cache()
+        if not prune:
+            self._sp_cache.update(cache_file)
+            # if a job was removed, now len(cache_file) > self._sp_cache
+            # so when we rewrite the disk cache from self._sp_cache,
+            # some jobs won't be in the disk cache any more
+        
         cached_ids = set(self._sp_cache)
 
-        # doesn't work if more jobs added
-        if cache_file is None or set(cache_file) != cached_ids:
+        if cache_file == {} or set(cache_file) != cached_ids:
             fn_cache = self.fn(self.FN_CACHE)
             fn_cache_tmp = fn_cache + "~"
             try:

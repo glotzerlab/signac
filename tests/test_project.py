@@ -2158,7 +2158,11 @@ class TestCache(TestProject):
         return cache
 
     def test_cache_update(self):
-        for a in range(3):
+
+        num_initial = 3
+        num_total = 6
+        
+        for a in range(num_initial):
             self.project.open_job({"a": a}).init()
 
         # ensure no cache file yet
@@ -2172,10 +2176,10 @@ class TestCache(TestProject):
         project_read_cache_1 = self.project._read_cache()
         assert file_cache_1 == project_mem_cache_1
         assert file_cache_1 == project_read_cache_1
-
+        assert len(file_cache_1) == num_initial
 
         # add some jobs
-        for a in range(3,6):
+        for a in range(num_initial, num_total):
             self.project.open_job({"a": a}).init()
 
         self.project.update_cache()
@@ -2184,8 +2188,29 @@ class TestCache(TestProject):
         project_read_cache_2 = self.project._read_cache()
         assert file_cache_2 == project_mem_cache_2
         assert file_cache_2 == project_read_cache_2
-        print(len(file_cache_2))
+        assert len(file_cache_2) == num_total
 
+        job_to_remove = self.project.open_job({"a": 2})
+        job_to_remove.remove()
+
+        assert job_to_remove not in self.project
+
+        # the extra job is still in cache in this session to enable restoring it
+        self.project.update_cache(prune=False)
+        file_cache_3 = self.manual_read_cache_file()
+        project_mem_cache_3 = self.project._sp_cache
+        project_read_cache_3 = self.project._read_cache()
+        assert len(file_cache_3) == num_total
+        assert len(project_mem_cache_3) == num_total
+        assert len(project_read_cache_3) == num_total
+
+        self.project.update_cache(prune=True)
+        file_cache_4 = self.manual_read_cache_file()
+        project_mem_cache_4 = self.project._sp_cache
+        project_read_cache_4 = self.project._read_cache()
+        assert len(file_cache_4) == num_total - 1 # 1 removed job
+        assert len(project_mem_cache_4) == num_total - 1
+        assert len(project_read_cache_4) == num_total - 1
 
 
 class TestProjectInit:
