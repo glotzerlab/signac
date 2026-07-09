@@ -1472,17 +1472,25 @@ class Project:
             logger.info("Cache is up to date.")
 
     def _read_cache(self):
-        """Read the persistent state point cache (if available)."""
-        logger.debug("Reading cache...")
+        """Update _sp_cache from file cache and return only the file cache.
+
+        Does NOT also update the file cache
+        """
+        logger.debug("Reading cache file...")
         start = time.time()
         try:
             with gzip.open(self.fn(self.FN_CACHE), "rb") as cachefile:
                 cache = json.loads(cachefile.read().decode())
             self._sp_cache.update(cache)
+            # this update confuses the point of this function
+            # if left in, the cache tests fail (before
+            # the fix in update_cache moving self._update_in_memory_cache up)
+            # if taken out, the test restore fails
         except OSError as error:
             if error.errno != errno.ENOENT:
                 raise
             logger.debug("No cache file found.")
+            return {}
         else:
             delta = time.time() - start
             logger.debug(f"Read cache in {delta:.3f} seconds.")
