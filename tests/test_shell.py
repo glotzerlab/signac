@@ -844,49 +844,62 @@ class TestBasicShell:
         with gzip.open(project.fn(project.FN_CACHE), "rb") as cachefile:
             cache = json.loads(cachefile.read().decode())        
         return cache
-        
-    def test_update_cache(self):
+
+    @pytest.mark.usefixtures("subtests")
+    def test_update_cache(self, subtests):
         self.call("python -m signac init".split())
         project_a = signac.Project()
         assert not os.path.isfile(project_a.FN_CACHE)
 
         num_initial=4
         num_additional=3
+        correct_project_len = num_initial + num_additional
         
         for i in range(num_initial):
             project_a.open_job({"a": i}).init()
         err = self.call("python -m signac update-cache".split(), error=True)
         assert os.path.isfile(project_a.FN_CACHE)
         assert "Updated cache" in err
-
+        assert f"size={num_initial}" in err
+        
         manual_cache_1 = self.manual_read_cache_file()
         assert len(manual_cache_1) == num_initial
         
         err = self.call("python -m signac update-cache".split(), error=True)
         assert "Cache is up to date" in err
 
+
         for i in range(num_additional):
             project_a.open_job({"b": i}).init()
         err = self.call("python -m signac update-cache".split(), error=True)
-        assert "Cache is up to date" in err
+        assert "Updated cache" in err
+        assert f"size={correct_project_len}" in err
 
-        # this failes
-        manual_cache = self.manual_read_cache_file()
-        assert len(project_a) == num_initial + num_additional
-        # assert len(manual_cache) == num_initial + num_additional
 
-        # this gets updated
-        new_cache = project_a._sp_cache
-        assert len(new_cache) == num_initial + num_additional
-
+        # jobs "register" themselves with the project so the "in-memory" cache (project._sp_cache) is up to date,
+        # but not the one written to disk
+        
         # this fails
-        new_cache = project_a._read_cache()
-        # assert len(new_cache) == num_initial + num_additional
+        with subtests.test(msg="Is cache file updated?"):
+            manual_cache = self.manual_read_cache_file()
+            assert len(project_a) == correct_project_len
+            assert len(manual_cache) == correct_project_len
 
-        project_a.update_cache()
-        manual_cache = self.manual_read_cache_file()
-        assert len(project_a) == num_initial + num_additional
-        assert len(manual_cache) == num_initial + num_additional
+        
+        # this gets updated
+        with subtests.test(msg="compare to memory cache"):
+            new_cache = project_a._sp_cache
+            assert len(new_cache) == correct_project_len
+
+        with subtests.test(msg="_read_cache different from _sp_cache"):
+            new_cache = project_a._read_cache()
+            assert len(new_cache) == correct_project_len
+
+        with subtests.test():
+            project_a.update_cache()
+            manual_cache = self.manual_read_cache_file()
+            assert len(project_a) == correct_project_len
+            assert len(manual_cache) == correct_project_len
 
     def test_migrate_v1_to_v2(self):
         dirname = self.tmpdir.name
