@@ -874,10 +874,10 @@ class TestBasicShell:
         assert "Updated cache" in err
         assert f"size={correct_project_len}" in err
 
-        # jobs "register" themselves with the project so the "in-memory" cache (project._sp_cache) is up to date,
-        # but not the one written to disk
+        # jobs "register" themselves with the project so the "in-memory" cache (project._sp_cache)
+        # is up to date, but not the one written to disk
 
-        # this fails
+        # this fails before
         with subtests.test(msg="Is cache file updated?"):
             manual_cache = self.manual_read_cache_file()
             assert len(project_a) == correct_project_len
@@ -920,7 +920,6 @@ class TestBasicShell:
 
         err = self.call("python -m signac update-cache --prune".split(), error=True)
         assert "size=1" in err
-
 
     def test_migrate_v1_to_v2(self):
         dirname = self.tmpdir.name

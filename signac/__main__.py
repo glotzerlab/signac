@@ -1565,7 +1565,9 @@ def main():
         "update-cache",
         description="Use this command to update the project's persistent state point cache.",
     )
-    parser_update_cache.add_argument("--prune", action=argparse.BooleanOptionalAction, default=False)
+    parser_update_cache.add_argument(
+        "--prune", action=argparse.BooleanOptionalAction, default=False
+    )
     parser_update_cache.set_defaults(func=main_update_cache)
 
     parser_config = subparsers.add_parser("config")

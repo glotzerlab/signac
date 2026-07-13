@@ -2207,7 +2207,6 @@ class TestCache(TestProject):
         assert len(project_mem_cache_3) == num_total
         assert len(project_read_cache_3) == num_total
 
-
         del self.project
         self.project = self.project_class.get_project(path=self._tmp_pr)
 

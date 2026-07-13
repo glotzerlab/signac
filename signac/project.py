@@ -1506,7 +1506,8 @@ class Project:
         else:
             delta = time.time() - start
             logger.debug(f"Read cache in {delta:.3f} seconds.")
-            return cache  # this is only the files on disk, even though self._sp_cache could have extras
+            # return only the files on disk, even though self._sp_cache could have extras
+            return cache
 
     @contextmanager
     def temporary_project(self, dir=None):
