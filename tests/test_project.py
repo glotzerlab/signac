@@ -2182,6 +2182,10 @@ class TestCache(TestProject):
         for a in range(num_initial, num_total):
             self.project.open_job({"a": a}).init()
 
+        # simulate starting a new session
+        del self.project
+        self.project = self.project_class.get_project(path=self._tmp_pr)
+
         self.project.update_cache()
         file_cache_2 = self.manual_read_cache_file()
         project_mem_cache_2 = self.project._sp_cache
@@ -2194,7 +2198,6 @@ class TestCache(TestProject):
         job_to_remove.remove()
 
         assert job_to_remove not in self.project
-
         # the extra job is still in cache in this session to enable restoring it
         self.project.update_cache(prune=False)
         file_cache_3 = self.manual_read_cache_file()
@@ -2203,6 +2206,12 @@ class TestCache(TestProject):
         assert len(file_cache_3) == num_total
         assert len(project_mem_cache_3) == num_total
         assert len(project_read_cache_3) == num_total
+
+
+        del self.project
+        self.project = self.project_class.get_project(path=self._tmp_pr)
+
+        assert job_to_remove not in self.project
 
         self.project.update_cache(prune=True)
         file_cache_4 = self.manual_read_cache_file()
