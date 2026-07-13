@@ -207,7 +207,7 @@ class Project:
         # of "id: statepoint" is valid even after a job has been removed, and
         # can be used to re-open a job by id as long as that id remains in the
         # cache.
-        # Should that superset be written to disk?
+        # TODO: Should that superset be written to disk?
         self._sp_cache = {}
         self._sp_cache_read = False
         self._sp_cache_misses = 0
@@ -1437,7 +1437,7 @@ class Project:
             if error.errno != errno.ENOENT:
                 raise error
 
-    # todo change name to write_cache to better capture the meaning of this function
+    # TODO: change name to write_cache to better capture the meaning of this function?
     def update_cache(self, prune=False):
         """Update the state point cache on disk.
 
@@ -1464,7 +1464,7 @@ class Project:
             self._sp_cache.update(cache_file)
             # if a job was removed, now len(cache_file) > self._sp_cache
             # so when we rewrite the disk cache from self._sp_cache,
-            # some jobs won't be in the disk cache any more
+            # some jobs won't be in the disk cache anymore
 
         cached_ids = set(self._sp_cache)
 
@@ -1498,11 +1498,6 @@ class Project:
         try:
             with gzip.open(self.fn(self.FN_CACHE), "rb") as cachefile:
                 cache = json.loads(cachefile.read().decode())
-            # this update confuses the point of this function
-            # if left in, the cache tests fail (before
-            # the fix in update_cache moving self._update_in_memory_cache up)
-            # if taken out, the test restore fails
-            # self._sp_cache.update(cache)
         except OSError as error:
             if error.errno != errno.ENOENT:
                 raise
