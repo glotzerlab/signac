@@ -914,6 +914,10 @@ class TestBasicShell:
         # not pruned
         assert "Cache is up to date" in err
 
+        err = self.call("python -m signac update-cache --no-prune".split(), error=True)
+        # not pruned
+        assert "Cache is up to date" in err
+
         err = self.call("python -m signac update-cache --prune".split(), error=True)
         assert "size=1" in err
 
