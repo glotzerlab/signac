@@ -2154,14 +2154,14 @@ class TestCache(TestProject):
 
     def manual_read_cache_file(self):
         with gzip.open(self.project.fn(self.project.FN_CACHE), "rb") as cachefile:
-            cache = json.loads(cachefile.read().decode())        
+            cache = json.loads(cachefile.read().decode())
         return cache
 
     def test_cache_update(self):
 
         num_initial = 3
         num_total = 6
-        
+
         for a in range(num_initial):
             self.project.open_job({"a": a}).init()
 
@@ -2208,7 +2208,7 @@ class TestCache(TestProject):
         file_cache_4 = self.manual_read_cache_file()
         project_mem_cache_4 = self.project._sp_cache
         project_read_cache_4 = self.project._read_cache()
-        assert len(file_cache_4) == num_total - 1 # 1 removed job
+        assert len(file_cache_4) == num_total - 1  # 1 removed job
         assert len(project_mem_cache_4) == num_total - 1
         assert len(project_read_cache_4) == num_total - 1
 

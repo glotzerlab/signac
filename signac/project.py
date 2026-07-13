@@ -1465,7 +1465,7 @@ class Project:
             # if a job was removed, now len(cache_file) > self._sp_cache
             # so when we rewrite the disk cache from self._sp_cache,
             # some jobs won't be in the disk cache any more
-        
+
         cached_ids = set(self._sp_cache)
 
         if cache_file == {} or set(cache_file) != cached_ids:
@@ -1511,7 +1511,7 @@ class Project:
         else:
             delta = time.time() - start
             logger.debug(f"Read cache in {delta:.3f} seconds.")
-            return cache # this is only the files on disk, even though self._sp_cache could have extras
+            return cache  # this is only the files on disk, even though self._sp_cache could have extras
 
     @contextmanager
     def temporary_project(self, dir=None):
