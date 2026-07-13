@@ -52,6 +52,26 @@ class TestNeighborList(TestProject):
                 )
         with pytest.warns(RuntimeWarning, match="not_present"):
             self.project.get_neighbors(ignore=["not_present"])
+        with pytest.warns(RuntimeWarning, match="not_present"):
+            self.project.get_neighbors(ignore=["not_present", "another_not_present"])
+
+    def test_neighbors_added_removed_keys(self):
+        # codifies that neighbors aren't detected between jobs that
+        # differ in added/removed keys
+        a1 = self.project.open_job({"a": 1}).init()
+        a2 = self.project.open_job({"a": 2}).init()
+        a2b1 = self.project.open_job({"a": 2, "b": 1}).init()
+
+        nl = self.project.get_neighbors()
+        assert nl[a1.id]["a"][2] == a2.id
+        assert nl[a2.id]["a"][1] == a1.id
+        assert nl[a2b1.id]["a"] == {}
+
+        # only state point params that change are present for each job's nl
+        with pytest.raises(KeyError):
+            nl[a1.id]["b"]
+        with pytest.raises(KeyError):
+            nl[a2b1.id]["b"]
 
     def test_neighbors_ignore(self):
         b_vals = [3, 4, 5]
@@ -86,6 +106,139 @@ class TestNeighborList(TestProject):
                     this_neighbors["b"][4]
                     == self.project.open_job({"b": 4, "2b": 8}).id
                 )
+
+    def test_neighbors_ignore_constant(self):
+        b_vals = [3, 4, 5]
+        for b in b_vals:
+            self.project.open_job({"b": b, "2b": 2 * b, "constant": 1}).init()
+
+        neighbor_list = self.project.get_neighbors(ignore="2b")
+        assert "constant" not in neighbor_list
+
+        neighbor_list = self.project.get_neighbors(ignore=["2b", "constant"])
+        for b in b_vals:
+            job = self.project.open_job({"b": b, "2b": 2 * b, "constant": 1})
+            neighbors_job = job._get_neighbors(ignore=["2b", "constant"])
+
+            this_neighbors = neighbor_list[job.id]
+            assert this_neighbors == neighbors_job
+
+            if b == 3:
+                assert (
+                    this_neighbors["b"][4]
+                    == self.project.open_job({"b": 4, "2b": 8, "constant": 1}).id
+                )
+            elif b == 4:
+                assert (
+                    this_neighbors["b"][3]
+                    == self.project.open_job({"b": 3, "2b": 6, "constant": 1}).id
+                )
+                assert (
+                    this_neighbors["b"][5]
+                    == self.project.open_job({"b": 5, "2b": 10, "constant": 1}).id
+                )
+            elif b == 5:
+                assert (
+                    this_neighbors["b"][4]
+                    == self.project.open_job({"b": 4, "2b": 8, "constant": 1}).id
+                )
+
+        with pytest.warns(RuntimeWarning, match="not_present"):
+            self.project.get_neighbors(ignore=["not_present", "2b"])
+        with pytest.warns(RuntimeWarning, match="not_present"):
+            self.project.get_neighbors(ignore=["not_present", "constant"])
+
+    def test_neighbors_no_neighbors(self):
+        job = self.project.open_job({"constant": 1, "constant_2": 2}).init()
+        neighbor_list = self.project.get_neighbors()
+        assert neighbor_list[job.id] == {}
+
+        neighbor_list = self.project.get_neighbors(ignore="constant")
+        assert neighbor_list[job.id] == {}
+
+    def test_neighborlist_structure(self):
+        for a, b in product([1, 2, 3], [5, 6, 7]):
+            self.project.open_job({"a": a, "b": b, "2b": 2 * b}).init()
+
+        for b in [8, 9, 10]:
+            self.project.open_job({"a": 1, "b": b}).init()
+
+        # works across data types
+        for b in ["eight", "nine", None]:
+            self.project.open_job({"a": 1, "b": b}).init()
+
+        # see isolated jobs
+        self.project.open_job({"a": 1, "c": True, "b": "eight"}).init()
+
+        for c, b in product([True, False], ["eight", "nine"]):
+            self.project.open_job({"c": c, "b": b}).init()
+
+        # works on lists
+        for c, b in product([True, False], [[1, 2], [1, 5]]):
+            self.project.open_job({"c": c, "b": b}).init()
+
+        # works on nested values
+        # although they appear in the neighbor list like nl[id]["x.n"]
+        # because of internal limitations with schema
+        for x in [{"n": "nested"}, {"n": "values"}]:
+            self.project.open_job({"x": x}).init()
+
+        neighbor_list = self.project.get_neighbors(ignore=["2b"])
+
+        for job in self.project:
+            neighbors = neighbor_list[job.id]
+            for key, neighbor_vals in neighbors.items():
+                for neighbor_value, neighbor_job_id in neighbor_vals.items():
+                    if neighbor_job_id == "47c6f9a7c0d88ab60a9e8de4ed002e6f":
+                        # that's job with b:None
+                        print(f"ignoring {neighbor_value=} and {neighbor_job_id=}")
+                    else:
+                        assert neighbor_value is not None
+                    assert neighbor_job_id
+                    assert key
+
+    def test_neighborlist_structure_with_constant(self):
+        for a, b in product([1, 2, 3], [5, 6, 7]):
+            self.project.open_job({"constant": 1, "a": a, "b": b, "2b": 2 * b}).init()
+
+        for b in [8, 9, 10]:
+            self.project.open_job({"constant": 1, "a": 1, "b": b}).init()
+
+        # works across data types
+        for b in ["eight", "nine", None]:
+            self.project.open_job({"constant": 1, "a": 1, "b": b}).init()
+
+        # see isolated jobs
+        self.project.open_job({"constant": 1, "a": 1, "c": True, "b": "eight"}).init()
+
+        for c, b in product([True, False], ["eight", "nine"]):
+            self.project.open_job({"constant": 1, "c": c, "b": b}).init()
+
+        # works on lists
+        for c, b in product([True, False], [[1, 2], [1, 5]]):
+            self.project.open_job({"constant": 1, "c": c, "b": b}).init()
+
+        # works on nested values
+        # although they appear in the neighbor list like nl[id]["x.n"]
+        # because of internal limitations with schema
+        for x in [{"n": "nested"}, {"n": "values"}]:
+            self.project.open_job({"constant": 1, "x": x}).init()
+
+        neighbor_list = self.project.get_neighbors(ignore=["2b"])
+
+        assert "constant" not in neighbor_list
+
+        for job in self.project:
+            neighbors = neighbor_list[job.id]
+            for key, neighbor_vals in neighbors.items():
+                for neighbor_value, neighbor_job_id in neighbor_vals.items():
+                    if neighbor_job_id == "1db325b31be7b4e378e7daf95ba1275e":
+                        # that's job with b:None
+                        print(f"ignoring {neighbor_value=} and {neighbor_job_id=}")
+                    else:
+                        assert neighbor_value is not None
+                    assert neighbor_job_id
+                    assert key
 
     def test_neighbors_ignore_nested(self):
         a_vals = [{"b": 2, "c": 2}, {"b": 3, "c": 3}]
