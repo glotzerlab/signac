@@ -898,6 +898,26 @@ class TestBasicShell:
             assert len(project_a) == correct_project_len
             assert len(manual_cache) == correct_project_len
 
+    def test_prune_cache(self):
+        self.call("python -m signac init".split())
+        project_a = signac.Project()
+        assert not os.path.isfile(project_a.FN_CACHE)
+
+        for i in range(2):
+            project_a.open_job({"a": i}).init()
+        err = self.call("python -m signac update-cache".split(), error=True)
+
+        job_to_remove = next(iter(project_a))
+        err = self.call(f"rm -r {os.path.join("workspace", job_to_remove.id)}".split())
+
+        err = self.call("python -m signac update-cache".split(), error=True)
+        # not pruned
+        assert "Cache is up to date" in err
+
+        err = self.call("python -m signac update-cache --prune".split(), error=True)
+        assert "size=1" in err
+
+
     def test_migrate_v1_to_v2(self):
         dirname = self.tmpdir.name
         _initialize_v1_project(dirname, False)
