@@ -2,7 +2,7 @@
 #    uv pip compile requirements.in doc/requirements.in --output-file=doc/requirements.txt
 alabaster==1.0.0
     # via sphinx
-asttokens==3.0.1
+asttokens==3.0.2
     # via stack-data
 attrs==26.1.0
     # via
@@ -16,7 +16,7 @@ bleach==6.4.0
     # via nbconvert
 certifi==2026.6.17
     # via requests
-charset-normalizer==3.4.7
+charset-normalizer==3.4.9
     # via requests
 decorator==5.3.1
     # via ipython
@@ -32,13 +32,13 @@ executing==2.2.1
     # via stack-data
 fastjsonschema==2.21.2
     # via nbformat
-filelock==3.29.4
+filelock==3.29.7
     # via -r requirements.in
 idna==3.18
     # via requests
 imagesize==2.0.0
     # via sphinx
-ipython==9.14.1
+ipython==9.15.0
     # via -r doc/requirements.in
 ipython-pygments-lexers==1.1.1
     # via ipython
@@ -71,7 +71,7 @@ markupsafe==3.0.3
     #   nbconvert
 matplotlib-inline==0.2.2
     # via ipython
-mistune==3.2.1
+mistune==3.3.3
     # via nbconvert
 nbclient==0.11.0
     # via nbconvert
@@ -125,11 +125,11 @@ requests==2.34.2
     # via sphinx
 roman-numerals==4.1.0
     # via sphinx
-rpds-py==2026.5.1
+rpds-py==2026.6.3
     # via
     #   jsonschema
     #   referencing
-setuptools==82.0.1
+setuptools==83.0.0
     # via -r requirements.in
 six==1.17.0
     # via python-dateutil
@@ -164,13 +164,13 @@ sphinxcontrib-serializinghtml==2.0.0
     # via sphinx
 stack-data==0.6.3
     # via ipython
-synced-collections==1.0.0
+synced-collections==1.0.1
     # via -r requirements.in
 tinycss2==1.5.1
     # via bleach
 tornado==6.5.7
     # via jupyter-client
-tqdm==4.68.3
+tqdm==4.68.4
     # via -r requirements.in
 traitlets==5.15.1
     # via
@@ -182,13 +182,13 @@ traitlets==5.15.1
     #   nbconvert
     #   nbformat
     #   nbsphinx
-typing-extensions==4.15.0
+typing-extensions==4.16.0
     # via
     #   beautifulsoup4
     #   jupyter-client
 urllib3==2.7.0
     # via requests
-wcwidth==0.8.1
+wcwidth==0.8.2
     # via prompt-toolkit
 webencodings==0.5.1
     # via
