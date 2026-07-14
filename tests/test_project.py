@@ -2228,8 +2228,7 @@ class TestCache(TestProject):
         with subtests.test("New project object, cache not pruned"):
             assert file_cache_4 == self.project._read_cache()
         with subtests.test("New project object, cache not pruned"):
-            assert len(file_cache_4) == num_total # removed job still in cache
-
+            assert len(file_cache_4) == num_total  # removed job still in cache
 
         del self.project
         self.project = self.project_class.get_project(path=self._tmp_pr)
