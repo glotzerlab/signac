@@ -2157,7 +2157,8 @@ class TestCache(TestProject):
             cache = json.loads(cachefile.read().decode())
         return cache
 
-    def test_cache_update(self):
+    @pytest.mark.usefixtures("subtests")
+    def test_cache_update(self, subtests):
 
         num_initial = 3
         num_total = 6
@@ -2172,11 +2173,12 @@ class TestCache(TestProject):
         self.project.update_cache()
         file_cache_1 = self.manual_read_cache_file()
 
-        project_mem_cache_1 = self.project._sp_cache
-        project_read_cache_1 = self.project._read_cache()
-        assert file_cache_1 == project_mem_cache_1
-        assert file_cache_1 == project_read_cache_1
-        assert len(file_cache_1) == num_initial
+        with subtests.test(f"Initial cache of {num_initial} jobs"):
+            assert file_cache_1 == self.project._sp_cache
+        with subtests.test(f"Initial cache of {num_initial} jobs"):
+            assert file_cache_1 == self.project._read_cache()
+        with subtests.test(f"Initial cache of {num_initial} jobs"):
+            assert len(file_cache_1) == num_initial
 
         # add some jobs
         for a in range(num_initial, num_total):
@@ -2188,37 +2190,60 @@ class TestCache(TestProject):
 
         self.project.update_cache()
         file_cache_2 = self.manual_read_cache_file()
-        project_mem_cache_2 = self.project._sp_cache
-        project_read_cache_2 = self.project._read_cache()
-        assert file_cache_2 == project_mem_cache_2
-        assert file_cache_2 == project_read_cache_2
-        assert len(file_cache_2) == num_total
+
+        with subtests.test("New project object with added jobs"):
+            assert file_cache_2 == self.project._sp_cache
+        with subtests.test("New project object with added jobs"):
+            assert file_cache_2 == self.project._read_cache()
+        with subtests.test("New project object with added jobs"):
+            assert len(file_cache_2) == num_total
 
         job_to_remove = self.project.open_job({"a": 2})
         job_to_remove.remove()
 
         assert job_to_remove not in self.project
+
         # the extra job is still in cache in this session to enable restoring it
         self.project.update_cache(prune=False)
         file_cache_3 = self.manual_read_cache_file()
-        project_mem_cache_3 = self.project._sp_cache
-        project_read_cache_3 = self.project._read_cache()
-        assert len(file_cache_3) == num_total
-        assert len(project_mem_cache_3) == num_total
-        assert len(project_read_cache_3) == num_total
+
+        with subtests.test("After removing a job, cache not pruned"):
+            assert len(file_cache_3) == num_total
+        with subtests.test("After removing a job, cache not pruned"):
+            assert len(self.project._sp_cache) == num_total
+        with subtests.test("After removing a job, cache not pruned"):
+            assert len(self.project._read_cache()) == num_total
 
         del self.project
         self.project = self.project_class.get_project(path=self._tmp_pr)
+        assert job_to_remove not in self.project
 
+        self.project.update_cache(prune=False)
+        file_cache_4 = self.manual_read_cache_file()
+
+        with subtests.test("File cache with removed job not pruned"):
+            assert job_to_remove.id in file_cache_4
+        with subtests.test("New project object, cache not pruned"):
+            assert file_cache_4 == self.project._sp_cache
+        with subtests.test("New project object, cache not pruned"):
+            assert file_cache_4 == self.project._read_cache()
+        with subtests.test("New project object, cache not pruned"):
+            assert len(file_cache_4) == num_total # removed job still in cache
+
+
+        del self.project
+        self.project = self.project_class.get_project(path=self._tmp_pr)
         assert job_to_remove not in self.project
 
         self.project.update_cache(prune=True)
-        file_cache_4 = self.manual_read_cache_file()
-        project_mem_cache_4 = self.project._sp_cache
-        project_read_cache_4 = self.project._read_cache()
-        assert len(file_cache_4) == num_total - 1  # 1 removed job
-        assert len(project_mem_cache_4) == num_total - 1
-        assert len(project_read_cache_4) == num_total - 1
+        file_cache_5 = self.manual_read_cache_file()
+
+        with subtests.test("File cache with pruned job"):
+            assert job_to_remove.id not in file_cache_5
+        with subtests.test("New project object, cache pruned"):
+            assert len(self.project._sp_cache) == num_total - 1
+        with subtests.test("New project object, cache pruned"):
+            assert len(self.project._read_cache()) == num_total - 1
 
 
 class TestProjectInit:
