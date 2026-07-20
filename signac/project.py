@@ -1445,13 +1445,6 @@ class Project:
         operations, including iteration and filtering or selection are
         expected to be significantly faster after calling this function,
         especially for large data spaces.
-
-        Parameters
-        ----------
-        prune : bool, optional
-            Default False. If True, the written disk cache could decrease
-            in coverage to match recently removed jobs
-
         """
         logger.info("Update cache...")
         start = time.time()
