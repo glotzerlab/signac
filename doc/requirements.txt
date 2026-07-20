@@ -32,7 +32,7 @@ executing==2.2.1
     # via stack-data
 fastjsonschema==2.21.2
     # via nbformat
-filelock==3.29.7
+filelock==3.31.1
     # via -r requirements.in
 idna==3.18
     # via requests
@@ -97,7 +97,7 @@ parso==0.8.7
     # via jedi
 pexpect==4.9.0
     # via ipython
-platformdirs==4.10.0
+platformdirs==4.10.1
     # via jupyter-core
 prompt-toolkit==3.0.52
     # via ipython
@@ -135,7 +135,7 @@ six==1.17.0
     # via python-dateutil
 snowballstemmer==3.1.1
     # via sphinx
-soupsieve==2.8.4
+soupsieve==2.9
     # via beautifulsoup4
 sphinx==9.1.0
     # via
@@ -170,7 +170,7 @@ tinycss2==1.5.1
     # via bleach
 tornado==6.5.7
     # via jupyter-client
-tqdm==4.68.4
+tqdm==4.69.0
     # via -r requirements.in
 traitlets==5.15.1
     # via
