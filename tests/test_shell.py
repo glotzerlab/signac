@@ -908,7 +908,9 @@ class TestBasicShell:
         err = self.call("python -m signac update-cache".split(), error=True)
 
         job_to_remove = next(iter(project_a))
-        err = self.call(f"rm -r {os.path.join(project_a.workspace, job_to_remove.id)}".split())
+        err = self.call(
+            f"rm -r {os.path.join(project_a.workspace, job_to_remove.id)}".split()
+        )
 
         err = self.call("python -m signac update-cache".split(), error=True)
         assert "size=1" in err
