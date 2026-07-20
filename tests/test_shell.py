@@ -908,17 +908,9 @@ class TestBasicShell:
         err = self.call("python -m signac update-cache".split(), error=True)
 
         job_to_remove = next(iter(project_a))
-        err = self.call(f"rm -r {os.path.join('workspace', job_to_remove.id)}".split())
+        err = self.call(f"rm -r {os.path.join(project_a.workspace, job_to_remove.id)}".split())
 
         err = self.call("python -m signac update-cache".split(), error=True)
-        # not pruned
-        assert "Cache is up to date" in err
-
-        err = self.call("python -m signac update-cache --no-prune".split(), error=True)
-        # not pruned
-        assert "Cache is up to date" in err
-
-        err = self.call("python -m signac update-cache --prune".split(), error=True)
         assert "size=1" in err
 
     def test_migrate_v1_to_v2(self):

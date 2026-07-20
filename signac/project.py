@@ -202,12 +202,11 @@ class Project:
                 raise
 
         # Internal state point cache
-        # Note that the state point cache is a superset of the jobs in the
+        # Note that the in-memory state point cache is a superset of the jobs in the
         # project, and its contents cannot be invalidated. The cached mapping
         # of "id: statepoint" is valid even after a job has been removed, and
         # can be used to re-open a job by id as long as that id remains in the
         # cache.
-        # TODO: Should that superset be written to disk?
         self._sp_cache = {}
         self._sp_cache_read = False
         self._sp_cache_misses = 0
@@ -1438,7 +1437,7 @@ class Project:
                 raise error
 
     # TODO: change name to write_cache to better capture the meaning of this function?
-    def update_cache(self, prune=False):
+    def update_cache(self):
         """Update the state point cache on disk.
 
         This function updates a persistent state point cache, which is
@@ -1460,11 +1459,9 @@ class Project:
         # now self._sp_cache matches the job ids in workspace
 
         cache_file = self._read_cache()
-        if not prune:
-            self._sp_cache.update(cache_file)
-            # if a job was removed, now len(cache_file) > self._sp_cache
-            # so when we rewrite the disk cache from self._sp_cache,
-            # some jobs won't be in the disk cache anymore
+
+        # don't update _sp_cache from the disk cache so we can remove
+        # jobs from disk cache that aren't in the workspace
 
         cached_ids = set(self._sp_cache)
 

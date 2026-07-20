@@ -2203,42 +2203,17 @@ class TestCache(TestProject):
 
         assert job_to_remove not in self.project
 
-        # the extra job is still in cache in this session to enable restoring it
-        self.project.update_cache(prune=False)
+        del self.project
+        self.project = self.project_class.get_project(path=self._tmp_pr)
+        assert job_to_remove not in self.project
+
+        self.project.update_cache()
         file_cache_3 = self.manual_read_cache_file()
 
-        with subtests.test("After removing a job, cache not pruned"):
-            assert len(file_cache_3) == num_total
-        with subtests.test("After removing a job, cache not pruned"):
-            assert len(self.project._sp_cache) == num_total
-        with subtests.test("After removing a job, cache not pruned"):
-            assert len(self.project._read_cache()) == num_total
-
-        del self.project
-        self.project = self.project_class.get_project(path=self._tmp_pr)
-        assert job_to_remove not in self.project
-
-        self.project.update_cache(prune=False)
-        file_cache_4 = self.manual_read_cache_file()
-
-        with subtests.test("File cache with removed job not pruned"):
-            assert job_to_remove.id in file_cache_4
-        with subtests.test("New project object, cache not pruned"):
-            assert file_cache_4 == self.project._sp_cache
-        with subtests.test("New project object, cache not pruned"):
-            assert file_cache_4 == self.project._read_cache()
-        with subtests.test("New project object, cache not pruned"):
-            assert len(file_cache_4) == num_total  # removed job still in cache
-
-        del self.project
-        self.project = self.project_class.get_project(path=self._tmp_pr)
-        assert job_to_remove not in self.project
-
-        self.project.update_cache(prune=True)
-        file_cache_5 = self.manual_read_cache_file()
-
+        # update_cache should "prune" the cache so only job ids in the workspace
+        # are written to the disk sp cache
         with subtests.test("File cache with pruned job"):
-            assert job_to_remove.id not in file_cache_5
+            assert job_to_remove.id not in file_cache_3
         with subtests.test("New project object, cache pruned"):
             assert len(self.project._sp_cache) == num_total - 1
         with subtests.test("New project object, cache pruned"):

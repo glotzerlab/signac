@@ -638,7 +638,7 @@ def main_update_cache(args):
     """Handle update-cache subcommand."""
     project = get_project()
     _print_err("Updating cache...")
-    n = project.update_cache(args.prune)
+    n = project.update_cache()
     if n is None:
         _print_err("Cache is up to date.")
     else:
@@ -1564,9 +1564,6 @@ def main():
     parser_update_cache = subparsers.add_parser(
         "update-cache",
         description="Use this command to update the project's persistent state point cache.",
-    )
-    parser_update_cache.add_argument(
-        "--prune", action=argparse.BooleanOptionalAction, default=False
     )
     parser_update_cache.set_defaults(func=main_update_cache)
 
