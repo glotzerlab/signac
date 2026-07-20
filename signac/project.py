@@ -1479,10 +1479,7 @@ class Project:
             logger.info("Cache is up to date.")
 
     def _read_cache(self):
-        """Update _sp_cache from file cache and return only the file cache.
-
-        Does NOT also update the file cache
-        """
+        """Read and return the file cache."""
         logger.debug("Reading cache file...")
         start = time.time()
         try:
@@ -1496,7 +1493,6 @@ class Project:
         else:
             delta = time.time() - start
             logger.debug(f"Read cache in {delta:.3f} seconds.")
-            # return only the files on disk, even though self._sp_cache could have extras
             return cache
 
     @contextmanager
