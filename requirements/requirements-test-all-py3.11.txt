@@ -16,7 +16,7 @@ coverage==7.15.2
     #   pytest-cov
 execnet==2.1.2
     # via pytest-xdist
-filelock==3.31.1
+filelock==3.32.0
     # via -r requirements.in
 h11==0.16.0
     # via httpcore
