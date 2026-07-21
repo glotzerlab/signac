@@ -202,7 +202,7 @@ class Project:
                 raise
 
         # Internal state point cache
-        # Note that the state point cache is a superset of the jobs in the
+        # Note that the in-memory state point cache is a superset of the jobs in the
         # project, and its contents cannot be invalidated. The cached mapping
         # of "id: statepoint" is valid even after a job has been removed, and
         # can be used to re-open a job by id as long as that id remains in the
@@ -525,7 +525,7 @@ class Project:
         """
         if not self._sp_cache_read:
             # Read the cache from disk on the first call.
-            self._read_cache()
+            self._sp_cache.update(self._read_cache())
             self._sp_cache_read = True
 
         if statepoint is None and id is None:
@@ -927,7 +927,7 @@ class Project:
         """
         if not self._sp_cache_read:
             # Read the cache from disk on the first call.
-            self._read_cache()
+            self._sp_cache.update(self._read_cache())
             self._sp_cache_read = True
         try:
             # State point cache hit
@@ -1307,7 +1307,7 @@ class Project:
             job_ids = self._find_job_ids()
 
         # Load internal cache from all available external sources.
-        self._read_cache()
+        self._sp_cache.update(self._read_cache())
         corrupted = []
         for job_id in job_ids:
             try:
@@ -1396,11 +1396,12 @@ class Project:
             yield job_id, doc
 
     def _update_in_memory_cache(self):
-        """Update the in-memory state point cache to reflect the workspace."""
+        """Update the in-memory state point cache (self._sp_cache) to reflect the workspace."""
         logger.debug("Updating in-memory cache...")
         start = time.time()
         job_ids = set(self._job_dirs())
         cached_ids = set(self._sp_cache)
+        # to add/remove from self._sp_cache
         to_add = job_ids.difference(cached_ids)
         to_remove = cached_ids.difference(job_ids)
         if to_add or to_remove:
@@ -1435,21 +1436,29 @@ class Project:
             if error.errno != errno.ENOENT:
                 raise error
 
+    # TODO: change name to write_cache to better capture the meaning of this function?
     def update_cache(self):
-        """Update the persistent state point cache.
+        """Update the state point cache on disk.
 
-        This function updates a persistent state point cache, which
-        is stored in the project directory. Most data space operations,
-        including iteration and filtering or selection are expected
-        to be significantly faster after calling this function, especially
-        for large data spaces.
+        This function updates a persistent state point cache, which is
+        stored in the project configuration directory. Most data space
+        operations, including iteration and filtering or selection are
+        expected to be significantly faster after calling this function,
+        especially for large data spaces.
         """
         logger.info("Update cache...")
         start = time.time()
-        cache = self._read_cache()
-        cached_ids = set(self._sp_cache)
         self._update_in_memory_cache()
-        if cache is None or set(cache) != cached_ids:
+        # now self._sp_cache matches the job ids in workspace
+
+        cache_file = self._read_cache()
+
+        # don't update _sp_cache from the disk cache so we can remove
+        # jobs from disk cache that aren't in the workspace
+
+        cached_ids = set(self._sp_cache)
+
+        if cache_file == {} or set(cache_file) != cached_ids:
             fn_cache = self.fn(self.FN_CACHE)
             fn_cache_tmp = fn_cache + "~"
             try:
@@ -1470,17 +1479,17 @@ class Project:
             logger.info("Cache is up to date.")
 
     def _read_cache(self):
-        """Read the persistent state point cache (if available)."""
-        logger.debug("Reading cache...")
+        """Read and return the file cache."""
+        logger.debug("Reading cache file...")
         start = time.time()
         try:
             with gzip.open(self.fn(self.FN_CACHE), "rb") as cachefile:
                 cache = json.loads(cachefile.read().decode())
-            self._sp_cache.update(cache)
         except OSError as error:
             if error.errno != errno.ENOENT:
                 raise
             logger.debug("No cache file found.")
+            return {}
         else:
             delta = time.time() - start
             logger.debug(f"Read cache in {delta:.3f} seconds.")

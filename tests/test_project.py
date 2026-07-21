@@ -2150,6 +2150,76 @@ class TestCachedProject(TestProject):
         repr(self)
 
 
+class TestCache(TestProject):
+
+    def manual_read_cache_file(self):
+        with gzip.open(self.project.fn(self.project.FN_CACHE), "rb") as cachefile:
+            cache = json.loads(cachefile.read().decode())
+        return cache
+
+    @pytest.mark.usefixtures("subtests")
+    def test_cache_update(self, subtests):
+
+        num_initial = 3
+        num_total = 6
+
+        for a in range(num_initial):
+            self.project.open_job({"a": a}).init()
+
+        # ensure no cache file yet
+        with pytest.raises(OSError):
+            self.manual_read_cache_file()
+
+        self.project.update_cache()
+        file_cache_1 = self.manual_read_cache_file()
+
+        with subtests.test(f"Initial cache of {num_initial} jobs"):
+            assert file_cache_1 == self.project._sp_cache
+        with subtests.test(f"Initial cache of {num_initial} jobs"):
+            assert file_cache_1 == self.project._read_cache()
+        with subtests.test(f"Initial cache of {num_initial} jobs"):
+            assert len(file_cache_1) == num_initial
+
+        # add some jobs
+        for a in range(num_initial, num_total):
+            self.project.open_job({"a": a}).init()
+
+        # simulate starting a new session
+        del self.project
+        self.project = self.project_class.get_project(path=self._tmp_pr)
+
+        self.project.update_cache()
+        file_cache_2 = self.manual_read_cache_file()
+
+        with subtests.test("New project object with added jobs"):
+            assert file_cache_2 == self.project._sp_cache
+        with subtests.test("New project object with added jobs"):
+            assert file_cache_2 == self.project._read_cache()
+        with subtests.test("New project object with added jobs"):
+            assert len(file_cache_2) == num_total
+
+        job_to_remove = self.project.open_job({"a": 2})
+        job_to_remove.remove()
+
+        assert job_to_remove not in self.project
+
+        del self.project
+        self.project = self.project_class.get_project(path=self._tmp_pr)
+        assert job_to_remove not in self.project
+
+        self.project.update_cache()
+        file_cache_3 = self.manual_read_cache_file()
+
+        # update_cache should "prune" the cache so only job ids in the workspace
+        # are written to the disk sp cache
+        with subtests.test("File cache with pruned job"):
+            assert job_to_remove.id not in file_cache_3
+        with subtests.test("New project object, cache pruned"):
+            assert len(self.project._sp_cache) == num_total - 1
+        with subtests.test("New project object, cache pruned"):
+            assert len(self.project._read_cache()) == num_total - 1
+
+
 class TestProjectInit:
     @pytest.fixture(autouse=True)
     def setUp(self, request):

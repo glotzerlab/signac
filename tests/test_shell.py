@@ -1,6 +1,7 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+import gzip
 import json
 import os
 import shutil
@@ -838,19 +839,65 @@ class TestBasicShell:
         err = self.call("python -m signac config --local verify".split(), error=True)
         assert "Passed" in err
 
-    def test_update_cache(self):
+    def manual_read_cache_file(self):
+        project = signac.get_project()
+        with gzip.open(project.fn(project.FN_CACHE), "rb") as cachefile:
+            cache = json.loads(cachefile.read().decode())
+        return cache
+
+    @pytest.mark.usefixtures("subtests")
+    def test_update_cache(self, subtests):
         self.call("python -m signac init".split())
         project_a = signac.Project()
         assert not os.path.isfile(project_a.FN_CACHE)
 
-        for i in range(4):
+        num_initial = 4
+        num_additional = 3
+        correct_project_len = num_initial + num_additional
+
+        for i in range(num_initial):
             project_a.open_job({"a": i}).init()
         err = self.call("python -m signac update-cache".split(), error=True)
         assert os.path.isfile(project_a.FN_CACHE)
         assert "Updated cache" in err
+        assert f"size={num_initial}" in err
+
+        manual_cache_1 = self.manual_read_cache_file()
+        assert len(manual_cache_1) == num_initial
 
         err = self.call("python -m signac update-cache".split(), error=True)
         assert "Cache is up to date" in err
+
+        for i in range(num_additional):
+            project_a.open_job({"b": i}).init()
+        err = self.call("python -m signac update-cache".split(), error=True)
+        assert "Updated cache" in err
+        assert f"size={correct_project_len}" in err
+
+        manual_cache = self.manual_read_cache_file()
+
+        with subtests.test("Cache file should contain new jobs"):
+            assert len(manual_cache) == correct_project_len
+
+        with subtests.test("Memory cache should contain new jobs"):
+            assert len(project_a._sp_cache) == correct_project_len
+
+    def test_prune_cache(self):
+        self.call("python -m signac init".split())
+        project_a = signac.Project()
+        assert not os.path.isfile(project_a.FN_CACHE)
+
+        for i in range(2):
+            project_a.open_job({"a": i}).init()
+        err = self.call("python -m signac update-cache".split(), error=True)
+
+        job_to_remove = next(iter(project_a))
+        err = self.call(
+            f"rm -r {os.path.join(project_a.workspace, job_to_remove.id)}".split()
+        )
+
+        err = self.call("python -m signac update-cache".split(), error=True)
+        assert "size=1" in err
 
     def test_migrate_v1_to_v2(self):
         dirname = self.tmpdir.name

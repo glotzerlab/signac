@@ -14,6 +14,7 @@ Fixed
 +++++
 
  - Errant warning on ignoring constant keys when detecting neighbor list (#1121).
+ - ``Project.update_cache()`` correctly writes the state point cache to disk after adding or removing jobs (#1122).
 
 [2.4.0] -- 2026-06-18
 ---------------------
