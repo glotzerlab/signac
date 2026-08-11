@@ -20,7 +20,7 @@ filelock==3.32.0
     # via -r requirements.in
 h11==0.16.0
     # via httpcore
-h2==4.3.0
+h2==4.4.1
     # via httpx
 h5py==3.16.0
     # via -r requirements/requirements-test-optional.in
