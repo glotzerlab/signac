@@ -101,5 +101,5 @@ typing-inspection==0.4.2
     # via pydantic
 tzdata==2026.3
     # via pandas
-urllib3==2.7.0
+urllib3==2.8.0
     # via requests
