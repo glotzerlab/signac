@@ -6,7 +6,7 @@ anyio==4.14.2
     # via httpx
 blosc2==4.9.1
     # via tables
-certifi==2026.6.17
+certifi==2026.10.19
     # via
     #   httpcore
     #   httpx

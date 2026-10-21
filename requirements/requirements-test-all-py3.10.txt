@@ -4,7 +4,7 @@ annotated-types==0.7.0
     # via pydantic
 blosc2==4.3.3
     # via tables
-certifi==2026.6.17
+certifi==2026.10.19
     # via requests
 charset-normalizer==3.4.9
     # via requests
