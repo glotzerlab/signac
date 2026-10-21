@@ -166,7 +166,7 @@ synced-collections==1.0.1
     # via -r requirements.in
 tinycss2==1.5.1
     # via bleach
-tornado==6.5.10
+tornado==6.6
     # via jupyter-client
 tqdm==4.70.1
     # via -r requirements.in
