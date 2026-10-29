@@ -22,7 +22,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04]
-        python: ['3.10', '3.11', '3.12', '3.13', '3.14']
+        python: ['3.11', '3.12', '3.13', '3.14']
         # Unused key to force creation of new entries in the matrix
         default: ['true']
         include:

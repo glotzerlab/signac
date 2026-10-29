@@ -12,7 +12,7 @@ description = "Manage large and heterogeneous data spaces on the file system."
 readme = "README.md"
 # Supported versions are determined according to NEP 29.
 # https://numpy.org/neps/nep-0029-deprecation_policy.html
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 license = { file = "LICENSE.txt" }
 maintainers = [{ name = "signac Developers", email = "signac-support@umich.edu" }]
 authors = [{ name = "Carl Simon Adorf et al.", email = "csadorf@umich.edu" }]
