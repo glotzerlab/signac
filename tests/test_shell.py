@@ -16,6 +16,13 @@ from test_project import WINDOWS, _initialize_v1_project, skip_windows_without_s
 import signac
 from signac._config import USER_CONFIG_FN, _Config, _load_config, _read_config_file
 
+if "CI" in os.environ and sys.platform == "win32":
+    pytest.skip(
+        "uv virtual environments do not support `python` subprocesses on "
+        "GitHub Actions Windows runners",
+        allow_module_level=True,
+    )
+
 
 class DummyFile:
     "We redirect sys stdout into this file during console tests."
