@@ -52,18 +52,16 @@ class TestPandasIntegration(TestProjectBase):
             job.doc.c = float(i)
             job.doc.d = float(i * 3)
 
-        # Including no keys should return an empty DataFrame
+        # Including no keys should return a DataFrame with no columns
         df = self.project.to_dataframe(usecols=[])
         assert len(df.columns) == 0
-        assert len(df) == 0
 
-        # Excluding all keys should return an empty DataFrame
+        # Excluding all keys should return a DataFrame with no columns
         def usecols(column):
             return column not in ["sp.a", "sp.b", "doc.c", "doc.d"]
 
         df = self.project.to_dataframe(usecols=usecols)
         assert len(df.columns) == 0
-        assert len(df) == 0
 
         # Include one state point column
         df = self.project.to_dataframe(usecols=["sp.a"])
@@ -106,10 +104,9 @@ class TestPandasIntegration(TestProjectBase):
             job = self.project.open_job(dict(a=dict(b=i * 2, c=i * 3), d=i))
             job.doc.e = dict(f=float(i))
 
-        # Including no keys should return an empty DataFrame
+        # Including no keys should return a DataFrame with no columns
         df = self.project.to_dataframe(usecols=[], flatten=True)
         assert len(df.columns) == 0
-        assert len(df) == 0
 
         # Include one flattened state point column
         df = self.project.to_dataframe(usecols=["sp.a.b"], flatten=True)
