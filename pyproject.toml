@@ -13,14 +13,14 @@ readme = "README.md"
 # Supported versions are determined according to NEP 29.
 # https://numpy.org/neps/nep-0029-deprecation_policy.html
 requires-python = ">=3.11"
-license = { file = "LICENSE.txt" }
+license = "BSD-3-Clause"
+license-files = ["LICENSE.txt"]
 maintainers = [{ name = "signac Developers", email = "signac-support@umich.edu" }]
 authors = [{ name = "Carl Simon Adorf et al.", email = "csadorf@umich.edu" }]
 keywords = ["simulation", "database", "index", "collaboration", "workflow"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: BSD License",
     "Topic :: Database",
     "Topic :: Scientific/Engineering :: Physics",
     "Programming Language :: Python :: 3.8",
@@ -46,6 +46,15 @@ dependencies = [
 
 [project.optional-dependencies]
 h5 = ["h5py"]
+doc = [
+    "IPython",
+    "jupyter_client",
+    "nbconvert",
+    "nbsphinx",
+    "sphinx",
+    "sphinx_rtd_theme",
+    "sphinxcontrib-programoutput"
+]
 
 [project.scripts]
 signac = "signac.__main__:main"
@@ -56,6 +65,9 @@ Documentation = "https://signac.readthedocs.io/"
 Download = "https://pypi.org/project/signac/"
 Source = "https://github.com/glotzerlab/signac"
 Issues = "https://github.com/glotzerlab/signac/issues"
+
+[dependency-groups]
+test = ["pytest", "pytest-xdist", "h5py", "numpy", "pandas", "setuptools", "tables"]
 
 [tool.setuptools.packages.find]
 namespaces = false
