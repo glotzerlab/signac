@@ -11,9 +11,15 @@ on:
 
   # trigger on request
   workflow_dispatch:
+
 concurrency:
   group: "${{ github.workflow }}-${{ github.ref }}"
   cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
 jobs:
   test:
     name: test (${{ matrix.os }}, ${{ matrix.python }}
@@ -21,12 +27,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04]
+        os: [ubuntu-26.04]
         python: ['3.11', '3.12', '3.13', '3.14']
         # Unused key to force creation of new entries in the matrix
         default: ['true']
         include:
-          - os: 'macos-14'
+          - os: 'macos-26'
             python: '3.14'
           - os: 'windows-2025'
             python: '3.14'
@@ -36,19 +42,18 @@ jobs:
       uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
       with:
         python-version: ${{ matrix.python }}
-    - name: Set up Python environment
-      uses: glotzerlab/workflows/setup-uv@00c67cb577c36bdc2570845fc62d1a30e3383012 # 0.14.0
+    - name: Install uv
+      uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       with:
-        lockfile: "requirements/requirements-test-all-py${{ matrix.python }}.txt"
+        version: "0.13.6"
+    - name: Sync environment
+      run: uv sync --frozen --no-editable --group test
     - name: Install the package
       run: |
-        uv pip install . --no-build-isolation --no-deps --system -v
+        uv pip install . --no-build-isolation --no-deps -v
     - name: Test with pytest
       run: |
-        pytest --cov=signac --cov-config=pyproject.toml --cov-report=xml tests/ -v
-    - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
+        uv run --frozen pytest tests/ -v
 
   # This job is used to provide a single requirement for branch merge conditions.
   tests_complete:

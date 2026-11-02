@@ -21,20 +21,22 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
       with:
-        python-version: "3.15"
-    - name: Set up Python environment
-      uses: glotzerlab/workflows/setup-uv@00c67cb577c36bdc2570845fc62d1a30e3383012 # 0.14.0
+        python-version: "3.14"
+    - name: Install uv
+      uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       with:
-        lockfile: "requirements/requirements-test-all-py3.14.txt"
+        version: "0.13.6"
+    - name: Sync environment
+      run: uv sync --frozen --no-editable --group test
     - name: Build a binary wheel and a source tarball
       run:
         uv build --sdist --wheel --out-dir dist/ .
     - name: Install wheel
       run:
-        uv pip install signac --system --no-progress --no-index -f dist/
+        uv pip install signac --no-progress --no-index -f dist/
     - name: Test with pytest
       run:
-        python -m pytest -v tests/
+        uv run --frozen python -m pytest -v tests/
     - name: Upload artifact
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
@@ -50,12 +52,12 @@ jobs:
         with:
             name: release
             path: dist/
-      - name: Publish package to TestPyPI
-        if: ${{ inputs.upload_to_test }}
-        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
-        with:
-          repository_url: https://test.pypi.org/legacy/
-          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+      # - name: Publish package to TestPyPI
+      #   if: ${{ inputs.upload_to_test }}
+      #   uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+      #   with:
+      #     repository_url: https://test.pypi.org/legacy/
+      #     password: ${{ secrets.TEST_PYPI_API_TOKEN }}
       - name: Publish package to PyPI
         if: ${{ !inputs.upload_to_test }}
         uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3

@@ -1,9 +1,11 @@
 name: Publish to TestPyPI
 
 on:
+  pull_request:
   push:
     branches:
-      - 'release/*.*.*'
+      - 'main'
+  workflow_dispatch:
 
 concurrency:
   group: "${{ github.workflow }}-${{ github.ref }}"
