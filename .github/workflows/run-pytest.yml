@@ -38,24 +38,25 @@ jobs:
             python: '3.14'
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-    - name: Set up Python ${{ matrix.python }}
-      uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-      with:
-        python-version: ${{ matrix.python }}
+    # - name: Set up Python ${{ matrix.python }}
+    #   uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+    #   with:
+    #     python-version: ${{ matrix.python }}
     - name: Install uv
       uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       with:
         version: "0.13.6"
         activate-environment: "true"
+    - name: Install Python
+      run: uv python install ${{ matrix.python }}
     - name: Sync environment
-      run: uv sync --locked --no-editable --group test
+      run: uv sync --frozen --no-editable --group test
     - name: Install the package
       run: |
         uv pip install . --no-build-isolation --no-deps -v
     - name: Test with pytest
       run: |
-        source .venv/bin/activate
-        pytest tests/ -v
+        uv run --frozen pytest tests/ -v
 
   # This job is used to provide a single requirement for branch merge conditions.
   tests_complete:
