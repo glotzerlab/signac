@@ -126,6 +126,12 @@ class TestBasicShell:
         self.call(["python", "-m", "signac", "job", "--create", '{"a": 0}'])
         assert os.path.isdir(wd_path)
 
+    def test_job_with_workspace_flag(self):
+        self.call("python -m signac init".split())
+        assert os.path.realpath(
+            self.call(["python", "-m", "signac", "job", "--workspace", '{"a": 0}']).strip()
+        ) == os.path.realpath(os.path.join(self.tmpdir.name, "workspace"))
+
     def test_statepoint(self):
         self.call("python -m signac init".split())
         self.call(["python", "-m", "signac", "job", "--create", '{"a": 0}'])
