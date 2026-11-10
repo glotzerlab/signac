@@ -177,7 +177,9 @@ def main_job(args):
     job = project.open_job(statepoint)
     if args.create:
         job.init()
-    if args.path:
+    if args.workspace:
+        print(project.workspace)
+    elif args.path:
         print(job.path)
     else:
         print(job)
