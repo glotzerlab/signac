@@ -14,6 +14,7 @@ Fixed
 +++++
 
 - Removed the last renmant of the `--workspace` command line argument.
+- Prevent malformed ZIP files from writing outside the workspace on import.
 
 [2.4.1] -- 2026-07-22
 ---------------------
