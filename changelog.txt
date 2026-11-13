@@ -7,6 +7,14 @@ The **signac** package follows `semantic versioning <https://semver.org/>`_.
 Version 2
 =========
 
+[2.4.2] -- 2026-11-13
+---------------------
+
+Fixed
++++++
+
+- Removed the last renmant of the `--workspace` command line argument.
+
 [2.4.1] -- 2026-07-22
 ---------------------
 
