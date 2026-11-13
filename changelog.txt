@@ -7,6 +7,15 @@ The **signac** package follows `semantic versioning <https://semver.org/>`_.
 Version 2
 =========
 
+[2.4.2] -- 2026-11-13
+---------------------
+
+Fixed
++++++
+
+- Removed the last renmant of the `--workspace` command line argument (#1166).
+- Prevent malformed ZIP files from writing outside the workspace on import (#1166).
+
 [2.4.1] -- 2026-07-22
 ---------------------
 

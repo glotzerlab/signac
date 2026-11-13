@@ -925,12 +925,6 @@ def main():
         help="The job's state point in JSON format. Omit this argument to read from STDIN.",
     )
     parser_job.add_argument(
-        "-w",
-        "--workspace",
-        action="store_true",
-        help="Print the job's workspace path instead of the job id.",
-    )
-    parser_job.add_argument(
         "-p",
         "--path",
         action="store_true",

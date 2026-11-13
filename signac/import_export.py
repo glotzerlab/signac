@@ -894,7 +894,16 @@ class _CopyFromZipFileExecutor:
         assert copytree is None
 
         for name in self.names:
-            fn_dst = self.job.fn(os.path.relpath(name, self.root))
+            rel = os.path.relpath(name, self.root)
+            if (
+                os.path.isabs(rel)
+                or rel == os.pardir
+                or rel.startswith(os.pardir + os.sep)
+            ):
+                raise ValueError(
+                    f"Refusing to extract {name!r}: path is outside {self.root!r}"
+                )
+            fn_dst = self.job.fn(rel)
             _mkdir_p(os.path.dirname(fn_dst))
             with open(fn_dst, "wb") as dst:
                 dst.write(self.zipfile.read(name))
