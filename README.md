@@ -27,7 +27,7 @@ This makes it easier to operate on large data spaces, streamlines post-processin
 ## Installation
 
 The recommended installation method for **signac** is through **conda** or **pip**.
-The software is tested for Python 3.8+ and is built for all major platforms.
+The software is tested for Python 3.12+ and is built for all major platforms.
 
 To install **signac** *via* the [conda-forge](https://conda-forge.github.io/) channel, execute:
 

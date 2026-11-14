@@ -12,7 +12,7 @@ description = "Manage large and heterogeneous data spaces on the file system."
 readme = "README.md"
 # Supported versions are determined according to NEP 29.
 # https://numpy.org/neps/nep-0029-deprecation_policy.html
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 license = "BSD-3-Clause"
 license-files = ["LICENSE.txt"]
 maintainers = [{ name = "signac Developers", email = "signac-support@umich.edu" }]
@@ -23,10 +23,6 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Topic :: Database",
     "Topic :: Scientific/Engineering :: Physics",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
@@ -74,7 +70,7 @@ namespaces = false
 exclude = ["tests*", "benchmarks*"]
 
 [tool.black]
-target-version = ['py38']
+target-version = ['py312']
 include = '\.pyi?$'
 force-exclude = '''
 (
